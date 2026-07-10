@@ -43,7 +43,7 @@
         hyosungGuideText: '효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.',
         hyosungCountdownMessage: '자동이체를 위해 외부페이지로 이동합니다.',
         hyosungCountdownSeconds: 5,
-        modalTitle: '🎗 후원 동참하기',
+        modalTitle: '후원 동참하기',
         modalSubtitle: '여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.',
       };
       return _policyCache;
@@ -159,8 +159,8 @@
       if (submitBtn) {
         const choice = modal.querySelector('input[name="payMethodChoice"]:checked')?.value;
         submitBtn.textContent = choice === 'hyosung_cms'
-          ? '🏦 효성 CMS+ 등록하러 가기'
-          : '💳 카드 등록하기 (정기 후원)';
+          ? '효성 CMS+ 등록하러 가기'
+          : '카드 등록하기 (정기 후원)';
       }
     } else {
       if (regularBox) regularBox.style.display = 'none';
@@ -173,8 +173,8 @@
 
       if (submitBtn) {
         submitBtn.textContent = onetimeChoice === 'bank_transfer'
-          ? '🏦 계좌이체 신청하기'
-          : '💳 카드·간편결제로 결제하기';
+          ? '계좌이체 신청하기'
+          : '카드·간편결제로 결제하기';
       }
     }
   }
@@ -272,7 +272,7 @@
      A는 approve를 직접 호출하지 않음 */
   async function handleKiccOnetime(opts) {
     const { name, phone, email, amount, isAnonymous, campaignId } = opts;
-    console.log('[Donate] 🟧 KICC 일시 결제 시작', { name, amount, email });
+    console.log('[Donate] KICC 일시 결제 시작', { name, amount, email });
 
     const body = { name, phone, email, amount, type: 'onetime', isAnonymous };
     /* 캠페인 식별자: 폼은 숫자 id만 보유 → 계약 키(campaignTag)에 문자열 id로 매핑.
@@ -318,7 +318,7 @@
     const info = result.data?.bankInfo || {};
     showDonateSuccess(result.data?.donationId || generateLocalId(), {
       title: '계좌이체 신청이 접수되었습니다',
-      icon: '🏦',
+      icon: '',
       message: '아래 계좌로 입금해 주시면<br />확인 후 정상 반영해 드립니다.',
       bankInfo: {
         bank: info.bankName,
@@ -362,16 +362,16 @@
 
   function openHyosungCountdown(url, guideText, seconds) {
     if (_hyosungShowing) {
-      console.warn('[Donate] ⏭ 카운트다운 이미 표시 중');
+      console.warn('[Donate] 카운트다운 이미 표시 중');
       return;
     }
     _hyosungShowing = true;
 
-    console.log('[Donate] 🔵 openHyosungCountdown', { url, seconds });
+    console.log('[Donate] openHyosungCountdown', { url, seconds });
 
     const modal = document.getElementById('hyosungRedirectModal');
     if (!modal) {
-      console.error('[Donate] ❌ 모달 DOM 없음 → 폴백');
+      console.error('[Donate] 모달 DOM 없음 → 폴백');
       _hyosungShowing = false;
       window.SIREN.toast('효성 CMS+ 페이지로 이동합니다...');
       setTimeout(() => { window.location.href = url; }, 1000);
@@ -506,7 +506,7 @@
             const text = `${b.bank} ${b.account} (${b.holder})`;
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(text).then(
-                () => window.SIREN.toast('계좌번호가 복사되었습니다 📋'),
+                () => window.SIREN.toast('계좌번호가 복사되었습니다 '),
                 () => window.SIREN.toast('복사 실패. 직접 선택해 주세요')
               );
             } else {
@@ -522,7 +522,7 @@
     if (step1) step1.classList.remove('active');
     if (step2) step2.classList.add('active');
 
-    window.SIREN.toast(opts.toast || '후원이 완료되었습니다 🎗 감사합니다');
+    window.SIREN.toast(opts.toast || '후원이 완료되었습니다 감사합니다');
 
     if (typeof window.SIREN_REFRESH_MYPAGE === 'function') {
       setTimeout(() => window.SIREN_REFRESH_MYPAGE(), 500);
@@ -592,10 +592,10 @@
       const list = data.data?.list || [];
       if (list.length === 0) { wrap.style.display = 'none'; return; }
 
-      const TYPE_ICON = { fundraising: '💰', memorial: '🎗', awareness: '📣' };
+      const TYPE_ICON = { fundraising: '', memorial: '', awareness: '' };
       select.innerHTML = '<option value="">캠페인 선택 안 함 (일반 후원)</option>' +
         list.map(c => {
-          const icon = TYPE_ICON[c.type] || '🎯';
+          const icon = TYPE_ICON[c.type] || '';
           const pctText = c.progressPercent !== null ? ` (${c.progressPercent}%)` : '';
           const safeTitle = String(c.title || '').replace(/[<>]/g, '');
           return `<option value="${c.id}">${icon} ${safeTitle}${pctText}</option>`;

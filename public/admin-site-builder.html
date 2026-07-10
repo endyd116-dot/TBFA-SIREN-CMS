@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>메인 화면 편집 — SIREN 관리자</title>
@@ -18,15 +19,15 @@
   <header class="sb-topbar">
     <div class="sb-topbar-left">
       <a href="/admin.html" class="sb-back-btn" title="어드민으로 돌아가기">← 어드민</a>
-      <h1 class="sb-title">🎨 메인 화면 편집</h1>
+      <h1 class="sb-title"><span class="siren-icon-wrap" data-icon="palette"></span> 메인 화면 편집</h1>
       <span class="sb-subtitle" id="sbCurrentSection">시작하기</span>
     </div>
     <div class="sb-topbar-right">
       <span class="sb-draft-counter" id="sbDraftCounter" style="display:none">
-        💾 임시저장 <strong id="sbDraftCount">0</strong>건
+        <span class="siren-icon-wrap" data-icon="save"></span> 임시저장 <strong id="sbDraftCount">0</strong>건
       </span>
       <button type="button" class="sb-btn-publish-all" id="sbPublishAllBtn">
-        🚀 모든 변경사항 배포
+        <span class="siren-icon-wrap" data-icon="rocket"></span> 모든 변경사항 배포
       </button>
       <span class="sb-admin-name" id="sbAdminName">-</span>
     </div>
@@ -48,14 +49,14 @@
     <section class="sb-content">
       <div class="sb-content-inner" id="sbContentInner">
         <div class="sb-welcome">
-          <div class="sb-welcome-icon">👋</div>
+          <div class="sb-welcome-icon"><span class="siren-icon-wrap" data-icon="waving-hand"></span></div>
           <h2>메인 화면 편집을 시작하세요</h2>
           <p>좌측에서 편집할 영역을 선택해 주세요.</p>
           <ul class="sb-welcome-tips">
-            <li>📝 모든 변경사항은 <strong>임시저장(Draft)</strong>되어 운영에 즉시 반영되지 않습니다.</li>
-            <li>👁️ 우측 미리보기로 변경 내용을 즉시 확인할 수 있습니다.</li>
-            <li>🚀 검토 후 우측 상단 <strong>"모든 변경사항 배포"</strong>를 눌러야 실제 사이트에 적용됩니다.</li>
-            <li>↩️ 배포 전까지는 언제든 변경사항을 폐기할 수 있습니다.</li>
+            <li><span class="siren-icon-wrap" data-icon="file-pen"></span> 모든 변경사항은 <strong>임시저장(Draft)</strong>되어 운영에 즉시 반영되지 않습니다.</li>
+            <li><span class="siren-icon-wrap" data-icon="eye"></span> 우측 미리보기로 변경 내용을 즉시 확인할 수 있습니다.</li>
+            <li><span class="siren-icon-wrap" data-icon="rocket"></span> 검토 후 우측 상단 <strong>"모든 변경사항 배포"</strong>를 눌러야 실제 사이트에 적용됩니다.</li>
+            <li><span class="siren-icon-wrap" data-icon="undo-2"></span> 배포 전까지는 언제든 변경사항을 폐기할 수 있습니다.</li>
           </ul>
         </div>
       </div>
@@ -65,13 +66,13 @@
     <aside class="sb-preview">
       <div class="sb-preview-toolbar">
         <div class="sb-preview-mode" role="tablist">
-          <button type="button" class="sb-mode-btn active" data-mode="draft" role="tab" aria-selected="true">📝 Draft</button>
-          <button type="button" class="sb-mode-btn" data-mode="live" role="tab" aria-selected="false">🌐 Live</button>
+          <button type="button" class="sb-mode-btn active" data-mode="draft" role="tab" aria-selected="true"><span class="siren-icon-wrap" data-icon="file-pen"></span> Draft</button>
+          <button type="button" class="sb-mode-btn" data-mode="live" role="tab" aria-selected="false"><span class="siren-icon-wrap" data-icon="globe"></span> Live</button>
         </div>
         <div class="sb-preview-device">
-          <button type="button" class="sb-device-btn active" data-device="desktop" title="PC">🖥️</button>
-          <button type="button" class="sb-device-btn" data-device="tablet" title="태블릿">📱</button>
-          <button type="button" class="sb-device-btn" data-device="mobile" title="모바일">📲</button>
+          <button type="button" class="sb-device-btn active" data-device="desktop" title="PC"><span class="siren-icon-wrap" data-icon="monitor"></span></button>
+          <button type="button" class="sb-device-btn" data-device="tablet" title="태블릿"><span class="siren-icon-wrap" data-icon="smartphone"></span></button>
+          <button type="button" class="sb-device-btn" data-device="mobile" title="모바일"><span class="siren-icon-wrap" data-icon="smartphone"></span></button>
         </div>
         <button type="button" class="sb-refresh-btn" id="sbRefreshBtn" title="미리보기 새로고침">↻</button>
       </div>
@@ -94,15 +95,15 @@
   <div id="toast" class="toast"></div>
 
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/admin-stats-edit.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-home-hero.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-home-quickmenu.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-home-sections.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-home-banner.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-home-effects.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-home-brand.js?v=20260603-1"></script>
-  <script src="/js/admin-mypage-cancellation.js?v=2026-05-06-1"></script>
-  <script src="/js/admin-site-builder.js?v=20260603-brand"></script>
+  <script src="/js/common.js?v=20260708-footer"></script>
+  <script src="/js/admin-stats-edit.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-home-hero.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-home-quickmenu.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-home-sections.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-home-banner.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-home-effects.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-home-brand.js?v=20260604-1"></script>
+  <script src="/js/admin-mypage-cancellation.js?v=2027-05-06-1"></script>
+  <script src="/js/admin-site-builder.js?v=20260604-brand"></script>
 </body>
 </html>

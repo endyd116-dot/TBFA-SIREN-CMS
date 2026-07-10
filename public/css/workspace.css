@@ -718,7 +718,7 @@ body.ws-body {
   z-index: 2;
 }
 .ws-memo-card.ws-memo-pinned::before {
-  content: '📌';
+  content: '';
   position: absolute;
   top: -6px;
   right: 6px;

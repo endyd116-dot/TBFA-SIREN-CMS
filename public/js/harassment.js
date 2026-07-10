@@ -51,10 +51,10 @@
 
   function severityInfo(s) {
     const map = {
-      critical: { icon: '🚨', label: 'CRITICAL — 즉시 대응 필요', cls: 'critical' },
-      high:     { icon: '⚠️', label: 'HIGH — 긴급 검토 필요',     cls: 'high' },
-      medium:   { icon: '⚖️', label: 'MEDIUM — 정상 대응',         cls: 'medium' },
-      low:      { icon: '💡', label: 'LOW — 일반 의견',            cls: 'low' },
+      critical: { icon: '', label: 'CRITICAL — 즉시 대응 필요', cls: 'critical' },
+      high:     { icon: '', label: 'HIGH — 긴급 검토 필요',     cls: 'high' },
+      medium:   { icon: '', label: 'MEDIUM — 정상 대응',         cls: 'medium' },
+      low:      { icon: '', label: 'LOW — 일반 의견',            cls: 'low' },
     };
     return map[s] || map.medium;
   }
@@ -200,12 +200,12 @@
     if (skipBtn) skipBtn.disabled = true;
 
     if (skipAi) {
-      if (skipBtn) skipBtn.textContent = '📋 처리 중...';
+      if (skipBtn) skipBtn.textContent = '처리 중...';
     } else {
-      if (submitBtn) submitBtn.textContent = '🤖 AI 분석 중... (최대 10초 소요)';
+      if (submitBtn) submitBtn.textContent = 'AI 분석 중... (최대 10초 소요)';
       const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
       showAiToast(
-        '🤖 AI 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
+        'AI 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
         toastMs
       );
     }
@@ -240,7 +240,7 @@
         const finalIcon = document.getElementById('harassFinalIcon');
         const finalTitle = document.getElementById('harassFinalTitle');
         const finalMsg = document.getElementById('harassFinalMsg');
-        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalIcon) finalIcon.textContent = '';
         if (finalTitle) finalTitle.textContent = '신고가 접수되었습니다';
         if (finalMsg) finalMsg.innerHTML =
           '소중한 신고 감사합니다.<br />' +
@@ -345,7 +345,7 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:19px;font-weight:700;color:#7a1f2b;margin-bottom:14px">' +
-        escapeHtml(notice.title || '🎗 사이렌 후원 회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 후원 회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:20px">' +
         safeMessage +
@@ -385,14 +385,14 @@
       const finalMsg = document.getElementById('harassFinalMsg');
 
       if (requested) {
-        if (finalIcon) finalIcon.textContent = '✅';
+        if (finalIcon) finalIcon.textContent = '';
         if (finalTitle) finalTitle.textContent = '사이렌에 정식 신고되었습니다';
         if (finalMsg) finalMsg.innerHTML =
           '소중한 신고 감사합니다.<br />' +
           '운영진 검토 후 답변을 드리며,<br />' +
           '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.';
       } else {
-        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalIcon) finalIcon.textContent = '';
         if (finalTitle) finalTitle.textContent = 'AI 답변으로 종료 처리되었습니다';
         if (finalMsg) finalMsg.innerHTML =
           '신고 내역이 기록되었습니다.<br />' +

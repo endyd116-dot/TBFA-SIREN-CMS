@@ -513,7 +513,7 @@
     const a = anomalyMap[String(code)];
     if (!a) return '';
     const rate = Math.round(a.rate);
-    return ` <span title="전월 대비 +${rate}% 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 +${rate}%</span>`;
+    return ` <span title="전월 대비 +${rate}% 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">급증 +${rate}%</span>`;
   }
 
   function computeSummary(items) {
@@ -726,7 +726,7 @@
   function renderEditSection(item) {
     return `
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-2)">✏️ 임시저장 항목 수정</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-2)">임시저장 항목 수정</div>
       <div class="form-row">
         <label class="form-label">지출일</label>
         <input type="date" id="expEditDate" class="input" style="width:180px" value="${item.occurredAt ? String(item.occurredAt).slice(0, 10) : ''}">

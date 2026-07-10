@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SUBTYPE_LABEL = { lawyer: '⚖️ 변호사', counselor: '💗 심리상담사' };
+  var SUBTYPE_LABEL = { lawyer: '변호사', counselor: '심리상담사' };
 
   /* ─── 헬퍼 ─── */
   function escapeHtml(s) {
@@ -59,14 +59,14 @@
     page.innerHTML =
       '<div class="panel">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">' +
-          '<h3 style="margin:0">👤 전문가 프로필 관리</h3>' +
+          '<h3 style="margin:0">전문가 프로필 관리</h3>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
             '<select id="profTypeFilter" style="padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px">' +
               '<option value="">전체 유형</option>' +
-              '<option value="lawyer">⚖️ 변호사</option>' +
-              '<option value="counselor">💗 심리상담사</option>' +
+              '<option value="lawyer">변호사</option>' +
+              '<option value="counselor">심리상담사</option>' +
             '</select>' +
-            '<button class="btn-sm btn-sm-ghost" id="btnProfRefresh" type="button">🔄 새로고침</button>' +
+            '<button class="btn-sm btn-sm-ghost" id="btnProfRefresh" type="button">새로고침</button>' +
           '</div>' +
         '</div>' +
         '<table class="tbl">' +
@@ -91,7 +91,7 @@
              'box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">' +
           '<div style="padding:16px 22px;background:var(--ink);color:#fff;' +
                'display:flex;justify-content:space-between;align-items:center">' +
-            '<div style="font-weight:700;font-size:15px">👤 전문가 프로필 수정</div>' +
+            '<div style="font-weight:700;font-size:15px">전문가 프로필 수정</div>' +
             '<button id="btnProfModalClose" style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>' +
           '</div>' +
           '<div style="padding:20px 24px">' +

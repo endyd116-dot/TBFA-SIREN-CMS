@@ -82,24 +82,24 @@
       .concat(members.map(m => {
         const uid = m.id || m.uid;
         const name = m.name || m.email || ('#' + uid);
-        const away = m.outOfOffice ? ' (부재 중 ⚠️)' : '';
+        const away = m.outOfOffice ? ' (부재 중 )' : '';
         const sel = Number(uid) === Number(currentUid) ? ' selected' : '';
         return `<option value="${uid}"${sel}>${escapeHtml(name + away)}</option>`;
       })).join('');
 
     return `
       <div class="srn-modal-section" data-assignee-box style="border:1px solid #e5e7eb;background:#f8fafc;border-radius:8px;padding:12px 14px;margin-bottom:14px">
-        <h5 style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a">📌 담당자</h5>
+        <h5 style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a">담당자</h5>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
           <span>현재: <strong>${escapeHtml(currentName)}</strong></span>
-          ${currentAway ? '<span style="color:#a01e2c">⚠️ 부재 중</span>' : ''}
+          ${currentAway ? '<span style="color:#a01e2c">부재 중</span>' : ''}
           <span data-assignee-backup-info style="color:#64748b;font-size:12.5px"></span>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select data-assignee-select class="wk-input" style="min-width:200px;padding:6px 10px;font-size:13px">${opts}</select>
           <input type="text" data-assignee-reason placeholder="변경 사유 (선택)" class="wk-input" style="flex:1;min-width:200px;padding:6px 10px;font-size:13px">
           <button type="button" data-assignee-save class="btn-sm btn-sm-primary">담당자 변경</button>
-          <button type="button" data-assignee-card class="btn-sm btn-sm-ghost" style="display:none">🔗 원본 카드 보기</button>
+          <button type="button" data-assignee-card class="btn-sm btn-sm-ghost" style="display:none">원본 카드 보기</button>
         </div>
       </div>
     `;
@@ -171,7 +171,7 @@
     fetchBackupInfo(kind, serviceCategory).then(backup => {
       if (backup && backupInfoEl) {
         const bMember = members.find(m => Number(m.id || m.uid) === Number(backup.uid));
-        const bAway = bMember && bMember.outOfOffice ? ' (부재 중 ⚠️)' : '';
+        const bAway = bMember && bMember.outOfOffice ? ' (부재 중 )' : '';
         backupInfoEl.textContent = '백업: ' + (backup.name || ('#' + backup.uid)) + bAway;
       }
     });
@@ -216,7 +216,7 @@
             }
           });
           const opt = sel.options[sel.selectedIndex];
-          const newName = opt ? opt.textContent.replace(/\s\(부재 중 ⚠️\)$/, '') : '담당자';
+          const newName = opt ? opt.textContent.replace(/\s\(부재 중 \)$/, '') : '담당자';
           toast(newName + '님께 인계됐어요', 'success');
           // 모달 본문 새로고침 — admin-siren.js가 직접 갱신하지 않으므로 박스 갱신
           // 카드 모달 동기화를 위해 BroadcastChannel 발신

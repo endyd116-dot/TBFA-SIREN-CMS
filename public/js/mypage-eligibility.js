@@ -7,9 +7,9 @@
 
   const TYPES = ['현직', '은퇴', '예비', '일반'];
   const STATUS_LABEL = {
-    pending: '⏳ 검토 대기',
-    approved: '✅ 승인',
-    rejected: '❌ 반려',
+    pending: '검토 대기',
+    approved: '승인',
+    rejected: '반려',
   };
 
   function escapeHtml(s) {
@@ -74,12 +74,12 @@
     var disabled = state.hasPending ? 'disabled' : '';
     var cur = state.currentType ? '<strong>' + escapeHtml(state.currentType) + '</strong>' : '<span style="color:var(--text-3)">미설정</span>';
     return '' +
-      '<h3 class="serif">🎓 교원 자격 인증 및 변경</h3>' +
+      '<h3 class="serif">교원 자격 인증 및 변경</h3>' +
       '<p class="sub">현직/은퇴/예비/일반 자격을 변경 신청하실 수 있습니다. 자격 증빙 파일(교원 자격증·재직증명서 등)을 첨부해 주시면 빠른 검토가 가능합니다. 신청 후 운영자 검토를 거쳐 결과를 알려드립니다.</p>' +
       '<div class="panel" style="margin-bottom:14px">' +
         '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">' +
           '<div><span style="color:var(--text-3);font-size:13px">현재 자격</span> ' + cur + '</div>' +
-          (state.hasPending ? '<span style="background:#fef3c7;color:#92400e;border-radius:14px;padding:4px 10px;font-size:12px">⏳ 검토 대기 중인 신청이 있습니다</span>' : '') +
+          (state.hasPending ? '<span style="background:#fef3c7;color:#92400e;border-radius:14px;padding:4px 10px;font-size:12px">검토 대기 중인 신청이 있습니다</span>' : '') +
         '</div>' +
       '</div>' +
 
@@ -113,7 +113,7 @@
       '</form>' +
 
       '<div style="margin-top:20px">' +
-        '<h4 style="margin:0 0 6px;font-size:14px">📋 신청 이력</h4>' +
+        '<h4 style="margin:0 0 6px;font-size:14px">신청 이력</h4>' +
         renderHistory(state.items) +
       '</div>';
   }
@@ -159,7 +159,7 @@
 
     /* 크기 검증 — 10MB */
     if (file.size > 10 * 1024 * 1024) {
-      if (statusEl) { statusEl.textContent = '❌ 10MB 이하만 가능합니다'; statusEl.style.color = 'var(--danger)'; }
+      if (statusEl) { statusEl.textContent = '10MB 이하만 가능합니다'; statusEl.style.color = 'var(--danger)'; }
       fileInput.value = '';
       if (blobIdInput) blobIdInput.value = '';
       return;
@@ -188,12 +188,12 @@
       }
       if (blobIdInput) blobIdInput.value = String(blobId);
       if (statusEl) {
-        statusEl.textContent = '✅ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + 'KB)';
+        statusEl.textContent = '' + file.name + ' (' + (file.size / 1024).toFixed(1) + 'KB)';
         statusEl.style.color = 'var(--success, #16a34a)';
       }
     } catch (err) {
       if (statusEl) {
-        statusEl.textContent = '❌ 업로드 실패: ' + (err.message || '오류');
+        statusEl.textContent = '업로드 실패: ' + (err.message || '오류');
         statusEl.style.color = 'var(--danger)';
       }
       fileInput.value = '';

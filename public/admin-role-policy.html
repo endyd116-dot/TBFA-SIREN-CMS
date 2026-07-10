@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>권한 정책 관리 — SIREN</title>
@@ -156,12 +157,12 @@
 </head>
 <body>
 
-  <h2>🔐 권한 정책 관리</h2>
+  <h2><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 권한 정책 관리</h2>
   <p class="page-desc">3단 권한 체계(super_admin / admin / operator) 정의, 운영자 역할 현황 및 역할 부여·회수를 관리합니다.</p>
 
   <!-- ★ R35-GAP-P1-B-H2: milestone:* 토글 효과 안내 (사일런트 실패 차단) -->
   <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#854d0e;display:flex;gap:10px;align-items:flex-start">
-    <span style="font-size:18px;flex-shrink:0">💡</span>
+    <span style="font-size:18px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="lightbulb"></span></span>
     <div>
       <strong>milestone:* 권한 토글은 현재 표시용입니다.</strong><br>
       성과 관리 API는 super_admin·admin 역할 + 본인 milestoneRole 기준으로 동작합니다. 세분 권한 토글의 실제 적용은 후속 라운드(Phase 23 또는 별도) 예정.
@@ -171,7 +172,7 @@
   <!-- ── 1. 권한 매트릭스 (편집 가능 — super_admin 전용) ── -->
   <div class="card">
     <div class="card-title">
-      📋 권한 매트릭스
+      <span class="siren-icon-wrap" data-icon="clipboard-list"></span> 권한 매트릭스
       <span id="matrixEditNote" style="font-size:11px;font-weight:400;color:#9ca3af">불러오는 중...</span>
     </div>
 
@@ -197,7 +198,7 @@
 
   <!-- ── 2. 운영자 현황 ── -->
   <div class="card">
-    <div class="card-title">👨‍💼 운영자 현황</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="user"></span> 운영자 현황</div>
     <div class="kpi-row">
       <div class="kpi-card"><div class="kpi-label">전체 운영자</div><div class="kpi-value" id="kpiTotal">-</div></div>
       <div class="kpi-card"><div class="kpi-label">슈퍼 관리자</div><div class="kpi-value" id="kpiSuper">-</div></div>
@@ -223,7 +224,7 @@
 
   <!-- ── 3. 역할 부여 (super_admin 전용) ── -->
   <div class="card super-only-card" id="promoteCard">
-    <div class="card-title">➕ 운영자 역할 부여 <span style="font-size:11px;font-weight:400;color:#9ca3af">(super_admin 전용 — 일반 회원 → 운영자 승급)</span></div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="plus"></span> 운영자 역할 부여 <span style="font-size:11px;font-weight:400;color:#9ca3af">(super_admin 전용 — 일반 회원 → 운영자 승급)</span></div>
     <p style="font-size:12.5px;color:#6b7280;margin-bottom:14px;line-height:1.6">
       이름 또는 이메일로 회원을 검색한 뒤 역할을 선택해 운영자로 지정하세요.<br>
       승급된 회원은 즉시 어드민 백오피스에 접근할 수 있습니다.
@@ -238,7 +239,7 @@
   <!-- 강등 확인 모달 -->
   <div class="modal-overlay" id="demoteModal">
     <div class="modal-box">
-      <div class="modal-title">⚠️ 운영자 강등 확인</div>
+      <div class="modal-title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 운영자 강등 확인</div>
       <div class="modal-desc" id="demoteModalDesc"></div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeDemoteModal()">취소</button>
@@ -250,7 +251,7 @@
   <!-- 직원 정보 수정 모달 -->
   <div class="modal-overlay" id="editInfoModal">
     <div class="modal-box">
-      <div class="modal-title">✏️ 직원 정보 수정</div>
+      <div class="modal-title"><span class="siren-icon-wrap" data-icon="pencil"></span> 직원 정보 수정</div>
       <div style="display:flex;flex-direction:column;gap:12px;margin:14px 0;text-align:left">
         <label style="font-size:13px;font-weight:600;color:#374151">이름
           <input type="text" id="editName" maxlength="50" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;box-sizing:border-box">
@@ -363,9 +364,9 @@
 
         const actionCell = isSuperAdmin
           ? `<td>
-              <button class="btn btn-edit" onclick="openEditInfo(${op.id})">✏ 정보</button>
-              <button class="btn btn-toggle" onclick="toggleActive(${op.id}, ${!!op.operatorActive})">${op.operatorActive !== false ? '⏸ 비활성' : '▶ 활성'}</button>
-              <button class="btn btn-demote" onclick="confirmDemote(${op.id}, '${esc(op.name)}')">🔻 강등</button>
+              <button class="btn btn-edit" onclick="openEditInfo(${op.id})">정보</button>
+              <button class="btn btn-toggle" onclick="toggleActive(${op.id}, ${!!op.operatorActive})">${op.operatorActive !== false ? '비활성' : '활성'}</button>
+              <button class="btn btn-demote" onclick="confirmDemote(${op.id}, '${esc(op.name)}')">강등</button>
             </td>`
           : '';
 
@@ -548,14 +549,14 @@
 
     /* 카테고리 라벨·순서 (lib/permission-catalog.ts와 동일하게 유지) — 미지정 카테고리는 키 그대로 뒤에 붙음 */
     var _CATEGORY_LABELS = {
-      siren:   '🔴 SIREN 서비스',
-      content: '📚 콘텐츠 편집',
-      finance: '📊 재정',
-      send:    '📨 알림·발송',
-      ai:      '🤖 AI',
-      ops:     '🛎 운영 관리',
-      cms:     '📦 통합 CMS·기타',
-      sso:     '🔗 SSO 위성앱',
+      siren:   'SIREN 서비스',
+      content: '콘텐츠 편집',
+      finance: '재정',
+      send:    '알림·발송',
+      ai:      'AI',
+      ops:     '운영 관리',
+      cms:     '통합 CMS·기타',
+      sso:     'SSO 위성앱',
     };
     var _CATEGORY_ORDER = ['siren', 'content', 'finance', 'send', 'ai', 'ops', 'cms', 'sso'];
 

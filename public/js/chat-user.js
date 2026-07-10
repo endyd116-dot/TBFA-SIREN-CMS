@@ -8,10 +8,10 @@
 
   const POLL_INTERVAL = 5000; // 5초
   const CATEGORY_LABEL = {
-    support_donation: { emoji: '💝', label: '후원 문의', cls: 'cat-donation' },
-    support_homepage: { emoji: '🌐', label: '홈페이지', cls: 'cat-homepage' },
-    support_signup:   { emoji: '📝', label: '가입 절차', cls: 'cat-signup' },
-    support_other:    { emoji: '💬', label: '기타',     cls: 'cat-other' },
+    support_donation: { emoji: '', label: '후원 문의', cls: 'cat-donation' },
+    support_homepage: { emoji: '', label: '홈페이지', cls: 'cat-homepage' },
+    support_signup:   { emoji: '', label: '가입 절차', cls: 'cat-signup' },
+    support_other:    { emoji: '', label: '기타',     cls: 'cat-other' },
   };
 
   let _chatInitDone = false;
@@ -75,7 +75,7 @@
     overlay.className = 'lightbox-overlay';
     overlay.innerHTML = `
       <div class="lightbox-controls">
-        <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드">💾</button>
+        <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드"></button>
         <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">✕</button>
       </div>
       <img class="lightbox-img" src="/api/chat/image?id=${encodeURIComponent(attId)}" alt="${safeName}" />
@@ -143,7 +143,7 @@
     const container = document.getElementById('chatRoomsList');
     if (!container) return;
 
-    container.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">⏳ 로딩 중...</div>';
+    container.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">로딩 중...</div>';
 
     const res = await api('/api/chat/mine');
     if (!res.ok) {
@@ -158,7 +158,7 @@
     if (_isBlacklisted) {
       blackBanner = `
         <div style="background:#fdecec;border:1px solid #f5b5bb;border-radius:8px;padding:14px 18px;margin-bottom:14px">
-          <div style="font-weight:700;color:#a01e2c;font-size:13.5px;margin-bottom:4px">⚠️ 채팅 이용이 제한된 상태입니다</div>
+          <div style="font-weight:700;color:#a01e2c;font-size:13.5px;margin-bottom:4px">채팅 이용이 제한된 상태입니다</div>
           <div style="font-size:12.5px;color:var(--text-2);line-height:1.6">사유: ${escapeHtml(_isBlacklisted.reason)}</div>
         </div>`;
     }
@@ -358,7 +358,7 @@
 
     if (messages.length === 0 && isInitial) {
       const msgsEl = document.getElementById('chatMessages');
-      if (msgsEl) msgsEl.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">대화를 시작해 보세요 💬</div>';
+      if (msgsEl) msgsEl.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">대화를 시작해 보세요 </div>';
       return;
     }
 
@@ -422,7 +422,7 @@
       _renderedMsgIds.add(m.id);
 
       if (m.isSystem || m.senderRole === 'system' || m.messageType === 'system_notice') {
-        return `<div class="msg-row system"><div class="msg-bubble">📢 ${escapeHtml(m.content || '')}</div></div>`;
+        return `<div class="msg-row system"><div class="msg-bubble">${escapeHtml(m.content || '')}</div></div>`;
       }
       const isMine = m.senderId === myUid;
       const time = formatTime(m.createdAt);
@@ -480,7 +480,7 @@
         return;
       }
 
-      SIREN.toast('⏳ 이미지 처리 중...');
+      SIREN.toast('이미지 처리 중...');
 
       try {
         const compressed = await compressImage(file, 1200, 0.75);
@@ -686,8 +686,8 @@
       menu.style.left = (rect.left + window.scrollX - 60) + 'px';
 
       menu.innerHTML = `
-        <button type="button" data-msg-edit="${msgId}" ${editable ? '' : 'disabled style="color:#cbd5e1"'} style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:${editable ? 'pointer' : 'not-allowed'};font-size:13px">✏️ 수정${editable ? '' : ' (5분 초과)'}</button>
-        <button type="button" data-msg-delete="${msgId}" style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:pointer;font-size:13px;color:#dc2626">🗑 삭제</button>
+        <button type="button" data-msg-edit="${msgId}" ${editable ? '' : 'disabled style="color:#cbd5e1"'} style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:${editable ? 'pointer' : 'not-allowed'};font-size:13px">수정${editable ? '' : ' (5분 초과)'}</button>
+        <button type="button" data-msg-delete="${msgId}" style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:pointer;font-size:13px;color:#dc2626">삭제</button>
       `;
       menu.dataset.msgOriginal = original;
       document.body.appendChild(menu);
@@ -830,7 +830,7 @@
       searchToggle.title = '메시지 검색';
       searchToggle.setAttribute('aria-label', '메시지 검색');
       searchToggle.style.cssText = 'background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-3,#94a3b8);padding:4px 6px;margin-right:4px';
-      searchToggle.textContent = '🔍';
+      searchToggle.textContent = '';
       const closeBtn = header.querySelector('[data-chat-close]');
       if (closeBtn) header.insertBefore(searchToggle, closeBtn);
       else header.appendChild(searchToggle);

@@ -52,7 +52,7 @@
           'gap:10px',
         ].join(';');
         banner.innerHTML = ''
-          + '<span style="font-size:20px;flex-shrink:0">🔒</span>'
+          + '<span style="font-size:20px;flex-shrink:0"></span>'
           + '<div style="flex:1;min-width:0">'
           +   '<strong>신청을 위해 로그인이 필요합니다</strong><br />'
           +   '<span style="color:#86868b">미리 내용을 입력하신 후, 제출 시점에 로그인하시면 작성 내용이 유지됩니다.</span>'
@@ -81,7 +81,7 @@
       }
 
       const listEl = document.getElementById('supportFileList');
-      if (listEl) listEl.innerHTML = `<span style="color:var(--brand)">⏳ 업로드 중... ${escapeHtml(file.name)}</span>`;
+      if (listEl) listEl.innerHTML = `<span style="color:var(--brand)">업로드 중... ${escapeHtml(file.name)}</span>`;
 
       try {
         const fd = new FormData();
@@ -131,7 +131,7 @@
     }
     listEl.innerHTML = uploadedFiles.map(f => `
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-soft);border-radius:6px;margin-bottom:4px;font-size:12.5px">
-        <span style="flex:1">📎 ${escapeHtml(f.originalName)} <span style="color:var(--text-3)">(${formatSize(f.size)})</span></span>
+        <span style="flex:1">${escapeHtml(f.originalName)} <span style="color:var(--text-3)">(${formatSize(f.size)})</span></span>
         <button data-remove-file="${escapeHtml(f.key)}" style="color:var(--danger);font-size:11px;padding:2px 8px;border:none;background:transparent;cursor:pointer">삭제</button>
       </div>
     `).join('');

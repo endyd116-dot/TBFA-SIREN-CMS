@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>일시적인 오류가 발생했습니다 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -115,7 +116,7 @@
   <main>
     <div class="err-wrap">
       <div class="err-card">
-        <div class="err-icon">⚠️</div>
+        <div class="err-icon"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></div>
         <h1 class="err-code">500</h1>
         <h2 class="err-title">일시적인 오류가 발생했습니다</h2>
         <p class="err-message">
@@ -124,7 +125,7 @@
         </p>
 
         <div class="err-info-box">
-          <strong>📞 긴급 문의</strong><br />
+          <strong><span class="siren-icon-wrap" data-icon="phone"></span> 긴급 문의</strong><br />
           • 이메일: <strong>contact@siren-org.kr</strong><br />
           • 전화: <strong>02-0000-0000</strong> (평일 09:30 ~ 18:00)<br />
           • 협회는 사용자의 정보를 안전하게 보호하고 있으며,<br />
@@ -132,8 +133,8 @@
         </div>
 
         <div class="err-actions">
-          <button onclick="location.reload()" class="primary">🔄 다시 시도</button>
-          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+          <button onclick="location.reload()" class="primary"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 다시 시도</button>
+          <a href="/index.html" class="ghost"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
     </div>
@@ -141,6 +142,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
+  <script src="/js/common.js?v=2"></script>
 </body>
 </html>

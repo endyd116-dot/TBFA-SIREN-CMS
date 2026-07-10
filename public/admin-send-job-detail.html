@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>발송 상세 | SIREN 어드민</title>
@@ -153,7 +154,7 @@ body {
 
   <!-- 작업 정보 -->
   <div class="card">
-    <div class="card-title">📋 작업 정보</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 작업 정보</div>
     <div id="infoBox">
       <div class="empty-state">불러오는 중…</div>
     </div>
@@ -162,7 +163,7 @@ body {
   <!-- 진행률 -->
   <div class="card">
     <div class="card-title">
-      📊 진행률
+      <span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 진행률
       <span id="liveDot" class="live-dot" style="display:none;"></span>
     </div>
 
@@ -216,7 +217,7 @@ body {
 
   <!-- 수신자 목록 -->
   <div class="card">
-    <div class="card-title">📨 수신자 목록</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="mail"></span> 수신자 목록</div>
 
     <!-- ★ 2026-05-17: pending 상태일 때 미리보기 안내 배너 (recipients API 응답 isPreview=true) -->
     <div id="recPreviewBanner"></div>
@@ -259,6 +260,6 @@ body {
 <div id="toast" class="toast"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-send-job-detail.js?v=20260625preparing"></script>
+<script src="/js/admin-send-job-detail.js?v=20260626preparing"></script>
 </body>
 </html>

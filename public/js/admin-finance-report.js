@@ -73,7 +73,7 @@
     const a = anomalyMap[String(code)];
     if (!a) return '';
     const rateText = (a.rate == null) ? '신규' : `+${Math.round(a.rate)}%`;
-    return ` <span class="print-hide" title="전월 대비 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 ${rateText}</span>`;
+    return ` <span class="print-hide" title="전월 대비 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">급증 ${rateText}</span>`;
   }
 
   /* ── 보고서 머리말 ── */
@@ -181,9 +181,9 @@
       ${reportHeaderHtml('운영성과표', pl.__periodLabel)}
 
       <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a5ec4;line-height:1.6">
-        💡 <strong>운영성과표 = 수익(승인·완료된 거래) − 비용(승인된 지출)</strong>.
+        <strong>운영성과표 = 수익(승인·완료된 거래) − 비용(승인된 지출)</strong>.
         후원·후원 외 매출·지출의 상태가 <strong>"승인"</strong> 인 행만 집계됩니다.
-        직접 계좌이체로 신청만 하고 입금 확인 안 된 건(<code>pending_bank</code>)은 매출로 잡히지 않습니다 — [📥 입금 매칭·통과]에서 통과 처리해야 합산됩니다.
+        직접 계좌이체로 신청만 하고 입금 확인 안 된 건(<code>pending_bank</code>)은 매출로 잡히지 않습니다 — [입금 매칭·통과]에서 통과 처리해야 합산됩니다.
       </div>
 
       <table class="data-table report-table fr-statement" style="width:100%">
@@ -264,7 +264,7 @@
       pane.innerHTML = `
         ${reportHeaderHtml('예산 대비 실적표', fiscalLabel)}
         <div class="fr-noplan">
-          <div style="font-size:32px;margin-bottom:8px">📋</div>
+          <div style="font-size:32px;margin-bottom:8px"></div>
           <div style="font-weight:700;margin-bottom:6px">승인된 예산안이 없습니다</div>
           <div style="color:var(--text-3)">${bd.message || `${bd.year}년도 예산안을 편성·승인 후 집행률 확인이 가능합니다.`}</div>
         </div>
@@ -299,8 +299,8 @@
       ${reportHeaderHtml('예산 대비 실적표', fiscalLabel + planTitle)}
 
       <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a5ec4;line-height:1.6">
-        💡 <strong>예산 = "승인" 상태 예산서</strong>의 항목별 계획 / <strong>실적 = "승인" 상태 지출</strong>의 발생액.
-        예산서가 "작성중·검토중" 상태면 이 표에 안 나타납니다 — [📋 예산 관리]에서 결재 진행 → 승인까지 완료해야 반영됩니다.
+        <strong>예산 = "승인" 상태 예산서</strong>의 항목별 계획 / <strong>실적 = "승인" 상태 지출</strong>의 발생액.
+        예산서가 "작성중·검토중" 상태면 이 표에 안 나타납니다 — [예산 관리]에서 결재 진행 → 승인까지 완료해야 반영됩니다.
       </div>
 
       <table class="data-table report-table fr-statement" style="width:100%">
@@ -368,10 +368,10 @@
       ${reportHeaderHtml('재정상태표', `${asOf} 기준`)}
 
       <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7d5400;line-height:1.6">
-        ⚠️ <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
+        <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
         후원·후원외 매출·지출 입력값이 아니라 실제 통장의 잔액 변동만 반영하므로,
         IBK CSV를 한 번도 업로드하지 않았다면 자산이 0으로 표시됩니다.
-        [📥 입금 매칭·통과 → 자료 업로드·통과]에서 IBK 거래내역 CSV를 통과 처리해야 채워집니다.
+        [입금 매칭·통과 → 자료 업로드·통과]에서 IBK 거래내역 CSV를 통과 처리해야 채워집니다.
       </div>
 
       <table class="data-table report-table fr-statement" style="width:100%">
@@ -475,7 +475,7 @@
       ${reportHeaderHtml('현금흐름표', cf.__periodLabel)}
 
       <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7d5400;line-height:1.6">
-        ⚠️ <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
+        <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
         기초·기말 잔액과 입출금은 IBK CSV 거래만 반영하므로, 통장 거래내역을 통과 처리해야 채워집니다.
         후원·후원외 매출·지출 입력값은 별도 — 운영성과표(손익)에서 확인하세요.
       </div>
@@ -825,18 +825,18 @@
           <div class="p-actions" style="gap:8px;flex-wrap:wrap">
             ${frPeriodSelectorHtml()}
             <button class="btn-sm btn-sm-primary" onclick="window.SIREN_FINANCE_REPORT.load()">조회</button>
-            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.printReport()">🖨 인쇄</button>
-            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportExcel()">📊 엑셀</button>
-            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportPdf()">📄 PDF</button>
+            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.printReport()">인쇄</button>
+            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportExcel()">엑셀</button>
+            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportPdf()">PDF</button>
           </div>
         </div>
 
         <!-- 탭 -->
         <div class="content-tabs print-hide" style="margin-bottom:20px">
-          <button type="button" class="ct-tab on" id="frTab-pl"       onclick="window.SIREN_FINANCE_REPORT.switchTab('pl')">📊 운영성과표</button>
-          <button type="button" class="ct-tab"    id="frTab-budget"   onclick="window.SIREN_FINANCE_REPORT.switchTab('budget')">📋 예산 대비 실적표</button>
-          <button type="button" class="ct-tab"    id="frTab-balance"  onclick="window.SIREN_FINANCE_REPORT.switchTab('balance')">🏦 재정상태표</button>
-          <button type="button" class="ct-tab"    id="frTab-cashflow" onclick="window.SIREN_FINANCE_REPORT.switchTab('cashflow')">💵 현금흐름표</button>
+          <button type="button" class="ct-tab on" id="frTab-pl"       onclick="window.SIREN_FINANCE_REPORT.switchTab('pl')">운영성과표</button>
+          <button type="button" class="ct-tab"    id="frTab-budget"   onclick="window.SIREN_FINANCE_REPORT.switchTab('budget')">예산 대비 실적표</button>
+          <button type="button" class="ct-tab"    id="frTab-balance"  onclick="window.SIREN_FINANCE_REPORT.switchTab('balance')">재정상태표</button>
+          <button type="button" class="ct-tab"    id="frTab-cashflow" onclick="window.SIREN_FINANCE_REPORT.switchTab('cashflow')">현금흐름표</button>
         </div>
 
         <!-- 탭1: 운영성과표 -->

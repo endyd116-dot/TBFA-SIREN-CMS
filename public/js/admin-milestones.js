@@ -123,7 +123,7 @@ function _defRow(d, _roleLabel) {
     <td>
       <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="openDefEdit(${d.id})">수정</button>
       <button class="ms-btn ${active ? 'ms-btn-danger' : 'ms-btn-primary'} ms-btn-sm" style="margin-left:4px" onclick="toggleDefActive(${d.id})">${active ? '비활성화' : '활성화'}</button>
-      <button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px;color:#dc2626" title="영구 삭제 (이력 없을 때만)" onclick="deleteDefHard(${d.id})">🗑 삭제</button>
+      <button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px;color:#dc2626" title="영구 삭제 (이력 없을 때만)" onclick="deleteDefHard(${d.id})">삭제</button>
     </td>
   </tr>`;
 }
@@ -336,7 +336,7 @@ async function deleteDef(id) {
   loadDefs();
 }
 
-/* ───── 🤖 매트릭스 AI 매핑 (③) ───── */
+/* ───── 매트릭스 AI 매핑 (③) ───── */
 AM.matrix = { candidates: [], orphans: [] };
 
 function mxCatLabel(c) { return c === 'REVENUE_LINKED' ? '매출연동' : c === 'NON_REVENUE' ? '비매출' : c; }
@@ -390,7 +390,7 @@ async function runMatrixParse() {
   } catch (e) {
     amToast('분석 실패: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = '🔍 분석';
+    btn.disabled = false; btn.textContent = '분석';
   }
 }
 
@@ -406,7 +406,7 @@ function mxCandCard(c) {
   if (isUpdate) {
     const m = c.matchExisting || {};
     identity = `<div style="font-size:11.5px;color:#6b7280;margin-bottom:6px">
-      🔁 기존 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">${escHtmlAm(m.code || '')}</code> 수정
+      기존 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">${escHtmlAm(m.code || '')}</code> 수정
       · 역할 ${escHtmlAm(m.role || '')} · ${mxCatLabel(m.category)}
       <span style="color:#9ca3af">(역할·카테고리·코드는 변경 안 됨)</span></div>
       ${m.bonusFormula ? `<div style="font-size:11px;color:#9ca3af;margin-bottom:6px">기존 공식: <code>${escHtmlAm(JSON.stringify(m.bonusFormula))}</code></div>` : ''}`;
@@ -427,7 +427,7 @@ function mxCandCard(c) {
       <strong style="font-size:13.5px">${escHtmlAm(c.name || '(이름 없음)')}</strong>
       ${mxConfBadge(c.confidence)}${flagsHtml}
     </label>
-    ${c.reason ? `<div style="font-size:11.5px;color:#9ca3af;margin-bottom:6px">💬 ${escHtmlAm(c.reason)}</div>` : ''}
+    ${c.reason ? `<div style="font-size:11.5px;color:#9ca3af;margin-bottom:6px">${escHtmlAm(c.reason)}</div>` : ''}
     ${identity}
     <div class="form-group" style="margin-bottom:6px"><label>이름</label><input data-f="name" value="${escHtmlAm(c.name || '')}" maxlength="200"></div>
     <div class="form-group" style="margin-bottom:6px"><label>인센티브 공식 (JSON)</label>
@@ -470,7 +470,7 @@ function renderMatrixReview(d) {
   if (warnEl) {
     const warning = s.warning || null;
     if (warning) {
-      warnEl.innerHTML = `<span style="font-size:14px;margin-right:6px">⚠️</span>${escHtmlAm(warning)}`;
+      warnEl.innerHTML = `<span style="font-size:14px;margin-right:6px"></span>${escHtmlAm(warning)}`;
       warnEl.style.display = 'flex';
     } else {
       warnEl.style.display = 'none';
@@ -478,7 +478,7 @@ function renderMatrixReview(d) {
   }
 
   document.getElementById('matrixSummary').innerHTML =
-    `📊 추출 <strong>${cands.length}</strong>건 · 자동선택(신규) <strong>${auto.length}</strong> · 충돌(수정) <strong>${updates.length}</strong> · 검토필요 <strong>${review.length}</strong> · 변경없음 ${keeps.length} · 삭제후보 <strong>${orphans.length}</strong>`
+    `추출 <strong>${cands.length}</strong>건 · 자동선택(신규) <strong>${auto.length}</strong> · 충돌(수정) <strong>${updates.length}</strong> · 검토필요 <strong>${review.length}</strong> · 변경없음 ${keeps.length} · 삭제후보 <strong>${orphans.length}</strong>`
     + `<br><span style="font-size:11.5px;color:#3b82f6">체크된 항목만 적용됩니다. 모든 값은 적용 전 수정 가능. 역할·카테고리는 기존 정의 수정 시 변경되지 않습니다.</span>`;
 
   const sec = (title, color, items) => items.length
@@ -486,19 +486,19 @@ function renderMatrixReview(d) {
     : '';
 
   let html = '';
-  html += sec('✅ 자동 적용 — 고신뢰·충돌 없는 신규', '#15803d', auto);
-  html += sec('⚠️ 충돌 — 기존 정의 수정', '#a16207', updates);
-  html += sec('🔍 검토 필요 — 저신뢰·역할 미확인', '#dc2626', review);
+  html += sec('자동 적용 — 고신뢰·충돌 없는 신규', '#15803d', auto);
+  html += sec('충돌 — 기존 정의 수정', '#a16207', updates);
+  html += sec('검토 필요 — 저신뢰·역할 미확인', '#dc2626', review);
 
   // 변경 없음
   if (keeps.length) {
-    html += `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#6b7280">⏸ 변경 없음 (${keeps.length})</div>`;
+    html += `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#6b7280">변경 없음 (${keeps.length})</div>`;
     html += keeps.map(c => `<div style="font-size:12.5px;color:#9ca3af;padding:4px 8px">• ${escHtmlAm(c.name)} <span style="font-size:11px">(기존과 동일)</span></div>`).join('');
   }
 
   // 삭제 후보 (orphans) — 기본 미선택(유지)
   if (orphans.length) {
-    html += `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#dc2626">🗑 삭제 후보 — 새 매트릭스에 없는 기존 정의 (${orphans.length})</div>`;
+    html += `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#dc2626">삭제 후보 — 새 매트릭스에 없는 기존 정의 (${orphans.length})</div>`;
     html += `<div style="font-size:11.5px;color:#9ca3af;margin-bottom:6px">체크하면 비활성화(소프트삭제)됩니다. 기본은 유지입니다.</div>`;
     html += orphans.map(o => `<label class="mx-orphan" data-id="${o.id}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid #fee2e2;border-radius:6px;margin-bottom:5px;font-size:12.5px;cursor:pointer">
       <input type="checkbox" class="mx-orphan-del" style="width:auto">
@@ -727,7 +727,7 @@ function renderSettlements(list) {
             <td>
               ${s.status === 'SUBMITTED' || s.status === 'REVIEWED' ? `
                 <button class="ms-btn ms-btn-primary ms-btn-sm" onclick="approveSettlement(${s.id})">승인</button>
-                <button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa" onclick="holdSettlement(${s.id})">⏸ 보류</button>
+                <button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa" onclick="holdSettlement(${s.id})">보류</button>
                 <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rejectSettlement(${s.id})">반려</button>
               ` : ''}
               ${s.status === 'HOLD' ? `
@@ -772,7 +772,7 @@ document.getElementById('btnExportSalary')?.addEventListener('click', async () =
     URL.revokeObjectURL(a.href);
     amToast('CSV 다운로드 완료', 'success');
   } catch (e) { amToast('내보내기 실패: ' + e.message, 'error'); }
-  finally { if (btn) btn.textContent = '📥 급여 내보내기'; }
+  finally { if (btn) btn.textContent = '급여 내보내기'; }
 });
 
 /* ───── AI 인사이트 ───── */
@@ -1536,7 +1536,7 @@ function rvRender() {
           const rangeMax = Number(formula.maxAmount ?? formula.max ?? 0);
           const evidence = Array.isArray(e.evidenceFiles) ? e.evidenceFiles : [];
           const evidenceHtml = evidence.length
-            ? evidence.map(f => `<a href="${escHtmlAm(f.url || f)}" target="_blank" style="font-size:11.5px;margin-right:6px">📎${escHtmlAm(f.name || '파일')}</a>`).join('')
+            ? evidence.map(f => `<a href="${escHtmlAm(f.url || f)}" target="_blank" style="font-size:11.5px;margin-right:6px">${escHtmlAm(f.name || '파일')}</a>`).join('')
             : '<span style="color:#9ca3af;font-size:11.5px">없음</span>';
           let actions;
           if (e.status === 'PENDING') {
@@ -1548,7 +1548,7 @@ function rvRender() {
                 <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rvReject(${e.id})">반려</button>`;
             } else {
               actions = `
-                <button class="ms-btn ms-btn-primary ms-btn-sm" onclick="rvVerify(${e.id})">✅ 승인</button>
+                <button class="ms-btn ms-btn-primary ms-btn-sm" onclick="rvVerify(${e.id})">승인</button>
                 <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rvReject(${e.id})">반려</button>`;
             }
           } else if (e.status === 'REJECTED' && e.rejectReason) {

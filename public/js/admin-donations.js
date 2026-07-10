@@ -107,8 +107,8 @@
         <div class="p-head">
           <div class="p-title">결제 내역</div>
           <div class="p-actions">
-            <button class="btn-sm btn-sm-ghost" id="dmBtnExportDonations" type="button">📥 수납내역 엑셀 내보내기</button>
-            <button class="btn-sm btn-sm-primary" data-dm-action="bulk-receipt" type="button">📄 영수증 일괄 발행</button>
+            <button class="btn-sm btn-sm-ghost" id="dmBtnExportDonations" type="button">수납내역 엑셀 내보내기</button>
+            <button class="btn-sm btn-sm-primary" data-dm-action="bulk-receipt" type="button">영수증 일괄 발행</button>
           </div>
         </div>
 
@@ -126,7 +126,7 @@
             <option value="cancelled">취소</option>
             <option value="refunded">환불</option>
           </select>
-          <input type="search" id="dmFilterQ" placeholder="🔍 이름·이메일·승인번호·영수증번호 검색 (2자 이상)">
+          <input type="search" id="dmFilterQ" placeholder="이름·이메일·승인번호·영수증번호 검색 (2자 이상)">
           <span class="dm-count" id="dmCount">—</span>
         </div>
 
@@ -142,7 +142,7 @@
       <div id="donationDetailModal" class="modal-bg">
         <div class="modal modal-lg" style="max-width:680px;padding:28px">
           <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-            <h3 class="serif" style="margin:0;font-size:18px">💝 후원 상세</h3>
+            <h3 class="serif" style="margin:0;font-size:18px">후원 상세</h3>
             <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
           </div>
           <div class="modal-body" id="donationDetailBody">
@@ -155,12 +155,12 @@
       <div id="refundReasonModal" class="modal-bg">
         <div class="modal" style="max-width:520px;padding:28px">
           <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-            <h3 class="serif" style="margin:0;font-size:18px">💸 후원 환불 처리</h3>
+            <h3 class="serif" style="margin:0;font-size:18px">후원 환불 처리</h3>
             <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
           </div>
           <div class="modal-body">
             <div class="rc-warn-box">
-              ⚠️ <strong>환불 처리 안내</strong><br />
+              <strong>환불 처리 안내</strong><br />
               • KICC 카드 결제는 <strong>"KICC 자동 환불 진행" 체크 시 PG에서 실제 환불</strong>이 됩니다 (즉시·비가역)<br />
               • 효성·계좌이체는 시스템 상태만 변경되니, 실제 환불은 효성 사이트 또는 계좌 송금으로 별도 진행<br />
               • 환불 후 상태는 'refunded'로 변경 — 영수증 발급에 영향이 갈 수 있습니다<br />
@@ -176,7 +176,7 @@
                 <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer">
                   <input type="checkbox" id="rcTossAutoRefund" style="margin-top:2px;width:16px;height:16px;cursor:pointer">
                   <span>
-                    <strong>💳 KICC에서 실제 환불까지 진행 (자동)</strong><br>
+                    <strong>KICC에서 실제 환불까지 진행 (자동)</strong><br>
                     <span style="color:#7d5400">체크 시 KICC PG에 즉시 환불 요청 → 카드사 환불 절차 시작.<br>
                     실패 시 DB 상태도 변경되지 않습니다 (안전 롤백).</span>
                   </span>
@@ -185,7 +185,7 @@
 
               <!-- 비토스 결제 안내 -->
               <div id="rcNonTossNotice" style="display:none;background:#f3f3f3;border:1px solid #ddd;border-radius:6px;padding:10px 14px;margin-top:14px;font-size:12px;color:#666;line-height:1.6">
-                ℹ️ 이 결제는 <strong id="rcNonTossPgLabel">—</strong> 채널입니다. 시스템 상태만 변경되며, 실제 환불은 해당 채널에서 별도 진행해 주세요.
+                이 결제는 <strong id="rcNonTossPgLabel">—</strong> 채널입니다. 시스템 상태만 변경되며, 실제 환불은 해당 채널에서 별도 진행해 주세요.
               </div>
 
               <div class="fg" style="margin-top:14px">
@@ -195,7 +195,7 @@
                 <textarea id="rcRefundReason" maxlength="500" style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예) 회원 요청, 중복 결제 등"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:14px">
-                <button type="submit" id="btnRefundConfirm" style="flex:1;background:#c47a00;color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">💸 환불 처리 확정</button>
+                <button type="submit" id="btnRefundConfirm" style="flex:1;background:#c47a00;color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">환불 처리 확정</button>
                 <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">취소</button>
               </div>
             </form>
@@ -207,12 +207,12 @@
       <div id="cancelReasonModal" class="modal-bg">
         <div class="modal" style="max-width:520px;padding:28px">
           <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-            <h3 class="serif" style="margin:0;font-size:18px">❌ 후원 취소 처리</h3>
+            <h3 class="serif" style="margin:0;font-size:18px">후원 취소 처리</h3>
             <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
           </div>
           <div class="modal-body">
             <div class="rc-warn-box danger">
-              ⚠️ <strong>관리자 강제 취소</strong><br />
+              <strong>관리자 강제 취소</strong><br />
               • 결제 자체가 무효 처리됩니다 (cancelled)<br />
               • 정기 후원은 다음 결제부터 자동 청구가 중단됩니다<br />
               • 한 번 취소되면 되돌릴 수 없습니다<br />
@@ -228,7 +228,7 @@
                 <textarea id="rcCancelReason" maxlength="500" style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예) 결제 실패 후 정리 등"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:14px">
-                <button type="submit" id="btnCancelConfirm" style="flex:1;background:var(--danger);color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">❌ 취소 처리 확정</button>
+                <button type="submit" id="btnCancelConfirm" style="flex:1;background:var(--danger);color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">취소 처리 확정</button>
                 <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">취소</button>
               </div>
             </form>
@@ -304,7 +304,7 @@
     const statusMap = {
       completed: '<span class="badge b-success">승인</span>',
       pending: '<span class="badge b-warn">대기</span>',
-      pending_hyosung: '<span class="badge b-warn">⏳ 효성 확인중</span>',
+      pending_hyosung: '<span class="badge b-warn">효성 확인중</span>',
       failed: '<span class="badge b-danger">실패</span>',
       cancelled: '<span class="badge b-mute">취소</span>',
       refunded: '<span class="badge b-mute">환불</span>',
@@ -319,10 +319,10 @@
       const canCancel = d.status === 'pending' || d.status === 'completed';
       const canReceipt = d.status === 'completed';
       const actions = '<div class="dm-row-actions">' +
-        '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">📝 상세</button>' +
-        (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">📄 영수증</button>' : '') +
-        (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-pg="' + escapeHtml(d.pgProvider || '') + '">💸 환불</button>' : '') +
-        (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">❌ 취소</button>' : '') +
+        '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">상세</button>' +
+        (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">영수증</button>' : '') +
+        (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-pg="' + escapeHtml(d.pgProvider || '') + '">환불</button>' : '') +
+        (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">취소</button>' : '') +
         '</div>';
 
       return '<tr>' +
@@ -368,11 +368,11 @@
 
     const statusCard = '<div class="dd-status-card ' + statusClass + '">' +
       '<div class="icon">' +
-      (d.status === 'completed' ? '✅' :
-       d.status === 'pending' ? '⏳' :
-       d.status === 'pending_hyosung' ? '⏳' :
-       d.status === 'refunded' ? '💸' :
-       d.status === 'cancelled' ? '❌' : '⚠️') +
+      (d.status === 'completed' ? '' :
+       d.status === 'pending' ? '' :
+       d.status === 'pending_hyosung' ? '' :
+       d.status === 'refunded' ? '' :
+       d.status === 'cancelled' ? '' : '') +
       '</div>' +
       '<div class="text">' +
         '<strong>' + (statusKr[d.status] || d.status) + '</strong>' +
@@ -399,15 +399,15 @@
       '</div>' +
 
       '<div class="dd-section">' +
-        '<h5>🏷️ 캠페인 태그</h5>' +
+        '<h5>캠페인 태그</h5>' +
         '<div class="field-row">' +
           '<input type="text" id="ddCampaignInput" maxlength="50" value="' + safeCampaign + '" placeholder="예) 2026-spring-memorial">' +
-          '<button type="button" class="small-btn" data-dd-action="save-campaign" data-id="' + d.id + '">💾 저장</button>' +
+          '<button type="button" class="small-btn" data-dd-action="save-campaign" data-id="' + d.id + '">저장</button>' +
         '</div>' +
       '</div>' +
 
       '<div class="dd-section">' +
-        '<h5>🎭 익명 후원 표시</h5>' +
+        '<h5>익명 후원 표시</h5>' +
         '<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px">' +
           '<input type="checkbox" id="ddAnonymousToggle" ' + (d.isAnonymous ? 'checked' : '') + ' data-id="' + d.id + '">' +
           '<span>관리자 외 다른 사용자에게 후원자 정보 노출 안 함 (현재: ' + (d.isAnonymous ? '익명' : '공개') + ')</span>' +
@@ -415,10 +415,10 @@
       '</div>' +
 
       '<div class="dd-section">' +
-        '<h5>📝 관리자 메모</h5>' +
+        '<h5>관리자 메모</h5>' +
         '<textarea id="ddMemoInput" maxlength="2000" placeholder="이 후원에 대한 메모...">' + safeMemo + '</textarea>' +
         '<div class="field-row" style="margin-top:8px">' +
-          '<button type="button" class="small-btn" data-dd-action="save-memo" data-id="' + d.id + '">💾 메모 저장</button>' +
+          '<button type="button" class="small-btn" data-dd-action="save-memo" data-id="' + d.id + '">메모 저장</button>' +
         '</div>' +
       '</div>';
   }
@@ -451,9 +451,9 @@
     const infoEl = document.getElementById('rcRefundInfo');
     if (infoEl) {
       const pgLabelShort = !pgProvider ? '—' :
-        pgProvider === 'kicc'    ? '💳 KICC 카드' :
-        (pgProvider === 'hyosung' || pgProvider === 'hyosung_cms') ? '🏦 효성 CMS+' :
-        (pgProvider === 'manual' || pgProvider === 'ibk_bank')  ? '✍️ 직접/수기' :
+        pgProvider === 'kicc'    ? 'KICC 카드' :
+        (pgProvider === 'hyosung' || pgProvider === 'hyosung_cms') ? '효성 CMS+' :
+        (pgProvider === 'manual' || pgProvider === 'ibk_bank')  ? '직접/수기' :
         pgProvider;
       infoEl.innerHTML =
         '<div>후원 ID</div><div style="font-family:Inter;font-weight:600">D-' + String(id).padStart(7, '0') + '</div>' +
@@ -486,7 +486,7 @@
   async function exportDonationsExcel(btn) {
     const origText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ 처리 중...';
+    btn.textContent = '처리 중...';
     try {
       const params = new URLSearchParams();
       const fType = document.getElementById('dmFilterType')?.value;
@@ -618,7 +618,7 @@
         const autoRefundPg = !!document.getElementById('rcTossAutoRefund')?.checked;
         if (!id) return;
         const confirmMsg = autoRefundPg
-          ? '⚠️ KICC(카드사)에 실제 환불을 요청합니다.\n\n• 카드사 환불 절차가 즉시 시작됩니다\n• 결제 자체가 비가역적으로 취소됨\n• 시스템 상태도 refunded로 변경\n\n정말 진행하시겠습니까?'
+          ? 'KICC(카드사)에 실제 환불을 요청합니다.\n\n• 카드사 환불 절차가 즉시 시작됩니다\n• 결제 자체가 비가역적으로 취소됨\n• 시스템 상태도 refunded로 변경\n\n정말 진행하시겠습니까?'
           : '시스템 상태만 환불(refunded)로 변경합니다.\n\n• 실제 PG사 환불은 별도 진행 필요\n• 되돌릴 수 없습니다\n\n진행할까요?';
         if (!confirm(confirmMsg)) return;
         const btn = document.getElementById('btnRefundConfirm');

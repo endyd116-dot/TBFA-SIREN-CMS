@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>여론·뉴스 분석 | 어드민</title>
@@ -80,18 +81,18 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 <div id="loadingOverlay" class="loading-overlay" style="display:none"><div class="spinner"></div></div>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-  <h2 style="margin:0;font-size:18px;font-weight:700">📰 여론·뉴스 분석</h2>
+  <h2 style="margin:0;font-size:18px;font-weight:700"><span class="siren-icon-wrap" data-icon="newspaper"></span> 여론·뉴스 분석</h2>
   <div style="display:flex;gap:8px;align-items:center">
     <span id="lastGenAt" style="font-size:12px;color:#6b7280"></span>
-    <button class="btn btn-primary btn-sm" id="btnRefresh">🔄 최신 재조사</button>
-    <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 설정</button>
+    <button class="btn btn-primary btn-sm" id="btnRefresh"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 최신 재조사</button>
+    <button class="btn btn-ghost btn-sm" id="btnSettings"><span class="siren-icon-wrap" data-icon="settings"></span> 설정</button>
   </div>
 </div>
 
 <div class="adm-tabs">
-  <button class="adm-tab active" data-panel="report">📊 최신 보고서</button>
-  <button class="adm-tab" data-panel="history">📜 히스토리</button>
-  <button class="adm-tab" data-panel="settings" id="tabSettings" style="display:none">⚙️ 설정</button>
+  <button class="adm-tab active" data-panel="report"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 최신 보고서</button>
+  <button class="adm-tab" data-panel="history"><span class="siren-icon-wrap" data-icon="scroll"></span> 히스토리</button>
+  <button class="adm-tab" data-panel="settings" id="tabSettings" style="display:none"><span class="siren-icon-wrap" data-icon="settings"></span> 설정</button>
 </div>
 
 <!-- ── 최신 보고서 패널 ── -->
@@ -116,7 +117,7 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 <!-- ── 설정 패널 ── -->
 <div id="panelSettings" class="adm-panel">
   <div class="card">
-    <div class="card-title">🔑 검색 키워드 편집</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="key"></span> 검색 키워드 편집</div>
     <div class="section-label">현재 키워드</div>
     <div class="settings-tags" id="kwTagList"></div>
     <div style="display:flex;gap:8px;margin-top:8px">
@@ -126,7 +127,7 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   </div>
 
   <div class="card">
-    <div class="card-title">📡 수집 범위</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="satellite-dish"></span> 수집 범위</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
         <input type="checkbox" value="news" id="scopeNews"> 뉴스
@@ -141,7 +142,7 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   </div>
 
   <div class="card">
-    <div class="card-title">⏰ 자동 조사 (매일 KST 09:00)</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 자동 조사 (매일 KST 09:00)</div>
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
       <input type="checkbox" id="autoEnabled" style="width:16px;height:16px">
       <span style="font-size:13px">매일 아침 자동으로 뉴스·여론 분석 실행</span>
@@ -174,6 +175,6 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   loadNext();
 })();
 </script>
-<script src="/js/admin-org-news.js?v=7-linkfix"></script>
+<script src="/js/admin-org-news.js?v=9-linkfix"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>캠페인 | 교사유가족협의회</title>
 <meta name="description" content="교사유가족협의회 캠페인 상세 — 여러분의 후원으로 함께해 주세요.">
 <meta property="og:title" content="캠페인 | 교사유가족협의회">
@@ -95,12 +96,12 @@
 <div id="modals-slot"></div>
 <div id="footer-slot"></div>
 
-<script src="/js/common.js?v=20260707-footer"></script>
-<script src="/js/auth.js?v=16"></script>
+<script src="/js/common.js?v=20260708-footer"></script>
+<script src="/js/auth.js?v=17"></script>
 <script src="/js/donate.js?v=r45"></script>
 <script>
 (function(){
-  const TYPE_LABEL = { fundraising: '💰 모금', memorial: '🎗 추모', awareness: '📣 인식 개선' };
+  const TYPE_LABEL = { fundraising: '모금', memorial: '추모', awareness: '인식 개선' };
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -179,9 +180,9 @@
         <div class="cmp-detail-content">${sanitizeHtml(c.contentHtml || '')}</div>
 
         ${isClosed
-          ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. 🙏</div>'
+          ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. </div>'
           : `<button class="cmp-cta" data-cmp-donate="${c.id}" data-cmp-slug="${escapeHtml(c.slug)}" data-cmp-title="${escapeHtml(c.title)}">
-              💝 이 캠페인에 후원하기
+              이 캠페인에 후원하기
             </button>`
         }
       `;
@@ -237,7 +238,7 @@
     /* 시각적 피드백 — 버튼이 "준비 중..." 으로 잠시 변경 */
     const orig = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ 후원 모달 준비 중...';
+    btn.textContent = '후원 모달 준비 중...';
     setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 1500);
 
     const id = Number(btn.dataset.cmpDonate);

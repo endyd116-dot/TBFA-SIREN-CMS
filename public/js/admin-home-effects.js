@@ -24,7 +24,7 @@
       key: 'home.effects.sirenPulseEnabled',
       label: '사이렌 메뉴 펄스 효과',
       type: 'bool',
-      hint: '사이렌 메뉴 아이콘(🚨)과 SIREN 배지의 깜빡임 효과 켜기/끄기',
+      hint: '사이렌 메뉴 아이콘()과 SIREN 배지의 깜빡임 효과 켜기/끄기',
     },
   ];
 
@@ -104,7 +104,7 @@
       </style>
 
       <div class="he-wrap">
-        <h2 class="he-section-title">✨ 효과 / 애니메이션 편집</h2>
+        <h2 class="he-section-title">효과 / 애니메이션 편집</h2>
         <p class="he-section-desc">
           메인 페이지의 애니메이션 속도와 효과를 조절합니다. 모바일 사용자나 시각 민감 사용자를 위해 효과를 끄거나 느리게 할 수 있습니다.
         </p>
@@ -112,8 +112,8 @@
         ${fieldsHtml}
 
         <div class="he-save-bar">
-          <button type="button" class="he-btn-mini" id="heReloadBtn">🔄 처음부터 다시 불러오기</button>
-          <button type="button" class="he-btn-save" id="heSaveBtn">💾 변경사항 모두 임시저장</button>
+          <button type="button" class="he-btn-mini" id="heReloadBtn">처음부터 다시 불러오기</button>
+          <button type="button" class="he-btn-save" id="heSaveBtn">변경사항 모두 임시저장</button>
         </div>
       </div>
     `;
@@ -125,7 +125,7 @@
   function renderField(fld) {
     const setting = _settingsMap[fld.key];
     const value = getCurrentText(setting);
-    const draftBadge = setting?.hasDraft ? '<span class="he-badge">📝 Draft</span>' : '';
+    const draftBadge = setting?.hasDraft ? '<span class="he-badge">Draft</span>' : '';
     const hintHtml = fld.hint ? `<div class="he-hint">${escapeHtml(fld.hint)}</div>` : '';
 
     let inputHtml;
@@ -172,7 +172,7 @@
     });
 
     if (updates.length === 0) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
       toast('변경된 항목이 없습니다');
       return;
     }
@@ -186,7 +186,7 @@
       if (res.ok) okCount++; else { failCount++; console.warn('[home-effects]', u.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
     if (failCount === 0) toast(`${okCount}건 임시저장 완료`);
     else toast(`${okCount}건 성공 / ${failCount}건 실패`);
 

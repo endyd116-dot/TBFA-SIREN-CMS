@@ -79,7 +79,7 @@
 
     const missing = Object.values(KEYS).filter((k) => !_settingsMap[k]);
     if (missing.length > 0) {
-      inner.innerHTML = `<div style="padding:32px;background:#fff5f5;border:1px solid #f5b8b8;border-radius:8px;color:#7a1f2b"><strong>⚠️ 누락 시드:</strong> ${missing.join(', ')}</div>`;
+      inner.innerHTML = `<div style="padding:32px;background:#fff5f5;border:1px solid #f5b8b8;border-radius:8px;color:#7a1f2b"><strong>누락 시드:</strong> ${missing.join(', ')}</div>`;
       return;
     }
 
@@ -89,8 +89,8 @@
 
   function renderForm() {
     const visible = getCurrentText(_settingsMap[KEYS.visible]) === 'true';
-    const draftBadgeItems = _settingsMap[KEYS.items]?.hasDraft ? '<span class="qm-badge">📝 Draft</span>' : '';
-    const draftBadgeVisible = _settingsMap[KEYS.visible]?.hasDraft ? '<span class="qm-badge">📝 Draft</span>' : '';
+    const draftBadgeItems = _settingsMap[KEYS.items]?.hasDraft ? '<span class="qm-badge">Draft</span>' : '';
+    const draftBadgeVisible = _settingsMap[KEYS.visible]?.hasDraft ? '<span class="qm-badge">Draft</span>' : '';
 
     const cardsHtml = _itemsDraft.map((it, idx) => renderItemCard(it, idx)).join('');
 
@@ -171,7 +171,7 @@
       </style>
 
       <div class="qm-wrap">
-        <h2 class="qm-section-title">🟦 퀵메뉴 편집 (${_itemsDraft.length}개 박스)</h2>
+        <h2 class="qm-section-title">퀵메뉴 편집 (${_itemsDraft.length}개 박스)</h2>
         <p class="qm-section-desc">
           메인 페이지 상단의 6개 박스를 편집합니다. SIREN 그룹은 빨간 배지가 표시되며, 박스 추가/삭제/순서 변경이 가능합니다.
         </p>
@@ -179,7 +179,7 @@
         <!-- 영역 표시 토글 -->
         <div class="qm-card">
           <div class="qm-card-header">
-            <span class="qm-card-title">👁 영역 전체 표시 ${draftBadgeVisible}</span>
+            <span class="qm-card-title">영역 전체 표시 ${draftBadgeVisible}</span>
           </div>
           <div class="qm-checkbox-row">
             <input type="checkbox" id="qmVisible" ${visible ? 'checked' : ''} style="width:18px;height:18px">
@@ -192,12 +192,12 @@
         <div id="qmItemsContainer">
           ${cardsHtml}
         </div>
-        <button type="button" class="qm-add-btn" id="qmAddBtn">➕ 박스 추가</button>
+        <button type="button" class="qm-add-btn" id="qmAddBtn">박스 추가</button>
 
         <!-- 저장 바 -->
         <div class="qm-save-bar">
-          <button type="button" class="qm-btn-mini" id="qmReloadBtn">🔄 처음부터 다시 불러오기</button>
-          <button type="button" class="qm-btn-save" id="qmSaveBtn">💾 변경사항 모두 임시저장</button>
+          <button type="button" class="qm-btn-mini" id="qmReloadBtn">처음부터 다시 불러오기</button>
+          <button type="button" class="qm-btn-save" id="qmSaveBtn">변경사항 모두 임시저장</button>
         </div>
       </div>
     `;
@@ -214,14 +214,14 @@
       <div class="qm-card ${isSiren ? 'siren' : ''}" data-item-idx="${idx}" style="${isActive ? '' : 'opacity:0.5'}">
         <div class="qm-card-header">
           <span class="qm-card-title">
-            박스 #${idx + 1} ${isSiren ? '<span style="color:#c5293a">🚨 SIREN</span>' : ''}
+            박스 #${idx + 1} ${isSiren ? '<span style="color:#c5293a">SIREN</span>' : ''}
             ${isActive ? '' : '<span style="color:#86868b;font-weight:400">(비활성)</span>'}
           </span>
           <div class="qm-card-actions">
             <button type="button" class="qm-btn-mini" data-item-up="${idx}" ${idx === 0 ? 'disabled' : ''}>▲</button>
             <button type="button" class="qm-btn-mini" data-item-down="${idx}" ${idx === total - 1 ? 'disabled' : ''}>▼</button>
-            <button type="button" class="qm-btn-mini" data-item-toggle="${idx}">${isActive ? '👁' : '🚫'}</button>
-            <button type="button" class="qm-btn-mini qm-btn-danger" data-item-delete="${idx}">🗑</button>
+            <button type="button" class="qm-btn-mini" data-item-toggle="${idx}">${isActive ? '' : ''}</button>
+            <button type="button" class="qm-btn-mini qm-btn-danger" data-item-delete="${idx}"></button>
           </div>
         </div>
 
@@ -359,7 +359,7 @@
   function addItem() {
     _itemsDraft.push({
       label: '새 메뉴',
-      icon: '✨',
+      icon: '',
       isSirenGroup: false,
       href: '#',
       opensModal: null,
@@ -376,8 +376,8 @@
 
     const allTitles = document.querySelectorAll('.qm-section-title');
     allTitles.forEach((t) => {
-      if (t.textContent.indexOf('🟦') >= 0) {
-        t.innerHTML = `🟦 퀵메뉴 편집 (${_itemsDraft.length}개 박스)`;
+      if (t.textContent.indexOf('') >= 0) {
+        t.innerHTML = `퀵메뉴 편집 (${_itemsDraft.length}개 박스)`;
       }
     });
 
@@ -407,7 +407,7 @@
     }
 
     if (updates.length === 0) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
       toast('변경된 항목이 없습니다');
       return;
     }
@@ -422,7 +422,7 @@
       else { failCount++; console.warn('[home-quickmenu]', u.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
 
     if (failCount === 0) toast(`${okCount}건 임시저장 완료`);
     else toast(`${okCount}건 성공 / ${failCount}건 실패`);

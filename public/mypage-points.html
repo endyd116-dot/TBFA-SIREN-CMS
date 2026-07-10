@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="SIREN" />
-  <script src="/js/pwa.js?v=2" defer></script>
+  <script src="/js/pwa.js?v=3" defer></script>
   <title>포인트·뱃지 — SIREN</title>
 <meta name="robots" content="noindex,nofollow">
   <style>
@@ -214,7 +215,7 @@
 
 <!-- 잔액 카드 -->
 <div class="balance-card">
-  <div class="balance-icon">⭐</div>
+  <div class="balance-icon"><span class="siren-icon-wrap" data-icon="star"></span></div>
   <div class="balance-info">
     <div class="balance-label">내 포인트 잔액</div>
     <div class="balance-amount" id="balanceAmount">—<span class="balance-unit">P</span></div>
@@ -223,9 +224,9 @@
 
 <!-- 탭 바 -->
 <div class="tab-bar">
-  <button class="tab-btn active" data-tab="logs">📋 포인트 이력</button>
-  <button class="tab-btn" data-tab="badges">🏅 내 뱃지</button>
-  <button class="tab-btn" data-tab="rewards">🎁 리워드 교환</button>
+  <button class="tab-btn active" data-tab="logs"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 포인트 이력</button>
+  <button class="tab-btn" data-tab="badges"><span class="siren-icon-wrap" data-icon="medal"></span> 내 뱃지</button>
+  <button class="tab-btn" data-tab="rewards"><span class="siren-icon-wrap" data-icon="gift"></span> 리워드 교환</button>
 </div>
 
 <!-- 탭 패널: 포인트 이력 -->
@@ -272,7 +273,7 @@
   };
   const MOCK_BADGES = {
     ok: true,
-    data: { badges: [{ code: 'first_step', nameKo: '첫 걸음', icon: '🌱', awardedAt: '2026-05-10' }] }
+    data: { badges: [{ code: 'first_step', nameKo: '첫 걸음', icon: '', awardedAt: '2026-05-10' }] }
   };
   const MOCK_REWARDS = {
     ok: true,
@@ -333,7 +334,7 @@
     const logs = d.logs || [];
     const el = document.getElementById('logsContent');
     if (!logs.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>포인트 이력이 없습니다.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>포인트 이력이 없습니다.</p></div>';
       return;
     }
     el.innerHTML = `<table class="log-table">
@@ -355,12 +356,12 @@
     const badges = d.badges || [];
     const el = document.getElementById('badgesContent');
     if (!badges.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏅</div><p>아직 획득한 뱃지가 없습니다.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>아직 획득한 뱃지가 없습니다.</p></div>';
       return;
     }
     el.innerHTML = `<div class="badge-grid">${badges.map(b => `
       <div class="badge-item">
-        <div class="badge-icon">${b.icon || '🏅'}</div>
+        <div class="badge-icon">${b.icon || ''}</div>
         <div class="badge-name">${b.nameKo}</div>
         <div class="badge-date">${fmtDate(b.awardedAt)}</div>
       </div>`).join('')}
@@ -374,17 +375,17 @@
     const rewards = (d.rewards || []).filter(r => r.isActive);
     const el = document.getElementById('rewardsContent');
     if (!rewards.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>교환 가능한 리워드가 없습니다.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>교환 가능한 리워드가 없습니다.</p></div>';
       return;
     }
     el.innerHTML = `<div class="reward-list">${rewards.map(r => {
       const canRedeem = currentBalance >= r.pointCost && r.stock > 0;
       return `<div class="reward-item">
-        <div class="reward-icon">🎁</div>
+        <div class="reward-icon"></div>
         <div class="reward-info">
           <div class="reward-name">${r.nameKo}</div>
           <div class="reward-desc">${r.description || ''}</div>
-          <div><span class="reward-cost">⭐ ${r.pointCost.toLocaleString()}P</span></div>
+          <div><span class="reward-cost">${r.pointCost.toLocaleString()}P</span></div>
           <div class="reward-stock">재고 ${r.stock}개</div>
         </div>
         <button class="btn-redeem" data-reward-id="${r.id}" data-cost="${r.pointCost}"

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>🤖 SIREN AI 비서 | 관리자</title>
+<title>SIREN AI 비서 | 관리자</title>
 <meta name="robots" content="noindex,nofollow">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -157,12 +158,12 @@ body {
 
   <aside class="sidebar">
     <div class="sb-head">
-      <div class="title">🤖 SIREN AI 비서</div>
+      <div class="title"><span class="siren-icon-wrap" data-icon="bot"></span> SIREN AI 비서</div>
       <div class="sub">베타 — 콘텐츠·관리</div>
     </div>
     <div class="sb-actions">
       <button class="btn-new" id="btnNewConv">+ 새 대화</button>
-      <input id="convSearch" type="search" placeholder="🔍 대화 검색…"
+      <input id="convSearch" type="search" placeholder="대화 검색…"
              style="width:100%;margin-top:8px;padding:8px 10px;border:1px solid #475569;background:#1e293b;color:#e2e8f0;border-radius:6px;font-size:12px;font-family:inherit" />
     </div>
     <div class="sb-list" id="convList">
@@ -185,12 +186,12 @@ body {
         <h2>무엇을 도와드릴까요?</h2>
         <p style="font-size:13px;color:#64748b">아래 예시를 클릭하거나 직접 명령을 입력하세요.</p>
         <div class="grid">
-          <button class="suggest" data-prompt="현재 메인 페이지 콘텐츠 목록 모두 보여줘"><span class="icon">📄</span>메인 페이지 콘텐츠 조회</button>
-          <button class="suggest" data-prompt="공지사항 새로 작성하고 싶어. 제목과 본문 추천해줘."><span class="icon">📢</span>공지사항 등록</button>
-          <button class="suggest" data-prompt="새 캠페인 등록하고 싶어. 봄 모금 캠페인 1000만원 목표로."><span class="icon">🎯</span>캠페인 등록</button>
-          <button class="suggest" data-prompt="헤더 메뉴 구조 보여줘"><span class="icon">📋</span>메뉴 구조 조회</button>
-          <button class="suggest" data-prompt="about 페이지 인사말을 좀 더 따뜻한 톤으로 수정 제안해줘"><span class="icon">✏️</span>인사말 수정 제안</button>
-          <button class="suggest" data-prompt="메인 hero 영역 문구를 추모 분위기로 바꿔줘"><span class="icon">🕯</span>메인 hero 수정</button>
+          <button class="suggest" data-prompt="현재 메인 페이지 콘텐츠 목록 모두 보여줘"><span class="icon"><span class="siren-icon-wrap" data-icon="file-text"></span></span>메인 페이지 콘텐츠 조회</button>
+          <button class="suggest" data-prompt="공지사항 새로 작성하고 싶어. 제목과 본문 추천해줘."><span class="icon"><span class="siren-icon-wrap" data-icon="megaphone"></span></span>공지사항 등록</button>
+          <button class="suggest" data-prompt="새 캠페인 등록하고 싶어. 봄 모금 캠페인 1000만원 목표로."><span class="icon"><span class="siren-icon-wrap" data-icon="target"></span></span>캠페인 등록</button>
+          <button class="suggest" data-prompt="헤더 메뉴 구조 보여줘"><span class="icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span>메뉴 구조 조회</button>
+          <button class="suggest" data-prompt="about 페이지 인사말을 좀 더 따뜻한 톤으로 수정 제안해줘"><span class="icon"><span class="siren-icon-wrap" data-icon="pencil"></span></span>인사말 수정 제안</button>
+          <button class="suggest" data-prompt="메인 hero 영역 문구를 추모 분위기로 바꿔줘"><span class="icon"><span class="siren-icon-wrap" data-icon="candle"></span></span>메인 hero 수정</button>
         </div>
       </div>
     </div>
@@ -234,7 +235,7 @@ body {
     var msgs = $('msgs');
     var box = document.createElement('div');
     box.className = 'tools-info';
-    box.innerHTML = '🔧 사용한 도구: ' + toolCalls.map(function (t) {
+    box.innerHTML = '사용한 도구: ' + toolCalls.map(function (t) {
       return '<b>' + escapeHtml(t.name) + '</b>(' + (t.result.ok ? '✓' : '✗') + ')';
     }).join(', ');
     msgs.appendChild(box);
@@ -245,11 +246,11 @@ body {
     var msgs = $('msgs');
     var box = document.createElement('div');
     box.className = 'pending-card';
-    box.innerHTML = '<h5>⚠️ 작업 승인이 필요합니다</h5>' +
+    box.innerHTML = '<h5>작업 승인이 필요합니다</h5>' +
       '<div>도구: <b>' + escapeHtml(p.toolName) + '</b></div>' +
       '<pre>' + escapeHtml(JSON.stringify(p.preview, null, 2)) + '</pre>' +
       '<div class="pending-actions">' +
-      '  <button class="btn-approve">✅ 승인하고 실행</button>' +
+      '  <button class="btn-approve">승인하고 실행</button>' +
       '  <button class="btn-reject">취소</button>' +
       '</div>';
     msgs.appendChild(box);
@@ -275,7 +276,7 @@ body {
     appendMsg('user', text);
     var btn = $('btnSend');
     btn.disabled = true;
-    var thinking = appendMsg('ai', '🤔 생각 중…');
+    var thinking = appendMsg('ai', '생각 중…');
     try {
       var res = await fetch('/api/admin-ai-agent', {
         method: 'POST', credentials: 'include',
@@ -295,7 +296,7 @@ body {
       if (j.pendingApproval) appendPendingApproval(j.pendingApproval);
     } catch (err) {
       thinking.remove();
-      appendMsg('ai', '❌ 오류: ' + (err.message || err));
+      appendMsg('ai', '오류: ' + (err.message || err));
     } finally {
       btn.disabled = false;
       input.focus();
@@ -305,7 +306,7 @@ body {
   async function sendApprovedTool(toolName, argsApproved) {
     var btn = $('btnSend');
     btn.disabled = true;
-    var thinking = appendMsg('ai', '⚙️ 적용 중…');
+    var thinking = appendMsg('ai', '적용 중…');
     try {
       var res = await fetch('/api/admin-ai-agent', {
         method: 'POST', credentials: 'include',
@@ -322,7 +323,7 @@ body {
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
     } catch (err) {
       thinking.remove();
-      appendMsg('ai', '❌ 오류: ' + (err.message || err));
+      appendMsg('ai', '오류: ' + (err.message || err));
     } finally {
       btn.disabled = false;
     }
@@ -407,9 +408,9 @@ body {
       var role = m.role === 'user' ? 'user' : 'ai';
       var text = (m.parts || []).map(function (p) {
         if (p.text) return p.text;
-        if (p.functionCall) return '🔧 ' + p.functionCall.name + ' 호출';
-        if (p.functionResponse) return '📥 ' + p.functionResponse.name + ' 결과';
-        if (p.inlineData) return '📎 첨부 ' + p.inlineData.mimeType;
+        if (p.functionCall) return '' + p.functionCall.name + ' 호출';
+        if (p.functionResponse) return '' + p.functionResponse.name + ' 결과';
+        if (p.inlineData) return '첨부 ' + p.inlineData.mimeType;
         return '';
       }).filter(Boolean).join('\n');
       if (!text) return;

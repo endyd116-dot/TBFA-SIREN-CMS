@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>정기 후원 등록 처리 중 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -204,7 +205,7 @@
 
       <!-- 성공 -->
       <div id="bsSuccess" class="bs-card" style="display:none">
-        <div class="bs-icon"><span class="bs-thanks-emoji">🎗</span></div>
+        <div class="bs-icon"><span class="bs-thanks-emoji"><span class="siren-icon-wrap" data-icon="ribbon"></span></span></div>
         <h1 class="bs-title">정기 후원이 시작되었습니다!</h1>
         <p class="bs-message">
           따뜻한 마음에 깊이 감사드립니다.<br />
@@ -240,7 +241,7 @@
 
         <!-- 카드 유효기간 등록 (사전 만료 알림용·선택) -->
         <div class="bs-expiry-box" id="bsExpiryBox">
-          <div class="bs-expiry-title">💳 카드 유효기간 등록 <span style="font-weight:400;color:var(--text-3)">(선택)</span></div>
+          <div class="bs-expiry-title"><span class="siren-icon-wrap" data-icon="credit-card"></span> 카드 유효기간 등록 <span style="font-weight:400;color:var(--text-3)">(선택)</span></div>
           <p class="bs-expiry-desc">유효기간을 등록하시면 카드 만료 <strong>30일·14일 전</strong>에 갱신 안내를 미리 보내드려, 정기 후원이 끊기지 않습니다.</p>
           <div class="bs-expiry-form">
             <input type="text" id="bsExpiryMM" inputmode="numeric" maxlength="2" placeholder="MM" class="bs-expiry-input" aria-label="만료 월">
@@ -252,20 +253,20 @@
         </div>
 
         <div class="bs-info-side">
-          📧 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다<br />
-          📄 <strong>기부금 영수증</strong>은 마이페이지에서 즉시 발급 가능합니다<br />
-          🛑 <strong>해지</strong>는 마이페이지에서 1클릭으로 가능합니다
+          <span class="siren-icon-wrap" data-icon="mail"></span> 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다<br />
+          <span class="siren-icon-wrap" data-icon="file-text"></span> <strong>기부금 영수증</strong>은 마이페이지에서 즉시 발급 가능합니다<br />
+          <span class="siren-icon-wrap" data-icon="octagon-x"></span> <strong>해지</strong>는 마이페이지에서 1클릭으로 가능합니다
         </div>
 
         <div class="bs-actions">
-          <a href="/mypage.html#donations" class="primary">📄 마이페이지로</a>
-          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+          <a href="/mypage.html#donations" class="primary"><span class="siren-icon-wrap" data-icon="file-text"></span> 마이페이지로</a>
+          <a href="/index.html" class="ghost"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
 
       <!-- 실패 -->
       <div id="bsError" class="bs-card" style="display:none">
-        <div class="bs-icon">⚠️</div>
+        <div class="bs-icon"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></div>
         <h1 class="bs-title" style="color:var(--danger)">처리 중 오류가 발생했습니다</h1>
         <p class="bs-message" id="bsErrorMessage">
           카드 등록 또는 첫 결제 중 문제가 발생했습니다.<br />
@@ -278,7 +279,7 @@
         </div>
 
         <div class="bs-info-side">
-          💡 <strong>안내</strong><br />
+          <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>안내</strong><br />
           • 카드는 등록되었으나 첫 결제만 실패했을 수 있습니다<br />
           • 마이페이지에서 정기 후원 상태를 확인해 주세요<br />
           • 문제 지속 시 협회로 연락 (contact@siren-org.kr)
@@ -286,20 +287,20 @@
 
         <div class="bs-actions">
           <a href="/mypage.html#donations" class="primary">마이페이지에서 확인</a>
-          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+          <a href="/index.html" class="ghost"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
 
       <!-- 잘못된 접근 -->
       <div id="bsInvalid" class="bs-card" style="display:none">
-        <div class="bs-icon">❌</div>
+        <div class="bs-icon"><span class="siren-icon-wrap" data-icon="x"></span></div>
         <h1 class="bs-title" style="color:var(--danger)">잘못된 접근입니다</h1>
         <p class="bs-message">
           정상적인 카드 등록 경로가 아닙니다.<br />
           홈에서 다시 후원해 주세요.
         </p>
         <div class="bs-actions">
-          <a href="/index.html" class="primary">🏠 홈으로 이동</a>
+          <a href="/index.html" class="primary"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
 
@@ -308,8 +309,8 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
-  <script src="/js/auth.js?v=16"></script>
+  <script src="/js/common.js?v=2"></script>
+  <script src="/js/auth.js?v=17"></script>
   <script>
   (function () {
     'use strict';
@@ -402,7 +403,7 @@
           var j = await res.json().catch(function () { return {}; });
           if (res.ok && j.ok) {
             if (box) box.innerHTML =
-              '<div class="bs-expiry-title" style="color:var(--brand)">✅ 카드 유효기간이 등록되었습니다</div>' +
+              '<div class="bs-expiry-title" style="color:var(--brand)">카드 유효기간이 등록되었습니다</div>' +
               '<p class="bs-expiry-desc" style="margin:0">만료 30일·14일 전에 갱신 안내를 보내드립니다.</p>';
           } else {
             if (msg) { msg.textContent = (j.error || '저장에 실패했습니다'); msg.className = 'bs-expiry-msg err'; }

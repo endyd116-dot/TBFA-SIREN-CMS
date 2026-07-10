@@ -26,10 +26,10 @@
   }
   function severityInfo(s) {
     const map = {
-      critical: { icon: '🚨', label: 'CRITICAL — 즉시 대응 필요', cls: 'critical' },
-      high:     { icon: '⚠️', label: 'HIGH — 긴급 검토',         cls: 'high' },
-      medium:   { icon: '⚖️', label: 'MEDIUM — 정상 절차',       cls: 'medium' },
-      low:      { icon: '💡', label: 'LOW — 일반 의견',          cls: 'low' },
+      critical: { icon: '', label: 'CRITICAL — 즉시 대응 필요', cls: 'critical' },
+      high:     { icon: '', label: 'HIGH — 긴급 검토',         cls: 'high' },
+      medium:   { icon: '', label: 'MEDIUM — 정상 절차',       cls: 'medium' },
+      low:      { icon: '', label: 'LOW — 일반 의견',          cls: 'low' },
     };
     return map[s] || map.medium;
   }
@@ -46,7 +46,7 @@
       if (!res.ok || !json.ok) {
         container.innerHTML = `
           <div class="incident-empty">
-            <div class="icon">⚠️</div>
+            <div class="icon"></div>
             <div class="title">사건 목록을 불러오지 못했습니다</div>
             <div class="desc">${escapeHtml(json.error || '잠시 후 다시 시도해 주세요')}</div>
           </div>`;
@@ -57,7 +57,7 @@
       if (!list.length) {
         container.innerHTML = `
           <div class="incident-empty">
-            <div class="icon">📭</div>
+            <div class="icon"></div>
             <div class="title">등록된 사건이 없습니다</div>
             <div class="desc">관리자가 사건을 등록하면 이 곳에 표시됩니다.</div>
           </div>`;
@@ -69,7 +69,7 @@
           <div class="incident-card-thumb">
             ${n.thumbnailUrl
               ? `<img src="${escapeHtml(n.thumbnailUrl)}" alt="${escapeHtml(n.title)}">`
-              : `<span class="placeholder">🎗</span>`}
+              : `<span class="placeholder"></span>`}
             <span class="category-tag">${escapeHtml(categoryLabel(n.category))}</span>
           </div>
           <div class="incident-card-body">
@@ -86,7 +86,7 @@
       console.error('[incident] list', e);
       container.innerHTML = `
         <div class="incident-empty">
-          <div class="icon">⚠️</div>
+          <div class="icon"></div>
           <div class="title">네트워크 오류</div>
           <div class="desc">잠시 후 다시 시도해 주세요</div>
         </div>`;
@@ -113,7 +113,7 @@
       const json = await res.json();
 
       if (!res.ok || !json.ok || !json.data?.incident) {
-        document.getElementById('incidentTitle').textContent = '⚠️ 사건을 찾을 수 없습니다';
+        document.getElementById('incidentTitle').textContent = '사건을 찾을 수 없습니다';
         document.getElementById('incidentContent').innerHTML = `
           <div style="text-align:center;padding:40px">
             <a href="/incidents.html" class="btn btn-primary">사건 목록으로 돌아가기</a>
@@ -139,8 +139,8 @@
       const metaDiv = document.createElement('div');
       metaDiv.className = 'meta-line';
       metaDiv.innerHTML = `
-        ${inc.occurredAt ? `<span>📅 ${formatDate(inc.occurredAt)}</span>` : ''}
-        ${inc.location ? `<span>📍 ${escapeHtml(inc.location)}</span>` : ''}
+        ${inc.occurredAt ? `<span>${formatDate(inc.occurredAt)}</span>` : ''}
+        ${inc.location ? `<span>${escapeHtml(inc.location)}</span>` : ''}
       `;
       heroContainer.appendChild(metaDiv);
 
@@ -157,10 +157,10 @@
 
       /* 제보 모달 타이틀 */
       const irTitle = document.getElementById('irModalTitle');
-      if (irTitle) irTitle.textContent = `📝 ${inc.title} — 제보하기`;
+      if (irTitle) irTitle.textContent = `${inc.title} — 제보하기`;
     } catch (e) {
       console.error('[incident] detail', e);
-      document.getElementById('incidentTitle').textContent = '⚠️ 네트워크 오류';
+      document.getElementById('incidentTitle').textContent = '네트워크 오류';
     }
   }
 
@@ -295,7 +295,7 @@
     const oldText = submitBtn ? submitBtn.textContent : '';
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = '🤖 AI 분석 중...';
+      submitBtn.textContent = 'AI 분석 중...';
     }
 
     try {
@@ -393,14 +393,14 @@
 
       /* 완료 화면 */
       if (requested) {
-        document.getElementById('irFinalIcon').textContent = '✅';
+        document.getElementById('irFinalIcon').textContent = '';
         document.getElementById('irFinalTitle').textContent = '사이렌에 정식 접수되었습니다';
         document.getElementById('irFinalMsg').innerHTML =
           '소중한 제보 감사합니다.<br />' +
           '운영진 검토 후 답변을 드리며,<br />' +
           '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.';
       } else {
-        document.getElementById('irFinalIcon').textContent = '📋';
+        document.getElementById('irFinalIcon').textContent = '';
         document.getElementById('irFinalTitle').textContent = 'AI 답변으로 종료 처리되었습니다';
         document.getElementById('irFinalMsg').innerHTML =
           '제보가 기록되었습니다.<br />' +
@@ -440,7 +440,7 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:18px;font-weight:700;color:#7a1f2b;margin-bottom:12px">' +
-        escapeHtml(notice.title || '🎗 사이렌 후원 회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 후원 회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:18px">' +
         safeMessage +
@@ -570,7 +570,7 @@
     const upCls = c.myVote === 'up' ? ' voted' : '';
     const downCls = c.myVote === 'down' ? ' voted' : '';
     const reportBtn = _isLoggedIn
-      ? `<button type="button" class="ic-action-btn report-btn" data-cmt-action="report" data-cmt-id="${c.id}">🚨 신고</button>`
+      ? `<button type="button" class="ic-action-btn report-btn" data-cmt-action="report" data-cmt-id="${c.id}">신고</button>`
       : '';
     const anonBadge = c.isAnonymous ? '<span class="ic-badge-anon">익명</span>' : '';
 
@@ -583,8 +583,8 @@
         </div>
         <div class="ic-comment-content">${escapeHtml(c.content)}</div>
         <div class="ic-comment-actions">
-          <button type="button" class="ic-action-btn${upCls}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote-type="up">👍 <span class="ic-up-n">${c.upCount}</span></button>
-          <button type="button" class="ic-action-btn${downCls}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote-type="down">👎 <span class="ic-down-n">${c.downCount}</span></button>
+          <button type="button" class="ic-action-btn${upCls}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote-type="up"><span class="ic-up-n">${c.upCount}</span></button>
+          <button type="button" class="ic-action-btn${downCls}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote-type="down"><span class="ic-down-n">${c.downCount}</span></button>
           ${reportBtn}
         </div>
       </div>

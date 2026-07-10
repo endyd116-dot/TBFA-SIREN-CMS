@@ -101,7 +101,7 @@
 
     var head = document.createElement("div");
     head.className = "ai-pro-head";
-    head.innerHTML = '<div class="ai-pro-avatar">🤖</div><div class="ai-pro-name">AI 비서</div>';
+    head.innerHTML = '<div class="ai-pro-avatar"></div><div class="ai-pro-name">AI 비서</div>';
     var closeBtn = document.createElement("button");
     closeBtn.className = "ai-pro-close";
     closeBtn.type = "button";

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <meta name="robots" content="noindex, nofollow">
 <title>수신 설정 — 교사유가족협의회</title>
 <style>
@@ -31,7 +32,7 @@
 </head>
 <body>
 <div class="card">
-  <h1>📬 수신 설정</h1>
+  <h1><span class="siren-icon-wrap" data-icon="mailbox"></span> 수신 설정</h1>
   <div id="body"><p class="muted">불러오는 중…</p></div>
 </div>
 <script>
@@ -53,14 +54,14 @@
     if (st.subscribed) {
       box.innerHTML =
         '<p class="muted">' + name + ', 현재 <b>' + ch + '</b> 소식을 받고 계십니다.</p>' +
-        '<div class="status on">✅ 수신 중</div>' +
+        '<div class="status on">수신 중</div>' +
         '<button class="btn-off" id="go">' + ch + ' 수신 거부하기</button>' +
         '<div class="hint">언제든 다시 받으실 수 있습니다.</div>';
       document.getElementById('go').onclick = function () { act('off'); };
     } else {
       box.innerHTML =
         '<p class="muted">' + name + ', 현재 <b>' + ch + '</b> 수신을 거부하셨습니다.</p>' +
-        '<div class="status off">🔕 수신 거부됨</div>' +
+        '<div class="status off">수신 거부됨</div>' +
         '<button class="btn-on" id="go">다시 받기 (재동의)</button>' +
         '<div class="hint">실수로 누르셨다면 위 버튼으로 즉시 다시 받으실 수 있습니다.</div>';
       document.getElementById('go').onclick = function () { act('on'); };
@@ -74,13 +75,13 @@
       st.subscribed = d.subscribed;
       if (action === 'off') {
         box.innerHTML =
-          '<div class="status off">🔕 수신이 거부되었습니다</div>' +
+          '<div class="status off">수신이 거부되었습니다</div>' +
           '<p class="muted">앞으로 <b>' + esc(st.channelLabel) + '</b> 소식을 보내지 않겠습니다. 그동안 함께해 주셔서 감사합니다.</p>' +
           '<button class="btn-on" id="go">실수로 누르셨나요? 다시 받기</button>';
         document.getElementById('go').onclick = function () { act('on'); };
       } else {
         box.innerHTML =
-          '<div class="status on">✅ 다시 받기로 설정되었습니다</div>' +
+          '<div class="status on">다시 받기로 설정되었습니다</div>' +
           '<p class="muted">감사합니다. 앞으로도 따뜻한 소식 전해드리겠습니다.</p>' +
           '<button class="btn-ghost" id="go">' + esc(st.channelLabel) + ' 수신 거부하기</button>';
         document.getElementById('go').onclick = function () { act('off'); };

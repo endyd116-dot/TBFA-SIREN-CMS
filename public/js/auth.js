@@ -176,7 +176,7 @@
       const typeLabel = ({regular:'회원',family:'유가족',volunteer:'봉사자',admin:'관리자'})[u.type] || u.type;
       userBox.innerHTML = `
         <a href="/mypage.html#consult" style="color:#fff;font-weight:500;position:relative;display:inline-flex;align-items:center;gap:4px;text-decoration:none" title="1:1 상담">
-          💬<span id="chatNotifyBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#c5293a;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;padding:0 4px">0</span>
+          <span id="chatNotifyBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#c5293a;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;padding:0 4px">0</span>
         </a>
         <a href="/mypage.html" style="color:#fff;font-weight:500" title="마이페이지">${escapeHtml(u.name)} <span style="color:var(--gold,#b8935a);font-size:11px">(${typeLabel})</span></a>
         <button id="btnLogout" style="background:transparent;border:1px solid #2a2a2a;color:#bdbdbd;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">로그아웃</button>
@@ -253,12 +253,12 @@ document.addEventListener('change', async function (e) {
 
     if (blobIdInput) blobIdInput.value = String(result.id);
     if (statusEl) {
-      statusEl.textContent = `✅ ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+      statusEl.textContent = `${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
       statusEl.style.color = 'var(--success)';
     }
   } catch (err) {
     if (statusEl) {
-      statusEl.textContent = '❌ 업로드 실패: ' + (err.message || '오류');
+      statusEl.textContent = '업로드 실패: ' + (err.message || '오류');
       statusEl.style.color = 'var(--danger)';
     }
     fileInput.value = '';
@@ -337,7 +337,7 @@ document.addEventListener('change', async function (e) {
         });
         var data = await r.json().catch(function () { return {}; });
         if (!r.ok || !data.ok) {
-          setStatus('❌ ' + (data.error || '인증번호 발송 실패'), 'var(--danger)');
+          setStatus('' + (data.error || '인증번호 발송 실패'), 'var(--danger)');
           verifyBtn.disabled = false;
           verifyBtn.textContent = '인증번호 받기';
           return;
@@ -345,13 +345,13 @@ document.addEventListener('change', async function (e) {
         codeRow.style.display = '';
         codeInput.focus();
         /* 서버 안내 메시지 사용 (정상: "3분 이내") */
-        setStatus('📩 ' + (data.message || '인증번호를 발송했습니다. 3분 이내에 입력해 주세요.'), 'var(--success)');
+        setStatus('' + (data.message || '인증번호를 발송했습니다. 3분 이내에 입력해 주세요.'), 'var(--success)');
         verifyBtn.textContent = '재발송';
         /* 3분 카운트다운 시작 — 만료 시 재발송 버튼 자동 활성화 (그 전엔 재발송 차단·서버 rate limit과 정합) */
         verifyBtn.disabled = true;
         startCountdown(180);
       } catch (err) {
-        setStatus('❌ 네트워크 오류: ' + (err.message || ''), 'var(--danger)');
+        setStatus('네트워크 오류: ' + (err.message || ''), 'var(--danger)');
         verifyBtn.disabled = false;
         verifyBtn.textContent = '인증번호 받기';
       }
@@ -371,7 +371,7 @@ document.addEventListener('change', async function (e) {
         });
         var data = await r.json().catch(function () { return {}; });
         if (!r.ok || !data.ok) {
-          setStatus('❌ ' + (data.error || '인증 실패'), 'var(--danger)');
+          setStatus('' + (data.error || '인증 실패'), 'var(--danger)');
           codeBtn.disabled = false;
           codeBtn.textContent = '확인';
           return;
@@ -380,7 +380,7 @@ document.addEventListener('change', async function (e) {
         /* 인증 통과 — verifyToken 저장 + 매칭 결과 안내 */
         tokenInput.value = data.verifyToken || '';
         stopCountdown();
-        if (timerEl) { timerEl.textContent = '✅ 인증 완료'; timerEl.style.color = 'var(--success)'; }
+        if (timerEl) { timerEl.textContent = '인증 완료'; timerEl.style.color = 'var(--success)'; }
         codeBtn.disabled = true;
         codeBtn.textContent = '인증 완료';
         codeInput.disabled = true;
@@ -391,7 +391,7 @@ document.addEventListener('change', async function (e) {
         if (matched && matched.mode === 'existing_full') {
           /* 이미 사이트 회원 — 가입 차단, 로그인 안내 */
           setStatus(
-            '✅ 인증 완료. 다만 ' + escapeHtml(matched.name) + '님은 이미 가입하신 회원입니다.<br/>' +
+            '인증 완료. 다만 ' + escapeHtml(matched.name) + '님은 이미 가입하신 회원입니다.<br/>' +
             '<a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="loginModal" style="color:var(--brand);text-decoration:underline">로그인</a>하거나, ' +
             '<a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="passwordResetModal" style="color:var(--brand);text-decoration:underline">비밀번호 재설정</a>을 이용해 주세요.',
             'var(--warning, #b8860b)'
@@ -402,7 +402,7 @@ document.addEventListener('change', async function (e) {
         } else if (matched && (matched.mode === 'existing_hyosung' || matched.mode === 'existing_donor')) {
           var sourceLabel = matched.isHyosung ? '효성으로' : '';
           setStatus(
-            '✅ ' + escapeHtml(matched.name) + '님, 환영합니다!<br/>' +
+            '' + escapeHtml(matched.name) + '님, 환영합니다!<br/>' +
             '이미 ' + sourceLabel + ' 후원해 주시는 분이시군요 (' + matched.donationCount + '회). ' +
             '이메일·비밀번호를 추가하시면 마이페이지에서 후원 이력·영수증을 직접 관리하실 수 있어요.',
             'var(--success)'
@@ -411,10 +411,10 @@ document.addEventListener('change', async function (e) {
           var nameInput = document.querySelector('form[data-form="signup"] input[name="name"]');
           if (nameInput && !nameInput.value) nameInput.value = matched.name;
         } else {
-          setStatus('✅ 인증 완료. 이메일·비밀번호를 입력하고 가입을 완료해 주세요.', 'var(--success)');
+          setStatus('인증 완료. 이메일·비밀번호를 입력하고 가입을 완료해 주세요.', 'var(--success)');
         }
       } catch (err) {
-        setStatus('❌ 네트워크 오류: ' + (err.message || ''), 'var(--danger)');
+        setStatus('네트워크 오류: ' + (err.message || ''), 'var(--danger)');
         codeBtn.disabled = false;
         codeBtn.textContent = '확인';
       }
@@ -583,7 +583,7 @@ document.addEventListener('change', async function (e) {
     if (Auth.user.emailVerified) {
       banner.classList.add('verified');
       banner.innerHTML = `
-        <div class="icon">✅</div>
+        <div class="icon"></div>
         <div class="text">
           <strong>이메일 인증 완료</strong><br />
           모든 보안 기능을 안전하게 이용하실 수 있습니다.
@@ -593,7 +593,7 @@ document.addEventListener('change', async function (e) {
     } else {
       banner.classList.remove('verified');
       banner.innerHTML = `
-        <div class="icon">✉️</div>
+        <div class="icon"></div>
         <div class="text">
           <strong>이메일 인증이 필요합니다</strong><br />
           비밀번호 찾기 등 보안 기능을 이용하려면 이메일 인증을 완료해 주세요.
@@ -884,7 +884,7 @@ document.addEventListener('change', async function (e) {
 
     function applyCgmContent() {
       const c = _cgmCache || {};
-      if (titleEl) titleEl.textContent = c.modalTitle || '🎗 정기 후원 해지 안내';
+      if (titleEl) titleEl.textContent = c.modalTitle || '정기 후원 해지 안내';
       if (greetingEl) greetingEl.textContent = c.greeting || '';
       if (procedureEl) procedureEl.textContent = c.procedure || '';
       if (warningsEl) warningsEl.textContent = c.warnings || '';
@@ -960,15 +960,15 @@ document.addEventListener('change', async function (e) {
     const cardClass = isWarning ? 'mp-billing-card' : 'mp-billing-card';
     let statusBadge;
     if (isHyosungPending) {
-      statusBadge = '<span class="mp-billing-status-badge warning">⏳ 효성 확인중</span>';
+      statusBadge = '<span class="mp-billing-status-badge warning">효성 확인중</span>';
     } else if (isWarning) {
-      statusBadge = '<span class="mp-billing-status-badge warning">⚠️ 결제 실패 ' + b.consecutiveFailCount + '회</span>';
+      statusBadge = '<span class="mp-billing-status-badge warning">결제 실패 ' + b.consecutiveFailCount + '회</span>';
     } else {
-      statusBadge = '<span class="mp-billing-status-badge active">✅ 활성</span>';
+      statusBadge = '<span class="mp-billing-status-badge active">활성</span>';
     }
 
     const warningHtml = isWarning
-      ? '<div class="mp-billing-warning">⚠️ <strong>주의:</strong> ' +
+      ? '<div class="mp-billing-warning"><strong>주의:</strong> ' +
         '최근 결제가 실패했습니다. 카드 한도/유효기간을 확인해 주세요. ' +
         '연속 3회 실패 시 자동 해지됩니다.' +
         (b.lastFailureReason ? '<br />사유: ' + escapeHtml(b.lastFailureReason) : '') +
@@ -979,7 +979,7 @@ document.addEventListener('change', async function (e) {
       <div class="${cardClass}">
         <div class="mp-billing-header">
           <div>
-            <div class="mp-billing-title">🎗 정기 후원</div>
+            <div class="mp-billing-title">정기 후원</div>
             <div class="mp-billing-subtitle">
               ${stats.monthsActive}개월간 함께해 주셔서 감사합니다 · 누적 ₩${(stats.totalAmount || 0).toLocaleString()}
             </div>
@@ -1009,7 +1009,7 @@ document.addEventListener('change', async function (e) {
         </div>
 
         <div class="mp-billing-actions">
-          <button type="button" class="btn-cancel" data-billing-cancel="${b.id}">🛑 정기 후원 해지</button>
+          <button type="button" class="btn-cancel" data-billing-cancel="${b.id}">정기 후원 해지</button>
         </div>
       </div>
     `;
@@ -1019,7 +1019,7 @@ document.addEventListener('change', async function (e) {
   function renderBillingEmpty(hasHistory) {
     return `
       <div class="mp-billing-empty">
-        <div class="icon">🎗</div>
+        <div class="icon"></div>
         <div class="title">
           ${hasHistory ? '현재 활성 정기 후원이 없습니다' : '정기 후원을 시작해 보세요'}
         </div>
@@ -1028,7 +1028,7 @@ document.addEventListener('change', async function (e) {
             ? '새로 정기 후원을 시작하시려면 홈에서 후원 버튼을 눌러주세요.'
             : '매월 자동 결제로 유가족 지원에 꾸준히 동참해 주세요.<br />언제든 해지 가능합니다.'}
         </div>
-        <a href="/index.html" class="btn-start">🎗 정기 후원 시작하기</a>
+        <a href="/index.html" class="btn-start">정기 후원 시작하기</a>
       </div>
     `;
   }
@@ -1041,7 +1041,7 @@ document.addEventListener('change', async function (e) {
     const statusMap = {
       completed: '<span class="badge b-success">완료</span>',
       pending: '<span class="badge b-warn">대기</span>',
-      pending_hyosung: '<span class="badge b-warn">⏳ 효성 확인중</span>',
+      pending_hyosung: '<span class="badge b-warn">효성 확인중</span>',
       failed: '<span class="badge b-danger">실패</span>',
       cancelled: '<span class="badge b-mute">취소</span>',
       refunded: '<span class="badge b-mute">환불</span>',
@@ -1049,7 +1049,7 @@ document.addEventListener('change', async function (e) {
 
     const rowsHtml = list.map(c => {
       const receiptBtn = c.status === 'completed'
-        ? `<a class="btn-link" href="/api/donation-receipt?id=${c.id}" target="_blank" rel="noopener" title="영수증 발급" style="text-decoration:none;color:var(--brand);font-weight:600">📄</a>`
+        ? `<a class="btn-link" href="/api/donation-receipt?id=${c.id}" target="_blank" rel="noopener" title="영수증 발급" style="text-decoration:none;color:var(--brand);font-weight:600"></a>`
         : '<span style="color:var(--text-3);font-size:12px">—</span>';
       return `
         <tr>
@@ -1063,7 +1063,7 @@ document.addEventListener('change', async function (e) {
 
     return `
       <div style="margin-top:28px">
-        <h4 style="font-size:14px;font-weight:700;margin:0 0 10px;color:var(--ink)">📋 최근 정기 결제 이력</h4>
+        <h4 style="font-size:14px;font-weight:700;margin:0 0 10px;color:var(--ink)">최근 정기 결제 이력</h4>
         <table class="tbl" style="font-size:13px">
           <thead>
             <tr><th>결제일</th><th>금액</th><th>상태</th><th style="width:60px">영수증</th></tr>
@@ -1192,7 +1192,7 @@ document.addEventListener('change', async function (e) {
     const tbody = panel?.querySelector('table.tbl tbody');
     if (tbody) {
       if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">아직 후원 내역이 없습니다 🎗</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">아직 후원 내역이 없습니다 </td></tr>`;
       } else {
         const typeMap = { regular: '정기 후원', onetime: '일시 후원' };
         const payMap = { cms: 'CMS', card: '카드', bank: '계좌이체' };
@@ -1200,7 +1200,7 @@ document.addEventListener('change', async function (e) {
         const statusMap = {
           completed: '<span class="badge b-success">완료</span>',
           pending: '<span class="badge b-warn">대기</span>',
-          pending_hyosung: '<span class="badge b-warn">⏳ 효성 확인중</span>',
+          pending_hyosung: '<span class="badge b-warn">효성 확인중</span>',
           failed: '<span class="badge b-danger">실패</span>',
           cancelled: '<span class="badge b-mute">취소</span>',
           refunded: '<span class="badge b-mute">환불</span>',
@@ -1213,11 +1213,11 @@ document.addEventListener('change', async function (e) {
           /* ★ Bug-9 패치: 삼항 → if/else로 풀고 pending_hyosung 분기 추가 */
           let receiptCell;
           if (d.status === 'completed') {
-            receiptCell = `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`;
+            receiptCell = `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">발급</a>`;
           } else if (d.status === 'pending_hyosung') {
-            receiptCell = '<span style="color:#8a6a00;font-size:11.5px;line-height:1.4;display:inline-block">⏳ 입금 확인중<br /><small style="color:var(--text-3);font-size:10.5px">(1~3 영업일 소요)</small></span>';
+            receiptCell = '<span style="color:#8a6a00;font-size:11.5px;line-height:1.4;display:inline-block">입금 확인중<br /><small style="color:var(--text-3);font-size:10.5px">(1~3 영업일 소요)</small></span>';
           } else if (canCancelInline) {
-            receiptCell = `<button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0">🚫 해지</button>`;
+            receiptCell = `<button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0">해지</button>`;
           } else {
             receiptCell = '<span style="color:var(--text-3);font-size:12px">—</span>';
           }

@@ -19,10 +19,10 @@
 
   const POLL_INTERVAL = 5000;
   const CAT_LABEL = {
-    support_donation: '💝 후원',
-    support_homepage: '🌐 홈페이지',
-    support_signup: '📝 가입',
-    support_other: '💬 기타',
+    support_donation: '후원',
+    support_homepage: '홈페이지',
+    support_signup: '가입',
+    support_other: '기타',
   };
 
   let _currentRoom = null;
@@ -128,7 +128,7 @@
     overlay.className = 'lightbox-overlay';
     overlay.innerHTML = `
       <div class="lightbox-controls">
-        <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드">💾</button>
+        <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드"></button>
         <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">✕</button>
       </div>
       <img class="lightbox-img" src="/api/chat/image?id=${encodeURIComponent(attId)}" alt="${safeName}" />
@@ -192,7 +192,7 @@
     const list = document.getElementById('acRoomList');
     if (!list) return;
 
-    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:12.5px">⏳ 로딩 중...</div>';
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:12.5px">로딩 중...</div>';
 
     const statusFilter = document.getElementById('acFilterStatus')?.value || '';
     const catFilter = document.getElementById('acFilterCat')?.value || '';
@@ -231,11 +231,11 @@
     }
 
     list.innerHTML = rooms.map(r => {
-      const cat = CAT_LABEL[r.category] || '💬 기타';
+      const cat = CAT_LABEL[r.category] || '기타';
       const unread = r.unreadForAdmin > 0 ? `<span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:10px;padding:0 5px;display:inline-block">${r.unreadForAdmin}</span>` : '';
       const statusLabel =
-        r.status === 'closed'   ? '<span style="color:var(--text-3);font-size:10px">🔒 종료</span>' :
-        r.status === 'archived' ? '<span style="color:#8a6a00;background:#fff8ec;font-size:10px;padding:1px 6px;border-radius:8px">🗄 보관</span>' :
+        r.status === 'closed'   ? '<span style="color:var(--text-3);font-size:10px">종료</span>' :
+        r.status === 'archived' ? '<span style="color:#8a6a00;background:#fff8ec;font-size:10px;padding:1px 6px;border-radius:8px">보관</span>' :
         '';
       const isActive = _currentRoom && _currentRoom.id === r.id;
       return `
@@ -262,16 +262,16 @@
     const buttons = [];
 
     if (status === 'active') {
-      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="closed" data-ac-confirm="이 채팅방을 종료하시겠습니까?" data-ac-msg="채팅방이 종료되었습니다" style="font-size:11px">🔒 종료</button>`);
+      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="closed" data-ac-confirm="이 채팅방을 종료하시겠습니까?" data-ac-msg="채팅방이 종료되었습니다" style="font-size:11px">종료</button>`);
     } else if (status === 'closed') {
-      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="archived" data-ac-confirm="이 채팅방을 보관함으로 이동하시겠습니까?\\n(보관함은 일반 목록에서 숨겨집니다)" data-ac-msg="🗄 보관함으로 이동되었습니다" style="font-size:11px;color:#8a6a00">🗄 보관</button>`);
-      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="active" data-ac-confirm="이 채팅방을 다시 활성 상태로 되돌리시겠습니까?" data-ac-msg="🔓 채팅방이 재개되었습니다" style="font-size:11px;color:#1a8b46">🔓 재개</button>`);
+      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="archived" data-ac-confirm="이 채팅방을 보관함으로 이동하시겠습니까?\\n(보관함은 일반 목록에서 숨겨집니다)" data-ac-msg="보관함으로 이동되었습니다" style="font-size:11px;color:#8a6a00">보관</button>`);
+      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="active" data-ac-confirm="이 채팅방을 다시 활성 상태로 되돌리시겠습니까?" data-ac-msg="채팅방이 재개되었습니다" style="font-size:11px;color:#1a8b46">재개</button>`);
     } else if (status === 'archived') {
-      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="closed" data-ac-confirm="이 채팅방을 보관함에서 꺼내시겠습니까?\\n(종료 상태로 되돌립니다)" data-ac-msg="🔓 보관함에서 복구되었습니다" style="font-size:11px;color:#1a5ec4">🔓 복구</button>`);
+      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="closed" data-ac-confirm="이 채팅방을 보관함에서 꺼내시겠습니까?\\n(종료 상태로 되돌립니다)" data-ac-msg="보관함에서 복구되었습니다" style="font-size:11px;color:#1a5ec4">복구</button>`);
     }
 
     if (!blacklist && status !== 'archived') {
-      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="block" data-ac-member="${room.memberId}" data-ac-name="${safeName}" style="font-size:11px;color:var(--danger)">⛔ 블랙</button>`);
+      buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="block" data-ac-member="${room.memberId}" data-ac-name="${safeName}" style="font-size:11px;color:var(--danger)">블랙</button>`);
     }
 
     return buttons.join('');
@@ -289,7 +289,7 @@
 
     const detail = document.getElementById('acChatDetail');
     if (!detail) return;
-    detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">⏳ 로딩 중...</div>';
+    detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">로딩 중...</div>';
 
     const roomRes = await api('/api/admin/chat/rooms?id=' + roomId);
     /* ★ stale 요청 검증 — 다른 방을 클릭했으면 중단 */
@@ -317,18 +317,18 @@
       _lastMsgAt = messages[messages.length - 1].createdAt;
     }
 
-    const cat = CAT_LABEL[room.category] || '💬 기타';
+    const cat = CAT_LABEL[room.category] || '기타';
     const isActive = room.status === 'active';
     const isArchived = room.status === 'archived';
 
     const statusBadgeHtml =
       room.status === 'active'   ? '' :
-      room.status === 'closed'   ? '<span style="display:inline-block;background:#f0f0f0;color:#525252;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px">🔒 종료됨</span>' :
-      room.status === 'archived' ? '<span style="display:inline-block;background:#fff8ec;color:#8a6a00;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px">🗄 보관함</span>' :
+      room.status === 'closed'   ? '<span style="display:inline-block;background:#f0f0f0;color:#525252;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px">종료됨</span>' :
+      room.status === 'archived' ? '<span style="display:inline-block;background:#fff8ec;color:#8a6a00;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px">보관함</span>' :
       '';
 
     const archivedBannerHtml = isArchived
-      ? '<div style="margin:0 0 0;padding:10px 16px;background:#fff8ec;border-bottom:1px solid #f0e3c4;font-size:12px;color:#8a6a00;line-height:1.5">📦 이 채팅방은 보관함에 있습니다. 메시지 전송이 불가능하며, "🔓 복구" 버튼으로 종료 상태로 되돌릴 수 있습니다.</div>'
+      ? '<div style="margin:0 0 0;padding:10px 16px;background:#fff8ec;border-bottom:1px solid #f0e3c4;font-size:12px;color:#8a6a00;line-height:1.5">이 채팅방은 보관함에 있습니다. 메시지 전송이 불가능하며, "복구" 버튼으로 종료 상태로 되돌릴 수 있습니다.</div>'
       : '';
 
     const actionBtnsHtml = buildActionButtons(room, blacklist, member?.name);
@@ -340,7 +340,7 @@
             <span style="font-size:12px;color:var(--text-2)">${cat}${statusBadgeHtml}</span>
             <div style="font-weight:700;font-size:15px;margin:4px 0">${esc(member?.name || '회원')} <span style="font-weight:400;color:var(--text-3);font-size:12px">${esc(member?.email || '')}</span></div>
             <div style="font-size:11.5px;color:var(--text-3)">가입 ${fmtDate(member?.createdAt)} · 후원 ₩${(summary?.donationTotal || 0).toLocaleString()} (${summary?.donationCount || 0}건) · 지원 ${summary?.supportCount || 0}건</div>
-            ${blacklist ? '<div style="margin-top:4px;font-size:12px;color:#a01e2c">⚠️ 블랙리스트: ' + esc(blacklist.reason) + '</div>' : ''}
+            ${blacklist ? '<div style="margin-top:4px;font-size:12px;color:#a01e2c">블랙리스트: ' + esc(blacklist.reason) + '</div>' : ''}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
             ${actionBtnsHtml}
@@ -364,7 +364,7 @@
         <textarea id="acMsgInput" rows="1" placeholder="관리자 메시지 입력 (Enter: 전송)" style="flex:1;border:1px solid var(--line);border-radius:18px;padding:10px 16px;font-size:13px;resize:none;font-family:inherit;max-height:100px"></textarea>
         <button id="acMsgSendBtn" style="background:var(--brand);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:16px;flex-shrink:0">➤</button>
       </div>` : (isArchived
-        ? '<div style="padding:14px;text-align:center;color:#8a6a00;font-size:13px;background:#fff8ec;border-top:1px solid #f0e3c4">🗄 보관된 채팅방입니다</div>'
+        ? '<div style="padding:14px;text-align:center;color:#8a6a00;font-size:13px;background:#fff8ec;border-top:1px solid #f0e3c4">보관된 채팅방입니다</div>'
         : '<div style="padding:14px;text-align:center;color:var(--text-3);font-size:13px;background:#f8f8f8;border-top:1px solid var(--line)">종료된 채팅방입니다</div>')}
     `;
 
@@ -428,7 +428,7 @@
       const safeId = esc(msgId);
 
       if (m.isSystem || m.senderRole === 'system' || m.messageType === 'system_notice') {
-        return `<div data-msg-id="${safeId}" style="text-align:center;margin:8px 0"><span style="background:#fff8ec;color:#8a6a00;border:1px solid #f0e3c4;font-size:12px;padding:4px 12px;border-radius:12px;display:inline-block">📢 ${esc(m.content || '')}</span></div>`;
+        return `<div data-msg-id="${safeId}" style="text-align:center;margin:8px 0"><span style="background:#fff8ec;color:#8a6a00;border:1px solid #f0e3c4;font-size:12px;padding:4px 12px;border-radius:12px;display:inline-block">${esc(m.content || '')}</span></div>`;
       }
       const isUser = m.senderId === userMemberId;
       const time = fmtTime(m.createdAt);

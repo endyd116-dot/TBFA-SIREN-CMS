@@ -6,9 +6,9 @@
   let _cmpSearchTimer = null;
 
   const TYPE_LABEL = {
-    fundraising: '<span style="background:#e7f7ec;color:#1a5e2c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">💰 모금</span>',
-    memorial: '<span style="background:#fef9f5;color:#7a1f2b;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">🎗 추모</span>',
-    awareness: '<span style="background:#eef2ff;color:#4338ca;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">📣 인식</span>',
+    fundraising: '<span style="background:#e7f7ec;color:#1a5e2c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">모금</span>',
+    memorial: '<span style="background:#fef9f5;color:#7a1f2b;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">추모</span>',
+    awareness: '<span style="background:#eef2ff;color:#4338ca;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">인식</span>',
   };
 
   const STATUS_LABEL = {
@@ -116,10 +116,10 @@
         : '<span style="color:var(--text-3)">—</span>';
 
       return `<tr>
-        <td style="text-align:center">${c.isPinned ? '📌' : ''}</td>
+        <td style="text-align:center">${c.isPinned ? '' : ''}</td>
         <td>${TYPE_LABEL[c.type] || c.type}</td>
         <td>
-          <div><strong>${escapeHtml(c.title)}</strong>${c.isPublished ? '' : ' <span style="color:var(--text-3);font-size:10px">🔒</span>'}</div>
+          <div><strong>${escapeHtml(c.title)}</strong>${c.isPublished ? '' : ' <span style="color:var(--text-3);font-size:10px"></span>'}</div>
           <div style="font-size:11px;color:var(--text-3);font-family:Inter,monospace">${escapeHtml(c.slug)}</div>
         </td>
         <td>${STATUS_LABEL[c.status] || c.status}</td>
@@ -128,9 +128,9 @@
         <td style="text-align:right">${(c.donorCount || 0).toLocaleString()}</td>
         <td style="font-size:11px">${period}</td>
         <td>
-          <button type="button" class="btn-sm btn-sm-ghost" data-cmp-act="edit" data-id="${c.id}" style="font-size:11px">✏️ 수정</button>
-          <button type="button" class="btn-sm btn-sm-ghost" data-cmp-act="stats" data-id="${c.id}" style="font-size:11px;color:var(--brand)">📊 통계</button>
-          <button type="button" class="btn-sm btn-sm-ghost" data-cmp-act="recalc" data-id="${c.id}" style="font-size:11px">🔄</button>
+          <button type="button" class="btn-sm btn-sm-ghost" data-cmp-act="edit" data-id="${c.id}" style="font-size:11px">수정</button>
+          <button type="button" class="btn-sm btn-sm-ghost" data-cmp-act="stats" data-id="${c.id}" style="font-size:11px;color:var(--brand)">통계</button>
+          <button type="button" class="btn-sm btn-sm-ghost" data-cmp-act="recalc" data-id="${c.id}" style="font-size:11px"></button>
         </td>
       </tr>`;
     }).join('');
@@ -162,14 +162,14 @@
     document.getElementById('cmpSlugPreview').textContent = '—';
 
     if (!id) {
-      titleEl.textContent = '📢 새 캠페인';
+      titleEl.textContent = '새 캠페인';
       if (deleteBtn) deleteBtn.style.display = 'none';
       modal.classList.add('show');
       setTimeout(() => document.getElementById('cmpTitle')?.focus(), 100);
       return;
     }
 
-    titleEl.textContent = '✏️ 캠페인 수정';
+    titleEl.textContent = '캠페인 수정';
     if (deleteBtn) deleteBtn.style.display = '';
     modal.classList.add('show');
 
@@ -240,7 +240,7 @@
         toast(res.data?.error || '저장 실패');
       }
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '저장'; }
     }
   }
 
@@ -265,7 +265,7 @@
     const res = await api('/api/admin/campaign-stats?id=' + id);
     if (!res.ok) return toast('통계 조회 실패');
     const d = res.data.data;
-    const msg = `📊 ${d.campaign.title}\n\n` +
+    const msg = `${d.campaign.title}\n\n` +
       `진행: ${d.stats.progressPercent || '-'}% (${d.stats.progressStatus})\n` +
       `모금: ₩${d.stats.raisedAmount.toLocaleString()} / ₩${(d.stats.goalAmount || 0).toLocaleString()}\n` +
       `후원자: ${d.stats.donorCount}명 (${d.stats.totalDonations}건)\n` +
@@ -286,7 +286,7 @@
 
     const btn = document.getElementById('cmpAiBtn');
     btn.disabled = true;
-    btn.textContent = '⏳ 생성 중... (3~5초)';
+    btn.textContent = '생성 중... (3~5초)';
 
     try {
       const res = await api('/api/admin/campaign-ai-copy', {
@@ -313,7 +313,7 @@
       }
     } finally {
       btn.disabled = false;
-      btn.textContent = '✨ AI 카피 생성';
+      btn.textContent = 'AI 카피 생성';
     }
   }
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>큐레이션 관리 — SIREN</title>
@@ -229,13 +230,13 @@
 </head>
 <body>
 
-<h2>🗂️ 큐레이션 슬롯 관리</h2>
+<h2><span class="siren-icon-wrap" data-icon="folders"></span> 큐레이션 슬롯 관리</h2>
 <p class="page-desc">홈·마이페이지 등 슬롯별 콘텐츠 아이템을 관리합니다. 드래그하여 순서를 조정하세요.</p>
 
 <div class="tab-bar">
-  <button class="tab-btn active" data-slot="home_top">🏠 홈 상단</button>
-  <button class="tab-btn" data-slot="home_mid">📌 홈 중간</button>
-  <button class="tab-btn" data-slot="mypage_banner">👤 마이페이지 배너</button>
+  <button class="tab-btn active" data-slot="home_top"><span class="siren-icon-wrap" data-icon="home"></span> 홈 상단</button>
+  <button class="tab-btn" data-slot="home_mid"><span class="siren-icon-wrap" data-icon="pin"></span> 홈 중간</button>
+  <button class="tab-btn" data-slot="mypage_banner"><span class="siren-icon-wrap" data-icon="user"></span> 마이페이지 배너</button>
 </div>
 
 <div id="slotPanels">
@@ -272,7 +273,7 @@
           <label>이미지 (선택)</label>
           <div id="itemImgZone" class="img-upload-zone">
             <input type="file" id="itemImgFile" accept="image/*">
-            <div id="itemImgPlaceholder" style="font-size:11px;color:#9ca3af">🖼️ 클릭하거나 드래그</div>
+            <div id="itemImgPlaceholder" style="font-size:11px;color:#9ca3af"><span class="siren-icon-wrap" data-icon="image"></span> 클릭하거나 드래그</div>
             <div id="itemImgPreview" class="img-preview-wrap" style="display:none">
               <img id="itemImgThumb" src="" alt="">
               <button class="img-remove-btn" id="btnItemImgRemove" type="button">×</button>
@@ -380,10 +381,10 @@
       if (!r3.ok) throw new Error(r3.data?.error || '확인 실패');
       const imgUrl = (r3.data?.data || r3.data)?.url;
       if (!imgUrl) throw new Error('이미지 URL 없음');
-      status.textContent = '✅ 완료';
+      status.textContent = '완료';
       showItemImg(imgUrl);
     } catch (err) {
-      status.textContent = '❌ ' + err.message;
+      status.textContent = '' + err.message;
       toast('업로드 실패: ' + err.message);
     }
   }
@@ -394,7 +395,7 @@
     panel.innerHTML = `
       <div class="card">
         <div class="card-title">
-          <span>📍 ${SLOT_LABELS[slot]} 콘텐츠</span>
+          <span>${SLOT_LABELS[slot]} 콘텐츠</span>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-ghost btn-sm" data-save-order="${slot}">순서 저장</button>
             <button class="btn btn-primary btn-sm" data-add-item="${slot}">+ 아이템 추가</button>
@@ -406,7 +407,7 @@
             <div class="curation-item" draggable="true" data-id="${item.id}">
               <span class="drag-handle">☰</span>
               <span class="item-order">${i + 1}</span>
-              <div class="item-thumb">${item.imageUrl ? `<img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover">` : '🖼️'}</div>
+              <div class="item-thumb">${item.imageUrl ? `<img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover">` : ''}</div>
               <div class="item-info">
                 <div class="item-title">${item.title}</div>
                 <div class="item-link">${item.linkUrl || '—'}</div>
@@ -416,7 +417,7 @@
               <button class="btn btn-danger btn-sm" data-item-del="${item.id}" style="flex-shrink:0;margin-left:4px">삭제</button>
             </div>`).join('')}
           </div>` :
-          '<div class="empty-state"><div class="empty-icon">📭</div><p>등록된 아이템이 없습니다.</p></div>'
+          '<div class="empty-state"><div class="empty-icon"></div><p>등록된 아이템이 없습니다.</p></div>'
         }
       </div>`;
 

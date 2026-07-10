@@ -59,9 +59,9 @@
     load().then(function () {
       inner.innerHTML =
         '<div style="max-width:680px">' +
-          '<h2 style="font-size:20px;font-weight:800;margin-bottom:6px">🎴 로고 · 파비콘 · 타이틀</h2>' +
+          '<h2 style="font-size:20px;font-weight:800;margin-bottom:6px">로고 · 파비콘 · 타이틀</h2>' +
           '<p style="font-size:13px;color:#64748b;margin-bottom:8px">협의회 로고, 브라우저 탭 아이콘(파비콘), 사이트 이름, 홈 화면 탭 제목을 코드 없이 바꿉니다.</p>' +
-          '<p style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:22px">💡 <b>저장하면 즉시 전체 사이트에 적용</b>됩니다(다른 편집처럼 별도 배포 불필요). 파비콘은 방문자 브라우저 캐시 때문에 탭을 새로 열거나 강력 새로고침해야 보일 수 있어요.</p>' +
+          '<p style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:22px"><b>저장하면 즉시 전체 사이트에 적용</b>됩니다(다른 편집처럼 별도 배포 불필요). 파비콘은 방문자 브라우저 캐시 때문에 탭을 새로 열거나 강력 새로고침해야 보일 수 있어요.</p>' +
 
           previewBox('로고 심볼', '헤더·푸터에 표시되는 심볼. 정사각형 PNG(투명 배경) 권장 · 3MB 이하.', _state.logoUrl, 'logo', 'brandLogoFile') +
           previewBox('파비콘', '브라우저 탭 아이콘. 정사각형 PNG/ICO 권장(작게 보이니 단순한 심볼).', _state.faviconUrl, 'favicon', 'brandFaviconFile') +
@@ -79,7 +79,7 @@
           '</div>' +
 
           '<div style="display:flex;gap:10px;align-items:center">' +
-            '<button type="button" id="brandSaveBtn" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer">💾 저장하고 바로 적용</button>' +
+            '<button type="button" id="brandSaveBtn" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer">저장하고 바로 적용</button>' +
             '<span id="brandSaveMsg" style="font-size:13px;color:#16a34a"></span>' +
           '</div>' +
         '</div>';
@@ -127,7 +127,7 @@
       toast('저장 실패: ' + e.message);
       if (msg) { msg.style.color = '#dc2626'; msg.textContent = '저장 실패: ' + e.message; }
     } finally {
-      btn.disabled = false; btn.textContent = '💾 저장하고 바로 적용';
+      btn.disabled = false; btn.textContent = '저장하고 바로 적용';
     }
   }
 

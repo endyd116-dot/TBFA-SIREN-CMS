@@ -194,7 +194,7 @@
     const watcherLabel = document.getElementById('wkBtnWatcherLabel');
     const watcherBtn = document.getElementById('wkBtnWatcher');
     const isWatching = !!task.isWatchedByMe;
-    if (watcherIcon) watcherIcon.textContent = isWatching ? '🙈' : '👁';
+    if (watcherIcon) watcherIcon.textContent = isWatching ? '' : '';
     if (watcherLabel) watcherLabel.textContent = isWatching ? '관찰 해제' : '관찰하기';
     if (watcherBtn) watcherBtn.dataset.watching = isWatching ? '1' : '0';
 
@@ -206,7 +206,7 @@
       if (kind && id) {
         srcBtn.style.display = '';
         const label = SERVICE_KIND_LABEL[kind] || kind;
-        srcBtn.textContent = '🔗 원본 ' + label + ' 보기';
+        srcBtn.textContent = '원본 ' + label + ' 보기';
         srcBtn.dataset.serviceKind = kind;
         srcBtn.dataset.serviceId = String(id);
       } else {
@@ -251,7 +251,7 @@
             const uid = m.id || m.uid;
             if (!uid) return;
             const name = m.name || m.email || ('#' + uid);
-            const away = m.outOfOffice ? ' (부재 중 ⚠️)' : '';
+            const away = m.outOfOffice ? ' (부재 중 )' : '';
             const opt = document.createElement('option');
             opt.value = String(uid);
             opt.textContent = name + away;
@@ -297,7 +297,7 @@
         body: { taskId: taskId, toUid: toUid, reason: reason || undefined }
       });
       const opt = sel.options[sel.selectedIndex];
-      const toName = opt ? opt.textContent.replace(/\s\(부재 중 ⚠️\)$/, '') : '받는 사람';
+      const toName = opt ? opt.textContent.replace(/\s\(부재 중 \)$/, '') : '받는 사람';
       _showToast(toName + '님께 토스했어요', 'success');
       closeModal('wkTransferModal');
 
@@ -346,7 +346,7 @@
         if (btn) btn.dataset.watching = '0';
         const icon = document.getElementById('wkBtnWatcherIcon');
         const label = document.getElementById('wkBtnWatcherLabel');
-        if (icon) icon.textContent = '👁';
+        if (icon) icon.textContent = '';
         if (label) label.textContent = '관찰하기';
       } else {
         await _api('/api/admin-workspace-task-watchers', { method: 'POST', body: { taskId: taskId } });
@@ -354,7 +354,7 @@
         if (btn) btn.dataset.watching = '1';
         const icon = document.getElementById('wkBtnWatcherIcon');
         const label = document.getElementById('wkBtnWatcherLabel');
-        if (icon) icon.textContent = '🙈';
+        if (icon) icon.textContent = '';
         if (label) label.textContent = '관찰 해제';
       }
     } catch (err) {

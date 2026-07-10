@@ -72,18 +72,18 @@
   function renderComment(c) {
     const badges = [];
     if (c.isAnonymous) badges.push('<span class="comment-badge anon">익명</span>');
-    if (c.isPrivate) badges.push('<span class="comment-badge private">🔒 비공개</span>');
+    if (c.isPrivate) badges.push('<span class="comment-badge private">비공개</span>');
 
     const likeVoted = c.myVote === 'like' ? ' voted' : '';
     const dislikeVoted = c.myVote === 'dislike' ? ' voted' : '';
 
     const actions = `
       <div class="comment-actions">
-        <button type="button" class="comment-action-btn${likeVoted}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote="like">👍 ${c.likeCount}</button>
-        <button type="button" class="comment-action-btn${dislikeVoted}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote="dislike">👎 ${c.dislikeCount}</button>
-        ${_isLoggedIn ? `<button type="button" class="comment-action-btn reply-btn" data-cmt-action="reply" data-cmt-id="${c.id}">💬 답글</button>` : ''}
-        ${_isLoggedIn ? `<button type="button" class="comment-action-btn report-btn" data-cmt-action="report" data-cmt-id="${c.id}">🚨 신고</button>` : ''}
-        ${c.isMine ? `<button type="button" class="comment-action-btn delete-btn" data-cmt-action="delete" data-cmt-id="${c.id}">🗑 삭제</button>` : ''}
+        <button type="button" class="comment-action-btn${likeVoted}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote="like">${c.likeCount}</button>
+        <button type="button" class="comment-action-btn${dislikeVoted}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote="dislike">${c.dislikeCount}</button>
+        ${_isLoggedIn ? `<button type="button" class="comment-action-btn reply-btn" data-cmt-action="reply" data-cmt-id="${c.id}">답글</button>` : ''}
+        ${_isLoggedIn ? `<button type="button" class="comment-action-btn report-btn" data-cmt-action="report" data-cmt-id="${c.id}">신고</button>` : ''}
+        ${c.isMine ? `<button type="button" class="comment-action-btn delete-btn" data-cmt-action="delete" data-cmt-id="${c.id}">삭제</button>` : ''}
       </div>
     `;
 
@@ -115,7 +115,7 @@
   function renderReply(r) {
     const badges = [];
     if (r.isAnonymous) badges.push('<span class="comment-badge anon">익명</span>');
-    if (r.isPrivate) badges.push('<span class="comment-badge private">🔒 비공개</span>');
+    if (r.isPrivate) badges.push('<span class="comment-badge private">비공개</span>');
 
     const likeVoted = r.myVote === 'like' ? ' voted' : '';
     const dislikeVoted = r.myVote === 'dislike' ? ' voted' : '';
@@ -129,10 +129,10 @@
         </div>
         <div class="comment-content">${esc(r.content)}</div>
         <div class="comment-actions">
-          <button type="button" class="comment-action-btn${likeVoted}" data-cmt-action="vote" data-cmt-id="${r.id}" data-vote="like">👍 ${r.likeCount}</button>
-          <button type="button" class="comment-action-btn${dislikeVoted}" data-cmt-action="vote" data-cmt-id="${r.id}" data-vote="dislike">👎 ${r.dislikeCount}</button>
-          ${_isLoggedIn ? `<button type="button" class="comment-action-btn report-btn" data-cmt-action="report" data-cmt-id="${r.id}">🚨</button>` : ''}
-          ${r.isMine ? `<button type="button" class="comment-action-btn delete-btn" data-cmt-action="delete" data-cmt-id="${r.id}">🗑</button>` : ''}
+          <button type="button" class="comment-action-btn${likeVoted}" data-cmt-action="vote" data-cmt-id="${r.id}" data-vote="like">${r.likeCount}</button>
+          <button type="button" class="comment-action-btn${dislikeVoted}" data-cmt-action="vote" data-cmt-id="${r.id}" data-vote="dislike">${r.dislikeCount}</button>
+          ${_isLoggedIn ? `<button type="button" class="comment-action-btn report-btn" data-cmt-action="report" data-cmt-id="${r.id}"></button>` : ''}
+          ${r.isMine ? `<button type="button" class="comment-action-btn delete-btn" data-cmt-action="delete" data-cmt-id="${r.id}"></button>` : ''}
         </div>
       </div>
     `;
@@ -193,7 +193,7 @@
     container.innerHTML = `
       <div class="report-form-inline">
         <textarea placeholder="신고 사유를 5자 이상 입력해주세요" maxlength="500"></textarea>
-        <button type="button" data-report-submit="${commentId}">🚨 신고 접수</button>
+        <button type="button" data-report-submit="${commentId}">신고 접수</button>
       </div>
     `;
   }
@@ -307,7 +307,7 @@
     /* incident.js가 사건 상세를 로드한 후 incidentId를 설정하는 시점을 기다림 */
     const waitForIncident = setInterval(() => {
       const heroTitle = document.getElementById('incidentTitle');
-      if (!heroTitle || heroTitle.textContent === '⏳ 잠시만 기다려 주세요') return;
+      if (!heroTitle || heroTitle.textContent === '잠시만 기다려 주세요') return;
 
       clearInterval(waitForIncident);
 

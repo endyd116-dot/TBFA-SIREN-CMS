@@ -48,12 +48,12 @@
 
   /* ─── 근무형태 표시 텍스트 ─── */
   const MODE_LABEL = {
-    OFFICE: '🏢 사무실',
-    REMOTE: '🏠 재택',
-    FIELD: '🚗 외근',
-    BUSINESS_TRIP: '✈️ 출장',
-    HYBRID: '🔀 혼합',
-    HOLIDAY: '🏖️ 휴무',   // G15: 주말·공휴일 스케줄 → 배지 '미정' 대신 '휴무' 표기
+    OFFICE: '사무실',
+    REMOTE: '재택',
+    FIELD: '외근',
+    BUSINESS_TRIP: '출장',
+    HYBRID: '혼합',
+    HOLIDAY: '휴무',   // G15: 주말·공휴일 스케줄 → 배지 '미정' 대신 '휴무' 표기
   };
 
   /* ─── 탭 전환 ─── */
@@ -129,7 +129,7 @@
     } catch (_) { /* 정책 안내 실패는 메인 흐름 차단 X */ }
     } catch (e) {
       console.error('[att] initCheckin 오류:', e);
-      if (btnIn) { btnIn.disabled = false; btnIn.textContent = '🟢 출근 (새로고침 필요)'; }
+      if (btnIn) { btnIn.disabled = false; btnIn.textContent = '출근 (새로고침 필요)'; }
       toast('출퇴근 정보를 불러오지 못했습니다. 새로고침해 주세요.');
     }
   }
@@ -160,7 +160,7 @@
     const badge = document.getElementById('attModeBadge');
     if (!badge) return;
     badge.className = `att-mode-badge ${mode}`;
-    badge.textContent = MODE_LABEL[mode] || '⏳ 미정';
+    badge.textContent = MODE_LABEL[mode] || '미정';
   }
 
   function renderCheckinStatus(rec, mode) {
@@ -180,22 +180,22 @@
     }
 
     const noGps = (mode === 'REMOTE' || mode === 'BUSINESS_TRIP');
-    if (gpsNote) gpsNote.textContent = noGps ? '📡 GPS 위치 확인 없이 기록됩니다' : '📍 GPS 위치 정보가 함께 기록됩니다';
+    if (gpsNote) gpsNote.textContent = noGps ? 'GPS 위치 확인 없이 기록됩니다' : 'GPS 위치 정보가 함께 기록됩니다';
 
     if (rec.checkoutAt) {
       // 퇴근 완료 — 재출근/시각수정이 가능하도록 출근 버튼을 '재출근'으로 노출
       btnIn.style.display = 'flex';
       btnIn.disabled = false;
-      btnIn.textContent = '🔄 재출근 / 시각 수정';
+      btnIn.textContent = '재출근 / 시각 수정';
       btnOut.style.display = 'none';
-      if (statusEl) statusEl.innerHTML = `✅ 퇴근 완료<br><strong>출근 ${fmtTime(rec.checkinAt)} — 퇴근 ${fmtTime(rec.checkoutAt)}</strong>`;
+      if (statusEl) statusEl.innerHTML = `퇴근 완료<br><strong>출근 ${fmtTime(rec.checkinAt)} — 퇴근 ${fmtTime(rec.checkoutAt)}</strong>`;
       btnIn.addEventListener('click', () => doCheckin(mode));
     } else if (rec.checkinAt) {
       // 출근 후 대기
       btnIn.style.display = 'none';
       btnOut.style.display = 'flex';
       btnOut.disabled = false;
-      if (statusEl) statusEl.innerHTML = `근무 중 🟢<br>출근 시각: <strong>${fmtTime(rec.checkinAt)}</strong>`;
+      if (statusEl) statusEl.innerHTML = `근무 중 <br>출근 시각: <strong>${fmtTime(rec.checkinAt)}</strong>`;
       btnOut.addEventListener('click', () => doCheckout(mode));
     } else {
       // 미출근
@@ -210,9 +210,9 @@
   /* ─── 수동 문 열기(모바일 키) ─── */
   function describeDoor(door) {
     if (!door) return '';
-    if (door.ok && door.sim) return ' 🚪 문 열림(시뮬레이션 — 장치 연결 전)';
-    if (door.ok) return ' 🚪 문이 열렸습니다';
-    return ' ⚠️ 문 열림 실패 — 관리자에게 문의하세요';
+    if (door.ok && door.sim) return ' 문 열림(시뮬레이션 — 장치 연결 전)';
+    if (door.ok) return ' 문이 열렸습니다';
+    return ' 문 열림 실패 — 관리자에게 문의하세요';
   }
 
   async function doDoorOpen() {
@@ -222,9 +222,9 @@
       const res = await api('/api/att-door-open', { method: 'POST' });
       if (!res.ok) throw new Error(res.data?.error || res.data?.detail || 'HTTP ' + res.status);
       const door = res.data?.data || {};
-      if (door.ok && door.sim) toast('🚪 문 열림(시뮬레이션 — 장치 연결 전)');
-      else if (door.ok) toast('🚪 문이 열렸습니다');
-      else toast('⚠️ 문 열림 실패 — 관리자에게 문의하세요', 5000);
+      if (door.ok && door.sim) toast('문 열림(시뮬레이션 — 장치 연결 전)');
+      else if (door.ok) toast('문이 열렸습니다');
+      else toast('문 열림 실패 — 관리자에게 문의하세요', 5000);
     } catch (e) {
       toast('문 열기 실패: ' + e.message, 5000);
     } finally {
@@ -325,8 +325,8 @@
     }
     const d = res.data?.data || res.data || {};
     const doorMsg = describeDoor(d.door);
-    toast((d.reopened ? '퇴근이 취소되어 다시 근무 중입니다 🟢'
-      : (d.reentry ? '재출근이 기록되었습니다 🟢' : '출근이 기록되었습니다 🟢')) + doorMsg,
+    toast((d.reopened ? '퇴근이 취소되어 다시 근무 중입니다 '
+      : (d.reentry ? '재출근이 기록되었습니다 ' : '출근이 기록되었습니다 ')) + doorMsg,
       doorMsg ? 4200 : 2600);
     setTimeout(() => location.reload(), doorMsg ? 1400 : 800);
   }
@@ -339,16 +339,16 @@
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
     const bStyle = 'padding:12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:14px;text-align:left';
     const pStyle = 'padding:12px;border-radius:8px;border:0;background:#16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:600';
-    const reopenBtn = inWorkHours ? `<button type="button" id="reReopen" style="${bStyle}">↩ 퇴근을 잘못 눌렀어요 (퇴근 취소)</button>` : '';
-    const editBtn = inWorkHours ? `<button type="button" id="reEdit" style="${bStyle}">⏱ 출퇴근 시각 직접 수정</button>` : '';
+    const reopenBtn = inWorkHours ? `<button type="button" id="reReopen" style="${bStyle}">퇴근을 잘못 눌렀어요 (퇴근 취소)</button>` : '';
+    const editBtn = inWorkHours ? `<button type="button" id="reEdit" style="${bStyle}">출퇴근 시각 직접 수정</button>` : '';
     const notice = inWorkHours ? '' : '<div style="font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px;margin-bottom:12px">업무시간이 지나 <b>재출근</b>만 가능합니다. 기존 퇴근 기록은 보존됩니다.</div>';
     modal.innerHTML = `
       <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:420px">
-        <h3 style="margin:0 0 8px;font-size:17px">🔁 이미 퇴근한 상태입니다</h3>
+        <h3 style="margin:0 0 8px;font-size:17px">이미 퇴근한 상태입니다</h3>
         <div style="font-size:13px;color:#6b7280;margin-bottom:14px">어떻게 처리할까요?</div>
         ${notice}
         <div style="display:flex;flex-direction:column;gap:8px">
-          <button type="button" id="reNew" style="${pStyle}">🟢 재출근 (다시 근무 시작)</button>
+          <button type="button" id="reNew" style="${pStyle}">재출근 (다시 근무 시작)</button>
           ${reopenBtn}
           ${editBtn}
           <button type="button" id="reCancel" style="padding:10px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb;cursor:pointer;font-size:13px">닫기</button>
@@ -372,7 +372,7 @@
     const inputStyle = 'padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-left:8px';
     modal.innerHTML = `
       <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:380px">
-        <h3 style="margin:0 0 12px;font-size:17px">⏱ 출퇴근 시각 수정</h3>
+        <h3 style="margin:0 0 12px;font-size:17px">출퇴근 시각 수정</h3>
         <div style="font-size:12.5px;color:#6b7280;margin-bottom:14px">오늘 출근/퇴근 시각을 직접 수정합니다. 비워 두면 그 항목은 그대로 둡니다.</div>
         <label style="display:block;margin-bottom:10px">출근<input type="time" id="seIn" style="${inputStyle}"></label>
         <label style="display:block;margin-bottom:14px">퇴근<input type="time" id="seOut" style="${inputStyle}"></label>
@@ -416,7 +416,7 @@
     ).join('');
     modal.innerHTML = `
       <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:420px;max-height:80vh;overflow-y:auto">
-        <h3 style="margin:0 0 12px;font-size:17px">🚗 외근지 선택</h3>
+        <h3 style="margin:0 0 12px;font-size:17px">외근지 선택</h3>
         <div style="font-size:13px;color:#6b7280;margin-bottom:12px">오늘 출근할 외근지를 선택해 주세요</div>
         ${items}
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
@@ -500,12 +500,12 @@
       if (btn) btn.disabled = false;
       return;
     }
-    toast('퇴근이 기록되었습니다 🔴');
+    toast('퇴근이 기록되었습니다 ');
     // 재택근무이고 보고서 미제출이면 안내
     const resData = res.data?.data || res.data || {};
     if (resData.reportSubmitted === false) {
       setTimeout(() => {
-        toast('📝 재택보고서를 작성해주세요. "재택보고서" 탭을 확인하세요.', 4000);
+        toast('재택보고서를 작성해주세요. "재택보고서" 탭을 확인하세요.', 4000);
       }, 900);
     }
     setTimeout(() => location.reload(), 800);
@@ -594,7 +594,7 @@
       // 2행: 출근~퇴근 시각 (기록이 있을 때만)
       if (ci || co) {
         calendar.addEvent({
-          title: `🟢${ci || '—'} → 🔴${co || '근무 중'}`,
+          title: `${ci || '—'} → ${co || '근무 중'}`,
           start: row.date,
           allDay: true,
           classNames: ['att-ev-time'],
@@ -1030,7 +1030,7 @@
     if (!confirm('작성 중인 재택보고서를 삭제하시겠습니까?')) return;
     const res = await api('/api/att/remote-report?date=' + getReportDate(), { method: 'DELETE' });
     if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || 'HTTP ' + res.status)); return; }
-    toast('보고서가 삭제되었습니다 🗑');
+    toast('보고서가 삭제되었습니다 ');
     await loadReport();
   }
 
@@ -1043,7 +1043,7 @@
     show('attBtnSaveDraft', true);
     show('attBtnSubmitReport', true);
     const sb = document.getElementById('attReportStatusText');
-    if (sb) sb.innerHTML = '✏️ <strong>수정 중</strong> — 임시저장하거나 다시 제출하세요.';
+    if (sb) sb.innerHTML = '<strong>수정 중</strong> — 임시저장하거나 다시 제출하세요.';
   }
 
   function renderReportWbsCards(container, cards) {
@@ -1054,7 +1054,7 @@
     }
     container.innerHTML = cards.map(c => `
       <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#ede9fe;color:#5b21b6;border-radius:99px;font-size:12.5px;font-weight:500">
-        📌 ${escHtml(c.title || c.name || '카드')}
+        ${escHtml(c.title || c.name || '카드')}
       </span>`).join('');
   }
 
@@ -1066,7 +1066,7 @@
     if (!report) {
       // 미작성
       if (statusBar) statusBar.style.background = '#f8fafc';
-      if (statusText) statusText.innerHTML = '⬜ 오늘 재택보고서가 아직 작성되지 않았습니다.';
+      if (statusText) statusText.innerHTML = '오늘 재택보고서가 아직 작성되지 않았습니다.';
       if (metaEl) metaEl.textContent = dateStr;
       if (contentEl) { contentEl.value = ''; contentEl.disabled = false; }
       show(btnDraft, true); show(btnSubmit, true); show(btnDelete, false); show(btnEdit, false);
@@ -1076,7 +1076,7 @@
     }
     if (report.status === 'SUBMITTED') {
       if (statusBar) statusBar.style.background = '#dcfce7';
-      if (statusText) statusText.innerHTML = '✅ <strong>제출 완료</strong> — 보고서가 제출되었습니다.';
+      if (statusText) statusText.innerHTML = '<strong>제출 완료</strong> — 보고서가 제출되었습니다.';
       if (metaEl) metaEl.textContent = '제출 시각: ' + fmtTime(report.submittedAt);
       if (contentEl) { contentEl.value = report.content || ''; contentEl.disabled = true; }
       // 제출 완료: '수정'으로 다시 편집·재제출 가능
@@ -1084,7 +1084,7 @@
     } else {
       // DRAFT (임시저장 / 작성 중)
       if (statusBar) statusBar.style.background = '#fefce8';
-      if (statusText) statusText.innerHTML = '📝 <strong>임시저장</strong> — 작성 중인 보고서가 있습니다.';
+      if (statusText) statusText.innerHTML = '<strong>임시저장</strong> — 작성 중인 보고서가 있습니다.';
       if (metaEl) metaEl.textContent = report.updatedAt ? ('마지막 저장: ' + fmtTime(report.updatedAt)) : '마지막 저장';
       if (contentEl) { contentEl.value = report.content || report.aiDraft || ''; contentEl.disabled = false; }
       show(btnDraft, true); show(btnSubmit, true); show(btnDelete, true); show(btnEdit, false);
@@ -1096,11 +1096,11 @@
   async function generateAIDraft() {
     const btn = document.getElementById('attBtnAiDraft');
     const contentEl = document.getElementById('attReportContent');
-    if (btn) { btn.disabled = true; btn.textContent = '✨ 생성 중...'; }
+    if (btn) { btn.disabled = true; btn.textContent = '생성 중...'; }
 
     const res = await api('/api/att/ai-draft', { method: 'POST', body: { date: getReportDate() } });
 
-    if (btn) { btn.disabled = false; btn.textContent = '✨ AI 초안 생성'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'AI 초안 생성'; }
 
     if (!res.ok) {
       toast('AI 초안 생성 실패: ' + (res.data?.error || 'HTTP ' + res.status));
@@ -1131,7 +1131,7 @@
       if (btn) btn.disabled = false;
       return;
     }
-    toast('임시저장 완료 💾');
+    toast('임시저장 완료 ');
     if (btn) btn.disabled = false;
     await loadReport();   // 상태·버튼(삭제 등) 갱신
   }
@@ -1155,7 +1155,7 @@
       if (btn) btn.disabled = false;
       return;
     }
-    toast('보고서가 제출되었습니다 📤');
+    toast('보고서가 제출되었습니다 ');
     // 상태 갱신
     await loadReport();
   }
@@ -1241,7 +1241,7 @@
           histEl.innerHTML = '<span style="color:#9ca3af">신청 이력이 없습니다</span>';
           return;
         }
-        const STATUS = { PENDING: '⏳ 대기', APPROVED: '✅ 승인', REJECTED: '❌ 반려' };
+        const STATUS = { PENDING: '대기', APPROVED: '승인', REJECTED: '반려' };
         histEl.innerHTML = list.slice(0, 10).map(r =>
           `<div style="padding:4px 0;border-bottom:1px dashed #e5e7eb">` +
           `${r.targetDate} · ${MODE_LABEL[r.targetMode] || r.targetMode} · ${STATUS[r.status] || r.status}` +
@@ -1283,7 +1283,7 @@
         toast('신청 실패: ' + (res.data?.error || 'HTTP ' + res.status));
         return;
       }
-      toast('신청이 접수되었습니다 📨');
+      toast('신청이 접수되었습니다 ');
       closeModal();
     });
   }

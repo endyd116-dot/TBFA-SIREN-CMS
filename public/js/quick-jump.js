@@ -19,11 +19,11 @@
 
   function buildItems(currentKey) {
     return [
-      { key: 'admin',    href: '/admin.html',                icon: '🚨', label: '싸이렌 어드민' },
-      { key: 'cms-tbfa', href: '/cms-tbfa.html',            icon: '🏦', label: '통합 CMS 어드민' },
-      { key: 'workspace',href: '/workspace.html',           icon: '📊', label: '워크스페이스' },
-      { key: 'hub',      href: '/admin-hub.html',           icon: '🏠', label: '허브' },
-      { key: 'home',     href: '/',                         icon: '🌐', label: '사용자 홈페이지' },
+      { key: 'admin',    href: '/admin.html',                icon: '', label: '싸이렌 어드민' },
+      { key: 'cms-tbfa', href: '/cms-tbfa.html',            icon: '', label: '통합 CMS 어드민' },
+      { key: 'workspace',href: '/workspace.html',           icon: '', label: '워크스페이스' },
+      { key: 'hub',      href: '/admin-hub.html',           icon: '', label: '허브' },
+      { key: 'home',     href: '/',                         icon: '', label: '사용자 홈페이지' },
     ];
   }
 
@@ -36,7 +36,7 @@
     var items = buildItems(current);
     var html = '';
     html += '<button type="button" class="quick-jump-toggle" aria-haspopup="true">';
-    html += '<span class="quick-jump-icon">🚀</span>';
+    html += '<span class="quick-jump-icon"></span>';
     html += '<span class="quick-jump-label">퀵이동</span>';
     html += '<span class="quick-jump-chevron">▾</span>';
     html += '</button>';

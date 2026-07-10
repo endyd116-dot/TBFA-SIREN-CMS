@@ -137,9 +137,9 @@
     const phases = o.phases || [];
     const statusLabel = OBJ_STATUS_LABEL[o.status] || o.status;
     const metaBits = [];
-    if (o.ownerName) metaBits.push(`👤 ${escapeHtml(o.ownerName)}`);
-    if (o.startDate || o.targetDate) metaBits.push(`🗓 ${fmtDateFull(o.startDate)} → ${fmtDateFull(o.targetDate)}`);
-    metaBits.push(`📊 단계 ${phases.length}개`);
+    if (o.ownerName) metaBits.push(`${escapeHtml(o.ownerName)}`);
+    if (o.startDate || o.targetDate) metaBits.push(`${fmtDateFull(o.startDate)} → ${fmtDateFull(o.targetDate)}`);
+    metaBits.push(`단계 ${phases.length}개`);
 
     const phasesHtml = phases.length ? `
       <div class="rm-phases">
@@ -162,7 +162,7 @@
           <div class="rm-progress-label">진행률 ${o.progress}%</div>
         </div>
         <div class="rm-obj-actions editonly">
-          <button class="rm-btn rm-btn-ghost rm-btn-sm" data-edit-obj="${o.id}" type="button">✏️ 수정</button>
+          <button class="rm-btn rm-btn-ghost rm-btn-sm" data-edit-obj="${o.id}" type="button">수정</button>
         </div>
       </div>
       ${phasesHtml}
@@ -184,7 +184,7 @@
         <div class="rm-progress" style="--obj-color:${hex}"><i style="width:${p.progress}%"></i></div>
       </div>
       <div class="rm-phase-actions editonly">
-        <button class="rm-btn rm-btn-ghost rm-btn-sm" data-edit-phase="${p.id}" data-obj="${p.objectiveId}" type="button">✏️</button>
+        <button class="rm-btn rm-btn-ghost rm-btn-sm" data-edit-phase="${p.id}" data-obj="${p.objectiveId}" type="button"></button>
       </div>
     </div>`;
   }

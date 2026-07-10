@@ -100,19 +100,19 @@
   }
 
   function fileIcon(name) {
-    if (!name) return '📄';
+    if (!name) return '';
     const ext = name.split('.').pop().toLowerCase();
     const map = {
-      pdf: '📕', doc: '📘', docx: '📘',
-      xls: '📗', xlsx: '📗', csv: '📗',
-      ppt: '📙', pptx: '📙',
-      jpg: '🖼', jpeg: '🖼', png: '🖼', gif: '🖼', webp: '🖼', svg: '🖼',
-      mp4: '🎬', mov: '🎬', avi: '🎬',
-      mp3: '🎵', wav: '🎵',
-      zip: '📦', rar: '📦', '7z': '📦',
-      txt: '📝', md: '📝',
+      pdf: '', doc: '', docx: '',
+      xls: '', xlsx: '', csv: '',
+      ppt: '', pptx: '',
+      jpg: '', jpeg: '', png: '', gif: '', webp: '', svg: '',
+      mp4: '', mov: '', avi: '',
+      mp3: '', wav: '',
+      zip: '', rar: '', '7z': '',
+      txt: '', md: '',
     };
-    return map[ext] || '📄';
+    return map[ext] || '';
   }
 
   function escapeHtml(s) {
@@ -179,7 +179,7 @@
       return children.map(f => {
         const hasChildren = (byParent[f.id] || []).length > 0;
         const isActive = f.id === state.currentFolderId;
-        const shareIcon = f.isShared ? ' <span class="wf-share-indicator">🔗</span>' : '';
+        const shareIcon = f.isShared ? ' <span class="wf-share-indicator"></span>' : '';
         const childHtml = renderNode(f.id, depth + 1);
         return `
           <div>
@@ -187,8 +187,8 @@
                  data-folder-id="${f.id}"
                  data-folder-name="${escapeHtml(f.name)}"
                  style="padding-left:${8 + depth * 12}px">
-              <span class="wf-tree-toggle ${hasChildren ? '' : 'empty'}" data-toggle="${f.id}">▶</span>
-              <span>📁</span>
+              <span class="wf-tree-toggle ${hasChildren ? '' : 'empty'}" data-toggle="${f.id}"></span>
+              <span></span>
               <span>${escapeHtml(f.name)}${shareIcon}</span>
             </div>
             <div class="wf-tree-children" data-children="${f.id}">${childHtml}</div>
@@ -200,7 +200,7 @@
     const rootHtml = `
       <div class="wf-tree-node ${state.currentFolderId === 0 ? 'active' : ''}" data-folder-id="0" data-folder-name="홈">
         <span class="wf-tree-toggle empty"></span>
-        <span>🏠</span>
+        <span></span>
         <span>홈</span>
       </div>
       ${renderNode(0, 0)}
@@ -258,7 +258,7 @@
       return `
         ${idx > 0 ? '<span class="wf-crumb-sep">›</span>' : ''}
         <span class="wf-crumb ${isLast ? 'active' : ''}" data-folder-id="${p.id}">
-          ${idx === 0 ? '🏠 ' : ''}${escapeHtml(p.name)}
+          ${idx === 0 ? '' : ''}${escapeHtml(p.name)}
         </span>
       `;
     }).join('');
@@ -346,14 +346,14 @@
     const folderRowsHtml = trashFolders.map(fd => `
         <tr class="wf-list-row wf-trash-folder-row" data-folder-id="${fd.id}">
           <td class="wf-col-check"></td>
-          <td class="wf-col-icon">📁</td>
+          <td class="wf-col-icon"></td>
           <td class="wf-col-name">${escapeHtml(fd.name)} <small style="color:#9ca3af">(폴더)</small></td>
           <td class="wf-col-owner">${escapeHtml(fd.ownerName || fd.ownerEmail || '—')}</td>
           <td class="wf-col-size">—</td>
           <td class="wf-col-date">${renderDday(fd.deletedAt)}</td>
           <td class="wf-col-actions">
             <div class="wf-row-actions">
-              <button class="wf-row-action-btn" data-faction="restore-folder" data-fid="${fd.id}" title="복원">↩</button>
+              <button class="wf-row-action-btn" data-faction="restore-folder" data-fid="${fd.id}" title="복원"></button>
               <button class="wf-row-action-btn" data-faction="purge-folder" data-fid="${fd.id}" data-fname="${escapeHtml(fd.name)}" title="영구 삭제">✕</button>
             </div>
           </td>
@@ -363,7 +363,7 @@
       const isSelected = state.selectedFileIds.has(f.id);
       const ownerName = f.ownerName || f.ownerEmail || '—';
       const isTrash = state.currentView === 'trash';
-      const shareIcon = f.isShared ? ' <span class="wf-share-indicator" title="공유됨">🔗</span>' : '';
+      const shareIcon = f.isShared ? ' <span class="wf-share-indicator" title="공유됨"></span>' : '';
       return `
         <tr class="wf-list-row ${isSelected ? 'selected' : ''}"
             data-file-id="${f.id}"
@@ -379,13 +379,13 @@
           <td class="wf-col-actions">
             <div class="wf-row-actions">
               ${isTrash ? `
-                <button class="wf-row-action-btn" data-action="restore" data-id="${f.id}" title="복원">↩</button>
+                <button class="wf-row-action-btn" data-action="restore" data-id="${f.id}" title="복원"></button>
                 <button class="wf-row-action-btn" data-action="purge" data-id="${f.id}" title="영구 삭제">✕</button>
               ` : `
-                <button class="wf-row-action-btn" data-action="download" data-id="${f.id}" title="다운로드">⬇</button>
-                <button class="wf-row-action-btn" data-action="share" data-id="${f.id}" title="공유">🔗</button>
-                <button class="wf-row-action-btn" data-action="rename" data-id="${f.id}" title="이름 변경">✏</button>
-                <button class="wf-row-action-btn" data-action="delete" data-id="${f.id}" title="휴지통">🗑</button>
+                <button class="wf-row-action-btn" data-action="download" data-id="${f.id}" title="다운로드"></button>
+                <button class="wf-row-action-btn" data-action="share" data-id="${f.id}" title="공유"></button>
+                <button class="wf-row-action-btn" data-action="rename" data-id="${f.id}" title="이름 변경"></button>
+                <button class="wf-row-action-btn" data-action="delete" data-id="${f.id}" title="휴지통"></button>
               `}
             </div>
           </td>
@@ -476,7 +476,7 @@
       case 'download': await downloadFile(fileId); break;
       case 'rename':   openRenameModal('file', fileId, file.name); break;
       case 'delete':
-        if (!confirm(`"${file.name}" 파일을 휴지통으로 이동하시겠습니까?\n\n📅 30일 후 자동으로 영구 삭제됩니다.\n그 전까지는 휴지통에서 ↩ 복원할 수 있습니다.`)) return;
+        if (!confirm(`"${file.name}" 파일을 휴지통으로 이동하시겠습니까?\n\n30일 후 자동으로 영구 삭제됩니다.\n그 전까지는 휴지통에서 복원할 수 있습니다.`)) return;
         await deleteFile(fileId); break;
       case 'share':    openShareModal('file', fileId, file.name); break;
       case 'restore':
@@ -673,7 +673,7 @@
   }
 
   async function deleteFolder(id, name) {
-    if (!confirm(`폴더 "${name}"을(를) 휴지통으로 이동하시겠습니까?\n폴더 내 모든 파일도 함께 이동됩니다.\n\n📅 30일 후 자동으로 영구 삭제됩니다.`)) return;
+    if (!confirm(`폴더 "${name}"을(를) 휴지통으로 이동하시겠습니까?\n폴더 내 모든 파일도 함께 이동됩니다.\n\n30일 후 자동으로 영구 삭제됩니다.`)) return;
     try {
       await api(`/api/admin-workspace-folders?id=${id}`, { method: 'DELETE' });
       toast('폴더가 휴지통으로 이동됨', 'success');
@@ -704,7 +704,7 @@
     const targetEl = document.getElementById('wfShareTarget');
     if (targetEl) {
       targetEl.innerHTML = `
-        <span class="wf-share-icon">${type === 'folder' ? '📁' : '📄'}</span>
+        <span class="wf-share-icon">${type === 'folder' ? '' : ''}</span>
         <span class="wf-share-name">${escapeHtml(name)}</span>
       `;
     }
@@ -946,18 +946,18 @@
 
     const items = [];
     if (type === 'folder') {
-      items.push({ icon: '📁', label: '하위 폴더 추가', action: 'newSubFolder' });
-      items.push({ icon: '✏', label: '이름 변경', action: 'rename' });
-      items.push({ icon: '🔗', label: '공유 관리', action: 'share' });
+      items.push({ icon: '', label: '하위 폴더 추가', action: 'newSubFolder' });
+      items.push({ icon: '', label: '이름 변경', action: 'rename' });
+      items.push({ icon: '', label: '공유 관리', action: 'share' });
       items.push({ divider: true });
-      items.push({ icon: '🗑', label: '휴지통으로 이동', action: 'delete', danger: true });
+      items.push({ icon: '', label: '휴지통으로 이동', action: 'delete', danger: true });
     } else {
-      items.push({ icon: '⬇', label: '다운로드', action: 'download' });
-      items.push({ icon: '🔗', label: '공유 관리', action: 'share' });
-      items.push({ icon: '📂', label: '다른 폴더로 이동', action: 'move' });
-      items.push({ icon: '✏', label: '이름 변경', action: 'rename' });
+      items.push({ icon: '', label: '다운로드', action: 'download' });
+      items.push({ icon: '', label: '공유 관리', action: 'share' });
+      items.push({ icon: '', label: '다른 폴더로 이동', action: 'move' });
+      items.push({ icon: '', label: '이름 변경', action: 'rename' });
       items.push({ divider: true });
-      items.push({ icon: '🗑', label: '휴지통으로 이동', action: 'delete', danger: true });
+      items.push({ icon: '', label: '휴지통으로 이동', action: 'delete', danger: true });
     }
 
     menu.innerHTML = items.map(it => {
@@ -1021,7 +1021,7 @@
         <div class="wf-modal-backdrop" data-close="wfMoveModal"></div>
         <div class="wf-modal-content wf-modal-sm">
           <div class="wf-modal-header">
-            <h2>📂 이동</h2>
+            <h2>이동</h2>
             <button class="wf-modal-close" data-close="wfMoveModal">✕</button>
           </div>
           <div class="wf-modal-body">
@@ -1050,7 +1050,7 @@
     const target = document.getElementById('wfMoveTarget');
     if (target) {
       target.innerHTML = `
-        <span class="wf-share-icon">${type === 'folder' ? '📁' : '📄'}</span>
+        <span class="wf-share-icon">${type === 'folder' ? '' : ''}</span>
         <span class="wf-share-name">${escapeHtml(name)}</span>
       `;
     }
@@ -1062,7 +1062,7 @@
   function renderMoveFolderList() {
     const list = document.getElementById('wfMoveFolderList');
     if (!list) return;
-    const items = [{ id: 0, name: '🏠 홈 (루트)', depth: 0 }];
+    const items = [{ id: 0, name: '홈 (루트)', depth: 0 }];
     state.folders.forEach(f => {
       items.push({ id: f.id, name: f.name, depth: f.depth || 0 });
     });
@@ -1070,7 +1070,7 @@
       <div class="wf-move-folder-item ${it.id === state.moveSelectedFolderId ? 'selected' : ''}"
            data-folder-id="${it.id}"
            style="padding-left:${10 + (it.depth * 12)}px">
-        ${it.id === 0 ? '' : '📁 '}${escapeHtml(it.name)}
+        ${it.id === 0 ? '' : ''}${escapeHtml(it.name)}
       </div>
     `).join('');
     list.querySelectorAll('.wf-move-folder-item').forEach(el => {
@@ -1193,7 +1193,7 @@
         <div class="wf-modal-backdrop"></div>
         <div class="wf-modal-content wf-modal-sm">
           <div class="wf-modal-header">
-            <h2>📦 ZIP 다운로드</h2>
+            <h2>ZIP 다운로드</h2>
           </div>
           <div class="wf-modal-body">
             <div class="wf-zip-progress">
@@ -1253,12 +1253,12 @@
         banner.id = 'wfTrashBanner';
         banner.className = 'wf-trash-banner';
         banner.innerHTML = `
-          <span style="font-size:20px;">⚠️</span>
+          <span style="font-size:20px;"></span>
           <div>
             <strong>휴지통 안내</strong>
             <p style="margin:0;font-size:12px;line-height:1.5;">
               휴지통의 항목은 <strong>삭제 후 30일</strong>이 지나면 자동으로 영구 삭제됩니다.<br />
-              복원하려면 기한 내에 ↩ 복원 버튼을 눌러주세요.
+              복원하려면 기한 내에 복원 버튼을 눌러주세요.
             </p>
           </div>
         `;
@@ -1279,7 +1279,7 @@
         restoreBtn.id = 'wfBtnRestoreAll';
         restoreBtn.className = 'wf-btn wf-btn-default';
         restoreBtn.disabled = true;
-        restoreBtn.innerHTML = '↩ 일괄 복원';
+        restoreBtn.innerHTML = '일괄 복원';
         restoreBtn.addEventListener('click', bulkRestore);
         delBtn.parentNode.insertBefore(restoreBtn, delBtn);
       }
@@ -1292,13 +1292,13 @@
     const zipBtn = document.getElementById('wfBtnZipDownload');
     if (zipBtn) zipBtn.style.display = isTrash ? 'none' : '';
 
-    /* 4. [🗑 삭제] 버튼 → [✕ 일괄 영구 삭제]로 변경 */
+    /* 4. [삭제] 버튼 → [✕ 일괄 영구 삭제]로 변경 */
     if (delBtn) {
       if (isTrash) {
         delBtn.innerHTML = '✕ 일괄 영구 삭제';
         delBtn.dataset.bulkMode = 'purge';
       } else {
-        delBtn.innerHTML = '🗑 삭제';
+        delBtn.innerHTML = '삭제';
         delBtn.dataset.bulkMode = 'trash';
       }
     }
@@ -1348,8 +1348,8 @@
         if (!state.selectedFileIds.size) return;
         const isPurge = btnDelete.dataset.bulkMode === 'purge';
         const msg = isPurge
-          ? `선택된 ${state.selectedFileIds.size}개 파일을 영구 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.\n⚠️ R2 저장소에서도 완전히 제거됩니다.`
-          : `선택된 ${state.selectedFileIds.size}개 파일을 휴지통으로 이동하시겠습니까?\n\n📅 30일 후 자동으로 영구 삭제됩니다.`;
+          ? `선택된 ${state.selectedFileIds.size}개 파일을 영구 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.\nR2 저장소에서도 완전히 제거됩니다.`
+          : `선택된 ${state.selectedFileIds.size}개 파일을 휴지통으로 이동하시겠습니까?\n\n30일 후 자동으로 영구 삭제됩니다.`;
         if (!confirm(msg)) return;
         let success = 0, failed = 0;
         for (const fid of state.selectedFileIds) {

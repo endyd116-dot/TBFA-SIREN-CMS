@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>WBS - SIREN 워크스페이스</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -38,7 +39,7 @@
     <div class="quick-jump" data-quick-jump></div>
 
     <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
-      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-icon"><span class="siren-icon-wrap" data-icon="home"></span></span>
       <span class="ws-logo-text">허브</span>
     </a>
     <nav class="ws-sidebar-nav">
@@ -46,19 +47,19 @@
         <!-- 1뎁스: 워크스페이스 (페이지 이동 토글, 워크스페이스 진입 시 자동 펼침) -->
         <li class="ws-nav-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="true">
-            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
             <span class="ws-nav-text">워크스페이스</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul data-sidebar-submenu="workspace" aria-hidden="false">
-            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
-            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
-            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
-            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon">🎯</span><span class="ws-nav-text">로드맵</span></a></li>
-            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
-            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
-            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
-            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="calendar-days"></span></span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="target"></span></span><span class="ws-nav-text">로드맵</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="files"></span></span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="folder"></span></span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="trophy"></span></span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clock"></span></span><span class="ws-nav-text">근태관리</span></a></li>
           </ul>
         </li>
 
@@ -66,11 +67,11 @@
     </nav>
     <div class="ws-sidebar-user">
       <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
-        <span class="ws-user-avatar">👤</span>
+        <span class="ws-user-avatar"><span class="siren-icon-wrap" data-icon="user"></span></span>
         <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
       </a>
       <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
-        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="door-open"></span></span>
         <span class="ws-nav-text">로그아웃</span>
       </button>
     </div>
@@ -81,7 +82,7 @@
 <main class="wk-main">
   <header class="wk-header">
     <div class="wk-header-left">
-      <h1 class="wk-title">📋 WBS</h1>
+      <h1 class="wk-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> WBS</h1>
       <span class="wk-subtitle" id="wkSubtitle">전체 작업을 5단계로 관리</span>
     </div>
     <div class="wk-header-right">
@@ -92,25 +93,25 @@
       </select>
       <select id="wkFilterPriority" class="wk-select" aria-label="우선순위">
         <option value="">우선순위 전체</option>
-        <option value="urgent">🔴 긴급</option>
-        <option value="high">🟠 높음</option>
-        <option value="normal">🟢 보통</option>
-        <option value="low">⚪ 낮음</option>
+        <option value="urgent">긴급</option>
+        <option value="high">높음</option>
+        <option value="normal">보통</option>
+        <option value="low">낮음</option>
       </select>
       <input type="search" id="wkSearch" class="wk-search" placeholder="제목 검색...">
       <button id="wkBtnNew" class="wk-btn-primary" type="button">＋ 새 작업</button>
-      <button id="wkBtnRefresh" class="wk-btn-icon" type="button" title="새로고침">🔄</button>
+      <button id="wkBtnRefresh" class="wk-btn-icon" type="button" title="새로고침"><span class="siren-icon-wrap" data-icon="refresh-cw"></span></button>
     </div>
   </header>
 
   <!-- R4: 보기 모드 토글 + 검색 바 -->
   <div class="wk-view-bar" style="padding:0 4px;margin-bottom:12px">
-    <button class="wk-view-btn is-active" data-view="board"    type="button">📋 보드</button>
-    <button class="wk-view-btn"           data-view="list"     type="button">📃 리스트</button>
-    <button class="wk-view-btn"           data-view="calendar" type="button" title="작업·일정·메모를 통합 표시하는 캘린더 페이지로 이동">📅 캘린더 ↗</button>
+    <button class="wk-view-btn is-active" data-view="board"    type="button"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 보드</button>
+    <button class="wk-view-btn"           data-view="list"     type="button"><span class="siren-icon-wrap" data-icon="file-text"></span> 리스트</button>
+    <button class="wk-view-btn"           data-view="calendar" type="button" title="작업·일정·메모를 통합 표시하는 캘린더 페이지로 이동"><span class="siren-icon-wrap" data-icon="calendar"></span> 캘린더 <span class="siren-icon-wrap" data-icon="arrow-up-right"></span></button>
     <div class="wk-search-bar">
       <input type="text" id="wkAiSearchInput" class="wk-search-input" placeholder="AI 자연어 검색..." style="width:230px">
-      <button id="wkAiSearchBtn" class="wk-ai-search-btn" type="button">🤖 AI 검색</button>
+      <button id="wkAiSearchBtn" class="wk-ai-search-btn" type="button"><span class="siren-icon-wrap" data-icon="bot"></span> AI 검색</button>
     </div>
   </div>
 
@@ -121,7 +122,7 @@
   <section class="wk-board" id="wkBoard">
     <div class="wk-column" data-status="todo">
       <header class="wk-col-header">
-        <span class="wk-col-title">📋 준비중</span>
+        <span class="wk-col-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 준비중</span>
         <span class="wk-col-count" data-count-for="todo">0</span>
       </header>
       <div class="wk-col-body" data-droppable="todo"></div>
@@ -129,7 +130,7 @@
 
     <div class="wk-column" data-status="doing">
       <header class="wk-col-header">
-        <span class="wk-col-title">🔄 진행중</span>
+        <span class="wk-col-title"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 진행중</span>
         <span class="wk-col-count" data-count-for="doing">0</span>
       </header>
       <div class="wk-col-body" data-droppable="doing"></div>
@@ -137,7 +138,7 @@
 
     <div class="wk-column wk-col-hold" data-status="blocked">
       <header class="wk-col-header">
-        <span class="wk-col-title">⏸ 보류</span>
+        <span class="wk-col-title"><span class="siren-icon-wrap" data-icon="pause"></span> 보류</span>
         <span class="wk-col-count" data-count-for="blocked">0</span>
       </header>
       <div class="wk-col-body" data-droppable="blocked"></div>
@@ -145,9 +146,9 @@
 
     <div class="wk-column wk-col-done" data-status="done">
       <header class="wk-col-header">
-        <span class="wk-col-title">✅ 완료</span>
+        <span class="wk-col-title"><span class="siren-icon-wrap" data-icon="circle-check"></span> 완료</span>
         <span class="wk-col-count" data-count-for="done">0</span>
-        <button id="wkBtnMilestoneView" title="성과별 보기" style="margin-left:auto;font-size:11px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;background:#fff;cursor:pointer;color:#6b7280">🏆 성과별</button>
+        <button id="wkBtnMilestoneView" title="성과별 보기" style="margin-left:auto;font-size:11px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;background:#fff;cursor:pointer;color:#6b7280"><span class="siren-icon-wrap" data-icon="trophy"></span> 성과별</button>
       </header>
       <div class="wk-col-body" data-droppable="done"></div>
       <!-- Phase 25: 성과별 그룹 뷰 (토글) -->
@@ -156,9 +157,9 @@
 
     <div class="wk-column wk-col-archived wk-col-collapsed" data-status="archived" id="wkColArchived">
       <header class="wk-col-header" id="wkColArchivedHeader">
-        <span class="wk-col-title">📦 보관</span>
+        <span class="wk-col-title"><span class="siren-icon-wrap" data-icon="package"></span> 보관</span>
         <span class="wk-col-count" data-count-for="archived">0</span>
-        <span class="wk-col-toggle" id="wkColArchivedToggle">▶</span>
+        <span class="wk-col-toggle" id="wkColArchivedToggle"><span class="siren-icon-wrap" data-icon="play"></span></span>
       </header>
       <div class="wk-col-body" data-droppable="archived"></div>
     </div>
@@ -187,15 +188,15 @@
     </header>
 
     <nav class="wk-tabs" role="tablist">
-      <button class="wk-tab is-active" data-tab="overview" type="button">📝 개요</button>
-      <button class="wk-tab" data-tab="comments" type="button">💬 댓글 <span class="wk-tab-count" id="wkTabCountComments"></span></button>
-      <button class="wk-tab" data-tab="files" type="button">📎 파일 <span class="wk-tab-count" id="wkTabCountFiles"></span></button>
-      <button class="wk-tab" data-tab="reports" type="button">📊 보고 <span class="wk-tab-count" id="wkTabCountReports"></span></button>
-      <button class="wk-tab" data-tab="checklist" type="button">✅ 체크리스트</button>
-      <button class="wk-tab" data-tab="subtasks" type="button">🧩 서브태스크 <span class="wk-tab-count" id="wkTabCountSubtasks"></span></button>
-      <button class="wk-tab" data-tab="automation" type="button">⏰ 자동화</button>
-      <button class="wk-tab" data-tab="history" type="button">📜 히스토리</button>
-      <button class="wk-tab" data-tab="ai" type="button">🤖 AI</button>
+      <button class="wk-tab is-active" data-tab="overview" type="button"><span class="siren-icon-wrap" data-icon="file-pen"></span> 개요</button>
+      <button class="wk-tab" data-tab="comments" type="button"><span class="siren-icon-wrap" data-icon="message-circle"></span> 댓글 <span class="wk-tab-count" id="wkTabCountComments"></span></button>
+      <button class="wk-tab" data-tab="files" type="button"><span class="siren-icon-wrap" data-icon="paperclip"></span> 파일 <span class="wk-tab-count" id="wkTabCountFiles"></span></button>
+      <button class="wk-tab" data-tab="reports" type="button"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 보고 <span class="wk-tab-count" id="wkTabCountReports"></span></button>
+      <button class="wk-tab" data-tab="checklist" type="button"><span class="siren-icon-wrap" data-icon="circle-check"></span> 체크리스트</button>
+      <button class="wk-tab" data-tab="subtasks" type="button"><span class="siren-icon-wrap" data-icon="puzzle"></span> 서브태스크 <span class="wk-tab-count" id="wkTabCountSubtasks"></span></button>
+      <button class="wk-tab" data-tab="automation" type="button"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 자동화</button>
+      <button class="wk-tab" data-tab="history" type="button"><span class="siren-icon-wrap" data-icon="scroll"></span> 히스토리</button>
+      <button class="wk-tab" data-tab="ai" type="button"><span class="siren-icon-wrap" data-icon="bot"></span> AI</button>
     </nav>
 
     <!-- ─── Phase 21 R2: 담당자·워처·원본 서비스 영역 (개요 위 고정) ─── -->
@@ -207,13 +208,13 @@
       </div>
       <div class="wk-assign-actions">
         <button type="button" id="wkBtnWatcher" class="wk-btn-secondary wk-btn-watcher" title="이 작업 관찰하기">
-          <span id="wkBtnWatcherIcon">👁</span> <span id="wkBtnWatcherLabel">관찰하기</span>
+          <span id="wkBtnWatcherIcon"><span class="siren-icon-wrap" data-icon="eye"></span></span> <span id="wkBtnWatcherLabel">관찰하기</span>
         </button>
         <button type="button" id="wkBtnTransfer" class="wk-btn-secondary" title="다른 운영자에게 토스">
-          🔁 토스
+          <span class="siren-icon-wrap" data-icon="repeat"></span> 토스
         </button>
         <button type="button" id="wkBtnSourceService" class="wk-btn-secondary" style="display:none">
-          🔗 원본 서비스 보기
+          <span class="siren-icon-wrap" data-icon="link"></span> 원본 서비스 보기
         </button>
       </div>
     </div>
@@ -233,10 +234,10 @@
           <div class="wk-col">
             <label class="wk-field-label">우선순위</label>
             <select id="wkCardPriority" class="wk-input">
-              <option value="urgent">🔴 긴급</option>
-              <option value="high">🟠 높음</option>
-              <option value="normal">🟢 보통</option>
-              <option value="low">⚪ 낮음</option>
+              <option value="urgent">긴급</option>
+              <option value="high">높음</option>
+              <option value="normal">보통</option>
+              <option value="low">낮음</option>
             </select>
           </div>
           <div class="wk-col">
@@ -347,7 +348,7 @@
 
       <!-- 탭: 자동화 (R9) — 리마인더 + 반복 생성 -->
       <section class="wk-tab-panel" data-panel="automation" hidden>
-        <h3 class="wk-ai-section-title">⏰ 리마인더</h3>
+        <h3 class="wk-ai-section-title"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 리마인더</h3>
         <div class="wk-row">
           <div class="wk-col">
             <label class="wk-field-label">
@@ -371,7 +372,7 @@
 
         <hr style="margin:18px 0;border:none;border-top:1px solid #e2e8f0">
 
-        <h3 class="wk-ai-section-title">🔁 반복 작업 생성</h3>
+        <h3 class="wk-ai-section-title"><span class="siren-icon-wrap" data-icon="repeat"></span> 반복 작업 생성</h3>
         <p class="wk-hint">현재 작업을 베이스로 새로운 반복 작업을 만듭니다. 새 작업의 마감일을 입력하세요.</p>
         <div class="wk-row">
           <div class="wk-col">
@@ -400,24 +401,24 @@
       <!-- 탭: AI -->
       <section class="wk-tab-panel" data-panel="ai" hidden>
         <h3 class="wk-ai-section-title">
-          🤖 AI 요약
-          <button type="button" class="wk-btn-secondary wk-ai-btn" id="wkAiRegenSummary">🔄 재생성</button>
+          <span class="siren-icon-wrap" data-icon="bot"></span> AI 요약
+          <button type="button" class="wk-btn-secondary wk-ai-btn" id="wkAiRegenSummary"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 재생성</button>
         </h3>
         <div class="wk-ai-summary" id="wkAiSummaryBox">
           <span class="wk-ai-empty">아직 AI 요약이 없습니다.</span>
         </div>
 
         <h3 class="wk-ai-section-title">
-          ⚠️ 리스크 점수
-          <button type="button" class="wk-btn-secondary wk-ai-btn" id="wkAiRegenRisk">🔄 재계산</button>
+          <span class="siren-icon-wrap" data-icon="alert-triangle"></span> 리스크 점수
+          <button type="button" class="wk-btn-secondary wk-ai-btn" id="wkAiRegenRisk"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 재계산</button>
         </h3>
         <div class="wk-ai-risk" id="wkAiRiskBox">
           <span class="wk-ai-empty">아직 분석되지 않았습니다.</span>
         </div>
 
         <h3 class="wk-ai-section-title">
-          📝 완료 보고서 초안
-          <button type="button" class="wk-btn-secondary wk-ai-btn" id="wkAiRegenCompletion">🔄 초안 생성</button>
+          <span class="siren-icon-wrap" data-icon="file-pen"></span> 완료 보고서 초안
+          <button type="button" class="wk-btn-secondary wk-ai-btn" id="wkAiRegenCompletion"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 초안 생성</button>
         </h3>
         <p class="wk-hint" id="wkAiCompletionHint">완료 카드의 경우 자동으로 보고 탭에 초안이 등록됩니다. 수동 생성도 가능합니다.</p>
 
@@ -426,11 +427,11 @@
     </div>
 
     <footer class="wk-modal-footer">
-      <button id="wkCardBookmark" class="wk-btn-icon" type="button" title="북마크">⭐</button>
+      <button id="wkCardBookmark" class="wk-btn-icon" type="button" title="북마크"><span class="siren-icon-wrap" data-icon="star"></span></button>
       <span class="wk-spacer"></span>
       <button id="wkCardRestore" class="wk-btn-secondary" type="button" style="display:none">↺ 복원</button>
-      <button id="wkCardArchive" class="wk-btn-secondary" type="button">📦 보관</button>
-      <button id="wkCardDelete" class="wk-btn-danger" type="button">🗑 삭제</button>
+      <button id="wkCardArchive" class="wk-btn-secondary" type="button"><span class="siren-icon-wrap" data-icon="package"></span> 보관</button>
+      <button id="wkCardDelete" class="wk-btn-danger" type="button"><span class="siren-icon-wrap" data-icon="trash"></span> 삭제</button>
       <button id="wkCardSave" class="wk-btn-primary" type="button">저장</button>
     </footer>
   </div>
@@ -443,7 +444,7 @@
   <div class="wk-modal-backdrop" data-close-modal="wkFilePickerModal"></div>
   <div class="wk-modal-dialog wk-modal-sm">
     <header class="wk-modal-header">
-      <h2>📎 파일 선택</h2>
+      <h2><span class="siren-icon-wrap" data-icon="paperclip"></span> 파일 선택</h2>
       <button class="wk-modal-close" data-close-modal="wkFilePickerModal" type="button">✕</button>
     </header>
     <div class="wk-modal-body">
@@ -455,7 +456,7 @@
     </div>
     <footer class="wk-modal-footer">
       <input type="file" id="wkPickerUploadInput" multiple hidden>
-      <button class="wk-btn-secondary" id="wkPickerUploadBtn" type="button">⬆ 이 폴더에 업로드 + 연결</button>
+      <button class="wk-btn-secondary" id="wkPickerUploadBtn" type="button"><span class="siren-icon-wrap" data-icon="arrow-up"></span> 이 폴더에 업로드 + 연결</button>
       <span class="wk-spacer"></span>
       <button class="wk-btn-secondary" data-close-modal="wkFilePickerModal" type="button">닫기</button>
     </footer>
@@ -469,7 +470,7 @@
   <div class="wk-modal-backdrop" data-close-modal="wkHoldModal"></div>
   <div class="wk-modal-dialog wk-modal-sm">
     <header class="wk-modal-header">
-      <h2>⏸ 보류 사유</h2>
+      <h2><span class="siren-icon-wrap" data-icon="pause"></span> 보류 사유</h2>
       <button class="wk-modal-close" data-close-modal="wkHoldModal" type="button">✕</button>
     </header>
     <div class="wk-modal-body">
@@ -496,7 +497,7 @@
       <button class="wk-modal-close" data-close-modal="wkNewModal" type="button">✕</button>
     </header>
     <div class="wk-modal-body">
-      <label class="wk-field-label">📋 템플릿에서 시작 (선택)</label>
+      <label class="wk-field-label"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 템플릿에서 시작 (선택)</label>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="wkNewTemplate" class="wk-input" style="flex:1">
           <option value="">— 템플릿 없이 직접 입력 —</option>
@@ -515,10 +516,10 @@
         <div class="wk-col">
           <label class="wk-field-label">우선순위</label>
           <select id="wkNewPriority" class="wk-input">
-            <option value="urgent">🔴 긴급</option>
-            <option value="high">🟠 높음</option>
-            <option value="normal" selected>🟢 보통</option>
-            <option value="low">⚪ 낮음</option>
+            <option value="urgent">긴급</option>
+            <option value="high">높음</option>
+            <option value="normal" selected>보통</option>
+            <option value="low">낮음</option>
           </select>
         </div>
         <div class="wk-col">
@@ -541,7 +542,7 @@
   <div class="wk-modal-backdrop" data-close-modal="wkTransferModal"></div>
   <div class="wk-modal-dialog wk-modal-sm">
     <header class="wk-modal-header">
-      <h2>🔁 작업 토스</h2>
+      <h2><span class="siren-icon-wrap" data-icon="repeat"></span> 작업 토스</h2>
       <button class="wk-modal-close" data-close-modal="wkTransferModal" type="button">✕</button>
     </header>
     <div class="wk-modal-body">
@@ -551,7 +552,7 @@
       <select id="wkTransferToUid" class="wk-input">
         <option value="">— 운영자 선택 —</option>
       </select>
-      <small class="wk-hint" id="wkTransferAwayHint" style="display:none;color:#a01e2c">부재 중 운영자에게 토스됩니다 ⚠️</small>
+      <small class="wk-hint" id="wkTransferAwayHint" style="display:none;color:#a01e2c">부재 중 운영자에게 토스됩니다 <span class="siren-icon-wrap" data-icon="alert-triangle"></span></small>
 
       <label class="wk-field-label" style="margin-top:12px">사유 (선택)</label>
       <textarea id="wkTransferReason" class="wk-textarea" rows="3" maxlength="500" placeholder="예: 휴가라 다른 분이 처리"></textarea>
@@ -570,17 +571,17 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" id="wkSortableScript"></script>
 
 <script src="/js/lib-kst.js?v=1"></script>
-<script src="/js/auth.js?v=16"></script>
-<script src="/js/common.js?v=20260707-footer"></script>
+<script src="/js/auth.js?v=17"></script>
+<script src="/js/common.js?v=20260708-footer"></script>
 <script src="/js/workspace-sync-channel.js?v=2" defer></script>
-<script src="/js/workspace-task-modal.js?v=3" defer></script>
-<script src="/js/workspace-memo-modal.js?v=2-notify" defer></script>
+<script src="/js/workspace-task-modal.js?v=4" defer></script>
+<script src="/js/workspace-memo-modal.js?v=3-notify" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
-<script src="/js/workspace-kanban.js?v=22-attach-dl" defer></script>
-<script src="/js/quick-jump.js?v=20260706-door"></script>
+<script src="/js/workspace-kanban.js?v=23-attach-dl" defer></script>
+<script src="/js/quick-jump.js?v=20260707-door"></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
-<script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+<script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
 
 </body>
 </html>

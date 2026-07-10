@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="SIREN" />
-  <script src="/js/pwa.js?v=2" defer></script>
+  <script src="/js/pwa.js?v=3" defer></script>
   <title>파일함 - SIREN 워크스페이스</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/css/base.css?v=3" />
@@ -25,37 +26,37 @@
     <div class="ws-sidebar-inner">
       <div class="quick-jump" data-quick-jump></div>
       <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
-        <span class="ws-logo-icon">🏠</span>
+        <span class="ws-logo-icon"><span class="siren-icon-wrap" data-icon="home"></span></span>
         <span class="ws-logo-text">허브</span>
       </a>
       <nav class="ws-sidebar-nav">
         <ul>
           <li class="ws-nav-group">
             <a href="#" data-sidebar-group="workspace" aria-expanded="true">
-              <span class="ws-nav-icon">🛠</span>
+              <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
               <span class="ws-nav-text">워크스페이스</span>
               <span class="sidebar-group-chevron">▾</span>
             </a>
             <ul data-sidebar-submenu="workspace" aria-hidden="false">
-              <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
-              <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
-              <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
-              <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon">🎯</span><span class="ws-nav-text">로드맵</span></a></li>
-              <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
-              <li class="ws-nav-active"><a href="/workspace-files.html" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
-              <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
-              <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+              <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span class="ws-nav-text">워크툴</span></a></li>
+              <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span><span class="ws-nav-text">WBS</span></a></li>
+              <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="calendar-days"></span></span><span class="ws-nav-text">캘린더</span></a></li>
+              <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="target"></span></span><span class="ws-nav-text">로드맵</span></a></li>
+              <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="files"></span></span><span class="ws-nav-text">템플릿</span></a></li>
+              <li class="ws-nav-active"><a href="/workspace-files.html" title="파일함"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="folder"></span></span><span class="ws-nav-text">파일함</span></a></li>
+              <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="trophy"></span></span><span class="ws-nav-text">성과 관리</span></a></li>
+              <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clock"></span></span><span class="ws-nav-text">근태관리</span></a></li>
             </ul>
           </li>
         </ul>
       </nav>
       <div class="ws-sidebar-user">
         <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
-          <span class="ws-user-avatar">👤</span>
+          <span class="ws-user-avatar"><span class="siren-icon-wrap" data-icon="user"></span></span>
           <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
         </a>
         <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
-          <span class="ws-nav-icon">🚪</span>
+          <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="door-open"></span></span>
           <span class="ws-nav-text">로그아웃</span>
         </button>
       </div>
@@ -68,16 +69,16 @@
   <!-- ═══════════ 상단 헤더 ═══════════ -->
   <header class="wf-topbar">
     <div class="wf-topbar-left">
-      <h1 class="wf-title">📁 파일함</h1>
+      <h1 class="wf-title"><span class="siren-icon-wrap" data-icon="folder"></span> 파일함</h1>
     </div>
   </header>
 
   <!-- ═══════════ 뷰 전환 탭 ═══════════ -->
   <nav class="wf-tabs" id="wfViewToggle">
-    <button class="wf-tab active" data-view="all">📂 전체</button>
-    <button class="wf-tab" data-view="mine">👤 내 파일</button>
-    <button class="wf-tab" data-view="shared">🔗 공유받음</button>
-    <button class="wf-tab" data-view="trash">🗑 휴지통</button>
+    <button class="wf-tab active" data-view="all"><span class="siren-icon-wrap" data-icon="folder-open"></span> 전체</button>
+    <button class="wf-tab" data-view="mine"><span class="siren-icon-wrap" data-icon="user"></span> 내 파일</button>
+    <button class="wf-tab" data-view="shared"><span class="siren-icon-wrap" data-icon="link"></span> 공유받음</button>
+    <button class="wf-tab" data-view="trash"><span class="siren-icon-wrap" data-icon="trash"></span> 휴지통</button>
   </nav>
 
   <!-- ═══════════ 툴바 ═══════════ -->
@@ -85,30 +86,30 @@
     <div class="wf-toolbar-search">
       <input type="text"
              id="wfSearchInput"
-             placeholder="🔍 파일명 또는 폴더명 검색..."
+             placeholder="파일명 또는 폴더명 검색..."
              autocomplete="off" />
       <button class="wf-search-clear" id="wfSearchClear" title="지우기">✕</button>
     </div>
 
     <div class="wf-toolbar-actions">
       <button id="wfBtnUpload" class="wf-btn wf-btn-primary">
-        📤 업로드
+        <span class="siren-icon-wrap" data-icon="upload"></span> 업로드
       </button>
       <button id="wfBtnNewFolder" class="wf-btn wf-btn-default">
-        📁 새 폴더
+        <span class="siren-icon-wrap" data-icon="folder"></span> 새 폴더
       </button>
       <button id="wfBtnZipDownload" class="wf-btn wf-btn-default" disabled>
-        📦 ZIP 다운로드
+        <span class="siren-icon-wrap" data-icon="package"></span> ZIP 다운로드
       </button>
       <button id="wfBtnDelete" class="wf-btn wf-btn-danger" disabled>
-        🗑 삭제
+        <span class="siren-icon-wrap" data-icon="trash"></span> 삭제
       </button>
     </div>
   </div>
 
   <!-- ═══════════ 브레드크럼 ═══════════ -->
   <div class="wf-breadcrumb" id="wfBreadcrumb">
-    <span class="wf-crumb active" data-folder-id="0">🏠 홈</span>
+    <span class="wf-crumb active" data-folder-id="0"><span class="siren-icon-wrap" data-icon="home"></span> 홈</span>
   </div>
 
   <!-- ═══════════ 본문 2컬럼 레이아웃 ═══════════ -->
@@ -118,7 +119,7 @@
     <aside class="wf-sidebar" id="wfSidebar">
       <div class="wf-sidebar-header">
         <span class="wf-sidebar-title">폴더</span>
-        <button class="wf-sidebar-collapse" id="wfSidebarToggle" title="접기">◀</button>
+        <button class="wf-sidebar-collapse" id="wfSidebarToggle" title="접기"><span class="siren-icon-wrap" data-icon="chevron-left"></span></button>
       </div>
       <div class="wf-tree" id="wfFolderTree">
         <div class="wf-tree-loading">불러오는 중...</div>
@@ -167,7 +168,7 @@
 
       <!-- 빈 상태 -->
       <div class="wf-empty" id="wfEmptyState" style="display:none;">
-        <div class="wf-empty-icon">📂</div>
+        <div class="wf-empty-icon"><span class="siren-icon-wrap" data-icon="folder-open"></span></div>
         <div class="wf-empty-title">비어 있습니다</div>
         <div class="wf-empty-desc">파일을 업로드하거나 새 폴더를 만들어 보세요.</div>
       </div>
@@ -180,12 +181,12 @@
     <div class="wf-modal-backdrop" data-close="wfUploadModal"></div>
     <div class="wf-modal-content">
       <div class="wf-modal-header">
-        <h2>📤 파일 업로드</h2>
+        <h2><span class="siren-icon-wrap" data-icon="upload"></span> 파일 업로드</h2>
         <button class="wf-modal-close" data-close="wfUploadModal">✕</button>
       </div>
       <div class="wf-modal-body">
         <div class="wf-drop-zone" id="wfDropZone">
-          <div class="wf-drop-icon">📥</div>
+          <div class="wf-drop-icon"><span class="siren-icon-wrap" data-icon="inbox"></span></div>
           <div class="wf-drop-text">
             여기로 파일을 끌어다 놓거나<br />
             <label class="wf-drop-browse">
@@ -209,7 +210,7 @@
     <div class="wf-modal-backdrop" data-close="wfNewFolderModal"></div>
     <div class="wf-modal-content wf-modal-sm">
       <div class="wf-modal-header">
-        <h2>📁 새 폴더</h2>
+        <h2><span class="siren-icon-wrap" data-icon="folder"></span> 새 폴더</h2>
         <button class="wf-modal-close" data-close="wfNewFolderModal">✕</button>
       </div>
       <div class="wf-modal-body">
@@ -237,7 +238,7 @@
     <div class="wf-modal-backdrop" data-close="wfRenameModal"></div>
     <div class="wf-modal-content wf-modal-sm">
       <div class="wf-modal-header">
-        <h2>✏️ 이름 변경</h2>
+        <h2><span class="siren-icon-wrap" data-icon="pencil"></span> 이름 변경</h2>
         <button class="wf-modal-close" data-close="wfRenameModal">✕</button>
       </div>
       <div class="wf-modal-body">
@@ -263,12 +264,12 @@
     <div class="wf-modal-backdrop" data-close="wfShareModal"></div>
     <div class="wf-modal-content">
       <div class="wf-modal-header">
-        <h2>🔗 공유 관리</h2>
+        <h2><span class="siren-icon-wrap" data-icon="link"></span> 공유 관리</h2>
         <button class="wf-modal-close" data-close="wfShareModal">✕</button>
       </div>
       <div class="wf-modal-body">
         <div class="wf-share-target" id="wfShareTarget">
-          <span class="wf-share-icon">📄</span>
+          <span class="wf-share-icon"><span class="siren-icon-wrap" data-icon="file-text"></span></span>
           <span class="wf-share-name">—</span>
         </div>
 
@@ -312,7 +313,7 @@
     <div class="wf-modal-backdrop" data-close="wfDeleteConfirmModal"></div>
     <div class="wf-modal-content wf-modal-sm">
       <div class="wf-modal-header">
-        <h2>⚠️ 영구 삭제</h2>
+        <h2><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 영구 삭제</h2>
         <button class="wf-modal-close" data-close="wfDeleteConfirmModal">✕</button>
       </div>
       <div class="wf-modal-body">
@@ -335,14 +336,14 @@
   </div><!-- /wf-page-body -->
 
   <script src="/js/lib-kst.js?v=1"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/common.js?v=20260707-footer"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/common.js?v=20260708-footer"></script>
   <script src="/js/workspace-sync-channel.js?v=2"></script>
-  <script src="/js/workspace-task-modal.js?v=3"></script>
-  <script src="/js/workspace-files.js?v=20260711-batch10"></script>
-  <script src="/js/quick-jump.js?v=20260706-door"></script>
+  <script src="/js/workspace-task-modal.js?v=4"></script>
+  <script src="/js/workspace-files.js?v=20260712-batch10"></script>
+  <script src="/js/quick-jump.js?v=20260707-door"></script>
   <script src="/js/ws-sidebar-role.js?v=1" defer></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
-  <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+  <script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
 </body>
 </html>

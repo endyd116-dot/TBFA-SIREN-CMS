@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>법률 지원 서비스 | 교사유가족협의회</title>
 <meta name="description" content="교육 분쟁/민형사 사안에 대한 AI 1차 법률 자문과 변호사 매칭 서비스를 제공합니다.">
 <meta property="og:title" content="법률 지원 서비스 | 교사유가족협의회">
@@ -45,7 +46,7 @@
 
     <section class="page-hero">
       <div class="container">
-        <h1>⚖️ 법률 지원 서비스</h1>
+        <h1><span class="siren-icon-wrap" data-icon="scale"></span> 법률 지원 서비스</h1>
         <p>AI 1차 법률 자문 + 전문 변호사 매칭으로 함께합니다</p>
       </div>
     </section>
@@ -60,18 +61,18 @@
 
           <!-- 안내 -->
           <div class="legal-intro">
-            <h2>📋 법률 상담 안내</h2>
+            <h2><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 법률 상담 안내</h2>
             <p>교사가 마주한 <strong>교육 분쟁, 민·형사 사안, 가사 문제, 노동 분쟁, 계약 분쟁</strong> 등에 대해 1차 법률 자문을 받으실 수 있습니다.</p>
             <p>접수된 상담은 <strong>AI가 1차 분석</strong>하여 <strong>관련 법령, 1차 법률 의견, 권장 변호사 전문분야</strong>를 안내드립니다. 추가로 사이렌의 변호사 패널 매칭을 신청하실 수 있습니다.</p>
             <div class="badge-row">
-              <span class="b">🔒 비밀 보장</span>
-              <span class="b">👤 익명 가능</span>
-              <span class="b">🤖 AI 즉시 자문</span>
-              <span class="b">👨‍⚖️ 변호사 매칭</span>
-              <span class="b">⏰ 시효 점검</span>
+              <span class="b"><span class="siren-icon-wrap" data-icon="lock"></span> 비밀 보장</span>
+              <span class="b"><span class="siren-icon-wrap" data-icon="user"></span> 익명 가능</span>
+              <span class="b"><span class="siren-icon-wrap" data-icon="bot"></span> AI 즉시 자문</span>
+              <span class="b"><span class="siren-icon-wrap" data-icon="user"></span> 변호사 매칭</span>
+              <span class="b"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 시효 점검</span>
             </div>
             <div class="disclaimer">
-              ⚠️ <strong>면책 안내</strong> — AI가 제공하는 답변은 1차 자문 자료일 뿐 <strong>법률 자문이나 공식 의견이 아닙니다</strong>. 정확한 법적 판단은 변호사와의 상담을 통해 받으시기 바랍니다.
+              <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>면책 안내</strong> — AI가 제공하는 답변은 1차 자문 자료일 뿐 <strong>법률 자문이나 공식 의견이 아닙니다</strong>. 정확한 법적 판단은 변호사와의 상담을 통해 받으시기 바랍니다.
             </div>
           </div>
 
@@ -95,37 +96,37 @@
                   <div class="legal-cat-grid">
                     <label>
                       <input type="radio" name="category" value="school_dispute" checked>
-                      <span class="cat-icon">🏫</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="school"></span></span>
                       <span>교권/학교 분쟁</span>
                     </label>
                     <label>
                       <input type="radio" name="category" value="civil">
-                      <span class="cat-icon">📄</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="file-text"></span></span>
                       <span>민사 (손해배상 등)</span>
                     </label>
                     <label>
                       <input type="radio" name="category" value="criminal">
-                      <span class="cat-icon">🚨</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="siren"></span></span>
                       <span>형사 (폭행/협박 등)</span>
                     </label>
                     <label>
                       <input type="radio" name="category" value="family">
-                      <span class="cat-icon">👨‍👩‍👧</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="user"></span></span>
                       <span>가사 (이혼/상속)</span>
                     </label>
                     <label>
                       <input type="radio" name="category" value="labor">
-                      <span class="cat-icon">💼</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="briefcase"></span></span>
                       <span>노동 (해고/임금)</span>
                     </label>
                     <label>
                       <input type="radio" name="category" value="contract">
-                      <span class="cat-icon">📜</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="scroll"></span></span>
                       <span>계약 (임대차 등)</span>
                     </label>
                     <label>
                       <input type="radio" name="category" value="other">
-                      <span class="cat-icon">📌</span>
+                      <span class="cat-icon"><span class="siren-icon-wrap" data-icon="pin"></span></span>
                       <span>기타</span>
                     </label>
                   </div>
@@ -137,15 +138,15 @@
                   <div class="legal-urgency-row">
                     <label data-urg="urgent">
                       <input type="radio" name="urgency" value="urgent">
-                      <span>🚨 긴급 (24~72시간)</span>
+                      <span><span class="siren-icon-wrap" data-icon="siren"></span> 긴급 (24~72시간)</span>
                     </label>
                     <label>
                       <input type="radio" name="urgency" value="normal">
-                      <span>⚖️ 보통</span>
+                      <span><span class="siren-icon-wrap" data-icon="scale"></span> 보통</span>
                     </label>
                     <label>
                       <input type="radio" name="urgency" value="reference">
-                      <span>📋 참고용 자문</span>
+                      <span><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 참고용 자문</span>
                     </label>
                   </div>
                 </div>
@@ -203,12 +204,12 @@
                   <a href="/index.html" class="btn-cancel">취소</a>
                   <button type="button" class="btn-skip-ai" id="legalSkipAiBtn"
                           style="background:#fff;border:1.5px solid var(--line);color:var(--text-2);font-weight:600;padding:12px 22px;border-radius:6px;font-size:13.5px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;min-height:44px;line-height:1.2">
-                    📋 일반 상담 신청
+                    <span class="siren-icon-wrap" data-icon="clipboard-list"></span> 일반 상담 신청
                   </button>
-                  <button type="submit" class="btn-submit" id="legalSubmitBtn">🤖 AI 분석 후 제출</button>
+                  <button type="submit" class="btn-submit" id="legalSubmitBtn"><span class="siren-icon-wrap" data-icon="bot"></span> AI 분석 후 제출</button>
                 </div>
                 <p style="font-size:11.5px;color:var(--text-3);text-align:right;margin-top:8px;line-height:1.6">
-                  🤖 AI 분석은 <strong style="color:#5a4d8c">후원 회원</strong> 전용 · 📋 일반 상담은 누구나 가능
+                  <span class="siren-icon-wrap" data-icon="bot"></span> AI 분석은 <strong style="color:#5a4d8c">후원 회원</strong> 전용 · <span class="siren-icon-wrap" data-icon="clipboard-list"></span> 일반 상담은 누구나 가능
                 </p>
               </form>
             </div>
@@ -220,13 +221,13 @@
               <div class="legal-ai-header">
                 <div class="label">접수번호</div>
                 <div class="num" id="legalConsultationNo">L-2026-0000</div>
-                <h3>🤖 AI 1차 법률 자문</h3>
+                <h3><span class="siren-icon-wrap" data-icon="bot"></span> AI 1차 법률 자문</h3>
                 <p>※ 본 자문은 AI 분석 결과로, 법률 자문이나 공식 의견이 아닙니다.</p>
               </div>
 
               <!-- 긴급도 배너 -->
               <div class="legal-urgency-banner" id="legalUrgencyBanner">
-                <span class="icon" id="legalUrgencyIcon">⚖️</span>
+                <span class="icon" id="legalUrgencyIcon"><span class="siren-icon-wrap" data-icon="scale"></span></span>
                 <div class="text">
                   <div class="label">AI 판단 긴급도</div>
                   <div class="level" id="legalUrgencyLabel">분석 중...</div>
@@ -235,25 +236,25 @@
 
               <!-- 사안 요약 -->
               <div class="legal-ai-block">
-                <div class="b-title">📋 사안 요약</div>
+                <div class="b-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 사안 요약</div>
                 <div class="b-content" id="legalAiSummary">분석 중...</div>
               </div>
 
               <!-- 관련 법령 (강조 박스) -->
               <div class="legal-ai-block legal-laws-box">
-                <div class="b-title">📜 관련 법령</div>
+                <div class="b-title"><span class="siren-icon-wrap" data-icon="scroll"></span> 관련 법령</div>
                 <div class="b-content" id="legalAiLaws">분석 중...</div>
               </div>
 
               <!-- 1차 법률 의견 -->
               <div class="legal-ai-block">
-                <div class="b-title">⚖️ 1차 법률 의견</div>
+                <div class="b-title"><span class="siren-icon-wrap" data-icon="scale"></span> 1차 법률 의견</div>
                 <div class="b-content" id="legalAiOpinion">분석 중...</div>
               </div>
 
               <!-- 권장 변호사 전문분야 (특수 카드) -->
               <div class="legal-lawyer-card">
-                <span class="icon">👨‍⚖️</span>
+                <span class="icon"><span class="siren-icon-wrap" data-icon="user"></span></span>
                 <div class="text">
                   <div class="label">권장 변호사 전문분야</div>
                   <div class="specialty" id="legalLawyerSpecialty">분석 중...</div>
@@ -262,27 +263,27 @@
 
               <!-- 즉시 조치 (강조 빨강) -->
               <div class="legal-ai-block legal-immediate-box">
-                <div class="b-title">🔴 즉시 조치 필요사항</div>
+                <div class="b-title"><span class="siren-icon-wrap" data-icon="circle-dot"></span> 즉시 조치 필요사항</div>
                 <div class="b-content" id="legalAiImmediate">분석 중...</div>
               </div>
 
               <!-- 종합 권장 -->
               <div class="legal-ai-block">
-                <div class="b-title">💡 사이렌의 권장사항</div>
+                <div class="b-title"><span class="siren-icon-wrap" data-icon="lightbulb"></span> 사이렌의 권장사항</div>
                 <div class="b-content" id="legalAiSuggestion">분석 중...</div>
               </div>
 
               <!-- 결정 박스 -->
               <div class="legal-decision">
-                <h4>👨‍⚖️ 변호사 매칭을 신청하시겠습니까?</h4>
+                <h4><span class="siren-icon-wrap" data-icon="user"></span> 변호사 매칭을 신청하시겠습니까?</h4>
                 <p>
                   AI 1차 자문을 받으셨습니다. 추가로 사이렌의 <strong>전문 변호사 패널과 직접 상담</strong>이 필요하시면 매칭을 신청하시고,
                   AI 답변만으로 충분하시면 'AI 자문만' 버튼을 눌러주세요.<br />
                   <span style="color:var(--text-3);font-size:12px">※ 매칭 신청 시 운영자에게 알림이 발송되며, 사안에 맞는 변호사가 배정됩니다.</span>
                 </p>
                 <div class="decision-buttons">
-                  <button type="button" class="btn-siren" id="legalBtnSiren">👨‍⚖️ 변호사 매칭 신청</button>
-                  <button type="button" class="btn-ai-only" id="legalBtnAiOnly">📋 AI 자문만 받고 종료</button>
+                  <button type="button" class="btn-siren" id="legalBtnSiren"><span class="siren-icon-wrap" data-icon="user"></span> 변호사 매칭 신청</button>
+                  <button type="button" class="btn-ai-only" id="legalBtnAiOnly"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> AI 자문만 받고 종료</button>
                 </div>
               </div>
             </div>
@@ -291,7 +292,7 @@
           <!-- STEP 3: 완료 -->
           <div class="legal-step" data-legal-step="3" style="display:none">
             <div class="legal-final">
-              <div class="icon" id="legalFinalIcon">🎯</div>
+              <div class="icon" id="legalFinalIcon"><span class="siren-icon-wrap" data-icon="target"></span></div>
               <h3 id="legalFinalTitle">상담 신청이 완료되었습니다</h3>
               <p id="legalFinalMsg">
                 마이페이지에서 진행 상태를 확인하실 수 있습니다.
@@ -313,10 +314,10 @@
   <div id="footer-slot"></div>
 
   <script src="/js/lib-kst.js?v=1"></script>
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/editor.js?v=2026-05"></script>
-  <script src="/js/attachment.js?v=2026-05"></script>
-  <script src="/js/legal.js?v=2026-05"></script>
+  <script src="/js/common.js?v=20260708-footer"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/editor.js?v=2027-05"></script>
+  <script src="/js/attachment.js?v=2027-05"></script>
+  <script src="/js/legal.js?v=2027-05"></script>
 </body>
 </html>

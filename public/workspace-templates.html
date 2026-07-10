@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>템플릿 - SIREN 워크스페이스</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -37,7 +38,7 @@
     <div class="quick-jump" data-quick-jump></div>
 
     <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
-      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-icon"><span class="siren-icon-wrap" data-icon="home"></span></span>
       <span class="ws-logo-text">허브</span>
     </a>
     <nav class="ws-sidebar-nav">
@@ -45,26 +46,26 @@
         <!-- 1뎁스: 워크스페이스 (페이지 이동 토글, 워크스페이스 진입 시 자동 펼침) -->
         <li class="ws-nav-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="true">
-            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
             <span class="ws-nav-text">워크스페이스</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul data-sidebar-submenu="workspace" aria-hidden="false">
-            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
-            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
-            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
-            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon">🎯</span><span class="ws-nav-text">로드맵</span></a></li>
-            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
-            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
-            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
-            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="calendar-days"></span></span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="target"></span></span><span class="ws-nav-text">로드맵</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="files"></span></span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="folder"></span></span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="trophy"></span></span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clock"></span></span><span class="ws-nav-text">근태관리</span></a></li>
           </ul>
         </li>
       </ul>
     </nav>
     <div class="ws-sidebar-user">
-      <a href="/mypage.html" id="wsSidebarUser"><span class="ws-user-avatar">👤</span><span class="ws-nav-text" id="wsSidebarUserName">사용자</span></a>
-      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃"><span class="ws-nav-icon">🚪</span><span class="ws-nav-text">로그아웃</span></button>
+      <a href="/mypage.html" id="wsSidebarUser"><span class="ws-user-avatar"><span class="siren-icon-wrap" data-icon="user"></span></span><span class="ws-nav-text" id="wsSidebarUserName">사용자</span></a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="door-open"></span></span><span class="ws-nav-text">로그아웃</span></button>
     </div>
   </div>
 </aside>
@@ -72,7 +73,7 @@
 <main class="wt-main">
   <header class="wt-header">
     <div class="wt-header-left">
-      <h1 class="wt-title">📑 업무 템플릿</h1>
+      <h1 class="wt-title"><span class="siren-icon-wrap" data-icon="files"></span> 업무 템플릿</h1>
       <span class="wt-subtitle">반복 업무 양식을 저장해 새 작업 생성을 빠르게</span>
     </div>
     <div class="wt-header-right">
@@ -114,10 +115,10 @@
         <div class="wk-col">
           <label class="wk-field-label">기본 우선순위</label>
           <select id="wtEditPriority" class="wk-input">
-            <option value="urgent">🔴 긴급</option>
-            <option value="high">🟠 높음</option>
-            <option value="normal" selected>🟢 보통</option>
-            <option value="low">⚪ 낮음</option>
+            <option value="urgent">긴급</option>
+            <option value="high">높음</option>
+            <option value="normal" selected>보통</option>
+            <option value="low">낮음</option>
           </select>
         </div>
         <div class="wk-col">
@@ -134,11 +135,11 @@
 
       <label style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px">
         <input type="checkbox" id="wtEditShared" checked>
-        🌐 공유 템플릿 (다른 운영자도 사용 가능)
+        <span class="siren-icon-wrap" data-icon="globe"></span> 공유 템플릿 (다른 운영자도 사용 가능)
       </label>
     </div>
     <footer class="wk-modal-footer">
-      <button id="wtEditDelete" class="wk-btn-danger" type="button" style="display:none">🗑 삭제</button>
+      <button id="wtEditDelete" class="wk-btn-danger" type="button" style="display:none"><span class="siren-icon-wrap" data-icon="trash"></span> 삭제</button>
       <span class="wk-spacer"></span>
       <button class="wk-btn-secondary" data-close-modal="wtEditModal" type="button">취소</button>
       <button id="wtEditSave" class="wk-btn-primary" type="button">저장</button>
@@ -149,15 +150,15 @@
 <div id="wtToastRoot" class="wk-toast-root"></div>
 
 <script src="/js/lib-kst.js?v=1"></script>
-<script src="/js/auth.js?v=16"></script>
-<script src="/js/common.js?v=20260707-footer"></script>
+<script src="/js/auth.js?v=17"></script>
+<script src="/js/common.js?v=20260708-footer"></script>
 <script src="/js/workspace-sync-channel.js?v=2" defer></script>
-<script src="/js/workspace-task-modal.js?v=3" defer></script>
-<script src="/js/workspace-templates.js?v=3" defer></script>
-<script src="/js/quick-jump.js?v=20260706-door"></script>
+<script src="/js/workspace-task-modal.js?v=4" defer></script>
+<script src="/js/workspace-templates.js?v=4" defer></script>
+<script src="/js/quick-jump.js?v=20260707-door"></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
-<script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+<script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
 
 </body>
 </html>

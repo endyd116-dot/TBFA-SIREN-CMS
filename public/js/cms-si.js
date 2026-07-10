@@ -255,7 +255,7 @@
             <div class="cms-project-code">${escapeHtml(p.code)}</div>
           </div>
           <div class="cms-project-meta">
-            <span>🏢 <span class="client">${escapeHtml(p.client)}</span> · PM ${escapeHtml(p.pm)}</span>
+            <span><span class="client">${escapeHtml(p.client)}</span> · PM ${escapeHtml(p.pm)}</span>
             <span>~ ${escapeHtml(p.due)}</span>
           </div>
           <div class="cms-project-progress">
@@ -278,9 +278,9 @@
           <div class="cms-issue-body">
             <div class="cms-issue-title">${escapeHtml(i.title)}</div>
             <div class="cms-issue-meta">
-              <span>🆔 ${escapeHtml(i.no)}</span>
-              <span>👤 ${escapeHtml(i.assignee)}</span>
-              <span class="cms-sla-indicator ${i.slaClass}">⏱️ ${escapeHtml(i.sla)}</span>
+              <span>${escapeHtml(i.no)}</span>
+              <span>${escapeHtml(i.assignee)}</span>
+              <span class="cms-sla-indicator ${i.slaClass}">${escapeHtml(i.sla)}</span>
             </div>
           </div>
         </div>
@@ -383,7 +383,7 @@
             <div class="cms-kanban-assignees">
               ${card.assignees.map(a => `<span class="cms-kanban-avatar">${escapeHtml(a)}</span>`).join('')}
             </div>
-            <span class="cms-kanban-card-date">📅 ${escapeHtml(card.date)}</span>
+            <span class="cms-kanban-card-date">${escapeHtml(card.date)}</span>
           </div>
         </div>
       `).join('');
@@ -432,9 +432,9 @@
 
     const statusMap = {
       paid: { label: '✓ 수금완료', cls: 'paid' },
-      pending: { label: '⏳ 대기중', cls: 'pending' },
-      overdue: { label: '🚨 연체', cls: 'overdue' },
-      draft: { label: '📝 초안', cls: 'draft' },
+      pending: { label: '대기중', cls: 'pending' },
+      overdue: { label: '연체', cls: 'overdue' },
+      draft: { label: '초안', cls: 'draft' },
     };
 
     tbody.innerHTML = DEMO_INVOICES.map(i => {
@@ -463,10 +463,10 @@
     if (!tbody) return;
 
     const priorityMap = {
-      critical: '<span class="cms-issue-priority-badge critical">🔴 긴급</span>',
-      high: '<span class="cms-issue-priority-badge high">🟠 높음</span>',
-      normal: '<span class="cms-issue-priority-badge normal">🟡 보통</span>',
-      low: '<span class="cms-issue-priority-badge low">🔵 낮음</span>',
+      critical: '<span class="cms-issue-priority-badge critical">긴급</span>',
+      high: '<span class="cms-issue-priority-badge high">높음</span>',
+      normal: '<span class="cms-issue-priority-badge normal">보통</span>',
+      low: '<span class="cms-issue-priority-badge low">낮음</span>',
     };
     const statusMap = {
       open: '<span class="cms-badge cms-b-warn">오픈</span>',
@@ -483,7 +483,7 @@
         <td>${escapeHtml(i.type)}</td>
         <td>${priorityMap[i.priority] || i.priority}</td>
         <td>${escapeHtml(i.assignee)}</td>
-        <td><span class="cms-sla-indicator ${i.slaClass}">⏱ ${escapeHtml(i.sla)}</span></td>
+        <td><span class="cms-sla-indicator ${i.slaClass}">${escapeHtml(i.sla)}</span></td>
         <td>${statusMap[i.status] || i.status}</td>
       </tr>
     `).join('');
@@ -575,7 +575,7 @@
     setupTabs();
     renderDashboard();
     
-    toast('⚠️ DEMO 모드로 실행 중입니다', 3000);
+    toast('DEMO 모드로 실행 중입니다', 3000);
   }
 
   if (document.readyState === 'loading') {

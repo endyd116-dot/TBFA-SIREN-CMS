@@ -122,11 +122,11 @@
 
     // 정보 헤더
     var lines = [];
-    if (hasUser) lines.push('🧍 직원 좌표: ' + userLat.toFixed(6) + ', ' + userLng.toFixed(6));
-    else lines.push('🧍 직원 좌표: 미기록');
-    if (hasPlace) lines.push('🏢 ' + (opts.placeName ? esc(opts.placeName) + ' ' : '거점 ') + '좌표: ' + placeLat.toFixed(6) + ', ' + placeLng.toFixed(6));
-    if (dist != null) lines.push('📏 거점과의 거리: <strong>' + fmtDist(dist) + '</strong>');
-    if (opts.workMode) lines.push('🧭 근무형태: ' + esc(opts.workMode));
+    if (hasUser) lines.push('직원 좌표: ' + userLat.toFixed(6) + ', ' + userLng.toFixed(6));
+    else lines.push('직원 좌표: 미기록');
+    if (hasPlace) lines.push('' + (opts.placeName ? esc(opts.placeName) + ' ' : '거점 ') + '좌표: ' + placeLat.toFixed(6) + ', ' + placeLng.toFixed(6));
+    if (dist != null) lines.push('거점과의 거리: <strong>' + fmtDist(dist) + '</strong>');
+    if (opts.workMode) lines.push('근무형태: ' + esc(opts.workMode));
     info.innerHTML = lines.join(' &nbsp;·&nbsp; ');
 
     if (!hasUser) {
@@ -142,7 +142,7 @@
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;color:#6b7280;font-size:13px;line-height:1.7">'
         + '🛈 카카오 지도 키가 없습니다.<br><br>'
         + '<a href="https://map.kakao.com/?q=' + encodeURIComponent(userLat + ',' + userLng) + '" target="_blank" style="color:#2563eb;text-decoration:underline">'
-        + '카카오맵에서 좌표 확인하기 ↗</a>'
+        + '카카오맵에서 좌표 확인하기 </a>'
         + '</div>';
       footer.textContent = '좌표: ' + userLat.toFixed(6) + ', ' + userLng.toFixed(6) + (dist != null ? ' · 거점 거리 ' + fmtDist(dist) : '');
       return;
@@ -169,7 +169,7 @@
     var userPos = new kakao.maps.LatLng(userLat, userLng);
     var userMarker = new kakao.maps.Marker({ position: userPos, map: map });
     var userInfo = new kakao.maps.InfoWindow({
-      content: '<div style="padding:6px 10px;font-size:12px;font-weight:600;color:#16a34a">🧍 직원 위치</div>',
+      content: '<div style="padding:6px 10px;font-size:12px;font-weight:600;color:#16a34a">직원 위치</div>',
     });
     userInfo.open(map, userMarker);
 
@@ -184,7 +184,7 @@
         ),
       });
       var placeInfo = new kakao.maps.InfoWindow({
-        content: '<div style="padding:6px 10px;font-size:12px;font-weight:600;color:#1d4ed8">🏢 ' + esc(opts.placeName || '거점') + '</div>',
+        content: '<div style="padding:6px 10px;font-size:12px;font-weight:600;color:#1d4ed8">' + esc(opts.placeName || '거점') + '</div>',
       });
       placeInfo.open(map, placeMarker);
 
@@ -219,7 +219,7 @@
     var info = modal.querySelector('#attMapInfo');
     var footer = modal.querySelector('#attMapFooter');
 
-    info.innerHTML = '🧍 좌표가 기록된 ' + points.length + '건';
+    info.innerHTML = '좌표가 기록된 ' + points.length + '건';
     if (points.length === 0) {
       canvas.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:13px">표시할 위치 좌표가 없습니다 (좌표 미기록 출퇴근은 제외)</div>';
       return;

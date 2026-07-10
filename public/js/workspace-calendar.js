@@ -188,7 +188,7 @@
         try { const d = new Date(String(p.endDate).slice(0, 10) + 'T00:00:00'); d.setDate(d.getDate() + 1); endExclusive = d.toISOString().slice(0, 10); } catch (_) {}
         const isObj = p.kind === 'objective';
         const label = isObj
-          ? `🎯 ${p.title}`
+          ? `${p.title}`
           : `[단계] ${p.objectiveTitle ? p.objectiveTitle + ' · ' : ''}${p.title}`;
         return {
           id: isObj ? `roadmap-obj-${p.objectiveId}` : `roadmap-phase-${p.phaseId}`,
@@ -240,7 +240,7 @@
           const bgColor = /^#[0-9a-fA-F]{3,6}$/.test(_rawColor) ? _rawColor : '#fff3cd';
           result.push({
             id: `memo-${row.id}`,
-            title: `📝 ${row.title || '(메모)'}`,
+            title: `${row.title || '(메모)'}`,
             start: row.startAt,
             end: row.endAt || undefined,
             allDay: !!row.allDay,
@@ -305,9 +305,9 @@
       <div style="padding:6px 14px;font-size:11.5px;color:#94a3b8;font-weight:600;border-bottom:1px solid #f1f5f9;margin-bottom:4px">
         이 날짜에 추가
       </div>
-      <button class="wc-popup-btn" data-action="task"  style="${popBtnStyle()}">➕ 업무</button>
-      <button class="wc-popup-btn" data-action="event" style="${popBtnStyle()}">📅 일정</button>
-      <button class="wc-popup-btn" data-action="memo"  style="${popBtnStyle()}">📝 메모</button>
+      <button class="wc-popup-btn" data-action="task"  style="${popBtnStyle()}">업무</button>
+      <button class="wc-popup-btn" data-action="event" style="${popBtnStyle()}">일정</button>
+      <button class="wc-popup-btn" data-action="memo"  style="${popBtnStyle()}">메모</button>
     `;
 
     // anchorEl 기준 위치
@@ -474,8 +474,8 @@
       const dt = new Date(d);
       return `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
     };
-    $('#wcEventTime').textContent = `📅 ${fmt(start)}${end ? ' ~ ' + fmt(end) : ''}`;
-    $('#wcEventLocation').textContent = ext.location ? `📍 ${ext.location}` : '';
+    $('#wcEventTime').textContent = `${fmt(start)}${end ? ' ~ ' + fmt(end) : ''}`;
+    $('#wcEventLocation').textContent = ext.location ? `${ext.location}` : '';
     $('#wcEventDesc').textContent = ext.description || '';
 
     // RSVP 초기화

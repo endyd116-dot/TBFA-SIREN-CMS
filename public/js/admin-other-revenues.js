@@ -784,7 +784,7 @@
   function renderEditSection(item) {
     return `
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-2)">✏️ 초안 편집</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-2)">초안 편집</div>
       <div class="form-row">
         <label class="form-label">인식일</label>
         <input type="date" id="orEditDate" class="input" style="width:160px" value="${item.recognizedAt ? item.recognizedAt.slice(0, 10) : ''}">

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>팝업 관리 — SIREN</title>
@@ -123,7 +124,7 @@
 </head>
 <body>
 
-<h2>📢 팝업 관리</h2>
+<h2><span class="siren-icon-wrap" data-icon="megaphone"></span> 팝업 관리</h2>
 <p class="page-desc">사이트에 노출되는 팝업을 등록하고 관리합니다. 팝업은 우하단 플로팅 박스로 표시됩니다.</p>
 
 <div class="action-bar">
@@ -165,7 +166,7 @@
             <div id="imgUploadZone" class="img-upload-zone">
               <input type="file" id="imgFileInput" accept="image/*">
               <div id="imgUploadPlaceholder">
-                <div class="img-upload-icon">🖼️</div>
+                <div class="img-upload-icon"><span class="siren-icon-wrap" data-icon="image"></span></div>
                 <div class="img-upload-text">클릭하거나 파일을 여기에 드래그하세요<br><span style="font-size:11px;color:#9ca3af">JPG·PNG·GIF·WebP, 최대 20MB</span></div>
               </div>
               <div id="imgPreviewWrap" class="img-preview-wrap" style="display:none">
@@ -202,7 +203,7 @@
           <div class="fg" style="margin-top:12px">
             <label>클릭 시 이동 URL</label>
             <input type="url" id="popupLink" placeholder="https://...">
-            <button class="link-picker-toggle" id="btnLinkPicker" type="button">📋 사이트 콘텐츠에서 선택</button>
+            <button class="link-picker-toggle" id="btnLinkPicker" type="button"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 사이트 콘텐츠에서 선택</button>
             <div class="link-picker-panel" id="linkPickerPanel">
               <div style="padding:8px 12px;font-size:11px;color:#9ca3af">불러오는 중...</div>
             </div>
@@ -318,7 +319,7 @@
     var res = await api('/api/admin-popups');
     var popups = (res.data?.data?.popups || res.data?.popups || []);
     if (!popups.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📢</div><p>등록된 팝업이 없습니다.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>등록된 팝업이 없습니다.</p></div>';
       return;
     }
     el.innerHTML = '<table class="data-table"><thead><tr><th>제목</th><th>대상 페이지</th><th>빈도</th><th>기간</th><th>상태</th><th>관리</th></tr></thead><tbody>'
@@ -462,11 +463,11 @@
       var imgUrl = (res3.data?.data || res3.data)?.url;
       if (!imgUrl) throw new Error('이미지 URL 없음');
       document.getElementById('popupImageUrl').value = imgUrl;
-      status.textContent = '✅ 업로드 완료';
+      status.textContent = '업로드 완료';
       showImagePreview(imgUrl);
       updatePreview();
     } catch (err) {
-      status.textContent = '❌ ' + err.message;
+      status.textContent = '' + err.message;
       toast('업로드 실패: ' + err.message);
     }
   }

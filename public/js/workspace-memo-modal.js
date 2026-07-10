@@ -95,7 +95,7 @@
       <label style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer">
         <input id="wmmShowInCalendar" type="checkbox" ${showCal ? 'checked' : ''}
           style="width:15px;height:15px;cursor:pointer">
-        📅 캘린더에 표시
+        캘린더에 표시
       </label>
     </div>
 
@@ -120,7 +120,7 @@
     <label style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:18px">
       <input id="wmmIsPinned" type="checkbox" ${isPinned ? 'checked' : ''}
         style="width:15px;height:15px;cursor:pointer">
-      📌 상단 고정
+      상단 고정
     </label>
 
     <div style="display:flex;gap:8px;justify-content:flex-end">

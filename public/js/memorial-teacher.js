@@ -73,7 +73,7 @@
     /* 사진 */
     if (t.photoUrl) {
       var ph = document.getElementById('mtPhoto');
-      ph.innerHTML = '<img src="' + esc(t.photoUrl) + '" alt="' + esc(t.name) + '" onerror="this.parentNode.innerHTML=\'<div class=&quot;silhouette&quot;>👤</div>\'">';
+      ph.innerHTML = '<img src="' + esc(t.photoUrl) + '" alt="' + esc(t.name) + '" onerror="this.parentNode.innerHTML=\'<div class=&quot;silhouette&quot;></div>\'">';
     }
     document.getElementById('mtName').textContent = t.name || '';
     document.getElementById('mtRegion').textContent = t.schoolRegion || '';
@@ -139,12 +139,12 @@
       Array.prototype.forEach.call(typesWrap.querySelectorAll('.mt-offer-type'), function (el) {
         el.classList.toggle('sel', el === card);
       });
-      btn.textContent = (_offerType === 'flower' ? '🏵️ 헌화하기' : '🕯️ 헌화하기');
+      btn.textContent = (_offerType === 'flower' ? '헌화하기' : '헌화하기');
     });
     btn.addEventListener('click', function () {
       var nick = (document.getElementById('mtOfferNick').value || '').trim();
       btn.disabled = true;
-      floatOffering(_offerType === 'flower' ? '🏵️' : '🕯️');
+      floatOffering(_offerType === 'flower' ? '' : '');
       api('/api/memorial-offering', { method: 'POST', body: { teacherId: _teacherId, type: _offerType, nickname: nick || null } })
         .then(function (res) {
           btn.disabled = false;
@@ -182,9 +182,9 @@
       '<div class="mt-msg-body">' + esc(m.content) + '</div>' +
       '<div class="mt-msg-actions">' +
         '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">♡ <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
-        '<button type="button" class="act-report">🚩 신고</button>' +
+        '<button type="button" class="act-report">신고</button>' +
         /* ★US-028: 본인 글이면 삭제 버튼 노출 */
-        (m.isMine ? '<button type="button" class="act-delete">🗑 삭제</button>' : '') +
+        (m.isMine ? '<button type="button" class="act-delete">삭제</button>' : '') +
       '</div>';
     wrap.querySelector('.act-like').addEventListener('click', function () { likeMsg(m.id, wrap); });
     wrap.querySelector('.act-report').addEventListener('click', function () { reportMsg(m.id); });
@@ -280,7 +280,7 @@
       '<div class="mt-letter-body">' + esc(l.content) + '</div>' +
       '<button type="button" class="mt-letter-toggle" style="display:none">더 보기 ▾</button>' +
       /* ★US-028: 본인 편지면 삭제 버튼 노출 */
-      (l.isMine ? '<button type="button" class="mt-letter-delete" style="margin-left:8px;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12.5px">🗑 삭제</button>' : '');
+      (l.isMine ? '<button type="button" class="mt-letter-delete" style="margin-left:8px;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12.5px">삭제</button>' : '');
     var body = wrap.querySelector('.mt-letter-body');
     var toggle = wrap.querySelector('.mt-letter-toggle');
     /* 긴 글일 때만 더보기 노출 */

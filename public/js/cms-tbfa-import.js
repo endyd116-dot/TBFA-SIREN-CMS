@@ -173,9 +173,9 @@
       } catch (err) {
         toast('엑셀 변환 실패: ' + (err.message || ''));
         btn.disabled = false;
-        btn.textContent = '📥 업로드 + 매칭';
+        btn.textContent = '업로드 + 매칭';
         if (resultDiv) {
-          resultDiv.innerHTML = `<span style="color:#c5293a">❌ 엑셀 변환 실패: ${escapeHtml(err.message || '')}</span>`;
+          resultDiv.innerHTML = `<span style="color:#c5293a">엑셀 변환 실패: ${escapeHtml(err.message || '')}</span>`;
         }
         return;
       }
@@ -199,7 +199,7 @@
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data.ok === false) {
         const msg = data.error || data.detail?.parseErrors?.[0]?.error || '업로드 실패';
-        resultDiv.innerHTML = `<span style="color:#c5293a">❌ ${escapeHtml(msg)}</span>`;
+        resultDiv.innerHTML = `<span style="color:#c5293a">${escapeHtml(msg)}</span>`;
         toast(msg);
         return;
       }
@@ -210,14 +210,14 @@
         /* 빈 CSV / 모든 행 파싱 실패 케이스 가드 */
         const firstErr = d.parseErrors?.[0]?.error || '';
         resultDiv.innerHTML =
-          `<span style="color:#c47a00">⚠ 적재된 행이 없습니다.</span><br>` +
+          `<span style="color:#c47a00">적재된 행이 없습니다.</span><br>` +
           `<small style="color:#666">출처: ${escapeHtml(d.source || '-')} · ` +
           `파싱오류 ${errCount}건${firstErr ? ' (' + escapeHtml(firstErr).slice(0, 100) + ')' : ''}</small><br>` +
           `<small style="color:#888">CSV 헤더가 예상과 다르거나 모든 행이 입금 데이터가 아닐 수 있습니다.</small>`;
         toast('적재된 행이 없습니다 — CSV 형식을 확인하세요');
       } else {
         resultDiv.innerHTML =
-          `<span style="color:#0a8a4f">✅ ${escapeHtml(data.message || '적재 완료')}</span><br>` +
+          `<span style="color:#0a8a4f">${escapeHtml(data.message || '적재 완료')}</span><br>` +
           `<small style="color:#666">출처: ${escapeHtml(d.source || '-')} · ` +
           `적재 ${imported}건 / 자동매칭 ${d.autoMatchedRows || 0}건 / ` +
           `파싱오류 ${errCount}건</small>`;
@@ -229,11 +229,11 @@
       currentOffset = 0;
       await refreshList();
     } catch (err) {
-      resultDiv.innerHTML = `<span style="color:#c5293a">❌ 네트워크 오류: ${escapeHtml(err.message || '')}</span>`;
+      resultDiv.innerHTML = `<span style="color:#c5293a">네트워크 오류: ${escapeHtml(err.message || '')}</span>`;
       toast('업로드 실패');
     } finally {
       btn.disabled = false;
-      btn.textContent = '📥 업로드 + 매칭';
+      btn.textContent = '업로드 + 매칭';
     }
   }
 
@@ -255,7 +255,7 @@
 
     const res = await apiGet('/api/admin-donation-pending-list?' + params.toString());
     if (!res.ok) {
-      body.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:30px;color:#c5293a">❌ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:30px;color:#c5293a">${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
       return;
     }
     const d = res.data.data || {};
@@ -351,7 +351,7 @@
     }
     if (r.status === 'ignored' || r.status === 'held') {
       // AD-051/052: 무시·보류 건은 검토 대기로 복원 가능
-      return `<button data-action="restore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">↩ 복원</button>`;
+      return `<button data-action="restore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">복원</button>`;
     }
     /* pending / matched — 효성 계약은 매칭 없어도 통과 가능 (신규 회원 자동 생성) */
     const isContract = r.source === 'hyosung_contracts';
@@ -359,11 +359,11 @@
     const confirmTitle = isContract
       ? '효성 계약 — 통과 시 신규 회원 자동 등록 또는 기존 회원 연결'
       : (r.matchedMemberId ? '' : '회원 매칭 후 가능');
-    const confirmBtn = `<button data-action="confirm" data-id="${r.id}" class="cms-btn cms-btn-primary" style="padding:3px 8px;font-size:11.5px;margin-right:4px"${canConfirm ? '' : ' disabled'}${confirmTitle ? ` title="${confirmTitle}"` : ''}>✅ 통과</button>`;
-    const rematchBtn = `<button data-action="rematch" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px">🔍 매칭 변경</button>`;
+    const confirmBtn = `<button data-action="confirm" data-id="${r.id}" class="cms-btn cms-btn-primary" style="padding:3px 8px;font-size:11.5px;margin-right:4px"${canConfirm ? '' : ' disabled'}${confirmTitle ? ` title="${confirmTitle}"` : ''}>통과</button>`;
+    const rematchBtn = `<button data-action="rematch" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px">매칭 변경</button>`;
     // AD-052: 판단 보류 — 미확정 더미에 섞이지 않게 격리(복원 가능)
-    const holdBtn = `<button data-action="hold" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px" title="판단 보류 — 나중에 복원 가능">⏸ 보류</button>`;
-    const ignoreBtn = `<button data-action="ignore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">🗑 무시</button>`;
+    const holdBtn = `<button data-action="hold" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px" title="판단 보류 — 나중에 복원 가능">보류</button>`;
+    const ignoreBtn = `<button data-action="ignore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">무시</button>`;
     return confirmBtn + rematchBtn + holdBtn + ignoreBtn;
   }
 

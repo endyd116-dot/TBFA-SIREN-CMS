@@ -11,9 +11,9 @@
 
   /* ── 상수 ── */
   const TAB_CONFIG = {
-    incident:   { label: '사건 제보',   api: '/api/user-my-reports?type=incident',   icon: '🔍', typeLabel: '사건 제보' },
-    harassment: { label: '악성민원',    api: '/api/user-my-reports?type=harassment', icon: '⚠️', typeLabel: '악성민원 신고' },
-    legal:      { label: '법률지원',    api: '/api/user-my-reports?type=legal',      icon: '⚖️', typeLabel: '법률 지원' },
+    incident:   { label: '사건 제보',   api: '/api/user-my-reports?type=incident',   icon: '', typeLabel: '사건 제보' },
+    harassment: { label: '악성민원',    api: '/api/user-my-reports?type=harassment', icon: '', typeLabel: '악성민원 신고' },
+    legal:      { label: '법률지원',    api: '/api/user-my-reports?type=legal',      icon: '', typeLabel: '법률 지원' },
   };
 
   const STATUS_LABEL = {
@@ -122,11 +122,11 @@
     const isEditable = ['submitted', 'ai_analyzed', 'rejected'].includes(report.status || '');
 
     const editBtn = isEditable
-      ? `<button type="button" class="rpt-edit-btn" data-rpt-edit="${report.id}" data-tab="${tabKey}">✏️ 수정</button>`
+      ? `<button type="button" class="rpt-edit-btn" data-rpt-edit="${report.id}" data-tab="${tabKey}">수정</button>`
       : '';
     /* 법률 상담만 삭제 버튼 추가 */
     const deleteBtn = (tabKey === 'legal' && isEditable)
-      ? `<button type="button" class="rpt-del-btn" data-rpt-del="${report.id}" data-tab="${tabKey}" data-no="${escapeHtml(String(report.reportNo || report.id))}">🗑 삭제</button>`
+      ? `<button type="button" class="rpt-del-btn" data-rpt-del="${report.id}" data-tab="${tabKey}" data-no="${escapeHtml(String(report.reportNo || report.id))}">삭제</button>`
       : '';
 
     return `
@@ -150,7 +150,7 @@
 
         ${report.adminResponse ? `
           <div style="background:#fffaf5;border:1px solid #f5dcc8;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.7">
-            <strong style="color:var(--brand)">📝 담당자 답변</strong><br>${escapeHtml(report.adminResponse)}
+            <strong style="color:var(--brand)">담당자 답변</strong><br>${escapeHtml(report.adminResponse)}
             ${report.respondedAt ? `<div style="font-size:11px;color:var(--text-3);margin-top:4px">${fmtDate(report.respondedAt)}</div>` : ''}
           </div>
         ` : ''}
@@ -161,7 +161,7 @@
 
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="toggle-tl-btn" onclick="toggleTimeline('${escapeHtml(cardId)}', this)">
-            ▶ 처리 단계 타임라인 보기
+            처리 단계 타임라인 보기
           </button>
           ${editBtn}
           ${deleteBtn}
@@ -176,14 +176,14 @@
     if (!el) return;
     const isOpen = el.style.display !== 'none';
     el.style.display = isOpen ? 'none' : '';
-    btn.textContent = isOpen ? '▶ 처리 단계 타임라인 보기' : '▼ 타임라인 닫기';
+    btn.textContent = isOpen ? '처리 단계 타임라인 보기' : '▼ 타임라인 닫기';
   };
 
   /* ── 목록 로드 ── */
   async function loadList() {
     const cfg = TAB_CONFIG[_activeTab];
     const list = document.getElementById('reportsList');
-    list.innerHTML = '<div class="report-empty"><div class="icon">⏳</div>불러오는 중...</div>';
+    list.innerHTML = '<div class="report-empty"><div class="icon"></div>불러오는 중...</div>';
 
     try {
       const params = new URLSearchParams({ page: _page, limit: PAGE_SIZE });
@@ -192,10 +192,10 @@
 
       if (!res.ok || !json.ok) {
         if (res.status === 401) {
-          list.innerHTML = '<div class="report-empty"><div class="icon">🔒</div>로그인이 필요합니다</div>';
+          list.innerHTML = '<div class="report-empty"><div class="icon"></div>로그인이 필요합니다</div>';
           return;
         }
-        list.innerHTML = '<div class="report-empty"><div class="icon">⚠️</div>불러오지 못했습니다</div>';
+        list.innerHTML = '<div class="report-empty"><div class="icon"></div>불러오지 못했습니다</div>';
         return;
       }
 
@@ -222,7 +222,7 @@
       bindCardActions(rows);
     } catch (e) {
       console.error('[my-reports]', e);
-      list.innerHTML = '<div class="report-empty"><div class="icon">⚠️</div>네트워크 오류</div>';
+      list.innerHTML = '<div class="report-empty"><div class="icon"></div>네트워크 오류</div>';
     }
   }
 
@@ -330,9 +330,9 @@
       const partyInfo = report.partyInfo || '';
       /* ★ R41 Q2-011: 긴급도 값을 서버 검증(urgent|normal|reference)·신고폼과 일치 */
       const urgencyOptions = [
-        { value: 'urgent', label: '🚨 긴급' },
-        { value: 'normal', label: '⚖️ 보통' },
-        { value: 'reference', label: '💡 참고' },
+        { value: 'urgent', label: '긴급' },
+        { value: 'normal', label: '보통' },
+        { value: 'reference', label: '참고' },
       ].map((o) => `<option value="${o.value}" ${urgency === o.value ? 'selected' : ''}>${o.label}</option>`).join('');
       extraFields = `
         <div style="margin-bottom:14px">
@@ -359,7 +359,7 @@
       <div style="background:#fff;border-radius:12px;max-width:580px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden">
         <div style="padding:16px 24px;background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#fff;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">✏️ ${escapeHtml(typeLabel)} 수정</div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">${escapeHtml(typeLabel)} 수정</div>
             <div style="font-size:11.5px;opacity:0.85;margin-top:2px">접수 상태에서만 수정 가능합니다</div>
           </div>
           <button type="button" data-re-close style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>

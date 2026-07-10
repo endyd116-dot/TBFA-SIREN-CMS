@@ -56,7 +56,7 @@
     container.innerHTML =
       '<div class="panel" style="margin-top:20px;border:2px solid var(--brand);border-radius:12px;padding:20px 24px">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
-          '<span style="font-size:20px">⭐</span>' +
+          '<span style="font-size:20px"></span>' +
           '<strong style="font-size:15px">상담 후기 작성</strong>' +
         '</div>' +
         '<p style="font-size:13px;color:var(--text-2);margin:0 0 14px">' +
@@ -174,7 +174,7 @@
     if (container) {
       container.innerHTML =
         '<div style="padding:16px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#15803d;margin-top:16px">' +
-          '✅ 후기를 제출해 주셔서 감사합니다.' +
+          '후기를 제출해 주셔서 감사합니다.' +
         '</div>';
     }
   }

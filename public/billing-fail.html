@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>정기 후원 카드 등록 실패 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -155,7 +156,7 @@
   <main>
     <div class="bf-wrap">
       <div class="bf-card">
-        <div class="bf-icon">😔</div>
+        <div class="bf-icon"><span class="siren-icon-wrap" data-icon="frown"></span></div>
         <h1 class="bf-title">카드 등록이 완료되지 않았습니다</h1>
         <p class="bf-subtitle">
           정기 후원 카드 등록 중 문제가 발생했습니다.<br />
@@ -163,13 +164,13 @@
         </p>
 
         <div class="bf-error-detail" id="bfErrorDetail" style="display:none">
-          <div class="label">⚠️ 실패 사유</div>
+          <div class="label"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 실패 사유</div>
           <div class="reason" id="bfErrorReason">—</div>
           <div class="code" id="bfErrorCode" style="display:none">—</div>
         </div>
 
         <div class="bf-info-box">
-          <h4>💡 일반적인 실패 원인</h4>
+          <h4><span class="siren-icon-wrap" data-icon="lightbulb"></span> 일반적인 실패 원인</h4>
           <ul>
             <li>카드 정보 입력 오류 (번호/CVC/유효기간)</li>
             <li>카드 한도 또는 잔액 부족</li>
@@ -180,12 +181,12 @@
         </div>
 
         <div class="bf-actions">
-          <a href="/index.html" class="primary">🎗 다시 시도하기</a>
+          <a href="/index.html" class="primary"><span class="siren-icon-wrap" data-icon="ribbon"></span> 다시 시도하기</a>
           <a href="javascript:history.back()" class="ghost">← 이전</a>
         </div>
 
         <div class="bf-contact">
-          📞 도움이 필요하시면<br />
+          <span class="siren-icon-wrap" data-icon="phone"></span> 도움이 필요하시면<br />
           이메일: <a href="mailto:contact@siren-org.kr">contact@siren-org.kr</a><br />
           전화: <strong>02-0000-0000</strong> (평일 09:30 ~ 18:00)
         </div>
@@ -195,8 +196,8 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
-  <script src="/js/auth.js?v=16"></script>
+  <script src="/js/common.js?v=2"></script>
+  <script src="/js/auth.js?v=17"></script>
   <script>
   (function () {
     'use strict';

@@ -149,7 +149,7 @@
 
       <div class="ar-header">
         <div>
-          <h2>📊 AI 활동보고서</h2>
+          <h2>AI 활동보고서</h2>
           <p>AI가 생성한 활동보고서를 관리합니다 — 발행 시 사용자 페이지에 자동 노출됩니다.</p>
         </div>
       </div>
@@ -159,14 +159,14 @@
       <div class="ar-toolbar">
         <select id="arListFilterPublished">
           <option value="">전체 상태</option>
-          <option value="true">📢 발행됨</option>
-          <option value="false">📝 비공개(초안)</option>
+          <option value="true">발행됨</option>
+          <option value="false">비공개(초안)</option>
         </select>
         <select id="arListFilterYear">
           <option value="">전체 연도</option>
         </select>
-        <button class="btn-refresh" type="button" id="arListRefreshBtn">🔄 새로고침</button>
-        <button class="btn-create" type="button" id="arListCreateBtn">🤖 새 보고서 생성</button>
+        <button class="btn-refresh" type="button" id="arListRefreshBtn">새로고침</button>
+        <button class="btn-create" type="button" id="arListCreateBtn">새 보고서 생성</button>
       </div>
 
       <div id="arListTableBox">
@@ -183,7 +183,7 @@
           <div class="ar-preview-body activity-report-body" id="arPreviewBody"></div>
           <div class="ar-preview-foot no-print">
             <button type="button" class="ar-btn-print" data-print-preview>
-              🖨 인쇄 / PDF 저장
+              인쇄 / PDF 저장
             </button>
             <button type="button" class="ar-btn-close" data-close-preview>
               닫기
@@ -195,12 +195,12 @@
       <!-- 제목 수정 모달 -->
       <div class="ar-edit-modal" id="arEditModal">
         <div class="ar-edit-box">
-          <h3>✏️ 보고서 제목 수정</h3>
+          <h3>보고서 제목 수정</h3>
           <label for="arEditTitleInput">제목</label>
           <input type="text" id="arEditTitleInput" maxlength="200" placeholder="보고서 제목" />
           <div class="actions">
             <button type="button" data-close-edit>취소</button>
-            <button type="button" class="primary" id="arEditSaveBtn">💾 저장</button>
+            <button type="button" class="primary" id="arEditSaveBtn">저장</button>
           </div>
         </div>
       </div>
@@ -209,14 +209,14 @@
       <div class="ar-preview-modal" id="arBodyEditModal" style="z-index:10001">
         <div class="ar-preview-box" style="max-width:1100px;width:95vw;max-height:92vh">
           <div class="ar-preview-head">
-            <h3 id="arBodyEditTitle">📝 본문 수정 (AI 초안 다듬기)</h3>
+            <h3 id="arBodyEditTitle">본문 수정 (AI 초안 다듬기)</h3>
             <div style="display:flex;gap:8px;align-items:center">
-              <button type="button" id="arBodyEditSaveBtn" style="background:var(--brand);color:#fff;border:none;padding:8px 18px;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer">💾 저장</button>
+              <button type="button" id="arBodyEditSaveBtn" style="background:var(--brand);color:#fff;border:none;padding:8px 18px;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer">저장</button>
               <button class="close" type="button" data-close-body-edit>&times;</button>
             </div>
           </div>
           <div style="padding:14px 20px;background:#fef9f5;border-bottom:1px solid var(--line);font-size:12px;color:var(--text-2)">
-            💡 AI가 작성한 초안입니다. 사실 확인 후 표현/수치/문맥을 다듬어 주세요. 발행 전에는 반드시 검토하세요.
+            AI가 작성한 초안입니다. 사실 확인 후 표현/수치/문맥을 다듬어 주세요. 발행 전에는 반드시 검토하세요.
           </div>
           <div id="arBodyEditEditor" style="padding:16px 18px;min-height:520px;height:520px;background:#fff;overflow:auto"></div>
         </div>
@@ -261,11 +261,11 @@
         <div class="value">${total}</div>
       </div>
       <div class="ar-stat-mini">
-        <div class="label">📢 발행됨</div>
+        <div class="label">발행됨</div>
         <div class="value" style="color:#1a8b46">${published}</div>
       </div>
       <div class="ar-stat-mini">
-        <div class="label">📝 비공개</div>
+        <div class="label">비공개</div>
         <div class="value" style="color:var(--text-3)">${draft}</div>
       </div>
       <!-- ★ v13.1: PDF 보유 카드 제거 (브라우저 인쇄 전환) -->
@@ -280,8 +280,8 @@
     if (_list.length === 0) {
       tableBox.innerHTML = `
         <div class="ar-empty">
-          📊 생성된 활동보고서가 없습니다<br />
-          <button class="btn-create" type="button" id="arListCreateBtnEmpty" style="margin-top:14px">🤖 첫 보고서 생성하기</button>
+          생성된 활동보고서가 없습니다<br />
+          <button class="btn-create" type="button" id="arListCreateBtnEmpty" style="margin-top:14px">첫 보고서 생성하기</button>
         </div>
       `;
       return;
@@ -289,12 +289,12 @@
 
     const rows = _list.map((p) => {
       const pubBadge = p.isPublished
-        ? '<span class="ar-badge-pub published">📢 발행됨</span>'
-        : '<span class="ar-badge-pub draft">📝 비공개</span>';
-      const pinIcon = p.isPinned ? '<span class="ar-pin">📌</span>' : '';
+        ? '<span class="ar-badge-pub published">발행됨</span>'
+        : '<span class="ar-badge-pub draft">비공개</span>';
+      const pinIcon = p.isPinned ? '<span class="ar-pin"></span>' : '';
       const pubAction = p.isPublished
-        ? `<button class="unpublish" data-action="unpublish" data-id="${p.id}">🔒 비공개</button>`
-        : `<button class="publish" data-action="publish" data-id="${p.id}">📢 발행</button>`;
+        ? `<button class="unpublish" data-action="unpublish" data-id="${p.id}">비공개</button>`
+        : `<button class="publish" data-action="publish" data-id="${p.id}">발행</button>`;
 
       return `<tr>
         <td style="font-family:Inter;font-size:11.5px;white-space:nowrap;color:var(--text-3)">${fmtDateTime(p.createdAt)}</td>
@@ -306,11 +306,11 @@
         </td>
         <td>${pubBadge}</td>
         <td><div class="ar-actions">
-          <button class="preview" data-action="preview" data-id="${p.id}">👁 미리보기</button>
-          <button class="edit" data-action="edit-body" data-id="${p.id}" data-title="${escapeHtml(p.title)}">📝 본문</button>
+          <button class="preview" data-action="preview" data-id="${p.id}">미리보기</button>
+          <button class="edit" data-action="edit-body" data-id="${p.id}" data-title="${escapeHtml(p.title)}">본문</button>
           ${pubAction}
-          <button class="edit" data-action="edit-title" data-id="${p.id}" data-title="${escapeHtml(p.title)}">✏️ 제목</button>
-          <button class="delete" data-action="delete" data-id="${p.id}" data-title="${escapeHtml(p.title)}">🗑 삭제</button>
+          <button class="edit" data-action="edit-title" data-id="${p.id}" data-title="${escapeHtml(p.title)}">제목</button>
+          <button class="delete" data-action="delete" data-id="${p.id}" data-title="${escapeHtml(p.title)}">삭제</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -359,7 +359,7 @@
       return;
     }
     const post = res.data.data?.post || {};
-    titleEl.textContent = '👁 ' + (post.title || '미리보기');
+    titleEl.textContent = '' + (post.title || '미리보기');
     bodyEl.innerHTML = post.contentHtml || '<p>본문이 비어있습니다</p>';
   }
 
@@ -416,7 +416,7 @@
       }
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = '💾 저장';
+      saveBtn.textContent = '저장';
     }
   }
 
@@ -430,7 +430,7 @@
     const editorEl = document.getElementById('arBodyEditEditor');
     if (!modal || !editorEl) return;
 
-    titleEl.textContent = `📝 본문 수정 — ${title || ''}`;
+    titleEl.textContent = `본문 수정 — ${title || ''}`;
     _bodyEditingId = id;
     modal.classList.add('show');
 
@@ -525,7 +525,7 @@
         toast(res.data?.error || '저장 실패');
       }
     } finally {
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 저장'; }
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '저장'; }
     }
   }
 

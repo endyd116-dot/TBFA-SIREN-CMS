@@ -25,7 +25,7 @@
   const SERVICE_CATALOG = [
     {
       kind: 'incident',
-      label: '🚨 신고 (사건제보)',
+      label: '신고 (사건제보)',
       categories: [
         { value: 'school_violence',    label: '학교폭력' },
         { value: 'neighborhood_conflict', label: '이웃갈등' },
@@ -35,7 +35,7 @@
     },
     {
       kind: 'harassment',
-      label: '⚠️ 괴롭힘',
+      label: '괴롭힘',
       categories: [
         { value: 'parent',  label: '학부모' },
         { value: 'student', label: '학생' },
@@ -46,7 +46,7 @@
     },
     {
       kind: 'legal',
-      label: '⚖️ 법률 상담',
+      label: '법률 상담',
       categories: [
         { value: 'school_dispute', label: '학교 분쟁' },
         { value: 'civil',          label: '민사' },
@@ -57,7 +57,7 @@
     },
     {
       kind: 'support',
-      label: '🤝 유족 지원',
+      label: '유족 지원',
       categories: [
         { value: 'psychological', label: '심리상담' },
         { value: 'legal',         label: '법률지원' },
@@ -154,7 +154,7 @@
       const uid = m.id || m.uid;
       if (!uid) return;
       const name = m.name || m.email || ('#' + uid);
-      const away = m.outOfOffice ? ' (부재 중 ⚠️)' : '';
+      const away = m.outOfOffice ? ' (부재 중 )' : '';
       const sel = Number(uid) === Number(selectedUid) ? ' selected' : '';
       opts.push('<option value="' + uid + '"' + sel + '>' + escapeHtml(name + away) + '</option>');
     });

@@ -91,7 +91,7 @@
 }
 
 .siren-editor-uploading::after {
-  content: '⏳ 업로드 중...';
+  content: '업로드 중...';
   position: absolute;
   top: 8px;
   right: 8px;

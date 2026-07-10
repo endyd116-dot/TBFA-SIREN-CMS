@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const TYPE_LABEL = { fundraising: '💰 모금', memorial: '🎗 추모', awareness: '📣 인식' };
+  const TYPE_LABEL = { fundraising: '모금', memorial: '추모', awareness: '인식' };
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -46,7 +46,7 @@
               <span style="color:var(--text-3)">${pct}%</span>
             </div>`
           : `<div style="font-size:12px;color:var(--text-2)">
-              👥 ${c.donorCount || 0}명 후원
+              ${c.donorCount || 0}명 후원
               ${c.remainingDays !== null ? ` · D-${c.remainingDays}` : ''}
             </div>`;
 
@@ -55,7 +55,7 @@
                    onmouseover="this.style.boxShadow='0 8px 20px rgba(0,0,0,0.08)';this.style.transform='translateY(-2px)'"
                    onmouseout="this.style.boxShadow='';this.style.transform=''">
           <div style="width:100%;height:160px;${thumb};background-size:cover;background-position:center;position:relative">
-            ${c.isPinned ? '<span style="position:absolute;top:10px;left:10px;background:var(--brand);color:#fff;padding:2px 9px;border-radius:10px;font-size:10.5px;font-weight:600">📌 추천</span>' : ''}
+            ${c.isPinned ? '<span style="position:absolute;top:10px;left:10px;background:var(--brand);color:#fff;padding:2px 9px;border-radius:10px;font-size:10.5px;font-weight:600">추천</span>' : ''}
             <span style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);padding:2px 9px;border-radius:10px;font-size:10.5px;font-weight:600">${TYPE_LABEL[c.type] || c.type}</span>
           </div>
           <div style="padding:16px 18px">

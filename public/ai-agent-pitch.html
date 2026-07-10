@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>SIREN AI 에이전트 — 소개</title>
 <meta name="robots" content="noindex,nofollow">
 <style>
@@ -177,7 +178,7 @@
     color: #bfdbfe; border-bottom-left-radius: 4px;
   }
   .chat-user::before {
-    content: '👤 운영자';
+    content: '운영자';
     display: block; font-size: 11px; font-weight: 700;
     color: #60a5fa; margin-bottom: 6px; letter-spacing: 0.05em;
   }
@@ -186,7 +187,7 @@
     color: #e2e8f0; border-bottom-left-radius: 4px;
   }
   .chat-ai::before {
-    content: '🤖 AI 에이전트';
+    content: 'AI 에이전트';
     display: block; font-size: 11px; font-weight: 700;
     color: #a78bfa; margin-bottom: 6px; letter-spacing: 0.05em;
   }
@@ -258,10 +259,10 @@
     <h1 class="s1-title">반복 업무는 AI에게<br>사람은 사람에게</h1>
     <p class="s1-sub">명령 한 마디로 수십 건을 처리하고<br>다음 할 일을 스스로 제안하는 업무 자동화 AI</p>
     <div class="s1-chips">
-      <span class="chip">🔁 일괄 처리</span>
-      <span class="chip">🎯 조건 자동화</span>
-      <span class="chip">💡 연쇄 제안</span>
-      <span class="chip">⏰ 예약 실행</span>
+      <span class="chip"><span class="siren-icon-wrap" data-icon="repeat"></span> 일괄 처리</span>
+      <span class="chip"><span class="siren-icon-wrap" data-icon="target"></span> 조건 자동화</span>
+      <span class="chip"><span class="siren-icon-wrap" data-icon="lightbulb"></span> 연쇄 제안</span>
+      <span class="chip"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 예약 실행</span>
     </div>
   </div>
 
@@ -272,7 +273,7 @@
     <p class="slide-desc">좋은 의도와 열정만으로는 채울 수 없는 운영의 빈틈</p>
     <div class="pain-grid">
       <div class="pain-card">
-        <div class="pain-icon">😮‍💨</div>
+        <div class="pain-icon"><span class="siren-icon-wrap" data-icon="smile"></span></div>
         <div class="pain-title">같은 작업을 반복</div>
         <div class="pain-body">
           법률 상담 답변, 회원 알림 발송, 채팅방 관리…<br>
@@ -280,7 +281,7 @@
         </div>
       </div>
       <div class="pain-card">
-        <div class="pain-icon">🔍</div>
+        <div class="pain-icon"><span class="siren-icon-wrap" data-icon="search"></span></div>
         <div class="pain-title">대상자를 일일이 찾아야</div>
         <div class="pain-body">
           "3개월 이상 미후원 정기회원 누구지?"<br>
@@ -288,7 +289,7 @@
         </div>
       </div>
       <div class="pain-card">
-        <div class="pain-icon">😓</div>
+        <div class="pain-icon"><span class="siren-icon-wrap" data-icon="frown"></span></div>
         <div class="pain-title">후속 조치를 놓침</div>
         <div class="pain-body">
           답변 후 이메일, 상태 변경, 관련 알림…<br>
@@ -307,7 +308,7 @@
 
       <div class="layer-card l1">
         <div class="layer-num">LAYER 1 — 일괄 처리</div>
-        <div class="layer-icon">📦</div>
+        <div class="layer-icon"><span class="siren-icon-wrap" data-icon="package"></span></div>
         <div class="layer-title">수십 건을 한 번에</div>
         <div class="layer-body">법률 상담 전체 답변, 괴롭힘 신고 상태 일괄 변경, 전체 채팅방 공지 발송</div>
         <div class="layer-example">"미답변 법률 상담 전부 표준 답변으로 처리해줘"</div>
@@ -315,7 +316,7 @@
 
       <div class="layer-card l2">
         <div class="layer-num">LAYER 2 — 조건 자동화</div>
-        <div class="layer-icon">🎯</div>
+        <div class="layer-icon"><span class="siren-icon-wrap" data-icon="target"></span></div>
         <div class="layer-title">대상자를 AI가 직접 선별</div>
         <div class="layer-body">조건만 말하면 DB에서 대상자 추출 → 이메일·알림까지 자동 연결</div>
         <div class="layer-example">"3개월 미후원 정기회원에게 독려 이메일 보내줘"</div>
@@ -323,7 +324,7 @@
 
       <div class="layer-card l3">
         <div class="layer-num">LAYER 3 — 연쇄 제안</div>
-        <div class="layer-icon">💡</div>
+        <div class="layer-icon"><span class="siren-icon-wrap" data-icon="lightbulb"></span></div>
         <div class="layer-title">다음 할 일을 스스로 안내</div>
         <div class="layer-body">작업 완료 후 "이것도 하시겠어요?" 자동 제안으로 후속 조치 누락 방지</div>
         <div class="layer-example">답변 완료 → "이메일로도 전달할까요?" 자동 제안</div>
@@ -331,7 +332,7 @@
 
       <div class="layer-card l4">
         <div class="layer-num">LAYER 4 — 예약 실행</div>
-        <div class="layer-icon">⏰</div>
+        <div class="layer-icon"><span class="siren-icon-wrap" data-icon="alarm-clock"></span></div>
         <div class="layer-title">"나중에 해줘"가 가능</div>
         <div class="layer-body">반복 업무를 스케줄로 등록하면 지정 시간마다 AI가 자동 실행</div>
         <div class="layer-example">"매주 월요일 미처리 상담 목록 보고해줘"</div>
@@ -356,10 +357,10 @@
         <div class="chat-bubble chat-ai">
           <span class="chat-tag tag-l1">LAYER 1</span> 미답변 법률 상담 <strong>7건</strong> 확인했습니다.<br>
           상태를 '검토 중'으로 변경할까요? (dry-run 확인)<br><br>
-          ✅ 승인 후 → 7건 일괄 처리 완료<br><br>
+          <span class="siren-icon-wrap" data-icon="circle-check"></span> 승인 후 → 7건 일괄 처리 완료<br><br>
           <span class="chat-tag tag-l2">LAYER 2</span> 담당 변호사 <strong>3명</strong>에게 이메일 발송 완료<br><br>
           <span class="chat-tag tag-l4">LAYER 4</span> 매주 월요일 09:00 자동 실행 스케줄 등록<br><br>
-          <span class="chat-tag tag-l3">LAYER 3</span> 💡 관련 채팅방에 처리 완료 알림도 보낼까요?
+          <span class="chat-tag tag-l3">LAYER 3</span> <span class="siren-icon-wrap" data-icon="lightbulb"></span> 관련 채팅방에 처리 완료 알림도 보낼까요?
         </div>
       </div>
 
@@ -405,7 +406,7 @@
     </div>
 
     <div class="closing">
-      <div class="closing-icon">🤝</div>
+      <div class="closing-icon"><span class="siren-icon-wrap" data-icon="handshake"></span></div>
       <div class="closing-text">
         <strong>SIREN AI 에이전트</strong>는 유가족협의회 운영자의 반복 행정 부담을 줄여<br>
         <strong>상담·지원·공감</strong>이라는 본질적인 일에 더 많은 시간을 드립니다.<br>

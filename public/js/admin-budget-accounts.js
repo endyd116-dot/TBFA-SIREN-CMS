@@ -88,7 +88,7 @@
         <span style="flex:1;height:8px;border-radius:4px;background:#e5e7eb;overflow:hidden;display:inline-block;width:70px">
           <span style="display:block;height:100%;width:${Math.min(rate, 100)}%;background:${color}"></span>
         </span>
-        <span style="color:${color};font-weight:600;font-size:12px">${rate}%${over ? ' ⚠️' : ''}</span>
+        <span style="color:${color};font-weight:600;font-size:12px">${rate}%${over ? ' ' : ''}</span>
       </span>`;
   }
 

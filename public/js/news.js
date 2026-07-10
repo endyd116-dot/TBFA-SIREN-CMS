@@ -96,7 +96,7 @@
     /* 행 렌더 */
     tbody.innerHTML = list.map((n) => {
       const catBadge = NOTICE_CATEGORY_BADGE[n.category] || '<span class="badge b-mute">' + escapeHtml(n.category) + '</span>';
-      const pinIcon = n.isPinned ? '📌 ' : '';
+      const pinIcon = n.isPinned ? '' : '';
       const date = formatDate(n.publishedAt || n.createdAt);
       const views = (n.views || 0).toLocaleString();
       return '<tr data-news-id="' + n.id + '">' +
@@ -182,7 +182,7 @@
     }
 
     const n = res.data.data.notice;
-    if (titleEl) titleEl.textContent = (n.isPinned ? '📌 ' : '') + n.title;
+    if (titleEl) titleEl.textContent = (n.isPinned ? '' : '') + n.title;
     if (metaEl) {
       const cat = NOTICE_CATEGORY_BADGE[n.category] || escapeHtml(n.category);
       metaEl.innerHTML =

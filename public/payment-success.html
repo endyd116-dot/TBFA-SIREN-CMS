@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>결제 처리 중 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -199,7 +200,7 @@
       <!-- 성공 화면 -->
       <div id="psSuccess" class="ps-card" style="display:none">
         <div class="ps-icon">
-          <span class="ps-thanks-emoji">🎗</span>
+          <span class="ps-thanks-emoji"><span class="siren-icon-wrap" data-icon="ribbon"></span></span>
         </div>
         <h1 class="ps-title">소중한 마음, 감사합니다!</h1>
         <p class="ps-message">
@@ -231,20 +232,20 @@
         </div>
 
         <div style="font-size:12.5px;color:var(--text-3);line-height:1.7;margin-bottom:18px;padding:12px 16px;background:var(--bg-soft);border-radius:6px">
-          📧 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다.<br />
-          📄 <strong>회원 후원</strong>은 로그인 후 마이페이지에서 기부금 영수증을 즉시 발급하실 수 있습니다.<br />
+          <span class="siren-icon-wrap" data-icon="mail"></span> 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다.<br />
+          <span class="siren-icon-wrap" data-icon="file-text"></span> <strong>회원 후원</strong>은 로그인 후 마이페이지에서 기부금 영수증을 즉시 발급하실 수 있습니다.<br />
           <span style="font-size:11.5px">※ 비회원으로 후원하신 경우 영수증 발급은 <strong>contact@siren-org.kr</strong>로 문의해 주세요.</span>
         </div>
 
         <div class="ps-actions">
-          <a href="/mypage.html#donations" class="primary" id="psMyPageLink">📄 영수증 발급하기</a>
-          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+          <a href="/mypage.html#donations" class="primary" id="psMyPageLink"><span class="siren-icon-wrap" data-icon="file-text"></span> 영수증 발급하기</a>
+          <a href="/index.html" class="ghost"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
 
       <!-- 실패/오류 화면 -->
       <div id="psError" class="ps-card" style="display:none">
-        <div class="ps-icon">⚠️</div>
+        <div class="ps-icon"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></div>
         <h1 class="ps-title" style="color:var(--danger)">결제 확인 실패</h1>
         <p class="ps-message" id="psErrorMessage">
           결제 정보를 확인하는 중 문제가 발생했습니다.<br />
@@ -257,7 +258,7 @@
         </div>
 
         <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:12px 14px;margin-bottom:18px;font-size:12.5px;color:#8a6a00;line-height:1.6;text-align:left">
-          💡 <strong>안내</strong><br />
+          <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>안내</strong><br />
           • 결제가 실제로 완료되었는지 확인이 필요합니다<br />
           • 결제가 진행되었다면 마이페이지에서 확인 가능합니다<br />
           • 문제가 지속되면 협회로 연락해 주세요 (contact@siren-org.kr)
@@ -265,20 +266,20 @@
 
         <div class="ps-actions">
           <a href="/mypage.html#donations" class="primary">마이페이지에서 확인</a>
-          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+          <a href="/index.html" class="ghost"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
 
       <!-- 잘못된 접근 화면 -->
       <div id="psInvalid" class="ps-card" style="display:none">
-        <div class="ps-icon">❌</div>
+        <div class="ps-icon"><span class="siren-icon-wrap" data-icon="x"></span></div>
         <h1 class="ps-title" style="color:var(--danger)">잘못된 접근입니다</h1>
         <p class="ps-message">
           결제 정보가 없거나 잘못된 경로로 접근하셨습니다.<br />
           홈에서 다시 후원해 주세요.
         </p>
         <div class="ps-actions">
-          <a href="/index.html" class="primary">🏠 홈으로 이동</a>
+          <a href="/index.html" class="primary"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
 
@@ -287,8 +288,8 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
-  <script src="/js/auth.js?v=16"></script>
+  <script src="/js/common.js?v=2"></script>
+  <script src="/js/auth.js?v=17"></script>
   <script>
   (function () {
     'use strict';

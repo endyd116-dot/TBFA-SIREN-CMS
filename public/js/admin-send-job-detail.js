@@ -340,7 +340,7 @@
   function renderRecipients(rows, isPreview) {
     /* 미리보기 안내 배너 */
     const banner = isPreview
-      ? `<div style="margin-bottom:10px;padding:9px 14px;background:#fff7ed;border-left:3px solid #ea580c;border-radius:6px;font-size:13px;color:#9a3412">⏳ 발송 대기 중 — 아래는 발송 예정 회원 미리보기입니다. cron이 실행되면 실제 수신자 스냅샷으로 갱신됩니다.</div>`
+      ? `<div style="margin-bottom:10px;padding:9px 14px;background:#fff7ed;border-left:3px solid #ea580c;border-radius:6px;font-size:13px;color:#9a3412">발송 대기 중 — 아래는 발송 예정 회원 미리보기입니다. cron이 실행되면 실제 수신자 스냅샷으로 갱신됩니다.</div>`
       : "";
     const bannerEl = document.getElementById("recPreviewBanner");
     if (bannerEl) bannerEl.innerHTML = banner;

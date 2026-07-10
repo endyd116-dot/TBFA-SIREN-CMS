@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>관리자 | 교사유가족협의회</title>
@@ -2660,7 +2661,7 @@
       <ol style="font-size:13.5px;line-height:1.85;color:var(--text-2);text-align:left;background:#f8fafc;padding:14px 20px;border-radius:8px;margin-bottom:18px">
         <li>홈페이지 상단 <strong>로그인</strong> 클릭</li>
         <li>관리자 ID·비밀번호 입력 (이메일 형식 아니어도 됨)</li>
-        <li>로그인 후 상단에 표시되는 <strong>🛡 관리자 모드</strong> 버튼 클릭</li>
+        <li>로그인 후 상단에 표시되는 <strong><span class="siren-icon-wrap" data-icon="shield"></span> 관리자 모드</strong> 버튼 클릭</li>
       </ol>
 
       <a class="btn btn-primary btn-block" href="/index.html"
@@ -2689,133 +2690,133 @@
 
       <ul class="adm-menu">
 
-        <!-- ── 🛠 워크스페이스 ── -->
+        <!-- ── 워크스페이스 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="false">
-            <i>🛠</i><span>워크스페이스</span>
+            <i><span class="siren-icon-wrap" data-icon="wrench"></span></i><span>워크스페이스</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="workspace" aria-hidden="true" style="display:none">
-            <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
-            <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
-            <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
-            <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
-            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
+            <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>칸반</span></a></li>
+            <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i><span class="siren-icon-wrap" data-icon="calendar-days"></span></i><span>캘린더</span></a></li>
+            <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i><span class="siren-icon-wrap" data-icon="files"></span></i><span>템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i><span class="siren-icon-wrap" data-icon="folder"></span></i><span>파일함</span></a></li>
           </ul>
         </li>
 
-        <!-- ── 📈 대시보드 (통합) ── -->
-        <li><a class="on" data-page="dashboard"><i>📈</i><span>대시보드</span></a></li>
+        <!-- ── 대시보드 (통합) ── -->
+        <li><a class="on" data-page="dashboard"><i><span class="siren-icon-wrap" data-icon="trending-up"></span></i><span>대시보드</span></a></li>
 
         <!-- ★ 2026-05-16 (재제거): 통합 분석 대시보드 메뉴 항목 제거 —
-             대시보드 화면 안의 '📊 통합 분석' 탭이 동일 내용을 표시하므로
+             대시보드 화면 안의 '통합 분석' 탭이 동일 내용을 표시하므로
              별도 1뎁스 메뉴는 중복. 화면(div#adm-unified-dashboard) +
              JS(admin-unified-dashboard.js)는 그대로 유지 — 대시보드 탭이
              동적으로 #adm-unified-dashboard를 #adm-unified-dashboard-inner로
              이동·로드하는 구조라 변경 불필요. -->
 
-        <!-- ── 🚨 사이렌 신고 관리 (★ 2026-05-16: 최상단 그룹으로 위치 변경 — Swain 요청) ── -->
+        <!-- ── 사이렌 신고 관리 (★ 2026-05-16: 최상단 그룹으로 위치 변경 — Swain 요청) ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="siren" aria-expanded="false">
-            <i>🚨</i><span>사이렌 신고 관리</span>
+            <i><span class="siren-icon-wrap" data-icon="siren"></span></i><span>사이렌 신고 관리</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="siren" aria-hidden="true" style="display:none">
             <li>
               <a data-page="siren-incidents">
-                <i>🔍</i><span>사건 제보 관리</span>
+                <i><span class="siren-icon-wrap" data-icon="search"></span></i><span>사건 제보 관리</span>
                 <span class="adm-badge" id="sirenIncidentBadge" style="display:none">0</span>
               </a>
             </li>
             <li>
               <a data-page="siren-harassment">
-                <i>⚠️</i><span>악성민원 관리</span>
+                <i><span class="siren-icon-wrap" data-icon="alert-triangle"></span></i><span>악성민원 관리</span>
                 <span class="adm-badge" id="sirenHarassmentBadge" style="display:none">0</span>
               </a>
             </li>
             <li>
               <a data-page="siren-legal">
-                <i>⚖️</i><span>법률지원 관리</span>
+                <i><span class="siren-icon-wrap" data-icon="scale"></span></i><span>법률지원 관리</span>
                 <span class="adm-badge" id="sirenLegalBadge" style="display:none">0</span>
               </a>
             </li>
             <li>
               <a data-page="siren-board">
-                <i>💬</i><span>자유게시판 관리</span>
+                <i><span class="siren-icon-wrap" data-icon="message-circle"></span></i><span>자유게시판 관리</span>
                 <span class="adm-badge" id="sirenBoardBadge" style="display:none">0</span>
               </a>
             </li>
-            <li><a data-page="comment-reports"><i>🚩</i><span>댓글 신고 관리</span></a></li>
-            <li><a data-page="agency-mgmt"><i>🏛️</i><span>외부 기관 관리</span></a></li>
-            <li><a data-page="referral-history"><i>📤</i><span>인계 이력</span></a></li>
+            <li><a data-page="comment-reports"><i><span class="siren-icon-wrap" data-icon="flag"></span></i><span>댓글 신고 관리</span></a></li>
+            <li><a data-page="agency-mgmt"><i><span class="siren-icon-wrap" data-icon="landmark"></span></i><span>외부 기관 관리</span></a></li>
+            <li><a data-page="referral-history"><i><span class="siren-icon-wrap" data-icon="upload"></span></i><span>인계 이력</span></a></li>
           </ul>
         </li>
 
-        <!-- ── 🎗 유가족 지원 관리 (★ 2026-05-16: 유가족 지원사업 + 캠페인을 한 그룹으로 묶음 — 다른 메뉴와 통일) ── -->
+        <!-- ── 유가족 지원 관리 (★ 2026-05-16: 유가족 지원사업 + 캠페인을 한 그룹으로 묶음 — 다른 메뉴와 통일) ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="family-support" aria-expanded="false">
-            <i>🎗</i><span>유가족 지원 관리</span>
+            <i><span class="siren-icon-wrap" data-icon="ribbon"></span></i><span>유가족 지원 관리</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="family-support" aria-hidden="true" style="display:none">
-            <li><a data-page="support"><i>🎗</i><span>유가족 지원사업 관리</span></a></li>
-            <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
+            <li><a data-page="support"><i><span class="siren-icon-wrap" data-icon="ribbon"></span></i><span>유가족 지원사업 관리</span></a></li>
+            <li><a data-page="campaigns"><i><span class="siren-icon-wrap" data-icon="megaphone"></span></i><span>캠페인 관리</span></a></li>
           </ul>
         </li>
 
-        <!-- ── 🌐 홈페이지 관리 ── -->
+        <!-- ── 홈페이지 관리 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="homepage" aria-expanded="false">
-            <i>🌐</i><span>홈페이지 관리</span>
+            <i><span class="siren-icon-wrap" data-icon="globe"></span></i><span>홈페이지 관리</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="homepage" aria-hidden="true" style="display:none">
-            <li><a href="/admin-site-builder.html" onclick="window.location.href='/admin-site-builder.html';return false;"><i>🎨</i><span>메인 화면 편집</span></a></li>
-            <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
-            <li><a data-page="seo"><i>🔍</i><span>SEO 메타</span></a></li>
-            <li><a data-page="report"><i>📋</i><span>주간 보고서</span></a></li>
-            <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
+            <li><a href="/admin-site-builder.html" onclick="window.location.href='/admin-site-builder.html';return false;"><i><span class="siren-icon-wrap" data-icon="palette"></span></i><span>메인 화면 편집</span></a></li>
+            <li><a data-page="content"><i><span class="siren-icon-wrap" data-icon="file-pen"></span></i><span>콘텐츠 관리</span></a></li>
+            <li><a data-page="seo"><i><span class="siren-icon-wrap" data-icon="search"></span></i><span>SEO 메타</span></a></li>
+            <li><a data-page="report"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>주간 보고서</span></a></li>
+            <li><a data-page="activity-report"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>AI 활동보고서</span></a></li>
           </ul>
         </li>
 
-        <!-- ── 🤝 전문가 관리 ── -->
+        <!-- ── 전문가 관리 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="expert" aria-expanded="false">
-            <i>🤝</i><span>전문가 관리</span>
+            <i><span class="siren-icon-wrap" data-icon="handshake"></span></i><span>전문가 관리</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="expert" aria-hidden="true" style="display:none">
-            <li><a data-page="expert-match"><i>🧩</i><span>전문가 매칭 관리</span></a></li>
+            <li><a data-page="expert-match"><i><span class="siren-icon-wrap" data-icon="puzzle"></span></i><span>전문가 매칭 관리</span></a></li>
             <!-- ★ 2026-05-16 복구 — Phase 15. 전문가 회원 프로필 조회·수정·수락 토글 -->
-            <li><a data-page="expert-profiles"><i>👤</i><span>전문가 프로필 관리</span></a></li>
-            <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
-            <li><a href="/admin-anon-reveal.html" onclick="window.location.href='/admin-anon-reveal.html';return false;"><i>🕵️</i><span>익명 신원 식별</span></a></li>
-            <li><a href="/admin-anon-audit.html" onclick="window.location.href='/admin-anon-audit.html';return false;"><i>📋</i><span>익명 감사 로그</span></a></li>
+            <li><a data-page="expert-profiles"><i><span class="siren-icon-wrap" data-icon="user"></span></i><span>전문가 프로필 관리</span></a></li>
+            <li><a data-page="ai"><i><span class="siren-icon-wrap" data-icon="bot"></span></i><span>AI 추천 센터</span></a></li>
+            <li><a href="/admin-anon-reveal.html" onclick="window.location.href='/admin-anon-reveal.html';return false;"><i><span class="siren-icon-wrap" data-icon="user-search"></span></i><span>익명 신원 식별</span></a></li>
+            <li><a href="/admin-anon-audit.html" onclick="window.location.href='/admin-anon-audit.html';return false;"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>익명 감사 로그</span></a></li>
           </ul>
         </li>
 
-        <!-- ── 👥 회원·문의 ── -->
+        <!-- ── 회원·문의 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="members" aria-expanded="false">
-            <i>👥</i><span>회원·문의</span>
+            <i><span class="siren-icon-wrap" data-icon="users"></span></i><span>회원·문의</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="members" aria-hidden="true" style="display:none">
             <li>
               <a data-page="members">
-                <i>👤</i><span>가입 회원 관리</span>
+                <i><span class="siren-icon-wrap" data-icon="user"></span></i><span>가입 회원 관리</span>
                 <span class="adm-badge" id="membersApprovalsBadge" style="display:none">0</span>
               </a>
             </li>
             <li>
               <a data-page="chat">
-                <i>💬</i><span>문의 관리</span>
+                <i><span class="siren-icon-wrap" data-icon="message-circle"></span></i><span>문의 관리</span>
                 <span class="adm-badge" id="chatNewBadge" style="display:none">0</span>
               </a>
             </li>
             <li>
               <a data-page="eligibility">
-                <i>🎓</i><span>자격 변경 심사</span>
+                <i><span class="siren-icon-wrap" data-icon="graduation-cap"></span></i><span>자격 변경 심사</span>
                 <span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span>
               </a>
             </li>
@@ -2823,31 +2824,31 @@
           </ul>
         </li>
 
-        <!-- ── 🕯️ 추모관 관리 (성과 관리는 통합 CMS로 이관 — 2026-05-24) ── -->
+        <!-- ── 추모관 관리 (성과 관리는 통합 CMS로 이관 — 2026-05-24) ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="memorial" aria-expanded="false">
-            <i>🕯️</i><span>추모관 관리</span>
+            <i><span class="siren-icon-wrap" data-icon="candle"></span></i><span>추모관 관리</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="memorial" aria-hidden="true" style="display:none">
-            <li><a data-page="family-stories"><i>🕊️</i><span>유가족 이야기</span></a></li>
-            <li><a data-page="memorial-admin"><i>🕯️</i><span>추모관 운영</span></a></li>
+            <li><a data-page="family-stories"><i><span class="siren-icon-wrap" data-icon="dove"></span></i><span>유가족 이야기</span></a></li>
+            <li><a data-page="memorial-admin"><i><span class="siren-icon-wrap" data-icon="candle"></span></i><span>추모관 운영</span></a></li>
           </ul>
         </li>
 
-        <!-- ── ⚙️ 시스템 ── -->
+        <!-- ── 시스템 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="system" aria-expanded="false">
-            <i>⚙️</i><span>시스템</span>
+            <i><span class="siren-icon-wrap" data-icon="settings"></span></i><span>시스템</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="system" aria-hidden="true" style="display:none">
-            <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
-            <li data-super-only="1"><a data-page="security-audit"><i>🔒</i><span>감사·보안 로그</span></a></li>
-            <li data-super-only="1"><a data-page="role-policy"><i>🛡️</i><span>권한 정책</span></a></li>
-            <li><a data-page="gamification"><i>🎮</i><span>게이미피케이션</span></a></li>
-            <li><a data-page="popups"><i>📢</i><span>팝업 관리</span></a></li>
-            <li><a data-page="curations"><i>🗂️</i><span>큐레이션</span></a></li>
+            <li><a data-page="settings"><i><span class="siren-icon-wrap" data-icon="settings"></span></i><span>시스템 설정</span></a></li>
+            <li data-super-only="1"><a data-page="security-audit"><i><span class="siren-icon-wrap" data-icon="lock"></span></i><span>감사·보안 로그</span></a></li>
+            <li data-super-only="1"><a data-page="role-policy"><i><span class="siren-icon-wrap" data-icon="shield"></span></i><span>권한 정책</span></a></li>
+            <li><a data-page="gamification"><i><span class="siren-icon-wrap" data-icon="gamepad-2"></span></i><span>게이미피케이션</span></a></li>
+            <li><a data-page="popups"><i><span class="siren-icon-wrap" data-icon="megaphone"></span></i><span>팝업 관리</span></a></li>
+            <li><a data-page="curations"><i><span class="siren-icon-wrap" data-icon="folders"></span></i><span>큐레이션</span></a></li>
           </ul>
         </li>
 
@@ -2873,9 +2874,9 @@
 
           <!-- 대시보드 서브탭 -->
           <div class="content-tabs" id="dashboardSubTabs" style="margin-bottom:20px">
-            <button type="button" class="ct-tab on" data-dtab="main">📈 대시보드</button>
-            <button type="button" class="ct-tab" data-dtab="unified">📊 통합 분석</button>
-            <button type="button" class="ct-tab" data-dtab="siren-stats">🚨 신고 통계</button>
+            <button type="button" class="ct-tab on" data-dtab="main"><span class="siren-icon-wrap" data-icon="trending-up"></span> 대시보드</button>
+            <button type="button" class="ct-tab" data-dtab="unified"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 통합 분석</button>
+            <button type="button" class="ct-tab" data-dtab="siren-stats"><span class="siren-icon-wrap" data-icon="siren"></span> 신고 통계</button>
           </div>
 
           <!-- 탭 1: 싸이렌 플랫폼 대시보드 (★ 2026-05-16 재구성: 웹 가입자 중심·후원 KPI 제거) -->
@@ -2906,7 +2907,7 @@
                 <div class="ai-desc">사이렌 신고 폭주·미처리 누적·매칭 지연 등 플랫폼 운영 위험 신호를 자동 감지합니다.</div>
               </div>
               <div class="ai-card">
-                <div class="ai-card-head"><div class="ai-icon">↗</div><div class="ai-name">캠페인 반응 급증</div><div class="ai-score">기회 92%</div></div>
+                <div class="ai-card-head"><div class="ai-icon"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></div><div class="ai-name">캠페인 반응 급증</div><div class="ai-score">기회 92%</div></div>
                 <div class="ai-desc">"기억의 약속" 캠페인 페이지 체류시간이 평균 대비 2.4배 증가. 추가 콘텐츠 노출 시 전환율 상승이 예상됩니다.</div>
               </div>
             </div>
@@ -2937,13 +2938,13 @@
 
           <!-- ★ 서브탭 -->
           <div class="content-tabs" id="memberSubTabs">
-            <button type="button" class="ct-tab on" data-mtab="list">📋 회원 목록</button>
+            <button type="button" class="ct-tab on" data-mtab="list"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 회원 목록</button>
             <button type="button" class="ct-tab" data-mtab="approvals">
-              ⏳ 회원 자격 관리
+              <span class="siren-icon-wrap" data-icon="hourglass"></span> 회원 자격 관리
               <span class="adm-badge" id="approvalsTabBadge" style="display:none;margin-left:6px">0</span>
             </button>
             <button type="button" class="ct-tab" data-mtab="blacklist">
-              🚫 블랙 관리
+              <span class="siren-icon-wrap" data-icon="ban"></span> 블랙 관리
               <span class="adm-badge" id="blacklistTabBadge" style="display:none;margin-left:6px">0</span>
             </button>
           </div>
@@ -2951,17 +2952,17 @@
           <!-- ─── 탭 1: 회원 목록 ─── -->
           <div class="m-tab-pane" data-mtab-pane="list">
             <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-              <div class="kpi"><div class="kpi-label">💝 후원회원</div><div class="kpi-value" id="mmKpiSponsor">0 명</div></div>
-              <div class="kpi"><div class="kpi-label">👤 일반회원</div><div class="kpi-value" id="mmKpiRegular">0 명</div></div>
-              <div class="kpi"><div class="kpi-label">🎗 유족회원</div><div class="kpi-value" id="mmKpiFamily">0 명</div></div>
-              <div class="kpi"><div class="kpi-label">🤝 기타회원</div><div class="kpi-value" id="mmKpiEtc">0 명</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="gift"></span> 후원회원</div><div class="kpi-value" id="mmKpiSponsor">0 명</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="user"></span> 일반회원</div><div class="kpi-value" id="mmKpiRegular">0 명</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="ribbon"></span> 유족회원</div><div class="kpi-value" id="mmKpiFamily">0 명</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="handshake"></span> 기타회원</div><div class="kpi-value" id="mmKpiEtc">0 명</div></div>
             </div>
 
             <div class="panel">
               <div class="p-head">
                 <div class="p-title">회원 리스트</div>
                 <div class="p-actions">
-                  <button class="btn-sm btn-sm-ghost" id="btnExportMembers" type="button">📥 회원 내역 내보내기</button>
+                  <button class="btn-sm btn-sm-ghost" id="btnExportMembers" type="button"><span class="siren-icon-wrap" data-icon="inbox"></span> 회원 내역 내보내기</button>
                   <button class="btn-sm btn-sm-primary" id="btnAddMember">+ 회원 추가</button>
                 </div>
               </div>
@@ -2984,10 +2985,10 @@
                 </select>
                 <select id="mmFilterCategory">
                   <option value="">전체 분류</option>
-                  <option value="sponsor">💝 후원회원</option>
-                  <option value="regular">👤 일반회원</option>
-                  <option value="family">🎗 유족회원</option>
-                  <option value="etc">🤝 기타회원</option>
+                  <option value="sponsor">후원회원</option>
+                  <option value="regular">일반회원</option>
+                  <option value="family">유족회원</option>
+                  <option value="etc">기타회원</option>
                 </select>
                 <select id="mmFilterSubtype">
                   <option value="">전체 세부</option>
@@ -3002,10 +3003,10 @@
                 <select id="mmFilterSource" style="display:none">
                   <option value="">전체 가입경로</option>
                 </select>
-                <input type="search" id="mmFilterQ" placeholder="🔍 이름·이메일·연락처 검색 (2자 이상)">
+                <input type="search" id="mmFilterQ" placeholder="이름·이메일·연락처 검색 (2자 이상)">
                 <span class="mm-count" id="mmCount">—</span>
                 <span style="font-size:11.5px;color:var(--text-3,#888);background:#f0f7ff;border:1px solid #c5daf5;padding:4px 9px;border-radius:4px;margin-left:auto" title="효성·수기 등록 회원은 교유협 통합 CMS(/cms-tbfa.html)에서 관리합니다">
-                  🌐 홈페이지 가입자만 표시
+                  <span class="siren-icon-wrap" data-icon="globe"></span> 홈페이지 가입자만 표시
                 </span>
               </div>
 
@@ -3033,35 +3034,35 @@
           <div class="m-tab-pane" data-mtab-pane="approvals" style="display:none">
             <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
               <div class="kpi" style="border-left:3px solid var(--brand)">
-                <div class="kpi-label" style="color:var(--brand)">⏳ 전체 대기</div>
+                <div class="kpi-label" style="color:var(--brand)"><span class="siren-icon-wrap" data-icon="hourglass"></span> 전체 대기</div>
                 <div class="kpi-value" id="apvKpiAll" style="color:var(--brand)">0</div>
               </div>
-              <div class="kpi"><div class="kpi-label">🎗 유가족</div><div class="kpi-value" id="apvKpiFamily">0</div></div>
-              <div class="kpi"><div class="kpi-label">👨‍🏫 교원</div><div class="kpi-value" id="apvKpiTeacher">0</div></div>
-              <div class="kpi"><div class="kpi-label">⚖️ 변호사</div><div class="kpi-value" id="apvKpiLawyer">0</div></div>
-              <div class="kpi"><div class="kpi-label">💗 심리상담사</div><div class="kpi-value" id="apvKpiCounselor">0</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="ribbon"></span> 유가족</div><div class="kpi-value" id="apvKpiFamily">0</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="user"></span> 교원</div><div class="kpi-value" id="apvKpiTeacher">0</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="scale"></span> 변호사</div><div class="kpi-value" id="apvKpiLawyer">0</div></div>
+              <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="heart"></span> 심리상담사</div><div class="kpi-value" id="apvKpiCounselor">0</div></div>
             </div>
 
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">⏳ 회원 자격 승인 대기</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="hourglass"></span> 회원 자격 승인 대기</div>
                 <div class="p-actions">
-                  <button class="btn-sm btn-sm-ghost" id="apvReloadBtn">🔄 새로고침</button>
+                  <button class="btn-sm btn-sm-ghost" id="apvReloadBtn"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 새로고침</button>
                 </div>
               </div>
 
               <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                💡 유가족·교원·변호사·심리상담사 회원의 증빙 자료를 검토하고 승인 또는 반려합니다.<br />
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> 유가족·교원·변호사·심리상담사 회원의 증빙 자료를 검토하고 승인 또는 반려합니다.<br />
                 ✓ <strong>승인</strong>되면 즉시 회원 목록에 정상 회원으로 추가됩니다 · ✗ <strong>반려</strong>해도 증빙 파일은 보존됩니다 (재심사 가능).
               </p>
 
               <div class="srn-toolbar">
                 <select id="apvFilterType">
                   <option value="all">전체 유형</option>
-                  <option value="family">🎗 유가족만</option>
-                  <option value="teacher">👨‍🏫 교원만</option>
-                  <option value="lawyer">⚖️ 변호사만</option>
-                  <option value="counselor">💗 심리상담사만</option>
+                  <option value="family">유가족만</option>
+                  <option value="teacher">교원만</option>
+                  <option value="lawyer">변호사만</option>
+                  <option value="counselor">심리상담사만</option>
                 </select>
                 <span class="srn-count" id="apvCount">—</span>
               </div>
@@ -3091,14 +3092,14 @@
           <div class="m-tab-pane" data-mtab-pane="blacklist" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">🚫 블랙 처리된 회원</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="ban"></span> 블랙 처리된 회원</div>
                 <div class="p-actions">
                   <button class="btn-sm btn-sm-primary" id="btnAddBlacklist" type="button">+ 회원 블랙 처리</button>
-                  <button class="btn-sm btn-sm-ghost" id="btnRefreshBlacklist" type="button">🔄 새로고침</button>
+                  <button class="btn-sm btn-sm-ghost" id="btnRefreshBlacklist" type="button"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 새로고침</button>
                 </div>
               </div>
               <p style="padding:8px 14px 0;font-size:12.5px;color:var(--text-3);line-height:1.55">
-                ⚠️ 블랙 처리된 회원은 SIREN 신고·유가족 지원·1:1 채팅 등 모든 서비스 이용 시
+                <span class="siren-icon-wrap" data-icon="alert-triangle"></span> 블랙 처리된 회원은 SIREN 신고·유가족 지원·1:1 채팅 등 모든 서비스 이용 시
                 <strong>"귀하의 서비스가 차단되었습니다."</strong> 메시지가 표시되며 차단됩니다.
                 해제는 본 페이지에서 운영자/슈퍼어드민이 직접 처리합니다.
               </p>
@@ -3128,7 +3129,7 @@
         <div id="adm-support" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
             <div class="kpi" id="kpiUrgentCard" style="border-left:4px solid #c5293a;background:#fdecec">
-              <div class="kpi-label" style="color:#c5293a;font-weight:600">🔴 긴급 신청</div>
+              <div class="kpi-label" style="color:#c5293a;font-weight:600"><span class="siren-icon-wrap" data-icon="circle-dot"></span> 긴급 신청</div>
               <div class="kpi-value" id="support-kpi-urgent" style="color:#c5293a">0 건</div>
             </div>
             <div class="kpi"><div class="kpi-label">신청 대기</div><div class="kpi-value" id="support-kpi-pending">0 건</div></div>
@@ -3164,29 +3165,29 @@
              ★ M-10: 사이렌 관리 — 4개 통합 페이지
              ============================================ -->
 
-        <!-- 🔍 사건 제보 관리 -->
+        <!-- 사건 제보 관리 -->
         <div id="adm-siren-incidents" class="adm-page">
 
           <!-- ★ B-3: 서브탭 -->
           <div class="content-tabs" style="margin-bottom:18px">
-            <button type="button" class="ct-tab on" data-ictab="reports">📋 제보 관리</button>
-            <button type="button" class="ct-tab" data-ictab="posts">🏫 사건 게시글 CRUD</button>
+            <button type="button" class="ct-tab on" data-ictab="reports"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 제보 관리</button>
+            <button type="button" class="ct-tab" data-ictab="posts"><span class="siren-icon-wrap" data-icon="school"></span> 사건 게시글 CRUD</button>
           </div>
 
           <!-- ─── 탭 1: 제보 관리 (기존) ─── -->
           <div class="ic-tab-pane" data-ictab-pane="reports">
 
           <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
-            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 위급 (high+)</div><div class="kpi-value" id="siKpiHigh" style="color:#c5293a">0</div></div>
-            <div class="kpi"><div class="kpi-label">🆕 AI 분석 완료</div><div class="kpi-value" id="siKpiAi">0</div></div>
-            <div class="kpi"><div class="kpi-label">📌 정식 접수</div><div class="kpi-value" id="siKpiSiren">0</div></div>
-            <div class="kpi"><div class="kpi-label">⏳ 검토 중</div><div class="kpi-value" id="siKpiReviewing">0</div></div>
-            <div class="kpi"><div class="kpi-label">✅ 답변 완료</div><div class="kpi-value" id="siKpiResponded">0</div></div>
+            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a"><span class="siren-icon-wrap" data-icon="siren"></span> 위급 (high+)</div><div class="kpi-value" id="siKpiHigh" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="sparkles"></span> AI 분석 완료</div><div class="kpi-value" id="siKpiAi">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="pin"></span> 정식 접수</div><div class="kpi-value" id="siKpiSiren">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="hourglass"></span> 검토 중</div><div class="kpi-value" id="siKpiReviewing">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="circle-check"></span> 답변 완료</div><div class="kpi-value" id="siKpiResponded">0</div></div>
           </div>
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">🔍 사건 제보 관리</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="search"></span> 사건 제보 관리</div>
             </div>
 
             <div class="srn-toolbar">
@@ -3200,15 +3201,15 @@
               </select>
               <select data-srn-filter="severity" data-srn-kind="incident">
                 <option value="">전체 위급도</option>
-                <option value="critical">🚨 CRITICAL</option>
-                <option value="high">⚠️ HIGH</option>
-                <option value="medium">⚖️ MEDIUM</option>
-                <option value="low">💡 LOW</option>
+                <option value="critical">CRITICAL</option>
+                <option value="high">HIGH</option>
+                <option value="medium">MEDIUM</option>
+                <option value="low">LOW</option>
               </select>
               <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer">
                 <input type="checkbox" data-srn-filter="onlySiren" data-srn-kind="incident"> 정식 접수만
               </label>
-              <input type="search" data-srn-filter="q" data-srn-kind="incident" placeholder="🔍 제목/접수번호 검색 (2자+)">
+              <input type="search" data-srn-filter="q" data-srn-kind="incident" placeholder="제목/접수번호 검색 (2자+)">
               <span class="srn-count" data-srn-count="incident">—</span>
             </div>
 
@@ -3238,11 +3239,11 @@
           <div class="ic-tab-pane" data-ictab-pane="posts" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">🏫 사건 게시글 관리</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="school"></span> 사건 게시글 관리</div>
                 <button class="btn-sm btn-sm-primary" id="icNewPostBtn">+ 새 사건 등록</button>
               </div>
               <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                💡 사용자 페이지의 "사건 관련 제보" 앨범에 표시되는 사건 목록입니다.<br />
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> 사용자 페이지의 "사건 관련 제보" 앨범에 표시되는 사건 목록입니다.<br />
                 각 사건을 클릭하면 댓글 + 제보를 받을 수 있는 상세 페이지가 자동 생성됩니다.
               </p>
               <div style="overflow-x:auto">
@@ -3268,19 +3269,19 @@
 
         </div><!-- adm-siren-incidents -->
 
-        <!-- ⚠️ 악성민원 관리 -->
+        <!-- 악성민원 관리 -->
         <div id="adm-siren-harassment" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
-            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 위급 (high+)</div><div class="kpi-value" id="shKpiHigh" style="color:#c5293a">0</div></div>
-            <div class="kpi"><div class="kpi-label">🆕 AI 분석</div><div class="kpi-value" id="shKpiAi">0</div></div>
-            <div class="kpi"><div class="kpi-label">📌 정식 신고</div><div class="kpi-value" id="shKpiSiren">0</div></div>
-            <div class="kpi"><div class="kpi-label">⏳ 검토 중</div><div class="kpi-value" id="shKpiReviewing">0</div></div>
-            <div class="kpi"><div class="kpi-label">✅ 답변 완료</div><div class="kpi-value" id="shKpiResponded">0</div></div>
+            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a"><span class="siren-icon-wrap" data-icon="siren"></span> 위급 (high+)</div><div class="kpi-value" id="shKpiHigh" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="sparkles"></span> AI 분석</div><div class="kpi-value" id="shKpiAi">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="pin"></span> 정식 신고</div><div class="kpi-value" id="shKpiSiren">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="hourglass"></span> 검토 중</div><div class="kpi-value" id="shKpiReviewing">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="circle-check"></span> 답변 완료</div><div class="kpi-value" id="shKpiResponded">0</div></div>
           </div>
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">⚠️ 악성민원 신고 관리</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 악성민원 신고 관리</div>
             </div>
 
             <div class="srn-toolbar">
@@ -3294,10 +3295,10 @@
               </select>
               <select data-srn-filter="severity" data-srn-kind="harassment">
                 <option value="">전체 심각도</option>
-                <option value="critical">🚨 CRITICAL</option>
-                <option value="high">⚠️ HIGH</option>
-                <option value="medium">⚖️ MEDIUM</option>
-                <option value="low">💡 LOW</option>
+                <option value="critical">CRITICAL</option>
+                <option value="high">HIGH</option>
+                <option value="medium">MEDIUM</option>
+                <option value="low">LOW</option>
               </select>
               <select data-srn-filter="category" data-srn-kind="harassment">
                 <option value="">전체 유형</option>
@@ -3310,7 +3311,7 @@
               <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer">
                 <input type="checkbox" data-srn-filter="onlySiren" data-srn-kind="harassment"> 정식 신고만
               </label>
-              <input type="search" data-srn-filter="q" data-srn-kind="harassment" placeholder="🔍 제목/접수번호 (2자+)">
+              <input type="search" data-srn-filter="q" data-srn-kind="harassment" placeholder="제목/접수번호 (2자+)">
               <span class="srn-count" data-srn-count="harassment">—</span>
             </div>
 
@@ -3336,19 +3337,19 @@
           </div>
         </div>
 
-        <!-- ⚖️ 법률지원 관리 -->
+        <!-- 법률지원 관리 -->
         <div id="adm-siren-legal" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
-            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 긴급</div><div class="kpi-value" id="slKpiUrgent" style="color:#c5293a">0</div></div>
-            <div class="kpi"><div class="kpi-label">📥 대기</div><div class="kpi-value" id="slKpiSubmitted">0</div></div>
-            <div class="kpi"><div class="kpi-label">🔗 매칭 중</div><div class="kpi-value" id="slKpiMatching">0</div></div>
-            <div class="kpi"><div class="kpi-label">👨‍⚖️ 매칭 완료</div><div class="kpi-value" id="slKpiMatched">0</div></div>
-            <div class="kpi"><div class="kpi-label">✅ 답변 완료</div><div class="kpi-value" id="slKpiResponded">0</div></div>
+            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a"><span class="siren-icon-wrap" data-icon="siren"></span> 긴급</div><div class="kpi-value" id="slKpiUrgent" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="inbox"></span> 대기</div><div class="kpi-value" id="slKpiSubmitted">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="link"></span> 매칭 중</div><div class="kpi-value" id="slKpiMatching">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="user"></span> 매칭 완료</div><div class="kpi-value" id="slKpiMatched">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="circle-check"></span> 답변 완료</div><div class="kpi-value" id="slKpiResponded">0</div></div>
           </div>
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">⚖️ 법률지원 상담 관리</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="scale"></span> 법률지원 상담 관리</div>
             </div>
 
             <div class="srn-toolbar">
@@ -3364,10 +3365,10 @@
               </select>
               <select data-srn-filter="urgency" data-srn-kind="legal">
                 <option value="">전체 긴급도</option>
-                <option value="urgent">🚨 URGENT</option>
-                <option value="high">⚠️ HIGH</option>
-                <option value="normal">⚖️ NORMAL</option>
-                <option value="low">💡 LOW</option>
+                <option value="urgent">URGENT</option>
+                <option value="high">HIGH</option>
+                <option value="normal">NORMAL</option>
+                <option value="low">LOW</option>
               </select>
               <select data-srn-filter="category" data-srn-kind="legal">
                 <option value="">전체 분야</option>
@@ -3382,7 +3383,7 @@
               <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer">
                 <input type="checkbox" data-srn-filter="onlySiren" data-srn-kind="legal"> 매칭 신청만
               </label>
-              <input type="search" data-srn-filter="q" data-srn-kind="legal" placeholder="🔍 제목/접수번호 (2자+)">
+              <input type="search" data-srn-filter="q" data-srn-kind="legal" placeholder="제목/접수번호 (2자+)">
               <span class="srn-count" data-srn-count="legal">—</span>
             </div>
 
@@ -3408,24 +3409,24 @@
           </div>
         </div>
 
-        <!-- 🚩 댓글 신고 관리 (R11) -->
+        <!-- 댓글 신고 관리 (R11) -->
         <div id="adm-comment-reports" class="adm-page" style="padding:0;overflow:hidden">
           <iframe src="/admin-comment-reports.html" title="댓글 신고 관리"
             style="width:100%;height:100%;border:none;min-height:600px"></iframe>
         </div>
 
-        <!-- 💬 자유게시판 관리 -->
+        <!-- 자유게시판 관리 -->
         <div id="adm-siren-board" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
             <div class="kpi"><div class="kpi-label">전체 게시글</div><div class="kpi-value" id="sbKpiTotal">0</div></div>
-            <div class="kpi"><div class="kpi-label">📌 고정</div><div class="kpi-value" id="sbKpiPinned">0</div></div>
-            <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)">🚫 숨김</div><div class="kpi-value" id="sbKpiHidden" style="color:var(--danger)">0</div></div>
-            <div class="kpi"><div class="kpi-label">💬 댓글 수</div><div class="kpi-value" id="sbKpiComments">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="pin"></span> 고정</div><div class="kpi-value" id="sbKpiPinned">0</div></div>
+            <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)"><span class="siren-icon-wrap" data-icon="ban"></span> 숨김</div><div class="kpi-value" id="sbKpiHidden" style="color:var(--danger)">0</div></div>
+            <div class="kpi"><div class="kpi-label"><span class="siren-icon-wrap" data-icon="message-circle"></span> 댓글 수</div><div class="kpi-value" id="sbKpiComments">0</div></div>
           </div>
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">💬 자유게시판 관리</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="message-circle"></span> 자유게시판 관리</div>
             </div>
 
             <div class="srn-toolbar">
@@ -3440,9 +3441,9 @@
               <select data-srn-filter="hidden" data-srn-kind="board">
                 <option value="">전체 노출</option>
                 <option value="0">노출 중</option>
-                <option value="1">🚫 숨김</option>
+                <option value="1">숨김</option>
               </select>
-              <input type="search" data-srn-filter="q" data-srn-kind="board" placeholder="🔍 제목/번호/작성자 (2자+)">
+              <input type="search" data-srn-filter="q" data-srn-kind="board" placeholder="제목/번호/작성자 (2자+)">
               <span class="srn-count" data-srn-count="board">—</span>
             </div>
 
@@ -3469,15 +3470,15 @@
           </div>
         </div>
 
-        <!-- 📊 신고 통계 대시보드 (Phase 13) -->
+        <!-- 신고 통계 대시보드 (Phase 13) -->
         <div id="adm-siren-stats" class="adm-page">
         </div>
 
-        <!-- 🏛️ 외부 기관 관리 (Phase 14) -->
+        <!-- 외부 기관 관리 (Phase 14) -->
         <div id="adm-agency-mgmt" class="adm-page">
         </div>
 
-        <!-- 📤 인계 이력 (Phase 14) -->
+        <!-- 인계 이력 (Phase 14) -->
         <div id="adm-referral-history" class="adm-page">
         </div>
 
@@ -3499,10 +3500,10 @@
             </select>
             <select id="acFilterCat" style="padding:7px 12px;border:1px solid var(--line);border-radius:6px;font-size:12.5px">
               <option value="">전체 유형</option>
-              <option value="support_donation">💝 후원</option>
-              <option value="support_homepage">🌐 홈페이지</option>
-              <option value="support_signup">📝 가입</option>
-              <option value="support_other">💬 기타</option>
+              <option value="support_donation">후원</option>
+              <option value="support_homepage">홈페이지</option>
+              <option value="support_signup">가입</option>
+              <option value="support_other">기타</option>
             </select>
             <input type="text" id="acSearchInput" placeholder="회원 이름/이메일 검색..." style="flex:1;min-width:180px;padding:7px 12px;border:1px solid var(--line);border-radius:6px;font-size:12.5px">
           </div>
@@ -3515,7 +3516,7 @@
             <!-- 우측: 대화창 -->
             <div style="flex:1;display:flex;flex-direction:column;background:#fff" id="acChatDetail">
               <div style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">
-                💬 좌측 목록에서 채팅방을 선택하세요
+                <span class="siren-icon-wrap" data-icon="message-circle"></span> 좌측 목록에서 채팅방을 선택하세요
               </div>
             </div>
           </div>
@@ -3525,14 +3526,14 @@
         <div id="adm-ai" class="adm-page">
           <div class="ai-banner">
             <div class="p-head" style="margin-bottom:0">
-              <div class="p-title">🤖 AI-NPO 추천 시스템</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="bot"></span> AI-NPO 추천 시스템</div>
               <span class="p-tag" style="background:var(--gold);color:#0a0a0a">BETA</span>
             </div>
             <p>봉사자 매칭 / 후원 이탈 예측 / 스마트 보고서 자동 생성을 통해 NPO 운영 효율을 극대화합니다.</p>
           </div>
           <div class="row-2" style="margin-top:18px">
             <div class="panel">
-              <div class="p-head"><div class="p-title">봉사자 ↔ 유가족 자동 매칭</div><span class="p-tag ai">AI 추천</span></div>
+              <div class="p-head"><div class="p-title">봉사자 <span class="siren-icon-wrap" data-icon="move-horizontal"></span> 유가족 자동 매칭</div><span class="p-tag ai">AI 추천</span></div>
               <p style="font-size:13px;color:var(--text-3);margin-bottom:14px">최근 신청에 대한 추천 봉사자</p>
               <div class="ai-card"><div class="ai-card-head"><div class="ai-icon">1</div><div class="ai-name">박◯◯ 임상심리사</div><div class="ai-score">매칭 96%</div></div><div class="ai-desc">청소년·가족 위기 상담 12년 경력 / 가용시간 일치 / 거주지 인접</div></div>
               <div class="ai-card"><div class="ai-card-head"><div class="ai-icon">2</div><div class="ai-name">정◯◯ 상담심리사</div><div class="ai-score">매칭 89%</div></div><div class="ai-desc">트라우마 회복 프로그램 운영 경험 / 비대면 상담 가능</div></div>
@@ -3547,30 +3548,30 @@
           <!-- ★ M-19-1: 후원자 이탈 위험 패널 -->
           <div class="panel" style="margin-top:18px">
             <div class="p-head">
-              <div class="p-title">🚨 후원자 이탈 위험 분석</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="siren"></span> 후원자 이탈 위험 분석</div>
               <span class="p-tag ai">Gemini AI</span>
               <div class="p-actions" style="margin-left:auto">
                 <span id="churnLastEvalAt" style="font-size:11.5px;color:var(--text-3);margin-right:8px">—</span>
-                <button class="btn-sm btn-sm-ghost" id="churnReloadBtn">🔄 새로고침</button>
+                <button class="btn-sm btn-sm-ghost" id="churnReloadBtn"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 새로고침</button>
               </div>
             </div>
 
             <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-              💡 매일 새벽 04:30 자동 평가됩니다. 위험 회원에게 따뜻한 재참여 메시지를 보낼 수 있습니다.<br />
+              <span class="siren-icon-wrap" data-icon="lightbulb"></span> 매일 새벽 04:30 자동 평가됩니다. 위험 회원에게 따뜻한 재참여 메시지를 보낼 수 있습니다.<br />
               CRITICAL 등급 회원이 5명 이상이면 슈퍼 관리자에게 알림이 발송됩니다.
             </p>
 
             <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
               <div class="kpi" style="border-left:3px solid #c5293a">
-                <div class="kpi-label" style="color:#c5293a">🚨 CRITICAL (75+)</div>
+                <div class="kpi-label" style="color:#c5293a"><span class="siren-icon-wrap" data-icon="siren"></span> CRITICAL (75+)</div>
                 <div class="kpi-value" id="churnKpiCritical" style="color:#c5293a">0 명</div>
               </div>
               <div class="kpi" style="border-left:3px solid #c47a00">
-                <div class="kpi-label" style="color:#c47a00">⚠️ WARNING (50~74)</div>
+                <div class="kpi-label" style="color:#c47a00"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> WARNING (50~74)</div>
                 <div class="kpi-value" id="churnKpiWarning" style="color:#c47a00">0 명</div>
               </div>
               <div class="kpi" style="border-left:3px solid #1a8b46">
-                <div class="kpi-label" style="color:#1a8b46">✅ STABLE</div>
+                <div class="kpi-label" style="color:#1a8b46"><span class="siren-icon-wrap" data-icon="circle-check"></span> STABLE</div>
                 <div class="kpi-value" id="churnKpiStable" style="color:#1a8b46">0 명</div>
               </div>
               <div class="kpi">
@@ -3582,11 +3583,11 @@
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:#fafaf8;border:1px solid var(--line);border-radius:8px">
               <select id="churnFilterLevel" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                 <option value="">전체 등급</option>
-                <option value="critical" selected>🚨 CRITICAL만</option>
-                <option value="warning">⚠️ WARNING만</option>
-                <option value="stable">✅ STABLE만</option>
+                <option value="critical" selected>CRITICAL만</option>
+                <option value="warning">WARNING만</option>
+                <option value="stable">STABLE만</option>
               </select>
-              <input type="search" id="churnFilterQ" placeholder="🔍 이름·이메일 검색 (2자 이상)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+              <input type="search" id="churnFilterQ" placeholder="이름·이메일 검색 (2자 이상)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
               <span id="churnCount" style="font-size:12px;color:var(--text-3);margin-left:auto">—</span>
             </div>
 
@@ -3616,21 +3617,21 @@
 
           <!-- 탭 네비게이션 -->
           <div class="content-tabs" id="contentTabs">
-            <button type="button" class="ct-tab on" data-ct="notices">📢 공지사항</button>
-            <button type="button" class="ct-tab" data-ct="faqs">❓ FAQ</button>
-            <button type="button" class="ct-tab" data-ct="about">📖 협의회 소개</button>
-            <button type="button" class="ct-tab" data-ct="activity">📊 주요 활동</button>
+            <button type="button" class="ct-tab on" data-ct="notices"><span class="siren-icon-wrap" data-icon="megaphone"></span> 공지사항</button>
+            <button type="button" class="ct-tab" data-ct="faqs"><span class="siren-icon-wrap" data-icon="circle-help"></span> FAQ</button>
+            <button type="button" class="ct-tab" data-ct="about"><span class="siren-icon-wrap" data-icon="book-open"></span> 협의회 소개</button>
+            <button type="button" class="ct-tab" data-ct="activity"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 주요 활동</button>
               <!-- public/admin.html — 콘텐츠 관리 탭 버튼 영역에 추가 -->
-            <button type="button" class="ct-tab" data-ct="media">📰 언론보도/갤러리</button>
-            <button type="button" class="ct-tab" data-ct="resources">📁 자료실</button>
-            <button type="button" class="ct-tab" data-ct="stats-edit">📊 통계 편집</button>
+            <button type="button" class="ct-tab" data-ct="media"><span class="siren-icon-wrap" data-icon="newspaper"></span> 언론보도/갤러리</button>
+            <button type="button" class="ct-tab" data-ct="resources"><span class="siren-icon-wrap" data-icon="folder"></span> 자료실</button>
+            <button type="button" class="ct-tab" data-ct="stats-edit"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 통계 편집</button>
           </div>
 
           <!-- ─── 공지사항 탭 ─── -->
           <div class="ct-pane" data-ct-pane="notices">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">📢 공지사항 관리</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="megaphone"></span> 공지사항 관리</div>
                 <button class="btn-sm btn-sm-primary" data-cm-action="new-notice">+ 새 글</button>
               </div>
 
@@ -3647,7 +3648,7 @@
                   <option value="true">공개</option>
                   <option value="false">비공개</option>
                 </select>
-                <input type="search" id="cmNoticeQ" placeholder="🔍 제목/내용 검색 (2자 이상)">
+                <input type="search" id="cmNoticeQ" placeholder="제목/내용 검색 (2자 이상)">
               </div>
 
               <table class="tbl cm-table" data-content-tbl="notices">
@@ -3673,7 +3674,7 @@
           <div class="ct-pane" data-ct-pane="faqs" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">❓ FAQ 관리</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="circle-help"></span> FAQ 관리</div>
                 <button class="btn-sm btn-sm-primary" data-cm-action="new-faq">+ 새 FAQ</button>
               </div>
 
@@ -3684,7 +3685,7 @@
                   <option value="true">활성</option>
                   <option value="false">비활성</option>
                 </select>
-                <input type="search" id="cmFaqQ" placeholder="🔍 질문/답변 검색 (2자 이상)">
+                <input type="search" id="cmFaqQ" placeholder="질문/답변 검색 (2자 이상)">
               </div>
 
               <table class="tbl cm-table" data-content-tbl="faqs">
@@ -3709,12 +3710,12 @@
           <div class="ct-pane" data-ct-pane="about" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">📖 협의회 소개 페이지 콘텐츠</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="book-open"></span> 협의회 소개 페이지 콘텐츠</div>
                 <span class="p-tag">about.html</span>
               </div>
 
               <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                💡 8개 섹션을 각각 편집할 수 있습니다. 카드 클릭 시 Toast UI 편집기가 열립니다.<br />
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> 8개 섹션을 각각 편집할 수 있습니다. 카드 클릭 시 Toast UI 편집기가 열립니다.<br />
                 저장 즉시 사용자 페이지(<code>/about.html</code>)에 반영됩니다.
               </p>
 
@@ -3730,10 +3731,10 @@
           <div class="ct-pane" data-ct-pane="activity" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">📊 주요 활동 게시글</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 주요 활동 게시글</div>
                 <div class="p-actions" style="display:flex;gap:6px">
                   <button class="btn-sm btn-sm-ghost" id="arOpenBtn" style="background:linear-gradient(135deg,#fef9f5,#fff);border:1.5px dashed var(--brand);color:var(--brand);font-weight:700">
-                    🤖 AI 보고서 생성
+                    <span class="siren-icon-wrap" data-icon="bot"></span> AI 보고서 생성
                   </button>
                   <button class="btn-sm btn-sm-primary" data-ap-action="new">+ 새 게시글</button>
                 </div>
@@ -3744,7 +3745,7 @@
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
                   <div style="flex:1;min-width:260px">
                     <div style="font-weight:700;font-size:14px;color:var(--brand);margin-bottom:6px">
-                      📊 AI 활동보고서 시스템
+                      <span class="siren-icon-wrap" data-icon="bar-chart-3"></span> AI 활동보고서 시스템
                     </div>
                     <div style="font-size:12.5px;color:var(--text-2);line-height:1.6">
                       AI가 분기/반기/연간 실적 데이터를 자동 분석하여 보고서를 생성합니다.<br/>
@@ -3764,9 +3765,9 @@
               <div class="cm-toolbar">
                 <select id="apFilterCat">
                   <option value="">전체 분류</option>
-                  <option value="report">📋 활동보고서</option>
-                  <option value="photo">📷 사진</option>
-                  <option value="news">📰 활동뉴스</option>
+                  <option value="report">활동보고서</option>
+                  <option value="photo">사진</option>
+                  <option value="news">활동뉴스</option>
                 </select>
                 <select id="apFilterYear">
                   <option value="">전체 연도</option>
@@ -3776,7 +3777,7 @@
                   <option value="true">공개</option>
                   <option value="false">비공개</option>
                 </select>
-                <input type="search" id="apFilterQ" placeholder="🔍 제목/슬러그 (2자+)">
+                <input type="search" id="apFilterQ" placeholder="제목/슬러그 (2자+)">
               </div>
 
               <table class="tbl">
@@ -3803,7 +3804,7 @@
           <div class="ct-pane" data-ct-pane="media" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">📰 언론보도/갤러리</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="newspaper"></span> 언론보도/갤러리</div>
                 <div class="p-actions" style="display:flex;gap:6px">
                   <button class="btn-sm btn-sm-primary" data-mp-action="new">+ 새 게시글</button>
                 </div>
@@ -3812,16 +3813,16 @@
               <div class="cm-toolbar">
                 <select id="mpFilterCat">
                   <option value="">전체 분류</option>
-                  <option value="press">📰 언론보도</option>
-                  <option value="photo">📷 사진</option>
-                  <option value="event">🎯 행사</option>
+                  <option value="press">언론보도</option>
+                  <option value="photo">사진</option>
+                  <option value="event">행사</option>
                 </select>
                 <select id="mpFilterPublished">
                   <option value="">전체 상태</option>
                   <option value="true">공개</option>
                   <option value="false">비공개</option>
                 </select>
-                <input type="search" id="mpFilterQ" placeholder="🔍 제목 검색 (2자+)">
+                <input type="search" id="mpFilterQ" placeholder="제목 검색 (2자+)">
               </div>
 
               <table class="tbl">
@@ -3847,9 +3848,9 @@
           <div class="ct-pane" data-ct-pane="resources" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">📁 자료실 관리</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="folder"></span> 자료실 관리</div>
                 <div class="p-actions" style="display:flex;gap:6px">
-                  <button class="btn-sm btn-sm-ghost" id="rsCategoryBtn">🗂 카테고리 관리</button>
+                  <button class="btn-sm btn-sm-ghost" id="rsCategoryBtn"><span class="siren-icon-wrap" data-icon="folders"></span> 카테고리 관리</button>
                   <button class="btn-sm btn-sm-primary" id="rsNewBtn">+ 새 자료</button>
                 </div>
               </div>
@@ -3861,16 +3862,16 @@
                 </select>
                 <select id="rsFilterAccess" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                   <option value="">전체 권한</option>
-                  <option value="public">🌐 공개</option>
-                  <option value="members_only">🔐 회원전용</option>
-                  <option value="private">🚫 비공개</option>
+                  <option value="public">공개</option>
+                  <option value="members_only">회원전용</option>
+                  <option value="private">비공개</option>
                 </select>
                 <select id="rsFilterPublished" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                   <option value="">전체 상태</option>
-                  <option value="true">🟢 공개</option>
-                  <option value="false">⚪ 비공개</option>
+                  <option value="true">공개</option>
+                  <option value="false">비공개</option>
                 </select>
-                <input type="search" id="rsFilterQ" placeholder="🔍 제목·설명 검색 (2자+)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+                <input type="search" id="rsFilterQ" placeholder="제목·설명 검색 (2자+)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
                 <span id="rsCount" style="font-size:12px;color:var(--text-3);margin-left:auto">—</span>
               </div>
 
@@ -3879,7 +3880,7 @@
                 <table class="tbl" style="min-width:1000px">
                   <thead>
                     <tr>
-                      <th style="width:50px;text-align:center">📌</th>
+                      <th style="width:50px;text-align:center"><span class="siren-icon-wrap" data-icon="pin"></span></th>
                       <th style="width:100px">카테고리</th>
                       <th>제목</th>
                       <th style="width:80px">권한</th>
@@ -3901,7 +3902,7 @@
           <!-- ★ 2026-05 Phase B: 통계 편집은 메인 화면 편집으로 이전됨 -->
           <div class="ct-pane" data-ct-pane="stats-edit" style="display:none">
             <div style="text-align:center;padding:60px 30px;background:linear-gradient(135deg,#fef9f5,#fff);border-radius:12px;border:1px solid var(--line)">
-              <div style="font-size:48px;margin-bottom:16px">📊</div>
+              <div style="font-size:48px;margin-bottom:16px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></div>
               <h3 style="margin:0 0 12px;font-family:'Noto Serif KR',serif;font-size:18px;color:var(--ink)">통계 편집이 이전되었습니다</h3>
               <p style="margin:0 0 24px;color:var(--text-3);font-size:14px;line-height:1.7">
                 통계 편집 기능은 더 풍부한 도구가 있는<br />
@@ -3909,7 +3910,7 @@
               </p>
               <a href="/admin-site-builder.html" 
                  style="display:inline-block;padding:12px 28px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;box-shadow:0 2px 6px rgba(122,31,43,0.25)">
-                🎨 메인 화면 편집으로 이동 →
+                <span class="siren-icon-wrap" data-icon="palette"></span> 메인 화면 편집으로 이동 →
               </a>
               <p style="margin:24px 0 0;font-size:11.5px;color:var(--text-3)">
                 ※ 메인 화면 편집에서 통계 + 헤더 + 메뉴 + 푸터 등 모든 영역을 한 곳에서 관리할 수 있습니다.
@@ -3924,7 +3925,7 @@
         <div id="resourceEditModal" class="modal">
           <div class="modal-content" style="max-width:840px">
             <div class="modal-header">
-              <h3 class="serif" id="rsModalTitle">📁 새 자료</h3>
+              <h3 class="serif" id="rsModalTitle"><span class="siren-icon-wrap" data-icon="folder"></span> 새 자료</h3>
               <button class="modal-close" data-action="close-modal">&times;</button>
             </div>
             <div class="modal-body">
@@ -3942,9 +3943,9 @@
                   <div>
                     <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">접근 권한 <span style="color:var(--danger)">*</span></label>
                     <select id="rsAccessLevel" required style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px">
-                      <option value="public">🌐 공개</option>
-                      <option value="members_only">🔐 회원전용</option>
-                      <option value="private">🚫 비공개</option>
+                      <option value="public">공개</option>
+                      <option value="members_only">회원전용</option>
+                      <option value="private">비공개</option>
                     </select>
                   </div>
                 </div>
@@ -3980,17 +3981,17 @@
 
                 <div style="display:flex;gap:18px;margin-bottom:14px;flex-wrap:wrap">
                   <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px">
-                    <input type="checkbox" id="rsPublished" checked> 🟢 공개
+                    <input type="checkbox" id="rsPublished" checked> <span class="siren-icon-wrap" data-icon="circle-dot"></span> 공개
                   </label>
                   <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px">
-                    <input type="checkbox" id="rsPinned"> 📌 상단 고정
+                    <input type="checkbox" id="rsPinned"> <span class="siren-icon-wrap" data-icon="pin"></span> 상단 고정
                   </label>
                 </div>
 
 
                 <div style="display:flex;gap:10px;margin-top:14px">
-                  <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
-                  <button type="button" class="btn btn-ghost" id="rsDeleteBtn" style="background:#fdecec;border:1px solid #f5b5bb;color:var(--danger);padding:11px 20px;display:none">🗑 삭제</button>
+                  <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
+                  <button type="button" class="btn btn-ghost" id="rsDeleteBtn" style="background:#fdecec;border:1px solid #f5b5bb;color:var(--danger);padding:11px 20px;display:none"><span class="siren-icon-wrap" data-icon="trash"></span> 삭제</button>
                   <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
                 </div>
               </form>
@@ -4003,7 +4004,7 @@
         <div id="resourceCategoryModal" class="modal">
           <div class="modal-content" style="max-width:720px">
             <div class="modal-header">
-              <h3 class="serif">🗂 자료실 카테고리 관리</h3>
+              <h3 class="serif"><span class="siren-icon-wrap" data-icon="folders"></span> 자료실 카테고리 관리</h3>
               <button class="modal-close" data-action="close-modal">&times;</button>
             </div>
             <div class="modal-body" id="rsCategoryBody">
@@ -4016,11 +4017,11 @@
         <div id="adm-receipt-settings" class="adm-page">
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">📄 기부금 영수증 설정</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="file-text"></span> 기부금 영수증 설정</div>
               <span class="p-tag" style="background:var(--gold);color:#0a0a0a">DB 동기화</span>
             </div>
             <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-              💡 이 설정은 <strong>사이렌 관리자</strong>와 <strong>교유협 통합 CMS</strong>에서 모두 공유됩니다.<br />
+              <span class="siren-icon-wrap" data-icon="lightbulb"></span> 이 설정은 <strong>사이렌 관리자</strong>와 <strong>교유협 통합 CMS</strong>에서 모두 공유됩니다.<br />
               한 곳에서 변경하면 양쪽 모두에 즉시 반영되며, 다음 발급되는 PDF 영수증부터 적용됩니다.
             </p>
 
@@ -4031,9 +4032,9 @@
             <form id="receiptSettingsForm">
 
               <!-- ★ M-14: 직인 이미지 -->
-              <div class="rs-section-title">🖋️ 직인 이미지</div>
+              <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="pencil"></span> 직인 이미지</div>
               <p style="font-size:12px;color:var(--text-3);margin:-6px 0 12px;line-height:1.6">
-                💡 PNG/JPG 형식, 권장 크기 300x300px 이상, 배경 투명(PNG) 권장.<br />
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> PNG/JPG 형식, 권장 크기 300x300px 이상, 배경 투명(PNG) 권장.<br />
                 업로드한 직인은 영수증 PDF의 서명란에 자동으로 삽입됩니다.
               </p>
 
@@ -4052,10 +4053,10 @@
 
                   <div style="display:flex;gap:8px;flex-wrap:wrap">
                     <button type="button" id="rsStampUploadBtn" class="btn-sm btn-sm-primary">
-                      🖼️ 직인 업로드
+                      <span class="siren-icon-wrap" data-icon="image"></span> 직인 업로드
                     </button>
                     <button type="button" id="rsStampClearBtn" class="btn-sm btn-sm-ghost" style="color:var(--danger);display:none">
-                      🗑 직인 제거
+                      <span class="siren-icon-wrap" data-icon="trash"></span> 직인 제거
                     </button>
                   </div>
 
@@ -4067,7 +4068,7 @@
               </div>
 
               <!-- 기관 정보 -->
-              <div class="rs-section-title">🏢 기관 정보</div>
+              <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="building-2"></span> 기관 정보</div>
               <div class="rs-form-grid">
                 <label for="rsOrgName">단체명</label>
                 <input type="text" id="rsOrgName" name="orgName" placeholder="사단법인 교사유가족협의회" maxlength="100">
@@ -4086,7 +4087,7 @@
               </div>
 
               <!-- 양식 텍스트 -->
-              <div class="rs-section-title">📝 영수증 양식 텍스트</div>
+              <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="file-pen"></span> 영수증 양식 텍스트</div>
               <div class="rs-form-grid">
                 <label for="rsTitle">제목</label>
                 <input type="text" id="rsTitle" name="title" placeholder="기 부 금  영 수 증" maxlength="100">
@@ -4102,7 +4103,7 @@
               </div>
 
               <!-- 하단 안내문 (동적 추가/삭제) -->
-              <div class="rs-section-title">📋 하단 안내문 (최대 10개)</div>
+              <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 하단 안내문 (최대 10개)</div>
               <p style="font-size:12px;color:var(--text-3);margin:-6px 0 10px">각 줄은 영수증 PDF 하단에 안내문으로 표시됩니다.</p>
               <div class="rs-footer-list" id="rsFooterList">
                 <!-- JS가 동적 생성 -->
@@ -4111,9 +4112,9 @@
 
               <!-- 액션 버튼 -->
               <div class="rs-actions">
-                <button type="submit" class="btn btn-primary" style="flex:1;padding:11px">💾 저장하기</button>
-                <button type="button" class="btn btn-ghost" id="rsPreviewBtn" style="flex:1;padding:11px;background:transparent;border:1px solid var(--line);color:var(--text-2)">👀 PDF 미리보기</button>
-                <button type="button" class="btn btn-ghost" id="rsReloadBtn" style="padding:11px 18px;background:transparent;border:1px solid var(--line);color:var(--text-2)">🔄 다시 불러오기</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;padding:11px"><span class="siren-icon-wrap" data-icon="save"></span> 저장하기</button>
+                <button type="button" class="btn btn-ghost" id="rsPreviewBtn" style="flex:1;padding:11px;background:transparent;border:1px solid var(--line);color:var(--text-2)"><span class="siren-icon-wrap" data-icon="eye"></span> PDF 미리보기</button>
+                <button type="button" class="btn btn-ghost" id="rsReloadBtn" style="padding:11px 18px;background:transparent;border:1px solid var(--line);color:var(--text-2)"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 다시 불러오기</button>
               </div>
             </form>
           </div>
@@ -4124,7 +4125,7 @@
   <div id="churnReengageModal" class="modal">
     <div class="modal-content" style="max-width:680px">
       <div class="modal-header">
-        <h3 class="serif">💌 재참여 유도 메일 발송</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="mail"></span> 재참여 유도 메일 발송</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body" id="churnReengageBody">
@@ -4137,7 +4138,7 @@
   <div id="churnDetailModal" class="modal">
     <div class="modal-content" style="max-width:760px">
       <div class="modal-header">
-        <h3 class="serif">🔍 이탈 위험 상세</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="search"></span> 이탈 위험 상세</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body" id="churnDetailBody">
@@ -4157,12 +4158,12 @@
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">🔍 활동 로그 검색</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="search"></span> 활동 로그 검색</div>
               <span class="p-tag">최신 50건씩</span>
             </div>
 
             <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-              💡 모든 사용자/관리자 활동이 자동으로 기록됩니다. 보안 사고 추적 / 감사 / 분쟁 시 사용됩니다.<br />
+              <span class="siren-icon-wrap" data-icon="lightbulb"></span> 모든 사용자/관리자 활동이 자동으로 기록됩니다. 보안 사고 추적 / 감사 / 분쟁 시 사용됩니다.<br />
               로그 행을 클릭하면 상세 내용(detail JSON / User-Agent)을 확인할 수 있습니다.
             </p>
 
@@ -4170,15 +4171,15 @@
             <div class="audit-filter-bar">
               <select id="auFilterType">
                 <option value="">전체 사용자 유형</option>
-                <option value="admin">👨‍💼 관리자</option>
-                <option value="user">👤 일반 회원</option>
-                <option value="system">⚙️ 시스템</option>
-                <option value="anonymous">🌐 비로그인</option>
+                <option value="admin">관리자</option>
+                <option value="user">일반 회원</option>
+                <option value="system">시스템</option>
+                <option value="anonymous">비로그인</option>
               </select>
 
               <select id="auFilterAction">
                 <option value="">전체 액션</option>
-                <optgroup label="🔐 인증">
+                <optgroup label="인증">
                   <option value="login_success">로그인 성공</option>
                   <option value="login_failed">로그인 실패</option>
                   <option value="login_locked">로그인 잠금</option>
@@ -4193,7 +4194,7 @@
                   <option value="withdraw_blocked">탈퇴 차단</option>
                   <option value="withdraw_failed">탈퇴 실패</option>
                 </optgroup>
-                <optgroup label="💝 후원/지원">
+                <optgroup label="후원/지원">
                   <option value="donate_success">후원 완료</option>
                   <option value="support_create">지원 신청</option>
                   <option value="support_status_change">지원 상태 변경</option>
@@ -4201,7 +4202,7 @@
                   <option value="support_download_success">첨부 다운로드</option>
                   <option value="support_download_denied">다운로드 차단</option>
                 </optgroup>
-                <optgroup label="👨‍💼 관리자">
+                <optgroup label="관리자">
                   <option value="admin_login_success">관리자 로그인</option>
                   <option value="admin_login_failed">관리자 로그인 실패</option>
                   <option value="member_status_change">회원 상태 변경</option>
@@ -4211,19 +4212,19 @@
 
               <select id="auFilterSuccess">
                 <option value="">전체 결과</option>
-                <option value="true">✅ 성공만</option>
-                <option value="false">❌ 실패만</option>
+                <option value="true">성공만</option>
+                <option value="false">실패만</option>
               </select>
 
               <input type="date" id="auFilterDateFrom" title="시작일">
               <input type="date" id="auFilterDateTo" title="종료일">
 
-              <input type="search" id="auFilterQ" placeholder="🔍 액션/대상/이름/상세 통합 검색 (2자 이상)">
+              <input type="search" id="auFilterQ" placeholder="액션/대상/이름/상세 통합 검색 (2자 이상)">
 
               <button type="button" id="auBtnSearch">검색</button>
               <button type="button" id="auBtnReset" class="btn-reset">초기화</button>
               <!-- ★ M-16 STEP B: CSV 추출 -->
-              <button type="button" id="auBtnExport" class="btn-reset" style="background:#fff8ec;color:#8a6a00;border-color:#f0e3c4" title="현재 필터 결과를 CSV로 추출 (최대 5,000건)">📥 CSV 추출</button>
+              <button type="button" id="auBtnExport" class="btn-reset" style="background:#fff8ec;color:#8a6a00;border-color:#f0e3c4" title="현재 필터 결과를 CSV로 추출 (최대 5,000건)"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV 추출</button>
             </div>
 
             <!-- 로그 테이블 -->
@@ -4259,49 +4260,49 @@
         <div id="adm-hyosung" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
             <div class="kpi" style="border-left:3px solid #8a6a00">
-              <div class="kpi-label" style="color:#8a6a00">🟡 대기</div>
+              <div class="kpi-label" style="color:#8a6a00"><span class="siren-icon-wrap" data-icon="circle-dot"></span> 대기</div>
               <div class="kpi-value" id="hyKpiPending" style="color:#8a6a00">0 건</div>
               <div class="kpi-delta" id="hyKpiPendingAmt">₩ 0</div>
             </div>
             <div class="kpi" style="border-left:3px solid #1a5e2c">
-              <div class="kpi-label" style="color:#1a5e2c">✅ 활성</div>
+              <div class="kpi-label" style="color:#1a5e2c"><span class="siren-icon-wrap" data-icon="circle-check"></span> 활성</div>
               <div class="kpi-value" id="hyKpiCompleted" style="color:#1a5e2c">0 건</div>
               <div class="kpi-delta" id="hyKpiCompletedAmt">₩ 0</div>
             </div>
             <div class="kpi">
-              <div class="kpi-label">🚫 해지</div>
+              <div class="kpi-label"><span class="siren-icon-wrap" data-icon="ban"></span> 해지</div>
               <div class="kpi-value" id="hyKpiCancelled">0 건</div>
             </div>
             <div class="kpi" style="border-left:3px solid var(--danger)">
-              <div class="kpi-label" style="color:var(--danger)">❌ 실패</div>
+              <div class="kpi-label" style="color:var(--danger)"><span class="siren-icon-wrap" data-icon="x"></span> 실패</div>
               <div class="kpi-value" id="hyKpiFailed" style="color:var(--danger)">0 건</div>
             </div>
           </div>
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">🏦 효성 CMS+ 정기 후원 관리</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="landmark"></span> 효성 CMS+ 정기 후원 관리</div>
               <div class="p-actions">
-                <button class="btn-sm btn-sm-ghost" data-demo-action="hyosung-csv-export" data-demo-message="효성 CMS+ 일괄 등록용 CSV를 생성합니다 (L-9에서 구현)">📤 CSV 추출</button>
-                <button class="btn-sm btn-sm-ghost" data-demo-action="hyosung-csv-import" data-demo-message="효성 CMS+ 수납 결과 CSV를 업로드합니다 (L-9에서 구현)">📥 결과 업로드</button>
+                <button class="btn-sm btn-sm-ghost" data-demo-action="hyosung-csv-export" data-demo-message="효성 CMS+ 일괄 등록용 CSV를 생성합니다 (L-9에서 구현)"><span class="siren-icon-wrap" data-icon="upload"></span> CSV 추출</button>
+                <button class="btn-sm btn-sm-ghost" data-demo-action="hyosung-csv-import" data-demo-message="효성 CMS+ 수납 결과 CSV를 업로드합니다 (L-9에서 구현)"><span class="siren-icon-wrap" data-icon="inbox"></span> 결과 업로드</button>
               </div>
             </div>
 
             <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-              💡 사용자가 "정기 후원 + 효성 CMS+" 선택 시 이 목록에 <strong>대기</strong> 상태로 등록됩니다.<br />
-              효성 CMS+에 수동 등록 후 "✅ 완료" 처리하시면 감사 메일이 자동 발송됩니다.
+              <span class="siren-icon-wrap" data-icon="lightbulb"></span> 사용자가 "정기 후원 + 효성 CMS+" 선택 시 이 목록에 <strong>대기</strong> 상태로 등록됩니다.<br />
+              효성 CMS+에 수동 등록 후 "<span class="siren-icon-wrap" data-icon="circle-check"></span> 완료" 처리하시면 감사 메일이 자동 발송됩니다.
             </p>
 
             <!-- 필터 툴바 -->
             <div class="hy-toolbar">
               <select id="hyFilterStatus">
                 <option value="">전체 상태</option>
-                <option value="pending" selected>🟡 대기</option>
-                <option value="completed">✅ 활성</option>
-                <option value="cancelled">🚫 해지</option>
-                <option value="failed">❌ 실패</option>
+                <option value="pending" selected>대기</option>
+                <option value="completed">활성</option>
+                <option value="cancelled">해지</option>
+                <option value="failed">실패</option>
               </select>
-              <input type="search" id="hyFilterQ" placeholder="🔍 이름·이메일·연락처·메모 검색 (2자 이상)">
+              <input type="search" id="hyFilterQ" placeholder="이름·이메일·연락처·메모 검색 (2자 이상)">
               <span class="hy-count" id="hyCount">—</span>
             </div>
 
@@ -4342,9 +4343,9 @@
 
           <div class="panel">
             <div class="p-head">
-              <div class="p-title">📢 캠페인 목록</div>
+              <div class="p-title"><span class="siren-icon-wrap" data-icon="megaphone"></span> 캠페인 목록</div>
               <div class="p-actions">
-                <button class="btn-sm btn-sm-ghost" id="cmpRecalcAllBtn">🔄 전체 통계 재계산</button>
+                <button class="btn-sm btn-sm-ghost" id="cmpRecalcAllBtn"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 전체 통계 재계산</button>
                 <button class="btn-sm btn-sm-primary" id="cmpNewBtn">+ 새 캠페인</button>
               </div>
             </div>
@@ -4352,9 +4353,9 @@
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:#fafaf8;border:1px solid var(--line);border-radius:8px">
               <select id="cmpFilterType" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                 <option value="">전체 종류</option>
-                <option value="fundraising">💰 모금</option>
-                <option value="memorial">🎗 추모</option>
-                <option value="awareness">📣 인식 개선</option>
+                <option value="fundraising">모금</option>
+                <option value="memorial">추모</option>
+                <option value="awareness">인식 개선</option>
               </select>
               <select id="cmpFilterStatus" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                 <option value="">전체 상태</option>
@@ -4365,10 +4366,10 @@
               </select>
               <select id="cmpFilterPublished" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                 <option value="">전체 공개</option>
-                <option value="true">🌐 공개</option>
-                <option value="false">🔒 비공개</option>
+                <option value="true">공개</option>
+                <option value="false">비공개</option>
               </select>
-              <input type="search" id="cmpFilterQ" placeholder="🔍 제목·slug 검색 (2자+)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+              <input type="search" id="cmpFilterQ" placeholder="제목·slug 검색 (2자+)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
               <span id="cmpCount" style="font-size:12px;color:var(--text-3);margin-left:auto">—</span>
             </div>
 
@@ -4376,7 +4377,7 @@
               <table class="tbl" style="min-width:1100px">
                 <thead>
                   <tr>
-                    <th style="width:60px">📌</th>
+                    <th style="width:60px"><span class="siren-icon-wrap" data-icon="pin"></span></th>
                     <th style="width:80px">종류</th>
                     <th>제목 / slug</th>
                     <th style="width:80px">상태</th>
@@ -4429,9 +4430,9 @@
         <div id="adm-seo" class="adm-page">
           <!-- 탭 네비게이션 -->
           <div class="content-tabs" id="seoTabs" style="margin-bottom:20px">
-            <button type="button" class="ct-tab on" data-seo-tab="pages">📄 페이지별 메타</button>
-            <button type="button" class="ct-tab" data-seo-tab="org">🏛️ 단체 구조화데이터</button>
-            <button type="button" class="ct-tab" data-seo-tab="defaults">⚙️ 사이트 기본값</button>
+            <button type="button" class="ct-tab on" data-seo-tab="pages"><span class="siren-icon-wrap" data-icon="file-text"></span> 페이지별 메타</button>
+            <button type="button" class="ct-tab" data-seo-tab="org"><span class="siren-icon-wrap" data-icon="landmark"></span> 단체 구조화데이터</button>
+            <button type="button" class="ct-tab" data-seo-tab="defaults"><span class="siren-icon-wrap" data-icon="settings"></span> 사이트 기본값</button>
           </div>
 
           <!-- 탭 1: 페이지별 메타 -->
@@ -4442,7 +4443,7 @@
                 <div class="p-head" style="padding:0 0 12px">
                   <div class="p-title">페이지 목록</div>
                 </div>
-                <input type="search" id="seoPageSearch" placeholder="🔍 경로/제목 검색" style="width:100%;margin-bottom:12px">
+                <input type="search" id="seoPageSearch" placeholder="경로/제목 검색" style="width:100%;margin-bottom:12px">
                 <ul id="seoPageList" style="list-style:none;padding:0;margin:0">
                   <li style="padding:14px;color:var(--text-3);text-align:center">불러오는 중...</li>
                 </ul>
@@ -4491,7 +4492,7 @@
                     <div style="display:flex;gap:8px;align-items:center">
                       <input type="text" id="seoOgImageUrl" placeholder="https://tbfa.co.kr/og-default.png" style="flex:1">
                       <input type="file" id="seoOgImageFile" accept="image/*" style="display:none">
-                      <button type="button" class="btn-sm" id="seoOgImageUploadBtn">📤 업로드</button>
+                      <button type="button" class="btn-sm" id="seoOgImageUploadBtn"><span class="siren-icon-wrap" data-icon="upload"></span> 업로드</button>
                     </div>
                     <div id="seoOgImagePreview" style="margin-top:8px"></div>
                   </div>
@@ -4502,8 +4503,8 @@
                   </div>
 
                   <div style="display:flex;gap:8px;margin-top:24px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
-                    <button type="button" class="btn-sm" id="seoSaveDraftBtn">💾 Draft 저장</button>
-                    <button type="button" class="btn-sm btn-sm-primary" id="seoPublishBtn">🚀 발행</button>
+                    <button type="button" class="btn-sm" id="seoSaveDraftBtn"><span class="siren-icon-wrap" data-icon="save"></span> Draft 저장</button>
+                    <button type="button" class="btn-sm btn-sm-primary" id="seoPublishBtn"><span class="siren-icon-wrap" data-icon="rocket"></span> 발행</button>
                     <div style="flex:1"></div>
                     <span id="seoSaveStatus" style="font-size:13px;color:var(--text-3);align-self:center"></span>
                   </div>
@@ -4516,7 +4517,7 @@
           <div class="ct-pane" data-seo-pane="org" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">🏛️ 단체 구조화데이터 (JSON-LD Organization)</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="landmark"></span> 단체 구조화데이터 (JSON-LD Organization)</div>
               </div>
               <p style="color:var(--text-3);font-size:13px;margin:0 0 16px">
                 index.html의 Organization 구조화 데이터를 편집합니다. 변경 사항은 발행 후 적용됩니다.
@@ -4543,7 +4544,7 @@
                   <textarea id="seoOrgSameAs" rows="4" placeholder="https://facebook.com/...&#10;https://instagram.com/..."></textarea>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
-                  <button type="button" class="btn-sm btn-sm-primary" id="seoOrgSaveBtn">💾 저장</button>
+                  <button type="button" class="btn-sm btn-sm-primary" id="seoOrgSaveBtn"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
                   <span id="seoOrgStatus" style="font-size:13px;color:var(--text-3);align-self:center"></span>
                 </div>
               </form>
@@ -4554,7 +4555,7 @@
           <div class="ct-pane" data-seo-pane="defaults" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">⚙️ 사이트 SEO 기본값</div>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="settings"></span> 사이트 SEO 기본값</div>
               </div>
               <p style="color:var(--text-3);font-size:13px;margin:0 0 16px">
                 개별 페이지에 메타가 없을 때 사용되는 기본 OG 이미지·디스크립션 등을 설정합니다.
@@ -4577,7 +4578,7 @@
                   <input type="text" id="seoDefTwitter" placeholder="@tbfa">
                 </div>
                 <div style="display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
-                  <button type="button" class="btn-sm btn-sm-primary" id="seoDefSaveBtn">💾 저장</button>
+                  <button type="button" class="btn-sm btn-sm-primary" id="seoDefSaveBtn"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
                   <span id="seoDefStatus" style="font-size:13px;color:var(--text-3);align-self:center"></span>
                 </div>
               </form>
@@ -4594,14 +4595,14 @@
             <!-- ★ K-9: 관리자 비밀번호 변경 -->
             <div class="panel" style="border:none;padding:0;background:transparent;box-shadow:none">
               <div class="adm-pw-card">
-                <h4>🔐 관리자 비밀번호 변경</h4>
+                <h4><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 관리자 비밀번호 변경</h4>
                 <p class="sub">
                   본인 계정의 비밀번호를 변경합니다. 보안을 위해 정기적으로 변경하시고,<br />
                   쉬운 비밀번호나 다른 곳에서 사용하는 비밀번호는 피해 주세요.
                 </p>
 
                 <div class="adm-pw-warn-box">
-                  ⚠️ <strong>주의 사항</strong><br />
+                  <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>주의 사항</strong><br />
                   • 변경 후 즉시 새 비밀번호로 다시 로그인해야 합니다<br />
                   • 5회 실패 시 30분간 계정이 잠깁니다<br />
                   • 초기 발급 비밀번호는 다시 사용할 수 없습니다
@@ -4626,7 +4627,7 @@
                     <div id="apMatch" class="adm-pw-hint"></div>
                   </div>
 
-                  <button type="submit" class="adm-pw-submit" id="apSubmitBtn">🔐 비밀번호 변경</button>
+                  <button type="submit" class="adm-pw-submit" id="apSubmitBtn"><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 비밀번호 변경</button>
                 </form>
               </div>
             </div>
@@ -4644,7 +4645,7 @@
               </table>
 
               <div style="margin-top:18px;padding:14px 16px;background:var(--bg-soft);border-radius:6px;font-size:12px;color:var(--text-3);line-height:1.7">
-                💡 <strong>2단계 인증 (OTP)</strong>과 <strong>IP 화이트리스트</strong>는 향후 업데이트에서 제공될 예정입니다.<br />
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>2단계 인증 (OTP)</strong>과 <strong>IP 화이트리스트</strong>는 향후 업데이트에서 제공될 예정입니다.<br />
                 현재는 비밀번호 + 5회 실패 잠금 + 감사 로그로 보호됩니다.
               </div>
             </div>
@@ -4652,14 +4653,14 @@
 
           <!-- ★ M-15 Part 3-B: 후원 정책 관리 -->
           <div class="dp-card" id="donationPolicyCard">
-            <h4>💰 후원 정책 관리</h4>
+            <h4><span class="siren-icon-wrap" data-icon="coins"></span> 후원 정책 관리</h4>
             <p class="sub">
               사용자가 보는 후원 모달의 금액 옵션, 직접 계좌이체 정보, 효성 CMS+ URL을 관리합니다.<br />
               슈퍼 관리자만 수정 가능하며, 변경 즉시 사용자 후원 모달에 반영됩니다.
             </p>
 
             <div class="dp-readonly-banner" id="dpReadonlyBanner">
-              ⚠️ <strong>읽기 전용 모드</strong> — 슈퍼 관리자만 수정 가능합니다. 일반 운영자는 정책을 조회만 할 수 있습니다.
+              <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>읽기 전용 모드</strong> — 슈퍼 관리자만 수정 가능합니다. 일반 운영자는 정책을 조회만 할 수 있습니다.
             </div>
 
             <div class="dp-meta" id="dpMetaInfo">
@@ -4669,17 +4670,17 @@
             <form id="donationPolicyForm">
 
               <!-- 모달 헤더 텍스트 -->
-              <div class="dp-section-title">📌 후원 모달 헤더</div>
+              <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="pin"></span> 후원 모달 헤더</div>
               <div class="dp-form-grid">
                 <label for="dpModalTitle">제목</label>
-                <input type="text" id="dpModalTitle" maxlength="200" placeholder="🎗 후원 동참하기">
+                <input type="text" id="dpModalTitle" maxlength="200" placeholder="후원 동참하기">
 
                 <label for="dpModalSubtitle">부제목 <span class="hint">(소개 문구)</span></label>
                 <input type="text" id="dpModalSubtitle" maxlength="500" placeholder="여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.">
               </div>
 
               <!-- 금액 옵션 -->
-              <div class="dp-section-title">💵 금액 옵션</div>
+              <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="banknote"></span> 금액 옵션</div>
               <div class="dp-form-grid">
                 <label for="dpMinAmount">최소 금액 <span class="hint">(원)</span></label>
                 <div>
@@ -4707,7 +4708,7 @@
               </div>
 
               <!-- 직접 계좌이체 -->
-              <div class="dp-section-title">🏦 직접 계좌이체 정보</div>
+              <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="landmark"></span> 직접 계좌이체 정보</div>
               <div class="dp-form-grid">
                 <label for="dpBankName">은행명</label>
                 <input type="text" id="dpBankName" maxlength="50" placeholder="국민은행">
@@ -4723,7 +4724,7 @@
               </div>
 
               <!-- 효성 CMS+ -->
-              <div class="dp-section-title">🏧 효성 CMS+ 정기 후원</div>
+              <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="atm"></span> 효성 CMS+ 정기 후원</div>
               <div class="dp-form-grid">
                 <label for="dpHyosungUrl">효성 URL</label>
                 <input type="url" id="dpHyosungUrl" maxlength="500" placeholder="https://ap.hyosungcmsplus.co.kr/...">
@@ -4740,8 +4741,8 @@
 
               <!-- 액션 버튼 -->
               <div class="dp-actions">
-                <button type="submit" class="btn-save" id="dpSaveBtn">💾 정책 저장</button>
-                <button type="button" class="btn-reload" id="dpReloadBtn">🔄 다시 불러오기</button>
+                <button type="submit" class="btn-save" id="dpSaveBtn"><span class="siren-icon-wrap" data-icon="save"></span> 정책 저장</button>
+                <button type="button" class="btn-reload" id="dpReloadBtn"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 다시 불러오기</button>
               </div>
             </form>
           </div>
@@ -4789,7 +4790,7 @@
       <div class="modal-body">
         <div id="urgentWarningBox" style="display:none;background:linear-gradient(135deg,#fdecec,#fff5f5);border:2px solid #c5293a;border-radius:8px;padding:14px 18px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:12px">
-            <div style="font-size:28px">🔴</div>
+            <div style="font-size:28px"><span class="siren-icon-wrap" data-icon="circle-dot"></span></div>
             <div style="flex:1">
               <div style="font-weight:700;color:#c5293a;font-size:15px;margin-bottom:2px">긴급 신청 — 즉시 대응 필요</div>
               <div id="urgentReason" style="font-size:12.5px;color:#a01e2c;line-height:1.5"></div>
@@ -4832,9 +4833,9 @@
           </div>
 
           <div class="k3-field-group">
-            <label>🤝 매칭 전문가 / 봉사자 <span class="hint">(이름 또는 직함, 선택)</span></label>
+            <label><span class="siren-icon-wrap" data-icon="handshake"></span> 매칭 전문가 / 봉사자 <span class="hint">(이름 또는 직함, 선택)</span></label>
             <input type="text" id="replyAssignedExpert" maxlength="50" placeholder="예) 박○○ 임상심리사 / 김○○ 변호사">
-            <div style="font-size:11.5px;color:var(--text-3);margin-top:4px">💡 AI 추천 전문가 카드의 <strong>"이 전문가로 배정"</strong> 버튼을 클릭하면 자동 입력됩니다.</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:4px"><span class="siren-icon-wrap" data-icon="lightbulb"></span> AI 추천 전문가 카드의 <strong>"이 전문가로 배정"</strong> 버튼을 클릭하면 자동 입력됩니다.</div>
           </div>
 
           <div class="fg">
@@ -4843,22 +4844,22 @@
           </div>
 
           <div class="k3-field-group k3-supplement" id="replySupplementGroup" style="display:none">
-            <label>📝 보완 요청 안내 <span class="hint">(어떤 자료를 보완해야 하는지 안내)</span></label>
+            <label><span class="siren-icon-wrap" data-icon="file-pen"></span> 보완 요청 안내 <span class="hint">(어떤 자료를 보완해야 하는지 안내)</span></label>
             <textarea id="replySupplement" maxlength="2000" placeholder="예) 가족관계증명서를 추가로 첨부해 주세요."></textarea>
-            <div style="font-size:11.5px;color:#a01e2c;margin-top:4px">⚠️ 상태가 <strong>'보완 요청'</strong>으로 변경될 때 회원에게 함께 전달됩니다.</div>
+            <div style="font-size:11.5px;color:#a01e2c;margin-top:4px"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 상태가 <strong>'보완 요청'</strong>으로 변경될 때 회원에게 함께 전달됩니다.</div>
           </div>
 
           <div class="k3-field-group k3-completed" id="replyReportGroup" style="display:none">
-            <label>📋 완료 보고서 <span class="hint">(처리 결과 요약)</span></label>
+            <label><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 완료 보고서 <span class="hint">(처리 결과 요약)</span></label>
             <textarea id="replyReport" maxlength="10000" placeholder="예) 박○○ 임상심리사와 매칭하여 4회 상담 완료."></textarea>
-            <div style="font-size:11.5px;color:#1a5e2c;margin-top:4px">✅ 내부 관리용 보고서이며, 회원에게는 노출되지 않습니다.</div>
+            <div style="font-size:11.5px;color:#1a5e2c;margin-top:4px"><span class="siren-icon-wrap" data-icon="circle-check"></span> 내부 관리용 보고서이며, 회원에게는 노출되지 않습니다.</div>
           </div>
 
           <div class="fg checkbox-block">
             <label class="checkbox-line">
               <input type="checkbox" id="replySendEmail" style="margin-top:3px">
               <span style="flex:1;font-size:13px;color:var(--text-2);line-height:1.6">
-                <strong style="color:var(--ink)">📧 저장 시 신청자에게 알림 메일 발송</strong><br />
+                <strong style="color:var(--ink)"><span class="siren-icon-wrap" data-icon="mail"></span> 저장 시 신청자에게 알림 메일 발송</strong><br />
                 체크하면 회원의 이메일로 "답변 등록 알림" 메일이 자동 전송됩니다.<br />
                 <span style="color:var(--text-3);font-size:11.5px">※ 답변 본문은 메일에 노출되지 않으며, 마이페이지 로그인 후 열람 가능합니다.</span>
               </span>
@@ -4875,7 +4876,7 @@
   <div id="promoteOperatorModal" class="modal">
     <div class="modal-content" style="max-width:560px">
       <div class="modal-header">
-        <h3 class="serif">👨‍💼 회원 → 운영자 승급</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="user"></span> 회원 → 운영자 승급</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -4907,12 +4908,12 @@
 
           <!-- ★ M-15: 담당 카테고리 선택 -->
           <div class="op-cat-group" id="promoteCatGroup">
-            <span class="cat-label">📂 담당 카테고리 <span class="hint">(알림을 어떤 도메인에서 받을지)</span></span>
+            <span class="cat-label"><span class="siren-icon-wrap" data-icon="folder-open"></span> 담당 카테고리 <span class="hint">(알림을 어떤 도메인에서 받을지)</span></span>
           </div>
 
           <label class="checkbox-line" style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="promoteNotify" checked>
-            <span style="font-size:13px">📧 새 지원 신청 시 알림 메일 수신</span>
+            <span style="font-size:13px"><span class="siren-icon-wrap" data-icon="mail"></span> 새 지원 신청 시 알림 메일 수신</span>
           </label>
 
           <button type="button" id="promoteConfirmBtn" class="btn btn-primary btn-block" style="margin-top:14px">운영자로 승급하기</button>
@@ -4925,7 +4926,7 @@
   <div id="operatorEditModal" class="modal">
     <div class="modal-content" style="max-width:560px">
       <div class="modal-header">
-        <h3 class="serif">✏️ 운영자 정보 수정</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="pencil"></span> 운영자 정보 수정</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -4940,24 +4941,24 @@
               <option value="operator">일반 운영자 (operator)</option>
               <option value="super_admin">슈퍼 관리자 (super_admin)</option>
             </select>
-            <p style="font-size:11.5px;color:var(--text-3);margin-top:4px;line-height:1.5">💡 슈퍼 관리자는 카테고리와 무관하게 모든 알림을 받습니다.</p>
+            <p style="font-size:11.5px;color:var(--text-3);margin-top:4px;line-height:1.5"><span class="siren-icon-wrap" data-icon="lightbulb"></span> 슈퍼 관리자는 카테고리와 무관하게 모든 알림을 받습니다.</p>
           </div>
 
           <div class="op-cat-group" id="opEditCatGroup">
-            <span class="cat-label">📂 담당 카테고리 <span class="hint">(어떤 도메인 알림을 받을지)</span></span>
+            <span class="cat-label"><span class="siren-icon-wrap" data-icon="folder-open"></span> 담당 카테고리 <span class="hint">(어떤 도메인 알림을 받을지)</span></span>
           </div>
 
           <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 12px;padding:10px 12px;background:#fafaf8;border:1px solid var(--line);border-radius:6px">
             <label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;margin:0">
-              <input type="checkbox" id="opEditNotify"><span>📧 알림 메일 수신</span>
+              <input type="checkbox" id="opEditNotify"><span><span class="siren-icon-wrap" data-icon="mail"></span> 알림 메일 수신</span>
             </label>
             <label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;margin:0">
-              <input type="checkbox" id="opEditActive"><span>✅ 활성 상태</span>
+              <input type="checkbox" id="opEditActive"><span><span class="siren-icon-wrap" data-icon="circle-check"></span> 활성 상태</span>
             </label>
           </div>
 
           <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -4969,7 +4970,7 @@
   <div id="auditDetailModal" class="modal">
     <div class="modal-content" style="max-width:680px">
       <div class="modal-header">
-        <h3 class="serif">🔍 감사 로그 상세</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="search"></span> 감사 로그 상세</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body" id="auditDetailBody">
@@ -4982,7 +4983,7 @@
   <div id="hyosungDetailModal" class="modal">
     <div class="modal-content" style="max-width:680px">
       <div class="modal-header">
-        <h3 class="serif">🏦 효성 CMS+ 후원 상세</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="landmark"></span> 효성 CMS+ 후원 상세</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body" id="hyosungDetailBody">
@@ -4995,7 +4996,7 @@
   <div id="noticeEditModal" class="modal">
     <div class="modal-content" style="max-width:760px">
       <div class="modal-header">
-        <h3 class="serif" id="noticeModalTitle">📢 새 공지 작성</h3>
+        <h3 class="serif" id="noticeModalTitle"><span class="siren-icon-wrap" data-icon="megaphone"></span> 새 공지 작성</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5029,11 +5030,11 @@
             <textarea id="noticeEditContent" required rows="12" placeholder="HTML 태그 사용 가능"></textarea>
           </div>
           <div class="toggle-row">
-            <label><input type="checkbox" id="noticeEditPinned"> 📌 상단 고정</label>
-            <label><input type="checkbox" id="noticeEditPublished" checked> 🌐 공개</label>
+            <label><input type="checkbox" id="noticeEditPinned"> <span class="siren-icon-wrap" data-icon="pin"></span> 상단 고정</label>
+            <label><input type="checkbox" id="noticeEditPublished" checked> <span class="siren-icon-wrap" data-icon="globe"></span> 공개</label>
           </div>
           <div style="display:flex;gap:10px;margin-top:18px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5045,7 +5046,7 @@
   <div id="faqEditModal" class="modal">
     <div class="modal-content" style="max-width:680px">
       <div class="modal-header">
-        <h3 class="serif" id="faqModalTitle">❓ 새 FAQ 작성</h3>
+        <h3 class="serif" id="faqModalTitle"><span class="siren-icon-wrap" data-icon="circle-help"></span> 새 FAQ 작성</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5070,10 +5071,10 @@
             <textarea id="faqEditAnswer" required rows="8" placeholder="답변 내용"></textarea>
           </div>
           <div class="toggle-row">
-            <label><input type="checkbox" id="faqEditActive" checked> ✅ 활성</label>
+            <label><input type="checkbox" id="faqEditActive" checked> <span class="siren-icon-wrap" data-icon="circle-check"></span> 활성</label>
           </div>
           <div style="display:flex;gap:10px;margin-top:18px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5085,7 +5086,7 @@
   <div id="memberInfoModal" class="modal">
     <div class="modal-content" style="max-width:560px">
       <div class="modal-header">
-        <h3 class="serif">👤 회원 정보</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="user"></span> 회원 정보</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body" id="memberInfoBody">
@@ -5098,13 +5099,13 @@
   <div id="memberPickerModal" class="modal">
     <div class="modal-content" style="max-width:520px">
       <div class="modal-header">
-        <h3 class="serif">🔍 블랙 처리할 회원 선택</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="search"></span> 블랙 처리할 회원 선택</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
         <p style="font-size:12.5px;color:var(--text-3);margin:0 0 12px;line-height:1.55">
           이름·이메일·전화번호로 검색 후 회원을 클릭하면 회원 상세 모달이 열립니다.
-          상세 모달에서 <strong>🚫 블랙 처리</strong> 버튼을 눌러 처리하세요.
+          상세 모달에서 <strong><span class="siren-icon-wrap" data-icon="ban"></span> 블랙 처리</strong> 버튼을 눌러 처리하세요.
         </p>
         <input type="search" id="memberPickerSearch" placeholder="이름 / 이메일 / 전화번호 (2자 이상)"
                style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;outline:none;box-sizing:border-box">
@@ -5119,12 +5120,12 @@
   <div id="addMemberModal" class="modal">
     <div class="modal-content" style="max-width:560px">
       <div class="modal-header">
-        <h3 class="serif">➕ 회원 직접 추가</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="plus"></span> 회원 직접 추가</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
         <div class="info-box" style="background:#f0f5fc;border:1px solid #cee0f2;border-radius:6px;padding:12px 14px;font-size:12px;color:#1a5ec4;line-height:1.6;margin-bottom:14px">
-          💡 임시 비밀번호가 자동 생성됩니다. 저장 후 임시 비번을 회원에게 전달하고,<br />첫 로그인 시 비밀번호를 변경하도록 안내해 주세요.
+          <span class="siren-icon-wrap" data-icon="lightbulb"></span> 임시 비밀번호가 자동 생성됩니다. 저장 후 임시 비번을 회원에게 전달하고,<br />첫 로그인 시 비밀번호를 변경하도록 안내해 주세요.
         </div>
         <form id="addMemberForm" class="am-form">
           <div class="fg">
@@ -5154,7 +5155,7 @@
             <textarea id="amMemo" maxlength="2000" placeholder="예) 전화 상담 후 등록 / VIP 후원자 / ..."></textarea>
           </div>
           <div style="display:flex;gap:10px;margin-top:16px">
-            <button type="submit" class="btn btn-primary" style="flex:1" id="btnAddMemberSubmit">💾 저장 + 임시 비번 발급</button>
+            <button type="submit" class="btn btn-primary" style="flex:1" id="btnAddMemberSubmit"><span class="siren-icon-wrap" data-icon="save"></span> 저장 + 임시 비번 발급</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5166,7 +5167,7 @@
   <div id="tempPasswordModal" class="modal">
     <div class="modal-content" style="max-width:520px">
       <div class="modal-header">
-        <h3 class="serif">✅ 회원 추가 완료</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="circle-check"></span> 회원 추가 완료</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5179,10 +5180,10 @@
           <div class="tp-result-label" style="margin-top:14px">임시 비밀번호</div>
           <div class="tp-password-display" id="tpPassword">—</div>
           <br />
-          <button type="button" class="tp-copy-btn" id="tpCopyBtn">📋 복사하기</button>
+          <button type="button" class="tp-copy-btn" id="tpCopyBtn"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 복사하기</button>
         </div>
         <div class="tp-warn">
-          ⚠️ <strong>이 비밀번호는 다시 표시되지 않습니다.</strong><br />
+          <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>이 비밀번호는 다시 표시되지 않습니다.</strong><br />
           • 페이지를 닫으면 영구히 확인할 수 없습니다<br />
           • 복사 후 회원에게 안전한 경로(전화/문자)로 전달해 주세요<br />
           • 회원이 첫 로그인 후 즉시 변경하도록 안내해 주세요
@@ -5209,7 +5210,7 @@
   <div id="contentPageEditModal" class="modal">
     <div class="modal-content" style="max-width:820px">
       <div class="modal-header">
-        <h3 class="serif" id="cpeModalTitle">📖 섹션 편집</h3>
+        <h3 class="serif" id="cpeModalTitle"><span class="siren-icon-wrap" data-icon="book-open"></span> 섹션 편집</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5229,7 +5230,7 @@
             <div class="cnt-editor-wrap"><div id="cpeEditor"></div></div>
           </div>
           <div style="display:flex;gap:10px;margin-top:12px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5241,7 +5242,7 @@
   <div id="activityPostEditModal" class="modal">
     <div class="modal-content" style="max-width:820px">
       <div class="modal-header">
-        <h3 class="serif" id="apeModalTitle">📊 활동 게시글 작성</h3>
+        <h3 class="serif" id="apeModalTitle"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 활동 게시글 작성</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5251,9 +5252,9 @@
             <div class="fg">
               <label>분류 <span style="color:var(--danger)">*</span></label>
               <select id="apeCategory" required>
-                <option value="news">📰 활동뉴스</option>
-                <option value="report">📋 활동보고서</option>
-                <option value="photo">📷 사진</option>
+                <option value="news">활동뉴스</option>
+                <option value="report">활동보고서</option>
+                <option value="photo">사진</option>
               </select>
             </div>
             <div class="fg">
@@ -5280,7 +5281,7 @@
               <div class="cnt-thumb-actions">
                 <input type="hidden" id="apeThumbId" value="">
                 <input type="file" id="apeThumbInput" accept="image/jpeg,image/png,image/webp" style="display:none">
-                <button type="button" id="apeThumbBtn">🖼️ 썸네일 업로드</button>
+                <button type="button" id="apeThumbBtn"><span class="siren-icon-wrap" data-icon="image"></span> 썸네일 업로드</button>
                 <button type="button" id="apeThumbClearBtn" style="color:var(--danger)">✕ 썸네일 제거</button>
               </div>
             </div>
@@ -5294,11 +5295,11 @@
             <div id="apeAttachments"></div>
           </div>
           <div class="toggle-row">
-            <label><input type="checkbox" id="apePublished" checked> 🌐 공개</label>
-            <label><input type="checkbox" id="apePinned"> 📌 상단 고정</label>
+            <label><input type="checkbox" id="apePublished" checked> <span class="siren-icon-wrap" data-icon="globe"></span> 공개</label>
+            <label><input type="checkbox" id="apePinned"> <span class="siren-icon-wrap" data-icon="pin"></span> 상단 고정</label>
           </div>
           <div style="display:flex;gap:10px;margin-top:12px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5310,7 +5311,7 @@
   <div id="mediaPostEditModal" class="modal">
     <div class="modal-content" style="max-width:820px">
       <div class="modal-header">
-        <h3 class="serif" id="mpeModalTitle">📰 언론보도/갤러리 작성</h3>
+        <h3 class="serif" id="mpeModalTitle"><span class="siren-icon-wrap" data-icon="newspaper"></span> 언론보도/갤러리 작성</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5320,9 +5321,9 @@
             <div class="fg">
               <label>분류 <span style="color:var(--danger)">*</span></label>
               <select id="mpeCategory" required>
-                <option value="press">📰 언론보도</option>
-                <option value="photo">📷 사진 갤러리</option>
-                <option value="event">🎯 행사/이벤트</option>
+                <option value="press">언론보도</option>
+                <option value="photo">사진 갤러리</option>
+                <option value="event">행사/이벤트</option>
               </select>
             </div>
             <div class="fg">
@@ -5355,7 +5356,7 @@
               <div class="cnt-thumb-actions">
                 <input type="hidden" id="mpeThumbId" value="">
                 <input type="file" id="mpeThumbInput" accept="image/jpeg,image/png,image/webp" style="display:none">
-                <button type="button" id="mpeThumbBtn">🖼️ 썸네일 업로드</button>
+                <button type="button" id="mpeThumbBtn"><span class="siren-icon-wrap" data-icon="image"></span> 썸네일 업로드</button>
                 <button type="button" id="mpeThumbClearBtn" style="color:var(--danger)">✕ 썸네일 제거</button>
               </div>
             </div>
@@ -5365,10 +5366,10 @@
             <div class="cnt-editor-wrap"><div id="mpeEditor"></div></div>
           </div>
           <div class="toggle-row">
-            <label><input type="checkbox" id="mpePublished" checked> 🌐 공개</label>
+            <label><input type="checkbox" id="mpePublished" checked> <span class="siren-icon-wrap" data-icon="globe"></span> 공개</label>
           </div>
           <div style="display:flex;gap:10px;margin-top:12px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5380,41 +5381,41 @@
   <div id="activityReportModal" class="modal">
     <div class="modal-content" style="max-width:920px">
       <div class="modal-header">
-        <h3 class="serif">🤖 AI 활동보고서 생성</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="bot"></span> AI 활동보고서 생성</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body" id="arModalBody">
         <!-- ─── STEP 1: 기간 선택 ─── -->
         <div id="arStep1">
           <p style="font-size:13px;color:var(--text-2);margin-bottom:18px;line-height:1.7;background:linear-gradient(135deg,#f7f9fc,#fff);padding:12px 14px;border-left:3px solid var(--brand);border-radius:6px">
-            💡 보고 기간을 선택하면 후원/회원/지원/사이렌/캠페인 데이터를 자동 집계하고,<br />
+            <span class="siren-icon-wrap" data-icon="lightbulb"></span> 보고 기간을 선택하면 후원/회원/지원/사이렌/캠페인 데이터를 자동 집계하고,<br />
             Gemini AI가 약 <strong>2,500~3,500자의 심층 보고서</strong>를 생성합니다 (10~20초 소요).
           </p>
 
           <div style="margin-bottom:14px">
-            <label style="display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">📅 기간 유형</label>
+            <label style="display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px"><span class="siren-icon-wrap" data-icon="calendar"></span> 기간 유형</label>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
               <label class="ar-period-card on" data-period-type="quarterly">
                 <input type="radio" name="arPeriodType" value="quarterly" checked style="display:none">
-                <div style="font-size:20px;margin-bottom:4px">🗓</div>
+                <div style="font-size:20px;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="calendar-days"></span></div>
                 <div style="font-weight:700;font-size:13px">분기별</div>
                 <div style="font-size:11px;color:var(--text-3);margin-top:2px">3개월 단위</div>
               </label>
               <label class="ar-period-card" data-period-type="half">
                 <input type="radio" name="arPeriodType" value="half" style="display:none">
-                <div style="font-size:20px;margin-bottom:4px">📆</div>
+                <div style="font-size:20px;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="calendar-days"></span></div>
                 <div style="font-weight:700;font-size:13px">반기</div>
                 <div style="font-size:11px;color:var(--text-3);margin-top:2px">6개월 단위</div>
               </label>
               <label class="ar-period-card" data-period-type="annual">
                 <input type="radio" name="arPeriodType" value="annual" style="display:none">
-                <div style="font-size:20px;margin-bottom:4px">📅</div>
+                <div style="font-size:20px;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="calendar"></span></div>
                 <div style="font-weight:700;font-size:13px">연간</div>
                 <div style="font-size:11px;color:var(--text-3);margin-top:2px">1년 단위</div>
               </label>
               <label class="ar-period-card" data-period-type="custom">
                 <input type="radio" name="arPeriodType" value="custom" style="display:none">
-                <div style="font-size:20px;margin-bottom:4px">⚙️</div>
+                <div style="font-size:20px;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="settings"></span></div>
                 <div style="font-weight:700;font-size:13px">자유 범위</div>
                 <div style="font-size:11px;color:var(--text-3);margin-top:2px">직접 지정</div>
               </label>
@@ -5464,18 +5465,18 @@
           </div>
 
           <div style="background:#fafaf8;border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:14px">
-            <h5 style="margin:0 0 10px;font-size:13px;font-weight:700;color:var(--ink)">⚙️ 옵션</h5>
+            <h5 style="margin:0 0 10px;font-size:13px;font-weight:700;color:var(--ink)"><span class="siren-icon-wrap" data-icon="settings"></span> 옵션</h5>
             <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px;margin-bottom:8px">
               <input type="checkbox" id="arSaveAsPost" checked style="margin-top:3px">
               <span style="flex:1;line-height:1.6">
-                <strong>📝 주요 활동에 초안으로 저장</strong><br />
+                <strong><span class="siren-icon-wrap" data-icon="file-pen"></span> 주요 활동에 초안으로 저장</strong><br />
                 <span style="font-size:11.5px;color:var(--text-3)">생성된 보고서를 활동 게시판에 비공개 초안으로 저장합니다. 이후 수정/공개 가능</span>
               </span>
             </label>
             <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px">
               <input type="checkbox" id="arGeneratePdf" checked style="margin-top:3px">
               <span style="flex:1;line-height:1.6">
-                <strong>📄 PDF 파일도 생성</strong><br />
+                <strong><span class="siren-icon-wrap" data-icon="file-text"></span> PDF 파일도 생성</strong><br />
                 <span style="font-size:11.5px;color:var(--text-3)">한글 폰트 적용된 A4 PDF로 다운로드 가능 (Cloudflare R2 저장, 영구 보관)</span>
               </span>
             </label>
@@ -5488,7 +5489,7 @@
 
           <div style="display:flex;gap:10px;margin-top:18px">
             <button type="button" class="btn btn-primary" id="arGenerateBtn" style="flex:1">
-              🤖 AI 보고서 생성하기
+              <span class="siren-icon-wrap" data-icon="bot"></span> AI 보고서 생성하기
             </button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
@@ -5496,16 +5497,16 @@
 
         <!-- ─── STEP 2: 진행 ─── -->
         <div id="arStep2" style="display:none;text-align:center;padding:50px 30px">
-          <div style="font-size:48px;margin-bottom:16px;animation:pulse 1.5s ease-in-out infinite">🤖</div>
+          <div style="font-size:48px;margin-bottom:16px;animation:pulse 1.5s ease-in-out infinite"><span class="siren-icon-wrap" data-icon="bot"></span></div>
           <h3 style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:8px" id="arProgressTitle">데이터 수집 중...</h3>
           <p style="font-size:13px;color:var(--text-3);line-height:1.7" id="arProgressMsg">
             후원/회원/지원/사이렌/캠페인 데이터를<br />
             기간별로 집계하고 있습니다
           </p>
           <div style="margin-top:20px;padding:14px 18px;background:#f7f9fc;border-radius:6px;font-size:12px;color:var(--text-2);text-align:left">
-            <div id="arProgressStep1" style="margin-bottom:6px">⏳ 1. 데이터 수집 중...</div>
-            <div id="arProgressStep2" style="margin-bottom:6px;color:var(--text-3)">⏸ 2. AI 심층 분석 (Gemini, 10~15초)</div>
-            <div id="arProgressStep3" style="color:var(--text-3)">⏸ 3. PDF 생성 + 저장</div>
+            <div id="arProgressStep1" style="margin-bottom:6px"><span class="siren-icon-wrap" data-icon="hourglass"></span> 1. 데이터 수집 중...</div>
+            <div id="arProgressStep2" style="margin-bottom:6px;color:var(--text-3)"><span class="siren-icon-wrap" data-icon="pause"></span> 2. AI 심층 분석 (Gemini, 10~15초)</div>
+            <div id="arProgressStep3" style="color:var(--text-3)"><span class="siren-icon-wrap" data-icon="pause"></span> 3. PDF 생성 + 저장</div>
           </div>
         </div>
 
@@ -5521,13 +5522,13 @@
 
           <div id="arResultActions" style="display:flex;gap:10px;flex-wrap:wrap">
             <button type="button" class="btn btn-primary" id="arDownloadPdfBtn" style="flex:1;display:none">
-              📥 PDF 다운로드
+              <span class="siren-icon-wrap" data-icon="inbox"></span> PDF 다운로드
             </button>
             <button type="button" class="btn btn-ghost" id="arEditPostBtn" style="flex:1;background:#fff;border:1px solid var(--line);color:var(--text-2);display:none">
-              ✏️ 게시글 수정하기
+              <span class="siren-icon-wrap" data-icon="pencil"></span> 게시글 수정하기
             </button>
             <button type="button" class="btn btn-ghost" id="arRegenerateBtn" style="background:#fff;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">
-              🔄 다시 생성
+              <span class="siren-icon-wrap" data-icon="refresh-cw"></span> 다시 생성
             </button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">닫기</button>
           </div>
@@ -5582,7 +5583,7 @@
   <div id="campaignEditModal" class="modal">
     <div class="modal-content" style="max-width:840px">
       <div class="modal-header">
-        <h3 class="serif" id="cmpModalTitle">📢 새 캠페인</h3>
+        <h3 class="serif" id="cmpModalTitle"><span class="siren-icon-wrap" data-icon="megaphone"></span> 새 캠페인</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -5593,18 +5594,18 @@
             <div class="fg">
               <label>종류 <span style="color:var(--danger)">*</span></label>
               <select id="cmpType" required>
-                <option value="fundraising">💰 모금 (목표금액 표시)</option>
-                <option value="memorial">🎗 추모 (스토리 중심)</option>
-                <option value="awareness">📣 인식 개선</option>
+                <option value="fundraising">모금 (목표금액 표시)</option>
+                <option value="memorial">추모 (스토리 중심)</option>
+                <option value="awareness">인식 개선</option>
               </select>
             </div>
             <div class="fg">
               <label>상태</label>
               <select id="cmpStatus">
-                <option value="draft">📝 초안</option>
-                <option value="active">✅ 활성</option>
-                <option value="closed">⏹ 종료</option>
-                <option value="archived">📦 보관</option>
+                <option value="draft">초안</option>
+                <option value="active">활성</option>
+                <option value="closed">종료</option>
+                <option value="archived">보관</option>
               </select>
             </div>
           </div>
@@ -5628,7 +5629,7 @@
           <!-- AI 카피 생성 -->
           <div style="background:linear-gradient(135deg,#f7f9fc,#fff);border:2px dashed var(--brand);border-radius:8px;padding:14px;margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <strong style="color:var(--brand);font-size:13px">🤖 AI 카피 생성</strong>
+              <strong style="color:var(--brand);font-size:13px"><span class="siren-icon-wrap" data-icon="bot"></span> AI 카피 생성</strong>
               <span style="font-size:11px;color:var(--text-3)">Gemini AI</span>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
@@ -5638,9 +5639,9 @@
                 <option value="urgent">긴급한 어조</option>
                 <option value="inspiring">영감 어조</option>
               </select>
-              <button type="button" id="cmpAiBtn" class="btn-sm btn-sm-primary">✨ AI 카피 생성</button>
+              <button type="button" id="cmpAiBtn" class="btn-sm btn-sm-primary"><span class="siren-icon-wrap" data-icon="sparkles"></span> AI 카피 생성</button>
             </div>
-            <div style="font-size:11px;color:var(--text-3);line-height:1.5">💡 종류/주제/어조를 선택하고 클릭하면 제목·요약·본문 초안이 자동 생성됩니다 (3~5초)</div>
+            <div style="font-size:11px;color:var(--text-3);line-height:1.5"><span class="siren-icon-wrap" data-icon="lightbulb"></span> 종류/주제/어조를 선택하고 클릭하면 제목·요약·본문 초안이 자동 생성됩니다 (3~5초)</div>
           </div>
 
           <div class="fg">
@@ -5655,7 +5656,7 @@
               <div class="cnt-thumb-actions">
                 <input type="hidden" id="cmpThumbId" value="">
                 <input type="file" id="cmpThumbInput" accept="image/jpeg,image/png,image/webp" style="display:none">
-                <button type="button" id="cmpThumbBtn">🖼️ 썸네일 업로드</button>
+                <button type="button" id="cmpThumbBtn"><span class="siren-icon-wrap" data-icon="image"></span> 썸네일 업로드</button>
                 <button type="button" id="cmpThumbClearBtn" style="color:var(--danger)">✕ 제거</button>
               </div>
             </div>
@@ -5677,13 +5678,13 @@
           </div>
 
           <div class="toggle-row">
-            <label><input type="checkbox" id="cmpPublished"> 🌐 공개</label>
-            <label><input type="checkbox" id="cmpPinned"> 📌 상단 고정</label>
+            <label><input type="checkbox" id="cmpPublished"> <span class="siren-icon-wrap" data-icon="globe"></span> 공개</label>
+            <label><input type="checkbox" id="cmpPinned"> <span class="siren-icon-wrap" data-icon="pin"></span> 상단 고정</label>
           </div>
 
           <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
-            <button type="button" class="btn btn-ghost" id="cmpDeleteBtn" style="background:#fdecec;border:1px solid #f5b5bb;color:var(--danger);padding:11px 20px;display:none">🗑 삭제</button>
+            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
+            <button type="button" class="btn btn-ghost" id="cmpDeleteBtn" style="background:#fdecec;border:1px solid #f5b5bb;color:var(--danger);padding:11px 20px;display:none"><span class="siren-icon-wrap" data-icon="trash"></span> 삭제</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5708,12 +5709,12 @@
   <div id="approvalRejectModal" class="modal">
     <div class="modal-content" style="max-width:560px">
       <div class="modal-header">
-        <h3 class="serif">❌ 회원 자격 반려</h3>
+        <h3 class="serif"><span class="siren-icon-wrap" data-icon="x"></span> 회원 자격 반려</h3>
         <button class="modal-close" data-action="close-modal">&times;</button>
       </div>
       <div class="modal-body">
         <div style="background:#fdecec;border:1px solid #f5b5bb;border-radius:6px;padding:12px 14px;font-size:12.5px;color:#a01e2c;line-height:1.7;margin-bottom:14px">
-          ⚠️ <strong>반려 시 안내</strong><br />
+          <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>반려 시 안내</strong><br />
           • 회원 상태가 <strong>정지(suspended)</strong>로 변경됩니다<br />
           • 반려 사유가 신청자에게 이메일로 발송됩니다<br />
           • 증빙 파일은 R2에 보존되며, 재심사 시 활용됩니다<br />
@@ -5734,7 +5735,7 @@
           </div>
 
           <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" class="btn btn-primary" style="flex:1;background:var(--danger);border:none">❌ 반려 처리</button>
+            <button type="submit" class="btn btn-primary" style="flex:1;background:var(--danger);border:none"><span class="siren-icon-wrap" data-icon="x"></span> 반려 처리</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
         </form>
@@ -5749,37 +5750,37 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/lib-kst.js?v=1" defer></script>
   <script src="/js/charts.js?v=20260516siren-dash"></script>
-  <script src="/js/admin.js?v=20260527-r41b1"></script>
-  <script src="/js/admin-chat.js?v=1"></script>
-  <script src="/js/admin-siren.js?v=2026-05-17-r2"></script>
-  <script src="/js/editor.js?v=2026-05"></script>
-  <script src="/js/attachment.js?v=2026-05"></script>
-  <script src="/js/admin-content.js?v=2026-05-13"></script>
+  <script src="/js/admin.js?v=20260528-r41b1"></script>
+  <script src="/js/admin-chat.js?v=2"></script>
+  <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
+  <script src="/js/editor.js?v=2027-05"></script>
+  <script src="/js/attachment.js?v=2027-05"></script>
+  <script src="/js/admin-content.js?v=2027-05-13"></script>
   <script src="/js/admin-signup-sources.js?v=m12"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <!-- public/admin.html — 스크립트 영역에 1줄 추가 -->
-<script src="/js/admin-campaigns.js?v=2026-05"></script>
+<script src="/js/admin-campaigns.js?v=2027-05"></script>
 <script src="/js/admin-activity-report.js?v=m19-3"></script>
 <script src="/js/admin-activity-report-list.js?v=c-step3"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <script src="/js/admin-resources.js?v=m19-8"></script>
-<script src="/js/admin-incidents-crud.js?v=2026-05"></script>
-<script src="/js/admin-stats-edit.js?v=2026-05"></script>
+<script src="/js/admin-incidents-crud.js?v=2027-05"></script>
+<script src="/js/admin-stats-edit.js?v=2027-05"></script>
 <script src="/js/admin-approvals.js?v=m19-11-v2"></script>
 <!-- 6순위 #6: 교원 자격 변경 심사 -->
-<script src="/js/admin-eligibility.js?v=2026-05-12-evidence"></script>
+<script src="/js/admin-eligibility.js?v=2027-05-12-evidence"></script>
 <!-- 6순위 #8: 1:1 매칭 관리 -->
-<script src="/js/admin-expert.js?v=2026-05-10-direct3"></script>
-<script src="/js/admin-siren-stats.js?v=5"></script>
+<script src="/js/admin-expert.js?v=2027-05-10-direct3"></script>
+<script src="/js/admin-siren-stats.js?v=6"></script>
 <!-- Phase 14: 외부 기관 관리 + 인계 이력 -->
-<script src="/js/admin-agency-mgmt.js?v=6"></script>
+<script src="/js/admin-agency-mgmt.js?v=7"></script>
 <script src="/js/admin-referral.js?v=2026-05-12-ui"></script>
 <!-- Phase 15: 전문가 프로필 관리 + AI 추천 -->
-<script src="/js/admin-expert-profiles.js?v=2026-05-11-phase15"></script>
-<script src="/js/admin-ai-recommend.js?v=2026-05-11-phase15"></script>
+<script src="/js/admin-expert-profiles.js?v=2027-05-11-phase15"></script>
+<script src="/js/admin-ai-recommend.js?v=2027-05-11-phase15"></script>
 <!-- Phase 21 R2/R3 — R&R 매핑 + 서비스 담당자 박스 -->
-<script src="/js/admin-service-rnr.js?v=3" defer></script>
-<script src="/js/admin-service-assignee.js?v=1" defer></script>
+<script src="/js/admin-service-rnr.js?v=4" defer></script>
+<script src="/js/admin-service-assignee.js?v=2" defer></script>
   <script>
   (function () {
     /* 모달 닫기 — 통합 처리 */
@@ -5883,23 +5884,23 @@
   })();
   </script>
 
-  <script src="/js/admin-report.js?v=2026-05-27-r41b2"></script>
+  <script src="/js/admin-report.js?v=2027-05-27-r41b2"></script>
   <!-- R42-A: SEO 메타 관리 -->
-  <script src="/js/admin-seo.js?v=1"></script>
+  <script src="/js/admin-seo.js?v=2"></script>
   <!-- Phase 8 C: 알림 발송 로그 -->
-  <script src="/js/admin-notification-logs.js?v=20260519kst"></script>
-  <script src="/js/quick-jump.js?v=20260706-door"></script>
+  <script src="/js/admin-notification-logs.js?v=20260520kst"></script>
+  <script src="/js/quick-jump.js?v=20260707-door"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <!-- Phase 16: 통합 분석 대시보드 -->
-  <script src="/js/admin-unified-dashboard.js?v=20260519kst"></script>
+  <script src="/js/admin-unified-dashboard.js?v=20260521kst"></script>
   <!-- Phase 17: 보안·감사 로그 -->
-  <script src="/js/admin-security-audit.js?v=5"></script>
+  <script src="/js/admin-security-audit.js?v=6"></script>
   <!-- ★ AI 에이전트 위젯 -->
-  <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+  <script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
   <!-- ★ 어드민 내 정보 수정 모달 (우상단 사용자 영역 클릭 시) -->
-  <script src="/js/admin-profile-modal.js?v=20260516"></script>
-  <script src="/js/admin-session-timer.js?v=20260709-6h"></script>
-  <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
-  <script src="/js/ai-assistant-proactive.js?v=20260701" defer></script>
+  <script src="/js/admin-profile-modal.js?v=20260517"></script>
+  <script src="/js/admin-session-timer.js?v=20260710-6h"></script>
+  <script src="/js/admin-notif-bell.js?v=20260604-dropdown"></script>
+  <script src="/js/ai-assistant-proactive.js?v=20260702" defer></script>
 </body>
 </html>

@@ -59,7 +59,7 @@
 
     const res = await api({ url: '/api/admin-anonymous-reveal-logs?' + params });
     if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">⚠️ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
       return;
     }
 
@@ -90,7 +90,7 @@
       return `
         <tr>
           <td>${escapeHtml(String(r.id))}</td>
-          <td class="admin-name">👤 ${escapeHtml(adminName)}</td>
+          <td class="admin-name">${escapeHtml(adminName)}</td>
           <td>${typeBadge}</td>
           <td class="report-title" title="${escapeHtml(r.reportTitle || '')}">${escapeHtml(r.reportTitle || '(제목 없음)')}</td>
           <td>${levelBadge}</td>

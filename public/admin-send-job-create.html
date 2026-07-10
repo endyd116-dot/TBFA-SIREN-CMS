@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>새 발송 만들기 | SIREN 어드민</title>
@@ -200,19 +201,19 @@ body {
       <div class="channel-grid" id="channelGrid">
         <label class="channel-item" data-ch="email">
           <input type="checkbox" value="email">
-          <span class="ch-icon">📧</span><span class="ch-name">이메일</span>
+          <span class="ch-icon"><span class="siren-icon-wrap" data-icon="mail"></span></span><span class="ch-name">이메일</span>
         </label>
         <label class="channel-item" data-ch="sms">
           <input type="checkbox" value="sms">
-          <span class="ch-icon">📱</span><span class="ch-name">SMS</span>
+          <span class="ch-icon"><span class="siren-icon-wrap" data-icon="smartphone"></span></span><span class="ch-name">SMS</span>
         </label>
         <label class="channel-item" data-ch="kakao">
           <input type="checkbox" value="kakao">
-          <span class="ch-icon">💬</span><span class="ch-name">카카오</span>
+          <span class="ch-icon"><span class="siren-icon-wrap" data-icon="message-circle"></span></span><span class="ch-name">카카오</span>
         </label>
         <label class="channel-item" data-ch="inapp">
           <input type="checkbox" value="inapp">
-          <span class="ch-icon">🔔</span><span class="ch-name">앱 알림</span>
+          <span class="ch-icon"><span class="siren-icon-wrap" data-icon="bell"></span></span><span class="ch-name">앱 알림</span>
         </label>
       </div>
       <div class="form-hint">템플릿 선택 시 기본 채널이 자동으로 체크됩니다. 여러 채널을 동시에 선택하면 각 채널마다 개별 발송 작업이 등록됩니다.</div>
@@ -220,7 +221,7 @@ body {
 
     <!-- ★ 2026-05-16: 이메일 전용 옵션 (이메일 채널 체크 시에만 표시) -->
     <div class="form-row" id="emailOptionsRow" style="display:none;background:#eff6ff;border-left:4px solid #1e40af;padding:14px 16px;border-radius:6px">
-      <label class="form-label" style="color:#1e3a8a">📧 이메일 전용 옵션</label>
+      <label class="form-label" style="color:#1e3a8a"><span class="siren-icon-wrap" data-icon="mail"></span> 이메일 전용 옵션</label>
       <div style="margin-bottom:10px">
         <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer">
           <input type="checkbox" id="fWrapEmail" style="width:18px;height:18px">
@@ -229,12 +230,12 @@ body {
         <div class="form-hint" style="margin-left:26px;color:#475569">SMS·카카오·인앱은 본문 그대로 발송됩니다. 이메일에만 적용.</div>
       </div>
       <div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;font-weight:500;margin-bottom:6px">📎 첨부파일</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;font-weight:500;margin-bottom:6px"><span class="siren-icon-wrap" data-icon="paperclip"></span> 첨부파일</label>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <input type="file" id="fAttachments" multiple style="font-size:0.85rem">
-          <button type="button" class="btn btn-sm" id="btnPickFromFiles" style="background:#f8fafc;border-color:#94a3b8;color:#475569">📁 파일함에서 선택</button>
+          <button type="button" class="btn btn-sm" id="btnPickFromFiles" style="background:#f8fafc;border-color:#94a3b8;color:#475569"><span class="siren-icon-wrap" data-icon="folder"></span> 파일함에서 선택</button>
         </div>
-        <div class="form-hint" style="color:#475569">⚠️ 첨부파일은 <b>이메일에만</b> 전송됩니다. SMS·카카오·인앱은 첨부 무시. 단일 파일 20MB 이하.</div>
+        <div class="form-hint" style="color:#475569"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 첨부파일은 <b>이메일에만</b> 전송됩니다. SMS·카카오·인앱은 첨부 무시. 단일 파일 20MB 이하.</div>
         <div id="fAttachmentList" style="margin-top:6px;font-size:0.82rem;color:#475569"></div>
       </div>
     </div>
@@ -273,7 +274,7 @@ body {
   <!-- ★ 2026-05-17: 이미지 편집 (이메일 채널 전용) -->
   <div class="card" id="imagesCard" style="display:none">
     <div class="card-title">
-      🖼️ 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>
+      <span class="siren-icon-wrap" data-icon="image"></span> 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>
     </div>
     <p class="form-hint" style="margin-bottom:12px">
       템플릿에 등록된 이미지가 자동으로 로드됩니다. 이번 발송에만 추가·교체·삭제·재정렬할 수 있습니다.
@@ -281,7 +282,7 @@ body {
     </p>
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
       <input type="file" id="fJobImageFile" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
-      <button type="button" class="btn" id="btnJobImageUpload" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;font-weight:600">📤 이미지 추가</button>
+      <button type="button" class="btn" id="btnJobImageUpload" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;font-weight:600"><span class="siren-icon-wrap" data-icon="upload"></span> 이미지 추가</button>
       <button type="button" class="btn btn-sm" id="btnResetJobImages" style="background:#fff7ed;border-color:#fdba74;color:#9a3412">↺ 템플릿 원본으로 되돌리기</button>
       <span id="jobImageUploadStatus" style="font-size:12.5px;color:#6b7280"></span>
     </div>
@@ -291,19 +292,19 @@ body {
   <!-- ★ 2026-05-17: 발송 미리보기 (채널별 탭) -->
   <div class="card" id="sendPreviewCard" style="display:none">
     <div class="card-title">
-      👁️ 발송 미리보기 <span class="badge-tip">실제 수신자에게 보일 모습</span>
+      <span class="siren-icon-wrap" data-icon="eye"></span> 발송 미리보기 <span class="badge-tip">실제 수신자에게 보일 모습</span>
     </div>
     <p class="form-hint" style="margin-bottom:10px">
       변수는 첫 수신자의 데이터로 치환되며, 이미지의 위치·크기·정렬이 그대로 반영됩니다.
     </p>
-    <button type="button" class="btn btn-sm" id="btnSendPreview" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;font-weight:600">🔍 미리보기 새로고침</button>
+    <button type="button" class="btn btn-sm" id="btnSendPreview" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;font-weight:600"><span class="siren-icon-wrap" data-icon="search"></span> 미리보기 새로고침</button>
 
     <!-- 채널 탭 바 -->
     <div id="previewTabBar" style="display:flex;gap:0;margin-top:14px;border-bottom:2px solid #e2e8f0">
-      <button type="button" class="preview-tab" data-tab="email" style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">📧 이메일</button>
-      <button type="button" class="preview-tab" data-tab="sms"   style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">📱 SMS</button>
-      <button type="button" class="preview-tab" data-tab="kakao" style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">💬 카카오</button>
-      <button type="button" class="preview-tab" data-tab="inapp" style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">🔔 인앱</button>
+      <button type="button" class="preview-tab" data-tab="email" style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px"><span class="siren-icon-wrap" data-icon="mail"></span> 이메일</button>
+      <button type="button" class="preview-tab" data-tab="sms"   style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px"><span class="siren-icon-wrap" data-icon="smartphone"></span> SMS</button>
+      <button type="button" class="preview-tab" data-tab="kakao" style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px"><span class="siren-icon-wrap" data-icon="message-circle"></span> 카카오</button>
+      <button type="button" class="preview-tab" data-tab="inapp" style="padding:8px 18px;border:none;background:none;font-size:0.875rem;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px"><span class="siren-icon-wrap" data-icon="bell"></span> 인앱</button>
     </div>
 
     <!-- 채널별 콘텐츠 -->
@@ -343,7 +344,7 @@ body {
 <div id="filePickerModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:12px;width:min(640px,94vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0">
-      <div style="font-size:1rem;font-weight:700;color:#1e293b">📁 파일함에서 선택</div>
+      <div style="font-size:1rem;font-weight:700;color:#1e293b"><span class="siren-icon-wrap" data-icon="folder"></span> 파일함에서 선택</div>
       <button type="button" id="btnFilePickerClose" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b;padding:4px 8px">✕</button>
     </div>
     <div style="padding:12px 20px;border-bottom:1px solid #f1f5f9">
@@ -360,6 +361,6 @@ body {
 </div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-send-job-create.js?v=20260519kst"></script>
+<script src="/js/admin-send-job-create.js?v=20260520kst"></script>
 </body>
 </html>

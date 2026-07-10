@@ -43,11 +43,11 @@
   };
 
   const PRIORITY_ICON = {
-    urgent: '🔴',
-    high: '🟠',
-    medium: '🟡',
-    low: '🟢',
-    normal: '⚪'
+    urgent: '',
+    high: '',
+    medium: '',
+    low: '',
+    normal: ''
   };
 
   const STATUS_LABEL = {
@@ -126,11 +126,11 @@
       const diffMs = d - now;
       const diffDays = Math.floor(diffMs / 86400000);
       const label = fmtDate(isoStr);
-      if (diffDays < 0) return `<span class="ws-due-overdue">⏰ ${label} (${Math.abs(diffDays)}일 지남)</span>`;
-      if (diffDays === 0) return `<span class="ws-due-today">📅 오늘 마감</span>`;
-      if (diffDays === 1) return `<span class="ws-due-tomorrow">📅 내일 마감</span>`;
-      if (diffDays <= 7) return `<span class="ws-due-soon">📅 ${label} (D-${diffDays})</span>`;
-      return `<span class="ws-due-later">📅 ${label}</span>`;
+      if (diffDays < 0) return `<span class="ws-due-overdue">${label} (${Math.abs(diffDays)}일 지남)</span>`;
+      if (diffDays === 0) return `<span class="ws-due-today">오늘 마감</span>`;
+      if (diffDays === 1) return `<span class="ws-due-tomorrow">내일 마감</span>`;
+      if (diffDays <= 7) return `<span class="ws-due-soon">${label} (D-${diffDays})</span>`;
+      return `<span class="ws-due-later">${label}</span>`;
     } catch { return ''; }
   }
 
@@ -152,10 +152,10 @@
 
   function getGreeting() {
     const h = new Date().getHours();
-    if (h < 6) return '늦은 밤이에요 🌙';
-    if (h < 12) return '좋은 아침이에요 ☀️';
-    if (h < 18) return '오늘도 힘내세요 💪';
-    return '수고하셨어요 🌆';
+    if (h < 6) return '늦은 밤이에요 ';
+    if (h < 12) return '좋은 아침이에요 ';
+    if (h < 18) return '오늘도 힘내세요 ';
+    return '수고하셨어요 ';
   }
 
   async function apiGet(url) {
@@ -324,12 +324,12 @@
       items = items.filter(t => t.status === STATE.filterTaskStatus);
     }
     if (!items.length) {
-      ul.innerHTML = '<li class="ws-empty">✅ 작업이 없습니다</li>';
+      ul.innerHTML = '<li class="ws-empty">작업이 없습니다</li>';
       return;
     }
     ul.innerHTML = items.map(t => `
       <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}">
-        <span class="ws-task-priority">${PRIORITY_ICON[t.priority] || '⚪'}</span>
+        <span class="ws-task-priority">${PRIORITY_ICON[t.priority] || ''}</span>
         <div class="ws-task-body">
           <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
           <div class="ws-task-meta">
@@ -354,16 +354,16 @@
     const items = STATE.inboxTasks.filter(t => t.status === 'todo');
     if (badge) badge.textContent = items.length;
     if (!items.length) {
-      ul.innerHTML = '<li class="ws-empty">📭 받은 지시가 없습니다</li>';
+      ul.innerHTML = '<li class="ws-empty">받은 지시가 없습니다</li>';
       return;
     }
     ul.innerHTML = items.map(t => `
       <li class="ws-task-card ws-inbox-card" data-id="${t.id}">
-        <span class="ws-task-priority">${PRIORITY_ICON[t.priority] || '⚪'}</span>
+        <span class="ws-task-priority">${PRIORITY_ICON[t.priority] || ''}</span>
         <div class="ws-task-body">
           <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
           <div class="ws-task-meta">
-            ${t.assignedByName ? `<span class="ws-task-from">📤 ${escapeHtml(t.assignedByName)}</span>` : ''}
+            ${t.assignedByName ? `<span class="ws-task-from">${escapeHtml(t.assignedByName)}</span>` : ''}
             ${fmtDueDate(t.dueDate)}
           </div>
         </div>
@@ -380,7 +380,7 @@
     const ul = $('#wsEventList');
     if (!ul) return;
     if (!items.length) {
-      ul.innerHTML = '<li class="ws-empty">📅 이번 주 일정이 없습니다</li>';
+      ul.innerHTML = '<li class="ws-empty">이번 주 일정이 없습니다</li>';
       return;
     }
     // 날짜별 그룹
@@ -399,7 +399,7 @@
             <li class="ws-event-item" data-id="${ev.id}">
               <span class="ws-event-time">${fmtDateTime(ev.startAt).split(' ')[1] || ''}</span>
               <span class="ws-event-title">${escapeHtml(ev.title || '(제목 없음)')}</span>
-              ${ev.location ? `<span class="ws-event-location">📍 ${escapeHtml(ev.location)}</span>` : ''}
+              ${ev.location ? `<span class="ws-event-location">${escapeHtml(ev.location)}</span>` : ''}
             </li>
           `).join('')}
         </ul>
@@ -416,7 +416,7 @@
     const grid = $('#wsMemoGrid');
     if (!grid) return;
     if (!items.length) {
-      grid.innerHTML = '<div class="ws-empty">📝 메모가 없습니다</div>';
+      grid.innerHTML = '<div class="ws-empty">메모가 없습니다</div>';
       return;
     }
     grid.innerHTML = items.slice(0, 12).map(m => {
@@ -424,7 +424,7 @@
       const plain = String(m.contentHtml || m.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       return `
       <div class="ws-memo-card" data-id="${m.id}" style="background-color: ${escapeHtml(m.color || '#fff9c4')}">
-        ${m.isPinned ? '<span class="ws-memo-pin">📌</span>' : ''}
+        ${m.isPinned ? '<span class="ws-memo-pin"></span>' : ''}
         ${m.title ? `<div class="ws-memo-title">${escapeHtml(m.title)}</div>` : ''}
         <div class="ws-memo-content">${escapeHtml(plain.slice(0, 150))}${plain.length > 150 ? '…' : ''}</div>
         <div class="ws-memo-meta">${fmtDate(m.updatedAt || m.createdAt)}</div>
@@ -919,7 +919,7 @@
       }
       treeEl.innerHTML = roots.map(f =>
         `<li data-folder-id="${f.id}">
-          <span class="ws-file-icon">📁</span>
+          <span class="ws-file-icon"></span>
           <span class="ws-file-name">${escapeHtml(f.name)}</span>
         </li>`
       ).join('');
@@ -944,7 +944,7 @@
       }
       recentEl.innerHTML = items.slice(0, 10).map(f =>
         `<li data-file-id="${f.id}">
-          <span class="ws-file-icon">📄</span>
+          <span class="ws-file-icon"></span>
           <span class="ws-file-name">${escapeHtml(f.name)}</span>
           <span class="ws-file-meta">${formatSize(f.sizeBytes)}</span>
         </li>`
@@ -1051,10 +1051,10 @@
     const sections = [];
     if (taskList.length) {
       sections.push(`<div class="ws-search-section">
-        <div class="ws-search-section-title">📋 작업 (${taskList.length})</div>
+        <div class="ws-search-section-title">작업 (${taskList.length})</div>
         ${taskList.slice(0, 8).map(t => `
           <div class="ws-search-item" data-href="/workspace-kanban.html#task=${t.id}">
-            <span class="ws-search-item-icon">${t.priority === 'urgent' ? '🔴' : t.priority === 'high' ? '🟠' : t.priority === 'low' ? '⚪' : '🟢'}</span>
+            <span class="ws-search-item-icon">${t.priority === 'urgent' ? '' : t.priority === 'high' ? '' : t.priority === 'low' ? '' : ''}</span>
             <span class="ws-search-item-title">${escapeHtml(t.title || '')}</span>
             <span class="ws-search-item-meta">${escapeHtml(t.status || '')}</span>
           </div>
@@ -1063,22 +1063,22 @@
     }
     if (memoList.length) {
       sections.push(`<div class="ws-search-section">
-        <div class="ws-search-section-title">📝 메모 (${memoList.length})</div>
+        <div class="ws-search-section-title">메모 (${memoList.length})</div>
         ${memoList.slice(0, 5).map(m => `
           <div class="ws-search-item" data-href="/workspace.html#memos">
-            <span class="ws-search-item-icon">📝</span>
+            <span class="ws-search-item-icon"></span>
             <span class="ws-search-item-title">${escapeHtml((m.title || '(제목 없음)').slice(0, 80))}</span>
-            <span class="ws-search-item-meta">${m.isPinned ? '📌' : ''}</span>
+            <span class="ws-search-item-meta">${m.isPinned ? '' : ''}</span>
           </div>
         `).join('')}
       </div>`);
     }
     if (fileList.length) {
       sections.push(`<div class="ws-search-section">
-        <div class="ws-search-section-title">📎 파일 (${fileList.length})</div>
+        <div class="ws-search-section-title">파일 (${fileList.length})</div>
         ${fileList.slice(0, 8).map(f => `
           <div class="ws-search-item" data-href="/workspace-files.html?search=${encodeURIComponent(q)}">
-            <span class="ws-search-item-icon">📄</span>
+            <span class="ws-search-item-icon"></span>
             <span class="ws-search-item-title">${escapeHtml(f.name || '')}</span>
             <span class="ws-search-item-meta">${escapeHtml(formatSize(f.sizeBytes))}</span>
           </div>
@@ -1137,11 +1137,11 @@
   if (!wrap || !cards) return;
 
   const STATUS_LABEL = {
-    todo: '📋 준비중',
-    doing: '🔄 진행중',
-    blocked: '⏸ 보류',
-    done: '✅ 완료',
-    archived: '📦 보관',
+    todo: '준비중',
+    doing: '진행중',
+    blocked: '보류',
+    done: '완료',
+    archived: '보관',
   };
   const PRIORITY_RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
 
@@ -1200,8 +1200,8 @@
   <span class="ws-priority-card-status">${STATUS_LABEL[t.status] || t.status}</span>
   <div class="ws-priority-card-title">${escapeHtml(t.title || '제목 없음')}</div>
   <div class="ws-priority-card-meta">
-    ${t.dueDate ? `<span class="${dueClass(t.dueDate)}">📅 ${escapeHtml(formatDue(t.dueDate))}</span>` : ''}
-    ${t.assignedBy ? '<span title="지시받음">📥</span>' : ''}
+    ${t.dueDate ? `<span class="${dueClass(t.dueDate)}">${escapeHtml(formatDue(t.dueDate))}</span>` : ''}
+    ${t.assignedBy ? '<span title="지시받음"></span>' : ''}
   </div>
 </div>`).join('');
 
@@ -1250,7 +1250,7 @@
         return;
       }
       const items = [
-        ...alerts.map(a => `<li class="ws-ai-item ws-ai-alert ws-ai-${escapeHtml(a.severity || 'medium')}">⚠️ ${escapeHtml(a.message || '')}</li>`),
+        ...alerts.map(a => `<li class="ws-ai-item ws-ai-alert ws-ai-${escapeHtml(a.severity || 'medium')}">${escapeHtml(a.message || '')}</li>`),
         ...suggestions.map(s => `<li class="ws-ai-item ws-ai-${escapeHtml(s.severity || 'medium')}"><strong>${escapeHtml(s.title || '')}</strong>${s.reason ? ` <span class="ws-ai-reason">— ${escapeHtml(s.reason)}</span>` : ''}</li>`)
       ];
       list.innerHTML = items.join('');
@@ -1328,7 +1328,7 @@
       const items = Array.isArray(data.items) ? data.items : [];
       if (badge) badge.textContent = String(items.length);
       if (!items.length) {
-        ul.innerHTML = '<li class="ws-empty">📤 할당한 작업이 없습니다</li>';
+        ul.innerHTML = '<li class="ws-empty">할당한 작업이 없습니다</li>';
         return;
       }
       ul.innerHTML = items.map(t => {
@@ -1336,7 +1336,7 @@
         const assigneeName = t.assignedToName || t.assigneeName;
         return `
         <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}">
-          <span class="ws-task-priority">${t.priority === 'urgent' ? '🔴' : t.priority === 'high' ? '🟠' : t.priority === 'low' ? '⚪' : '🟢'}</span>
+          <span class="ws-task-priority">${t.priority === 'urgent' ? '' : t.priority === 'high' ? '' : t.priority === 'low' ? '' : ''}</span>
           <div class="ws-task-body">
             <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
             <div class="ws-task-meta">
@@ -1371,14 +1371,14 @@
       const items = Array.isArray(data.items) ? data.items : [];
       if (badge) badge.textContent = String(items.length);
       if (!items.length) {
-        ul.innerHTML = '<li class="ws-empty">✅ 미할당 카드가 없습니다</li>';
+        ul.innerHTML = '<li class="ws-empty">미할당 카드가 없습니다</li>';
         return;
       }
       ul.innerHTML = items.map(t => {
         const sourceKind = t.sourceType || t.sourceServiceKind;
         return `
         <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}">
-          <span class="ws-task-priority">🚨</span>
+          <span class="ws-task-priority"></span>
           <div class="ws-task-body">
             <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
             <div class="ws-task-meta">

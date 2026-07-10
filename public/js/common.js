@@ -479,7 +479,7 @@
       'font-family:-apple-system,"Noto Sans KR",sans-serif', 'line-height:1.5',
     ].join(';');
     banner.innerHTML =
-      '📝 <strong>Draft 미리보기 모드</strong> — 어드민에서 임시저장한 변경사항이 표시됩니다 ' +
+      '<strong>Draft 미리보기 모드</strong> — 어드민에서 임시저장한 변경사항이 표시됩니다 ' +
       '<span style="opacity:0.7;font-weight:400">(일반 사용자에게는 보이지 않음)</span>';
 
     document.body.appendChild(banner);

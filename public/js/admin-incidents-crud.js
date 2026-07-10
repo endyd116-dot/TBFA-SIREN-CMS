@@ -25,7 +25,7 @@
     return { status: res.status, ok: res.ok && data.ok !== false, data };
   }
 
-  const CAT_LABEL = { school: '🏫 학교', public: '🌐 공개', other: '📌 기타' };
+  const CAT_LABEL = { school: '학교', public: '공개', other: '기타' };
 
   async function loadPosts() {
     const tbody = document.getElementById('icPostsTableBody');
@@ -57,8 +57,8 @@
         <td>${statusBadge}</td>
         <td>
           <div style="display:flex;gap:4px">
-            <button type="button" class="btn-sm btn-sm-ghost" data-ic-edit="${i.id}" style="font-size:11px;padding:4px 10px">✏️ 수정</button>
-            <button type="button" class="btn-sm btn-sm-ghost" data-ic-delete="${i.id}" data-title="${esc(i.title)}" style="font-size:11px;padding:4px 10px;color:var(--danger);border-color:#f5b5bb">🗑 삭제</button>
+            <button type="button" class="btn-sm btn-sm-ghost" data-ic-edit="${i.id}" style="font-size:11px;padding:4px 10px">수정</button>
+            <button type="button" class="btn-sm btn-sm-ghost" data-ic-delete="${i.id}" data-title="${esc(i.title)}" style="font-size:11px;padding:4px 10px;color:var(--danger);border-color:#f5b5bb">삭제</button>
           </div>
         </td>
       </tr>`;
@@ -66,7 +66,7 @@
   }
 
   async function openEditModal(id) {
-    const title = id ? '✏️ 사건 수정' : '🏫 새 사건 등록';
+    const title = id ? '사건 수정' : '새 사건 등록';
     let data = { title: '', slug: '', summary: '', contentHtml: '', category: 'school', location: '', occurredAt: '', status: 'active', sortOrder: 0 };
 
     if (id) {
@@ -89,21 +89,21 @@
           <div class="fg"><label>본문 HTML</label><textarea id="icContentHtml" rows="8" maxlength="100000">${esc(data.contentHtml || '')}</textarea></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
             <div class="fg" style="margin:0"><label>분류</label>
-              <select id="icCategory"><option value="school" ${data.category==='school'?'selected':''}>🏫 학교</option><option value="public" ${data.category==='public'?'selected':''}>🌐 공개</option><option value="other" ${data.category==='other'?'selected':''}>📌 기타</option></select>
+              <select id="icCategory"><option value="school" ${data.category==='school'?'selected':''}>학교</option><option value="public" ${data.category==='public'?'selected':''}>공개</option><option value="other" ${data.category==='other'?'selected':''}>기타</option></select>
             </div>
             <div class="fg" style="margin:0"><label>발생일</label><input type="date" id="icOccurredAt" value="${data.occurredAt ? new Date(data.occurredAt).toISOString().slice(0,10) : ''}"></div>
             <div class="fg" style="margin:0"><label>지역</label><input type="text" id="icLocation" maxlength="200" value="${esc(data.location || '')}"></div>
           </div>
           <div style="display:flex;gap:14px;margin-bottom:14px">
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer">
-              <input type="radio" name="icStatus" value="active" ${data.status==='active'?'checked':''}> 🟢 활성
+              <input type="radio" name="icStatus" value="active" ${data.status==='active'?'checked':''}> 활성
             </label>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer">
-              <input type="radio" name="icStatus" value="inactive" ${data.status!=='active'?'checked':''}> ⚪ 비활성
+              <input type="radio" name="icStatus" value="inactive" ${data.status!=='active'?'checked':''}> 비활성
             </label>
           </div>
           <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="submit" class="btn btn-primary" style="flex:1">저장</button>
             <button type="button" id="icModalCancel" class="btn btn-outline" style="padding:11px 20px">취소</button>
           </div>
         </form>
@@ -199,7 +199,7 @@
         e.preventDefault();
         const id = Number(delBtn.dataset.icDelete);
         const title = delBtn.dataset.title || '';
-        if (!confirm(`"${title}" 사건을 삭제하시겠습니까?\n\n⚠️ 관련 제보와 댓글도 모두 삭제됩니다.`)) return;
+        if (!confirm(`"${title}" 사건을 삭제하시겠습니까?\n\n관련 제보와 댓글도 모두 삭제됩니다.`)) return;
 
         const res = await api('/api/admin/incidents-crud?id=' + id, { method: 'DELETE' });
         if (res.ok) { toast('삭제되었습니다'); loadPosts(); }

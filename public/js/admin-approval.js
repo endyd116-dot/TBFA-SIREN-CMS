@@ -67,9 +67,9 @@
           <div class="p-actions"><button class="btn-sm btn-sm-primary" id="apNewBtn" type="button">+ 지출 결재 올리기</button></div>
         </div>
         <div style="display:flex;gap:8px;margin:6px 0 12px">
-          <button class="btn-sm apTab" data-box="inbox" type="button">📥 결재 대기</button>
-          <button class="btn-sm btn-sm-ghost apTab" data-box="drafts" type="button">📝 내 기안</button>
-          <button class="btn-sm btn-sm-ghost apTab" data-box="all" type="button">📚 전체</button>
+          <button class="btn-sm apTab" data-box="inbox" type="button">결재 대기</button>
+          <button class="btn-sm btn-sm-ghost apTab" data-box="drafts" type="button">내 기안</button>
+          <button class="btn-sm btn-sm-ghost apTab" data-box="all" type="button">전체</button>
         </div>
         <div id="apListBody"></div>
       </div>
@@ -101,7 +101,7 @@
             <div style="font-weight:700;font-size:14px">${esc(r.title)} ${statusBadge(r.status)}</div>
             <div style="font-size:12px;color:var(--text-2);margin-top:3px">
               ${esc(r.requestNo || '')} · <strong>${fmtKRW(r.amount)}</strong> · ${esc(r.budgetAccountName || '예산 미지정')}
-              ${r.boardRequired ? ' · <span style="color:#b45309">🏛 이사회 안건</span>' : ''}
+              ${r.boardRequired ? ' · <span style="color:#b45309">이사회 안건</span>' : ''}
             </div>
             <div style="font-size:12px;color:var(--text-3);margin-top:3px">
               기안 ${esc(r.drafterName || '')} · 결재선 ${esc(stepsLabel(steps))} ${r.status === 'pending' ? `(현재: ${curRole})` : ''}
@@ -181,7 +181,7 @@
     m.id = 'apModal';
     const stepRows = steps.map(s => `<tr>
       <td>${ROLE_LABEL[s.role] || s.role}</td>
-      <td>${s.decision === 'approved' ? '✅ 승인' : s.decision === 'rejected' ? '❌ 반려' : '⏳ 대기'}</td>
+      <td>${s.decision === 'approved' ? '승인' : s.decision === 'rejected' ? '반려' : '대기'}</td>
       <td>${esc(s.decidedByName || '—')}</td>
       <td style="font-size:12px;color:var(--text-3)">${esc(s.comment || '')}</td>
       <td style="font-size:11px;color:var(--text-3)">${fmtDate(s.decidedAt)}</td>
@@ -198,7 +198,7 @@
             </div>
             <div style="font-size:13px;color:var(--text-2);margin-bottom:6px">기안 ${esc(r.drafterName || '')} · ${fmtDate(r.createdAt)} · 지급처 ${esc(r.payeeName || '—')}</div>
             ${r.description ? `<div style="background:#f9fafb;border-radius:8px;padding:10px;font-size:13px;margin-bottom:10px;white-space:pre-wrap">${esc(r.description)}</div>` : ''}
-            ${r.resolutionNo ? `<div style="color:#059669;font-weight:600;font-size:13px;margin-bottom:8px">🧾 지출결의서 ${esc(r.resolutionNo)} 발행됨</div>` : ''}
+            ${r.resolutionNo ? `<div style="color:#059669;font-weight:600;font-size:13px;margin-bottom:8px">지출결의서 ${esc(r.resolutionNo)} 발행됨</div>` : ''}
             <table class="data-table" style="width:100%"><thead><tr><th>결재</th><th>결과</th><th>결재자</th><th>의견</th><th>일시</th></tr></thead><tbody>${stepRows}</tbody></table>
           </div>
         </div>
@@ -243,7 +243,7 @@
         <td>${esc(l.name)}</td>
         <td class="num">${fmtKRW(l.minAmount)} ~ ${l.maxAmount == null ? '무제한' : fmtKRW(l.maxAmount)}</td>
         <td>${esc(stepsLabel(l.steps))}</td>
-        <td>${l.boardRequired ? '🏛' : '—'}</td>
+        <td>${l.boardRequired ? '' : '—'}</td>
         <td>${l.isActive ? '<span style="color:#059669">활성</span>' : '<span style="color:#9ca3af">비활성</span>'}</td>
       </tr>`).join('')}</tbody>
     </table>
@@ -300,7 +300,7 @@
       <tbody>${list.map(r => `<tr>
         <td><b>${esc(r.resolutionNo)}</b></td><td>${esc(r.title)}</td><td class="num">${fmtKRW(r.amount)}</td>
         <td>${esc(r.budgetAccountName || '—')}</td><td>${fmtDate(r.decidedAt || r.createdAt)}</td>
-        <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">📄 발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">🖨 인쇄</button></td>
+        <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">인쇄</button></td>
       </tr>`).join('')}</tbody></table>`;
   }
   async function printResolution(id) {

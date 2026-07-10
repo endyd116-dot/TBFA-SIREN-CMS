@@ -40,7 +40,7 @@
     'padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;' +
     'background:#f9fafb;color:#9ca3af;border:1px solid #e5e7eb;transition:all .15s';
   btn.innerHTML =
-    '<span id="attQuickIcon">⏳</span><span id="attQuickLabel">확인 중...</span>';
+    '<span id="attQuickIcon"></span><span id="attQuickLabel">확인 중...</span>';
   wrap.appendChild(btn);
 
   /* 문 열기 버튼 — 근무 중일 때만 노출(잠깐 나갔다 올 때) */
@@ -51,7 +51,7 @@
     'display:none;align-items:center;gap:6px;width:100%;justify-content:center;margin-top:6px;' +
     'padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;' +
     'background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;transition:all .15s';
-  doorBtn.innerHTML = '<span>🚪</span><span>문 열기</span>';
+  doorBtn.innerHTML = '<span></span><span>문 열기</span>';
   wrap.appendChild(doorBtn);
 
   container.insertAdjacentElement('afterend', wrap);
@@ -61,9 +61,9 @@
   /* 출퇴근/문열기 응답의 door 결과 → 안내 문구 */
   function doorMsg(door) {
     if (!door) return '';
-    if (door.ok && door.sim) return ' · 🚪 문 열림(시뮬레이션)';
-    if (door.ok) return ' · 🚪 문이 열렸습니다';
-    return ' · ⚠️ 문 열림 실패';
+    if (door.ok && door.sim) return ' · 문 열림(시뮬레이션)';
+    if (door.ok) return ' · 문이 열렸습니다';
+    return ' · 문 열림 실패';
   }
 
   /* 수동 문 열기 */
@@ -77,9 +77,9 @@
       var data = null; try { data = await res.json(); } catch (_) {}
       if (!res.ok) throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
       var d = (data && data.data) || {};
-      if (d.ok && d.sim) toast('🚪 문 열림(시뮬레이션 — 장치 연결 전)');
-      else if (d.ok) toast('🚪 문이 열렸습니다');
-      else toast('⚠️ 문 열림 실패 — 관리자에게 문의하세요', 5000);
+      if (d.ok && d.sim) toast('문 열림(시뮬레이션 — 장치 연결 전)');
+      else if (d.ok) toast('문이 열렸습니다');
+      else toast('문 열림 실패 — 관리자에게 문의하세요', 5000);
     } catch (e) {
       toast('문 열기 실패: ' + e.message, 5000);
     } finally { doorBtn.disabled = false; }
@@ -172,20 +172,20 @@
     /* 문 열기 버튼: 근무 중(출근 O·퇴근 X)일 때만 노출 */
     if (doorBtn) doorBtn.style.display = (rec && rec.checkinAt && !rec.checkoutAt) ? 'inline-flex' : 'none';
     if (!rec || !rec.checkinAt) {
-      setBtn('checkin-ready', { icon: '🟢', label: '출근', title: '출근하기' });
+      setBtn('checkin-ready', { icon: '', label: '출근', title: '출근하기' });
       return;
     }
     if (rec.checkoutAt) {
-      setBtn('done', { icon: '✅', label: '퇴근 완료 (' + fmtTime(rec.checkoutAt) + ')', title: '재출근하려면 새로고침', disabled: true });
+      setBtn('done', { icon: '', label: '퇴근 완료 (' + fmtTime(rec.checkoutAt) + ')', title: '재출근하려면 새로고침', disabled: true });
       return;
     }
-    setBtn('checkout-ready', { icon: '🔴', label: '퇴근 (' + fmtTime(rec.checkinAt) + ' 출근)', title: '퇴근하기' });
+    setBtn('checkout-ready', { icon: '', label: '퇴근 (' + fmtTime(rec.checkinAt) + ' 출근)', title: '퇴근하기' });
   }
 
   async function doCheckin() {
     if (state.busy) return;
     state.busy = true;
-    setBtn('loading', { icon: '⏳', label: '위치 확인 중...', disabled: true });
+    setBtn('loading', { icon: '', label: '위치 확인 중...', disabled: true });
     try {
       var pos = await geo();
       var res = await fetch('/api/att-checkin', {
@@ -204,7 +204,7 @@
         throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
       }
       var cin = (data && data.data) || {};
-      toast('✅ 출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg(cin.door));
+      toast('출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg(cin.door));
       applyTodayState(await fetchToday());
     } catch (e) {
       toast('출근 실패: ' + e.message, 6000);
@@ -216,7 +216,7 @@
     if (state.busy) return;
     if (!confirm('퇴근하시겠습니까?\n(퇴근 후 재출근하려면 페이지를 새로고침해야 합니다)')) return;
     state.busy = true;
-    setBtn('loading', { icon: '⏳', label: '위치 확인 중...', disabled: true });
+    setBtn('loading', { icon: '', label: '위치 확인 중...', disabled: true });
     try {
       var pos = await geo();
       var res = await fetch('/api/att-checkout', {
@@ -228,7 +228,7 @@
       try { data = await res.json(); } catch (_) {}
       if (!res.ok) throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
       var cout = (data && data.data) || {};
-      toast('🔴 퇴근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg(cout.door));
+      toast('퇴근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg(cout.door));
       applyTodayState(await fetchToday());
     } catch (e) {
       toast('퇴근 실패: ' + e.message, 6000);

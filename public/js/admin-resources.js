@@ -11,9 +11,9 @@
   let _categoriesCache = null;
 
   const ACCESS_LABEL = {
-    public: '<span style="background:#e7f7ec;color:#1a5e2c;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">🌐 공개</span>',
-    members_only: '<span style="background:#fef9f5;color:#7a1f2b;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">🔐 회원</span>',
-    private: '<span style="background:#fdecec;color:#a01e2c;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">🚫 비공개</span>',
+    public: '<span style="background:#e7f7ec;color:#1a5e2c;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">공개</span>',
+    members_only: '<span style="background:#fef9f5;color:#7a1f2b;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">회원</span>',
+    private: '<span style="background:#fdecec;color:#a01e2c;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600">비공개</span>',
   };
 
   /* ────────── 공통 헬퍼 ────────── */
@@ -110,11 +110,11 @@
         ? '<span style="color:#1a8b46;font-size:16px" title="공개">●</span>'
         : '<span style="color:var(--text-3);font-size:16px" title="비공개">○</span>';
       const fileBadge = r.fileBlobId
-        ? '<span style="font-size:12px" title="파일 첨부됨">📎</span>'
+        ? '<span style="font-size:12px" title="파일 첨부됨"></span>'
         : '';
 
       return '<tr>' +
-        '<td style="text-align:center;font-size:14px">' + (r.isPinned ? '📌' : '') + '</td>' +
+        '<td style="text-align:center;font-size:14px">' + (r.isPinned ? '' : '') + '</td>' +
         '<td style="font-size:11.5px;white-space:nowrap">' + catBadge + '</td>' +
         '<td>' +
           '<div><strong>' + escapeHtml(r.title) + '</strong> ' + fileBadge + '</div>' +
@@ -128,8 +128,8 @@
         '<td style="text-align:right;font-family:Inter;font-size:11.5px">' + (r.views || 0).toLocaleString() + '</td>' +
         '<td style="font-size:11px">' + (r.publishedAt ? new Date(r.publishedAt).toISOString().slice(0, 10) : '-') + '</td>' +
         '<td>' +
-          '<button type="button" class="btn-sm btn-sm-ghost" data-rs-act="edit" data-id="' + r.id + '" style="font-size:11px">✏️ 수정</button>' +
-          '<button type="button" class="btn-sm btn-sm-ghost" data-rs-act="delete" data-id="' + r.id + '" data-title="' + escapeHtml(r.title) + '" style="font-size:11px;color:var(--danger)">🗑</button>' +
+          '<button type="button" class="btn-sm btn-sm-ghost" data-rs-act="edit" data-id="' + r.id + '" style="font-size:11px">수정</button>' +
+          '<button type="button" class="btn-sm btn-sm-ghost" data-rs-act="delete" data-id="' + r.id + '" data-title="' + escapeHtml(r.title) + '" style="font-size:11px;color:var(--danger)"></button>' +
         '</td>' +
       '</tr>';
     }).join('');
@@ -167,7 +167,7 @@
     if (statusEl) statusEl.textContent = '미선택';
 
     if (!id) {
-      if (titleEl) titleEl.textContent = '📁 새 자료';
+      if (titleEl) titleEl.textContent = '새 자료';
       if (deleteBtn) deleteBtn.style.display = 'none';
       modal.classList.add('show');
       setTimeout(function () {
@@ -177,7 +177,7 @@
       return;
     }
 
-    if (titleEl) titleEl.textContent = '✏️ 자료 수정';
+    if (titleEl) titleEl.textContent = '자료 수정';
     if (deleteBtn) deleteBtn.style.display = '';
     modal.classList.add('show');
 
@@ -314,7 +314,7 @@
 
     const headerHtml =
       '<div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">' +
-        '<p style="margin:0;font-size:12.5px;color:var(--text-3)">💡 자료 카테고리를 추가/수정/삭제할 수 있습니다.</p>' +
+        '<p style="margin:0;font-size:12.5px;color:var(--text-3)">자료 카테고리를 추가/수정/삭제할 수 있습니다.</p>' +
         '<button type="button" class="btn-sm btn-sm-primary" id="rsCatAddBtn">+ 새 카테고리</button>' +
       '</div>';
 

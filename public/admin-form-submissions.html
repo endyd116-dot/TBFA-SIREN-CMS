@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>응답 조회 | SIREN 어드민</title>
@@ -41,7 +42,7 @@
       <p class="desc">총 <b id="totalCount">0</b>건의 응답</p>
       <div class="public-url" id="publicUrl"></div>
     </div>
-    <button class="btn btn-primary" onclick="downloadCsv()">📥 CSV 다운로드</button>
+    <button class="btn btn-primary" onclick="downloadCsv()"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV 다운로드</button>
   </div>
 
   <div id="tableWrap">
@@ -68,7 +69,7 @@ async function load() {
 }
 
 function render() {
-  document.getElementById("formTitle").textContent = `📋 ${_data.form.title} — 응답 조회`;
+  document.getElementById("formTitle").textContent = `${_data.form.title} — 응답 조회`;
   document.getElementById("totalCount").textContent = _data.total;
   document.getElementById("publicUrl").innerHTML = `공개 URL: <a href="/form.html?slug=${_data.form.slug}" target="_blank">tbfa.co.kr/form.html?slug=${esc(_data.form.slug)}</a>`;
 
@@ -94,7 +95,7 @@ function render() {
           const txt = Array.isArray(v) ? v.join(', ') : (v == null ? '—' : String(v));
           return `<td>${esc(txt)}</td>`;
         }).join('')}
-        <td class="meta-cell"><button class="btn-danger" onclick="deleteSubmission(${s.id})">🗑 삭제</button></td>
+        <td class="meta-cell"><button class="btn-danger" onclick="deleteSubmission(${s.id})">삭제</button></td>
       </tr>`).join('')}
     </tbody>
   </table>`;
@@ -126,7 +127,7 @@ async function deleteSubmission(submissionId) {
     }
     if (!resOk) {
       alert('삭제 실패: ' + ((data && data.error) || '서버 오류'));
-      if (btn) { btn.disabled = false; btn.textContent = '🗑 삭제'; }
+      if (btn) { btn.disabled = false; btn.textContent = '삭제'; }
       return;
     }
     // 응답 목록·총계 갱신
@@ -143,7 +144,7 @@ async function deleteSubmission(submissionId) {
     alert('응답이 삭제되었습니다.');
   } catch (err) {
     alert('삭제 실패: ' + err.message);
-    if (btn) { btn.disabled = false; btn.textContent = '🗑 삭제'; }
+    if (btn) { btn.disabled = false; btn.textContent = '삭제'; }
   }
 }
 

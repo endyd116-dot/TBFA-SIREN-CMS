@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>내 구독 관리 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -181,7 +182,7 @@
   <main>
     <section class="page-hero">
       <div class="container">
-        <h1>🔔 내 구독 관리</h1>
+        <h1><span class="siren-icon-wrap" data-icon="bell"></span> 내 구독 관리</h1>
         <p>구독 중인 게시글과 새 알림을 관리하세요</p>
       </div>
     </section>
@@ -195,8 +196,8 @@
         <div class="sub-wrap">
 
           <div class="sub-tabs">
-            <button class="sub-tab active" data-tab="posts">📋 구독 게시글</button>
-            <button class="sub-tab" data-tab="notifications">🔔 새 알림</button>
+            <button class="sub-tab active" data-tab="posts"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 구독 게시글</button>
+            <button class="sub-tab" data-tab="notifications"><span class="siren-icon-wrap" data-icon="bell"></span> 새 알림</button>
           </div>
 
           <!-- 구독 게시글 탭 -->
@@ -208,7 +209,7 @@
               </div>
             </div>
             <div id="subPostsList" class="sub-list">
-              <div class="sub-empty"><div class="icon">📭</div>로딩 중...</div>
+              <div class="sub-empty"><div class="icon"><span class="siren-icon-wrap" data-icon="mailbox"></span></div>로딩 중...</div>
             </div>
             <div id="subPostsPagination" style="display:none;margin-top:16px"></div>
           </div>
@@ -222,10 +223,10 @@
               </div>
             </div>
             <div class="sub-bulk-bar">
-              <button onclick="markAllRead()">✅ 전체 읽음 처리</button>
+              <button onclick="markAllRead()"><span class="siren-icon-wrap" data-icon="circle-check"></span> 전체 읽음 처리</button>
             </div>
             <div id="subNotifList" class="sub-list">
-              <div class="sub-empty"><div class="icon">📭</div>로딩 중...</div>
+              <div class="sub-empty"><div class="icon"><span class="siren-icon-wrap" data-icon="mailbox"></span></div>로딩 중...</div>
             </div>
             <div id="subNotifPagination" style="display:none;margin-top:16px"></div>
           </div>
@@ -238,8 +239,8 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/my-subscriptions.js?v=1"></script>
+  <script src="/js/common.js?v=20260708-footer"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/my-subscriptions.js?v=2"></script>
 </body>
 </html>

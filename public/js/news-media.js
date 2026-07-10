@@ -59,12 +59,12 @@
             <div class="media-card-thumb">
               ${m.thumbnailUrl
                 ? `<img src="${escapeHtml(m.thumbnailUrl)}" alt="${escapeHtml(m.title)}">`
-                : `<span class="placeholder">${m.category === 'press' ? '📰' : m.category === 'photo' ? '📷' : '🎯'}</span>`}
+                : `<span class="placeholder">${m.category === 'press' ? '' : m.category === 'photo' ? '' : ''}</span>`}
             </div>
             <div class="media-card-body">
               ${m.source ? `<div class="media-card-source">${escapeHtml(m.source)}</div>` : ''}
               <h4 class="media-card-title">${escapeHtml(m.title)}</h4>
-              <div class="media-card-date">${fmtDate(m.publishedAt)}${isExternal ? ' · 🔗 외부 링크' : ''}</div>
+              <div class="media-card-date">${fmtDate(m.publishedAt)}${isExternal ? ' · 외부 링크' : ''}</div>
             </div>
           </a>
         `;
@@ -102,8 +102,8 @@
 
     if (titleEl) titleEl.textContent = p.title;
     if (metaEl) {
-      const catKr = p.category === 'photo' ? '📷 사진' :
-                    p.category === 'event' ? '🎯 행사' : '📰 언론보도';
+      const catKr = p.category === 'photo' ? '사진' :
+                    p.category === 'event' ? '행사' : '언론보도';
       metaEl.innerHTML = `${catKr}${p.source ? ' · ' + escapeHtml(p.source) : ''} · ${fmtDate(p.publishedAt)}`;
     }
     if (bodyEl) {
@@ -116,7 +116,7 @@
       }
       html += p.contentHtml || '';
       if (p.externalUrl) {
-        html += `<p style="margin-top:18px"><a href="${escapeHtml(p.externalUrl)}" target="_blank" rel="noopener" style="color:var(--brand)">🔗 원문 보기</a></p>`;
+        html += `<p style="margin-top:18px"><a href="${escapeHtml(p.externalUrl)}" target="_blank" rel="noopener" style="color:var(--brand)">원문 보기</a></p>`;
       }
       bodyEl.innerHTML = html;
     }

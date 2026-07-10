@@ -59,9 +59,9 @@
 
   /* ============ 카테고리 라벨 ============ */
   const SEV_LABEL = {
-    critical: '🚨 CRITICAL', high: '⚠️ HIGH',
-    medium: '⚖️ MEDIUM', low: '💡 LOW',
-    urgent: '🚨 URGENT', normal: '⚖️ NORMAL',
+    critical: 'CRITICAL', high: 'HIGH',
+    medium: 'MEDIUM', low: 'LOW',
+    urgent: 'URGENT', normal: 'NORMAL',
   };
   const STATUS_LABEL = {
     submitted: '접수', ai_analyzed: 'AI 분석',
@@ -87,7 +87,7 @@
       categoryMap: null,
       sevField: 'aiSeverity',
       hasSiren: true,
-      modalTitle: '🔍 사건 제보 상세',
+      modalTitle: '사건 제보 상세',
     },
     harassment: {
       listApi: '/api/admin/harassment-reports',
@@ -98,7 +98,7 @@
       categoryMap: HARASS_CAT,
       sevField: 'aiSeverity',
       hasSiren: true,
-      modalTitle: '⚠️ 악성민원 신고 상세',
+      modalTitle: '악성민원 신고 상세',
     },
     legal: {
       listApi: '/api/admin/legal-consultations',
@@ -110,7 +110,7 @@
       sevField: 'aiUrgency',
       hasSiren: true,
       hasLawyer: true,
-      modalTitle: '⚖️ 법률지원 상담 상세',
+      modalTitle: '법률지원 상담 상세',
     },
     board: {
       listApi: '/api/admin/board-posts',
@@ -122,7 +122,7 @@
       sevField: null,
       hasSiren: false,
       hasBoard: true,
-      modalTitle: '💬 자유게시판 게시글 상세',
+      modalTitle: '자유게시판 게시글 상세',
     },
   };
 
@@ -266,14 +266,14 @@
       (summary ? `<div class="srn-row-summary">${escapeHtml(summary)}</div>` : '');
   }
   function detailBtn(kind, id) {
-    return `<button type="button" class="detail" data-srn-action="detail" data-srn-kind="${kind}" data-srn-id="${id}">📝 상세</button>`;
+    return `<button type="button" class="detail" data-srn-action="detail" data-srn-kind="${kind}" data-srn-id="${id}">상세</button>`;
   }
 
   function renderIncidentRow(r) {
     const sirenMark = r.sirenReportRequested === true
-      ? '<span style="color:var(--brand);font-weight:700">📌</span>'
+      ? '<span style="color:var(--brand);font-weight:700"></span>'
       : (r.sirenReportRequested === false
-        ? '<span style="color:var(--text-3)">📋</span>'
+        ? '<span style="color:var(--text-3)"></span>'
         : '<span style="color:var(--text-3)">—</span>');
     const reporterName = r.memberName || r.reporterName || '회원';
     return `<tr>
@@ -290,7 +290,7 @@
 
   function renderHarassmentRow(r) {
     const sirenMark = r.sirenReportRequested === true
-      ? '<span style="color:var(--brand);font-weight:700">📌</span>'
+      ? '<span style="color:var(--brand);font-weight:700"></span>'
       : '<span style="color:var(--text-3)">—</span>';
     const reporterName = r.memberName || r.reporterName || '회원';
     const catLabel = HARASS_CAT[r.category] || r.category;
@@ -320,7 +320,7 @@
             data-source-id="${r.id}"
             data-user-id="${r.memberId || ''}"
             data-match-type="lawyer"
-            style="font-size:11px;color:var(--brand);background:none;border:none;cursor:pointer;padding:0;display:block;margin-top:3px">⚖️ 변호사 배정</button>`;
+            style="font-size:11px;color:var(--brand);background:none;border:none;cursor:pointer;padding:0;display:block;margin-top:3px">변호사 배정</button>`;
 
     return `<tr>
       <td>${sevPill(r.aiUrgency)}</td>
@@ -336,13 +336,13 @@
 
   function renderBoardRow(r) {
     const catLabel = BOARD_CAT[r.category] || r.category;
-    const hiddenMark = r.isHidden ? '🚫' : '✓';
+    const hiddenMark = r.isHidden ? '' : '✓';
     const hiddenColor = r.isHidden ? 'var(--danger)' : 'var(--success)';
-    const pinMark = r.isPinned ? '<span style="color:var(--brand);margin-right:4px">📌</span>' : '';
+    const pinMark = r.isPinned ? '<span style="color:var(--brand);margin-right:4px"></span>' : '';
     const author = r.isAnonymous ? '익명' : (r.authorName || '회원');
     const toggleBtn = r.isHidden
       ? `<button type="button" class="unhide" data-srn-action="quick-unhide" data-srn-id="${r.id}">↻ 복원</button>`
-      : `<button type="button" class="hide" data-srn-action="quick-hide" data-srn-id="${r.id}">🚫 숨김</button>`;
+      : `<button type="button" class="hide" data-srn-action="quick-hide" data-srn-id="${r.id}">숨김</button>`;
     return `<tr ${r.isHidden ? 'style="opacity:0.55"' : ''}>
       <td style="font-family:Inter;font-size:12px">${r.id}</td>
       <td>${escapeHtml(catLabel)}</td>
@@ -420,18 +420,18 @@
 
     const aiBlock = r.aiSummary ? `
       <div class="srn-modal-section">
-        <h5>🤖 AI 분석 ${r.aiSeverity ? sevPill(r.aiSeverity) : ''}</h5>
-        ${r.aiSummary ? `<div class="srn-ai-block"><div class="ai-title">📋 요약</div>${escapeHtml(r.aiSummary)}</div>` : ''}
-        ${r.aiSuggestion ? `<div class="srn-ai-block"><div class="ai-title">💡 권장사항</div>${escapeHtml(r.aiSuggestion)}</div>` : ''}
+        <h5>AI 분석 ${r.aiSeverity ? sevPill(r.aiSeverity) : ''}</h5>
+        ${r.aiSummary ? `<div class="srn-ai-block"><div class="ai-title">요약</div>${escapeHtml(r.aiSummary)}</div>` : ''}
+        ${r.aiSuggestion ? `<div class="srn-ai-block"><div class="ai-title">권장사항</div>${escapeHtml(r.aiSuggestion)}</div>` : ''}
       </div>` : '';
 
     const attachBlock = (r.attachments && r.attachments.length) ? `
       <div class="srn-modal-section">
-        <h5>📎 첨부파일 (${r.attachments.length}개)</h5>
+        <h5>첨부파일 (${r.attachments.length}개)</h5>
         <div class="srn-attach-list">
           ${r.attachments.map((a) => `
             <a class="srn-attach-link" href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener">
-              📎 ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px">⬇</span>
+              ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px"></span>
             </a>`).join('')}
         </div>
       </div>` : '';
@@ -445,12 +445,12 @@
         <div>제보자</div><div>${escapeHtml(reporterName)}${r.isAnonymous ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : ''}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
         <div>접수일시</div><div>${fmtDateTime(r.createdAt)}</div>
         <div>상태</div><div>${statusPill(r.status)}</div>
-        <div>정식 접수</div><div>${r.sirenReportRequested === true ? '✅ Yes' : (r.sirenReportRequested === false ? '❌ No (AI만)' : '미결정')}</div>
+        <div>정식 접수</div><div>${r.sirenReportRequested === true ? 'Yes' : (r.sirenReportRequested === false ? 'No (AI만)' : '미결정')}</div>
         ${responderInfo ? `<div>답변자</div><div>${responderInfo}</div>` : ''}
       </div>
 
       <div class="srn-modal-section">
-        <h5>📝 제보 내용</h5>
+        <h5>제보 내용</h5>
         <div class="srn-content-box">${r.contentHtml || ''}</div>
       </div>
 
@@ -463,7 +463,7 @@
         <button type="button"
           style="padding:8px 16px;border:1px solid #6c757d;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"
           onclick="window.openReferralFromDetail('incident', ${Number(r.id)})">
-          🏛️ 외부 기관 인계
+          외부 기관 인계
         </button>
       </div>
     `;
@@ -480,21 +480,21 @@
 
     const aiBlock = r.aiSummary ? `
       <div class="srn-modal-section">
-        <h5>🤖 AI 분석 ${r.aiSeverity ? sevPill(r.aiSeverity) : ''}</h5>
-        <div class="srn-ai-block"><div class="ai-title">📋 요약</div>${escapeHtml(r.aiSummary)}</div>
-        ${r.aiImmediateAction ? `<div class="srn-ai-block danger"><div class="ai-title">🚀 즉각적 대처</div>${escapeHtml(r.aiImmediateAction)}</div>` : ''}
-        ${r.aiLegalReviewNeeded ? `<div class="srn-ai-block legal"><div class="ai-title">⚖️ 법률 자문 권장</div>${escapeHtml(r.aiLegalReason || '')}</div>` : ''}
-        ${r.aiPsychSupportNeeded ? `<div class="srn-ai-block"><div class="ai-title">💗 심리상담 권장</div>전문 상담사 매칭 권장</div>` : ''}
-        ${r.aiSuggestion ? `<div class="srn-ai-block"><div class="ai-title">💡 종합 권장</div>${escapeHtml(r.aiSuggestion)}</div>` : ''}
+        <h5>AI 분석 ${r.aiSeverity ? sevPill(r.aiSeverity) : ''}</h5>
+        <div class="srn-ai-block"><div class="ai-title">요약</div>${escapeHtml(r.aiSummary)}</div>
+        ${r.aiImmediateAction ? `<div class="srn-ai-block danger"><div class="ai-title">즉각적 대처</div>${escapeHtml(r.aiImmediateAction)}</div>` : ''}
+        ${r.aiLegalReviewNeeded ? `<div class="srn-ai-block legal"><div class="ai-title">법률 자문 권장</div>${escapeHtml(r.aiLegalReason || '')}</div>` : ''}
+        ${r.aiPsychSupportNeeded ? `<div class="srn-ai-block"><div class="ai-title">심리상담 권장</div>전문 상담사 매칭 권장</div>` : ''}
+        ${r.aiSuggestion ? `<div class="srn-ai-block"><div class="ai-title">종합 권장</div>${escapeHtml(r.aiSuggestion)}</div>` : ''}
       </div>` : '';
 
     const attachBlock = (r.attachments && r.attachments.length) ? `
       <div class="srn-modal-section">
-        <h5>📎 첨부파일 (${r.attachments.length}개)</h5>
+        <h5>첨부파일 (${r.attachments.length}개)</h5>
         <div class="srn-attach-list">
           ${r.attachments.map((a) => `
             <a class="srn-attach-link" href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener">
-              📎 ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px">⬇</span>
+              ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px"></span>
             </a>`).join('')}
         </div>
       </div>` : '';
@@ -510,11 +510,11 @@
         <div>신고자</div><div>${escapeHtml(reporterName)}${r.isAnonymous ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : ''}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
         <div>접수일시</div><div>${fmtDateTime(r.createdAt)}</div>
         <div>상태</div><div>${statusPill(r.status)}</div>
-        <div>정식 신고</div><div>${r.sirenReportRequested === true ? '✅ Yes' : (r.sirenReportRequested === false ? '❌ No (AI만)' : '미결정')}</div>
+        <div>정식 신고</div><div>${r.sirenReportRequested === true ? 'Yes' : (r.sirenReportRequested === false ? 'No (AI만)' : '미결정')}</div>
       </div>
 
       <div class="srn-modal-section">
-        <h5>📝 신고 내용</h5>
+        <h5>신고 내용</h5>
         <div class="srn-content-box">${r.contentHtml || ''}</div>
       </div>
 
@@ -527,7 +527,7 @@
         <button type="button"
           style="padding:8px 16px;border:1px solid #6c757d;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"
           onclick="window.openReferralFromDetail('harassment', ${Number(r.id)})">
-          🏛️ 외부 기관 인계
+          외부 기관 인계
         </button>
       </div>
     `;
@@ -544,22 +544,22 @@
 
     const aiBlock = r.aiSummary ? `
       <div class="srn-modal-section">
-        <h5>🤖 AI 1차 분석 ${r.aiUrgency ? sevPill(r.aiUrgency) : ''}</h5>
-        <div class="srn-ai-block"><div class="ai-title">📋 요약</div>${escapeHtml(r.aiSummary)}</div>
-        ${r.aiRelatedLaws ? `<div class="srn-ai-block legal"><div class="ai-title">📜 관련 법령</div>${escapeHtml(r.aiRelatedLaws)}</div>` : ''}
-        ${r.aiLegalOpinion ? `<div class="srn-ai-block legal"><div class="ai-title">⚖️ 1차 의견</div>${escapeHtml(r.aiLegalOpinion)}</div>` : ''}
-        ${r.aiLawyerSpecialty ? `<div class="srn-ai-block legal"><div class="ai-title">👨‍⚖️ 권장 변호사 전문분야</div>${escapeHtml(r.aiLawyerSpecialty)}</div>` : ''}
-        ${r.aiImmediateAction ? `<div class="srn-ai-block danger"><div class="ai-title">🔴 즉시 조치</div>${escapeHtml(r.aiImmediateAction)}</div>` : ''}
-        ${r.aiSuggestion ? `<div class="srn-ai-block"><div class="ai-title">💡 종합 권장</div>${escapeHtml(r.aiSuggestion)}</div>` : ''}
+        <h5>AI 1차 분석 ${r.aiUrgency ? sevPill(r.aiUrgency) : ''}</h5>
+        <div class="srn-ai-block"><div class="ai-title">요약</div>${escapeHtml(r.aiSummary)}</div>
+        ${r.aiRelatedLaws ? `<div class="srn-ai-block legal"><div class="ai-title">관련 법령</div>${escapeHtml(r.aiRelatedLaws)}</div>` : ''}
+        ${r.aiLegalOpinion ? `<div class="srn-ai-block legal"><div class="ai-title">1차 의견</div>${escapeHtml(r.aiLegalOpinion)}</div>` : ''}
+        ${r.aiLawyerSpecialty ? `<div class="srn-ai-block legal"><div class="ai-title">권장 변호사 전문분야</div>${escapeHtml(r.aiLawyerSpecialty)}</div>` : ''}
+        ${r.aiImmediateAction ? `<div class="srn-ai-block danger"><div class="ai-title">즉시 조치</div>${escapeHtml(r.aiImmediateAction)}</div>` : ''}
+        ${r.aiSuggestion ? `<div class="srn-ai-block"><div class="ai-title">종합 권장</div>${escapeHtml(r.aiSuggestion)}</div>` : ''}
       </div>` : '';
 
     const attachBlock = (r.attachments && r.attachments.length) ? `
       <div class="srn-modal-section">
-        <h5>📎 증거 자료 (${r.attachments.length}개)</h5>
+        <h5>증거 자료 (${r.attachments.length}개)</h5>
         <div class="srn-attach-list">
           ${r.attachments.map((a) => `
             <a class="srn-attach-link" href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener">
-              📎 ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px">⬇</span>
+              ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px"></span>
             </a>`).join('')}
         </div>
       </div>` : '';
@@ -575,12 +575,12 @@
         <div>신청자</div><div>${escapeHtml(reporterName)}${r.isAnonymous ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : ''}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
         <div>접수일시</div><div>${fmtDateTime(r.createdAt)}</div>
         <div>상태</div><div>${statusPill(r.status)}</div>
-        <div>매칭 신청</div><div>${r.sirenReportRequested === true ? '✅ Yes' : '❌ AI만'}</div>
+        <div>매칭 신청</div><div>${r.sirenReportRequested === true ? 'Yes' : 'AI만'}</div>
         <div>매칭 변호사</div><div>${r.assignedLawyerName ? `<strong style="color:#5a4d8c">${escapeHtml(r.assignedLawyerName)}</strong>` : '<span style="color:var(--text-3)">미배정</span>'}</div>
       </div>
 
       <div class="srn-modal-section">
-        <h5>📝 사실관계</h5>
+        <h5>사실관계</h5>
         <div class="srn-content-box">${r.contentHtml || ''}</div>
       </div>
 
@@ -593,7 +593,7 @@
         <button type="button"
           style="padding:8px 16px;border:1px solid #6c757d;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"
           onclick="window.openReferralFromDetail('legal', ${Number(r.id)})">
-          🏛️ 외부 기관 인계
+          외부 기관 인계
         </button>
       </div>
     `;
@@ -610,23 +610,23 @@
 
     const attachBlock = (p.attachments && p.attachments.length) ? `
       <div class="srn-modal-section">
-        <h5>📎 첨부파일 (${p.attachments.length}개)</h5>
+        <h5>첨부파일 (${p.attachments.length}개)</h5>
         <div class="srn-attach-list">
           ${p.attachments.map((a) => `
             <a class="srn-attach-link" href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener">
-              📎 ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px">⬇</span>
+              ${escapeHtml(a.originalName)} <span style="color:var(--text-3);font-size:11px"></span>
             </a>`).join('')}
         </div>
       </div>` : '';
 
     const commentsBlock = comments.length > 0 ? `
       <div class="srn-modal-section">
-        <h5>💬 댓글 (${comments.length}개)</h5>
+        <h5>댓글 (${comments.length}개)</h5>
         <ul class="srn-comment-list">
           ${comments.map((c) => `
             <li class="srn-comment-item ${c.isHidden ? 'hidden' : ''}" data-cmt-id="${c.id}">
               <div class="meta">
-                <span><strong>${escapeHtml(c.authorName)}</strong> · ${fmtDateTime(c.createdAt)}${c.isHidden ? ' · 🚫숨김' : ''}</span>
+                <span><strong>${escapeHtml(c.authorName)}</strong> · ${fmtDateTime(c.createdAt)}${c.isHidden ? ' · 숨김' : ''}</span>
                 <button class="del-btn" data-srn-action="delete-comment" data-cmt-id="${c.id}">삭제</button>
               </div>
               <div class="content">${escapeHtml(c.content)}</div>
@@ -644,11 +644,11 @@
         <div>작성자</div><div>${escapeHtml(author)}${p.memberEmail && !p.isAnonymous ? ` · ${escapeHtml(p.memberEmail)}` : ''}</div>
         <div>작성일</div><div>${fmtDateTime(p.createdAt)}</div>
         <div>조회 / 댓글</div><div>${(p.views || 0).toLocaleString()} / ${p.commentCount || 0}</div>
-        <div>상태</div><div>${p.isHidden ? '<span style="color:var(--danger);font-weight:700">🚫 숨김</span>' : '<span style="color:var(--success);font-weight:700">✓ 노출</span>'} ${p.isPinned ? '<span style="color:var(--brand);margin-left:6px">📌 고정</span>' : ''}</div>
+        <div>상태</div><div>${p.isHidden ? '<span style="color:var(--danger);font-weight:700">숨김</span>' : '<span style="color:var(--success);font-weight:700">✓ 노출</span>'} ${p.isPinned ? '<span style="color:var(--brand);margin-left:6px">고정</span>' : ''}</div>
       </div>
 
       <div class="srn-modal-section">
-        <h5>📝 본문</h5>
+        <h5>본문</h5>
         <div class="srn-content-box">${p.contentHtml || ''}</div>
       </div>
 
@@ -656,15 +656,15 @@
       ${commentsBlock}
 
       <div class="srn-modal-section">
-        <h5>🔧 운영자 도구</h5>
+        <h5>운영자 도구</h5>
         <div class="srn-form-group">
           <label>관리자 메모 <span class="hint">(다른 운영자만 볼 수 있음)</span></label>
           <textarea id="srnBoardMemo" maxlength="5000" placeholder="이 게시글에 대한 메모...">${memoSafe}</textarea>
         </div>
 
         <div class="srn-form-group">
-          <label>📢 운영진 공식 답변 작성 <span class="hint">(저장 시 댓글로 등록되며 작성자에게 알림 발송)</span></label>
-          <button type="button" class="srn-ai-draft-btn" data-srn-action="ai-draft" data-srn-kind="board" data-srn-id="${p.id}" data-srn-target="srnBoardResponse">✍️ AI 답변 초안 생성 (Gemini)</button>
+          <label>운영진 공식 답변 작성 <span class="hint">(저장 시 댓글로 등록되며 작성자에게 알림 발송)</span></label>
+          <button type="button" class="srn-ai-draft-btn" data-srn-action="ai-draft" data-srn-kind="board" data-srn-id="${p.id}" data-srn-target="srnBoardResponse">AI 답변 초안 생성 (Gemini)</button>
           <textarea id="srnBoardResponse" maxlength="1000" placeholder="작성자에게 전달할 운영진 공식 답변 (1000자 이내, 댓글로 게시됨)"></textarea>
         </div>
 
@@ -672,20 +672,20 @@
           <label>
             <input type="checkbox" id="srnBoardSendEmail">
             <span style="flex:1;line-height:1.6">
-              <strong>📧 작성자에게 알림 메일 발송</strong><br />
+              <strong>작성자에게 알림 메일 발송</strong><br />
               <span style="color:var(--text-3);font-size:11.5px">체크 시 답변 등록 알림 메일이 함께 발송됩니다 (익명 게시글은 작성자가 회원이어야 발송됨)</span>
             </span>
           </label>
         </div>
 
         <div class="srn-action-row">
-          <button type="button" class="btn-save" data-srn-action="save-board" data-srn-id="${p.id}">💾 저장하기</button>
+          <button type="button" class="btn-save" data-srn-action="save-board" data-srn-id="${p.id}">저장하기</button>
           ${p.isHidden
             ? `<button type="button" class="btn-unhide" data-srn-action="toggle-hidden" data-srn-id="${p.id}" data-srn-hide="false">↻ 숨김 해제</button>`
-            : `<button type="button" class="btn-hide" data-srn-action="toggle-hidden" data-srn-id="${p.id}" data-srn-hide="true">🚫 숨김 처리</button>`}
+            : `<button type="button" class="btn-hide" data-srn-action="toggle-hidden" data-srn-id="${p.id}" data-srn-hide="true">숨김 처리</button>`}
           ${p.isPinned
-            ? `<button type="button" class="btn-unhide" data-srn-action="toggle-pinned" data-srn-id="${p.id}" data-srn-pin="false">📌 고정 해제</button>`
-            : `<button type="button" class="btn-unhide" data-srn-action="toggle-pinned" data-srn-id="${p.id}" data-srn-pin="true">📌 고정</button>`}
+            ? `<button type="button" class="btn-unhide" data-srn-action="toggle-pinned" data-srn-id="${p.id}" data-srn-pin="false">고정 해제</button>`
+            : `<button type="button" class="btn-unhide" data-srn-action="toggle-pinned" data-srn-id="${p.id}" data-srn-pin="true">고정</button>`}
         </div>
       </div>
     `;
@@ -720,13 +720,13 @@
 
     const lawyerField = (kind === 'legal') ? `
       <div class="srn-form-group">
-        <label>👨‍⚖️ 매칭 변호사 <span class="hint">(이름·전문분야)</span></label>
+        <label>매칭 변호사 <span class="hint">(이름·전문분야)</span></label>
         <input type="text" id="srnAssignedLawyer" maxlength="50" value="${escapeHtml(r.assignedLawyerName || '')}" placeholder="예) 김○○ 변호사 (교육법 전문)">
       </div>` : '';
 
     return `
       <div class="srn-modal-section">
-        <h5>📝 운영진 답변 작성</h5>
+        <h5>운영진 답변 작성</h5>
 
         <div class="srn-form-group">
           <label>처리 상태</label>
@@ -738,7 +738,7 @@
         <!-- ★ C-2: 운영자 요청사항 입력 영역 -->
         <div class="srn-form-group" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:14px">
           <label style="margin-bottom:8px;color:var(--brand);font-weight:700">
-            🎯 AI에게 어떤 답변을 요청할지 적어주세요 <span class="hint" style="color:var(--text-3);font-weight:400">(선택)</span>
+            AI에게 어떤 답변을 요청할지 적어주세요 <span class="hint" style="color:var(--text-3);font-weight:400">(선택)</span>
           </label>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
             <button type="button" class="srn-instruction-preset" data-preset="최종 거절이니 이해시키도록 정중하게 답변해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">거절 안내</button>
@@ -748,12 +748,12 @@
             <button type="button" class="srn-instruction-preset" data-preset="추가 정보가 필요하니 구체적으로 요청해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">추가 요청</button>
           </div>
           <textarea id="srnInstruction" maxlength="1000" rows="3" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예: 최종 거절이니 잘 이해시키도록 답변해줘 / 변호사 매칭 완료, 다음 절차 안내해줘"></textarea>
-          <div style="font-size:11px;color:var(--text-3);margin-top:4px">💡 요청사항을 입력하면 AI가 해당 방향으로 답변 초안을 생성합니다. 비워두면 일반 톤으로 생성됩니다.</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">요청사항을 입력하면 AI가 해당 방향으로 답변 초안을 생성합니다. 비워두면 일반 톤으로 생성됩니다.</div>
         </div>
 
         <div class="srn-form-group">
           <label>답변 메시지 <span class="hint">(마이페이지에서 신청자가 확인합니다)</span></label>
-          <button type="button" class="srn-ai-draft-btn" data-srn-action="ai-draft" data-srn-kind="${kind}" data-srn-id="${r.id}" data-srn-target="srnResponse">✍️ AI 답변 초안 생성 (Gemini)</button>
+          <button type="button" class="srn-ai-draft-btn" data-srn-action="ai-draft" data-srn-kind="${kind}" data-srn-id="${r.id}" data-srn-target="srnResponse">AI 답변 초안 생성 (Gemini)</button>
           <textarea id="srnResponse" placeholder="신청자/제보자에게 전달할 답변을 입력하세요...">${currentResponse}</textarea>
         </div>
 
@@ -761,14 +761,14 @@
           <label>
             <input type="checkbox" id="srnSendEmail">
             <span style="flex:1;line-height:1.6">
-              <strong>📧 저장 시 신청자에게 알림 메일 발송</strong><br />
+              <strong>저장 시 신청자에게 알림 메일 발송</strong><br />
               <span style="color:var(--text-3);font-size:11.5px">체크하면 답변 등록 알림이 메일로 함께 발송됩니다.</span>
             </span>
           </label>
         </div>
 
         <div class="srn-action-row">
-          <button type="button" class="btn-save" data-srn-action="save-response" data-srn-kind="${kind}" data-srn-id="${r.id}">💾 답변 저장</button>
+          <button type="button" class="btn-save" data-srn-action="save-response" data-srn-kind="${kind}" data-srn-id="${r.id}">답변 저장</button>
         </div>
       </div>
     `;
@@ -795,7 +795,7 @@
 
     if (btn) {
       btn.disabled = true;
-      btn.textContent = '⏳ AI 분석 중... (3-7초)';
+      btn.textContent = 'AI 분석 중... (3-7초)';
     }
 
     try {
@@ -814,7 +814,7 @@
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = '✍️ AI 답변 초안 생성 (Gemini)';
+        btn.textContent = 'AI 답변 초안 생성 (Gemini)';
       }
     }
   }
@@ -842,7 +842,7 @@
 
     const res = await api(cfg.detailApi, { method: 'PATCH', body: payload });
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 답변 저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '답변 저장'; }
 
     if (res.ok) {
       toast(res.data?.message || '저장되었습니다');
@@ -871,7 +871,7 @@
       body: { id, adminMemo, adminResponse: adminResponse || undefined, sendEmail },
     });
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 저장하기'; }
+    if (btn) { btn.disabled = false; btn.textContent = '저장하기'; }
 
     if (res.ok) {
       toast(res.data?.message || '저장되었습니다');

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>익명 보호 감사 로그 | SIREN 어드민</title>
@@ -105,11 +106,11 @@ body {
 <div class="page-wrap">
   <a href="/admin-anon-reveal.html" class="back-link">← 신원 식별 화면으로</a>
 
-  <div class="page-title">📋 익명 보호 감사 로그</div>
+  <div class="page-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 익명 보호 감사 로그</div>
   <div class="page-desc">어드민이 익명 신고의 신원을 식별한 모든 기록입니다.</div>
 
   <div class="info-box">
-    <span class="icon">🛡️</span>
+    <span class="icon"><span class="siren-icon-wrap" data-icon="shield"></span></span>
     <span>이 로그는 개인정보 보호법 준수 목적으로 보관됩니다. 불필요한 신원 조회는 내부 정책 위반에 해당할 수 있습니다. 모든 조회는 담당자 ID와 사유와 함께 기록됩니다.</span>
   </div>
 
@@ -167,8 +168,8 @@ body {
       <input type="date" id="filterDateTo" style="width:130px">
     </label>
     <div class="spacer"></div>
-    <button class="btn btn-primary" onclick="loadAuditLog(1)">🔍 조회</button>
-    <button class="btn" onclick="exportCsv()">📥 CSV 내보내기</button>
+    <button class="btn btn-primary" onclick="loadAuditLog(1)"><span class="siren-icon-wrap" data-icon="search"></span> 조회</button>
+    <button class="btn" onclick="exportCsv()"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV 내보내기</button>
   </div>
 
   <div class="table-wrap">
@@ -194,8 +195,8 @@ body {
 </div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/common.js?v=20260707-footer"></script>
-<script src="/js/auth.js?v=16"></script>
-<script src="/js/admin-anon-audit.js?v=1"></script>
+<script src="/js/common.js?v=20260708-footer"></script>
+<script src="/js/auth.js?v=17"></script>
+<script src="/js/admin-anon-audit.js?v=2"></script>
 </body>
 </html>

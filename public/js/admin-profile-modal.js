@@ -59,7 +59,7 @@
     wrap.className = 'apm-backdrop';
     wrap.innerHTML = '\
       <div class="apm-modal" role="dialog" aria-modal="true">\
-        <div class="apm-title">👤 내 정보 수정</div>\
+        <div class="apm-title">내 정보 수정</div>\
         <div class="apm-desc">이름·이메일·연락처를 변경할 수 있어요. 비밀번호 칸은 비워두면 변경 없이 저장됩니다.</div>\
 \
         <div class="apm-section">기본 정보</div>\

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>활동 보고서 | 교사유가족협의회</title>
 <meta name="description" content="투명한 집행, 공개된 신뢰 — 교사유가족협의회의 활동 보고서를 확인하세요.">
 <meta property="og:title" content="활동 보고서 | 교사유가족협의회">
@@ -91,7 +92,7 @@
         <div class="report-detail-foot no-print" style="padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#fafafa">
           <button type="button" data-print-report
                   style="background:var(--brand,#8b2942);color:#fff;border:none;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">
-            🖨 인쇄 / PDF 저장
+            <span class="siren-icon-wrap" data-icon="printer"></span> 인쇄 / PDF 저장
           </button>
           <button type="button" data-close-report-detail
                   style="background:#fff;color:var(--text-2);border:1px solid var(--line);padding:9px 18px;border-radius:6px;font-size:13px;cursor:pointer">
@@ -106,9 +107,9 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/support.js?v=3"></script>
+  <script src="/js/common.js?v=20260708-footer"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/support.js?v=4"></script>
   <script src="/js/donate.js?v=r45"></script>
 
   <!-- 활동보고서 페이지 전용 스크립트 -->
@@ -174,7 +175,7 @@
       if (!_reports.length) {
         listEl.innerHTML = `
           <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3);font-size:14px">
-            📋 아직 발행된 활동보고서가 없습니다.<br/>
+            아직 발행된 활동보고서가 없습니다.<br/>
             <span style="font-size:12px">정식 분기 보고서 발행 시 이곳에 표시됩니다.</span>
           </div>`;
         return;
@@ -183,7 +184,7 @@
       listEl.innerHTML = _reports.map((p) => {
         const period = fmtPeriod(p.year, p.month);
         const date = fmtDate(p.publishedAt || p.createdAt);
-        const pin = p.isPinned ? '<span style="color:#c03;font-size:11px;margin-right:6px">📌 고정</span>' : '';
+        const pin = p.isPinned ? '<span style="color:#c03;font-size:11px;margin-right:6px">고정</span>' : '';
         return `
           <div class="report-card" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .2s">
             <div style="font-size:12px;color:var(--brand,#8b2942);font-weight:600">${pin}${escapeHtml(period)}</div>
@@ -191,14 +192,14 @@
               ${escapeHtml(p.title || '제목 없음')}
             </div>
             <div style="font-size:11.5px;color:var(--text-3);display:flex;gap:10px;flex-wrap:wrap">
-              <span>📢 발행됨</span>
-              <span>👁 조회 ${p.views || 0}</span>
+              <span>발행됨</span>
+              <span>조회 ${p.views || 0}</span>
               <span>${escapeHtml(date)}</span>
             </div>
             <div style="margin-top:4px">
               <button type="button" data-report-id="${p.id}"
                       style="width:100%;padding:8px 14px;background:var(--brand,#8b2942);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">
-                📖 보기
+                보기
               </button>
             </div>
           </div>`;

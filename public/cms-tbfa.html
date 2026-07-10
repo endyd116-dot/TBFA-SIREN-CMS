@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <script>if(location.protocol==='http:'&&/tbfa\.co\.kr$/.test(location.hostname))location.replace('https://'+location.host+location.pathname+location.search+location.hash);</script>
 <script>
 /* ★ 2026-05-16: cms-tbfa.html이 iframe 안에서 로드되면 nested iframe 재귀 발생.
@@ -449,140 +450,140 @@ if (window.self !== window.top) {
 
     <nav class="cms-menu">
 
-      <!-- ── 🛠 워크스페이스 ── -->
+      <!-- ── 워크스페이스 ── -->
       <li class="cms-menu-group">
         <a href="#" data-sidebar-group="workspace" aria-expanded="false">
-          <i>🛠</i><span>워크스페이스</span>
+          <i><span class="siren-icon-wrap" data-icon="wrench"></span></i><span>워크스페이스</span>
           <span class="sidebar-group-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-sidebar-submenu="workspace" aria-hidden="true" style="display:none">
-          <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
-          <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
-          <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
-          <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
-          <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
+          <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>워크툴</span></a></li>
+          <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>칸반</span></a></li>
+          <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i><span class="siren-icon-wrap" data-icon="calendar-days"></span></i><span>캘린더</span></a></li>
+          <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i><span class="siren-icon-wrap" data-icon="files"></span></i><span>템플릿</span></a></li>
+          <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i><span class="siren-icon-wrap" data-icon="folder"></span></i><span>파일함</span></a></li>
         </ul>
       </li>
 
-      <!-- ── 🕊️ 딥릴리프 (순직 인정 지원) — 1뎁스 독립 메뉴 ── -->
+      <!-- ── 딥릴리프 (순직 인정 지원) — 1뎁스 독립 메뉴 ── -->
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">딥릴리프</div>
       </li>
-      <li><a href="#martyrdom" data-tab="martyrdom"><i>🕊️</i><span>딥릴리프 (순직 인정 지원)</span></a></li>
+      <li><a href="#martyrdom" data-tab="martyrdom"><i><span class="siren-icon-wrap" data-icon="dove"></span></i><span>딥릴리프 (순직 인정 지원)</span></a></li>
 
-      <!-- ── 📈 대시보드 ── -->
+      <!-- ── 대시보드 ── -->
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">대시보드</div>
       </li>
-      <li><a href="#dashboard" class="on" data-tab="dashboard"><i>📈</i><span>대시보드</span></a></li>
-      <li><a href="#org-news" data-tab="org-news"><i>📰</i><span>여론·뉴스 분석</span></a></li>
+      <li><a href="#dashboard" class="on" data-tab="dashboard"><i><span class="siren-icon-wrap" data-icon="trending-up"></span></i><span>대시보드</span></a></li>
+      <li><a href="#org-news" data-tab="org-news"><i><span class="siren-icon-wrap" data-icon="newspaper"></span></i><span>여론·뉴스 분석</span></a></li>
 
-      <!-- ── 👥 회원·유가족 관리 ── -->
+      <!-- ── 회원·유가족 관리 ── -->
       <li class="cms-menu-section">
-        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">👥 회원·유가족</div>
+        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px"><span class="siren-icon-wrap" data-icon="users"></span> 회원·유가족</div>
       </li>
-      <li><a href="#members" data-tab="members"><i>👥</i><span>통합 일반 회원</span></a></li>
+      <li><a href="#members" data-tab="members"><i><span class="siren-icon-wrap" data-icon="users"></span></i><span>통합 일반 회원</span></a></li>
 
-      <!-- ── 💰 후원자 관리 ── -->
+      <!-- ── 후원자 관리 ── -->
       <li class="cms-menu-group" data-group="donation">
         <a href="#" data-toggle="donation">
-          <i>💰</i><span>후원자 관리</span>
+          <i><span class="siren-icon-wrap" data-icon="coins"></span></i><span>후원자 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="donation" style="display:none">
-          <li><a href="#donor-regular" data-tab="donor-regular"><i>🔁</i><span>정기 후원자</span></a></li>
-          <li><a href="#donor-prospect" data-tab="donor-prospect"><i>💡</i><span>예비 후원자</span></a></li>
-          <li><a href="#donor-potential" data-tab="donor-potential"><i>🌱</i><span>잠재 후원자</span></a></li>
-          <li><a href="#nurture" data-tab="nurture"><i>💌</i><span>후원자 너처링</span></a></li>
-          <li><a href="#import" data-tab="import"><i>📥</i><span>입금 매칭·통과</span></a></li>
-          <li><a href="#hyosung" data-tab="hyosung"><i>🏦</i><span>효성 자동이체</span></a></li>
-          <li><a href="#toss-billing" data-tab="toss-billing"><i>💳</i><span>KICC 자동결제</span></a></li>
+          <li><a href="#donor-regular" data-tab="donor-regular"><i><span class="siren-icon-wrap" data-icon="repeat"></span></i><span>정기 후원자</span></a></li>
+          <li><a href="#donor-prospect" data-tab="donor-prospect"><i><span class="siren-icon-wrap" data-icon="lightbulb"></span></i><span>예비 후원자</span></a></li>
+          <li><a href="#donor-potential" data-tab="donor-potential"><i><span class="siren-icon-wrap" data-icon="sprout"></span></i><span>잠재 후원자</span></a></li>
+          <li><a href="#nurture" data-tab="nurture"><i><span class="siren-icon-wrap" data-icon="mail"></span></i><span>후원자 너처링</span></a></li>
+          <li><a href="#import" data-tab="import"><i><span class="siren-icon-wrap" data-icon="inbox"></span></i><span>입금 매칭·통과</span></a></li>
+          <li><a href="#hyosung" data-tab="hyosung"><i><span class="siren-icon-wrap" data-icon="landmark"></span></i><span>효성 자동이체</span></a></li>
+          <li><a href="#toss-billing" data-tab="toss-billing"><i><span class="siren-icon-wrap" data-icon="credit-card"></span></i><span>KICC 자동결제</span></a></li>
         </ul>
       </li>
 
-      <!-- ── 📊 재정 관리 ── -->
+      <!-- ── 재정 관리 ── -->
       <li class="cms-menu-group" data-group="finance">
         <a href="#" data-toggle="finance">
-          <i>📊</i><span>재정 관리</span>
+          <i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>재정 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="finance" style="display:none">
-          <li><a href="#finance-income" data-tab="finance-income"><i>📊</i><span>손익 현황</span></a></li>
-          <li><a href="#donations" data-tab="donations"><i>📒</i><span>후원 결제 내역</span></a></li>
-          <li><a href="#other-revenues" data-tab="other-revenues"><i>💼</i><span>후원 외 매출</span></a></li>
-          <li><a href="#expenses" data-tab="expenses"><i>💸</i><span>지출 관리</span></a></li>
-          <li><a href="#finance-budget" data-tab="finance-budget"><i>📋</i><span>예산 관리</span></a></li>
-          <li><a href="#budget-accounts" data-tab="budget-accounts"><i>🗂</i><span>예산과목 체계(관·항·목)</span></a></li>
-          <li><a href="#approval-inbox" data-tab="approval-inbox"><i>🧾</i><span>지출 결재함</span></a></li>
-          <li><a href="#approval-resolutions" data-tab="approval-resolutions"><i>📑</i><span>지출결의서</span></a></li>
-          <li><a href="#approval-lines" data-tab="approval-lines"><i>🛡️</i><span>결재라인·위임 설정</span></a></li>
-          <li><a href="#bank-transactions" data-tab="bank-transactions"><i>🏦</i><span>지출 자동 추출 시스템</span></a></li>
-          <li><a href="#finance-report" data-tab="finance-report"><i>📊</i><span>재무 보고서</span></a></li>
+          <li><a href="#finance-income" data-tab="finance-income"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>손익 현황</span></a></li>
+          <li><a href="#donations" data-tab="donations"><i><span class="siren-icon-wrap" data-icon="book"></span></i><span>후원 결제 내역</span></a></li>
+          <li><a href="#other-revenues" data-tab="other-revenues"><i><span class="siren-icon-wrap" data-icon="briefcase"></span></i><span>후원 외 매출</span></a></li>
+          <li><a href="#expenses" data-tab="expenses"><i><span class="siren-icon-wrap" data-icon="hand-coins"></span></i><span>지출 관리</span></a></li>
+          <li><a href="#finance-budget" data-tab="finance-budget"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>예산 관리</span></a></li>
+          <li><a href="#budget-accounts" data-tab="budget-accounts"><i><span class="siren-icon-wrap" data-icon="folders"></span></i><span>예산과목 체계(관·항·목)</span></a></li>
+          <li><a href="#approval-inbox" data-tab="approval-inbox"><i><span class="siren-icon-wrap" data-icon="receipt"></span></i><span>지출 결재함</span></a></li>
+          <li><a href="#approval-resolutions" data-tab="approval-resolutions"><i><span class="siren-icon-wrap" data-icon="files"></span></i><span>지출결의서</span></a></li>
+          <li><a href="#approval-lines" data-tab="approval-lines"><i><span class="siren-icon-wrap" data-icon="shield"></span></i><span>결재라인·위임 설정</span></a></li>
+          <li><a href="#bank-transactions" data-tab="bank-transactions"><i><span class="siren-icon-wrap" data-icon="landmark"></span></i><span>지출 자동 추출 시스템</span></a></li>
+          <li><a href="#finance-report" data-tab="finance-report"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>재무 보고서</span></a></li>
         </ul>
       </li>
 
-      <!-- ── 📨 알림·발송 (싸이렌에서 이관 — 2026-05-11) ── -->
+      <!-- ── 알림·발송 (싸이렌에서 이관 — 2026-05-11) ── -->
       <li class="cms-menu-group" data-group="send">
         <a href="#" data-toggle="send">
-          <i>📨</i><span>알림·발송</span>
+          <i><span class="siren-icon-wrap" data-icon="mail"></span></i><span>알림·발송</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="send" style="display:none">
-          <li><a href="#send-jobs" data-tab="send-jobs"><i>📤</i><span>발송 작업</span></a></li>
-          <li><a href="#send-template" data-tab="send-template"><i>📝</i><span>발송 템플릿</span></a></li>
-          <li><a href="#recipient-groups" data-tab="recipient-groups"><i>👥</i><span>수신자 그룹</span></a></li>
-          <li><a href="#auto-trigger" data-tab="auto-trigger"><i>🤖</i><span>AI 자동 발송</span></a></li>
-          <li><a href="#system-notification" data-tab="system-notification"><i>🔔</i><span>시스템 자동 발송</span></a></li>
-          <li><a href="#send-analytics" data-tab="send-analytics"><i>📊</i><span>발송 분석</span></a></li>
-          <li><a href="#notification-logs" data-tab="notification-logs"><i>📋</i><span>알림 발송 로그</span></a></li>
-          <li><a href="#kakao-templates" data-tab="kakao-templates"><i>💬</i><span>카카오 알림톡 템플릿</span></a></li>
+          <li><a href="#send-jobs" data-tab="send-jobs"><i><span class="siren-icon-wrap" data-icon="upload"></span></i><span>발송 작업</span></a></li>
+          <li><a href="#send-template" data-tab="send-template"><i><span class="siren-icon-wrap" data-icon="file-pen"></span></i><span>발송 템플릿</span></a></li>
+          <li><a href="#recipient-groups" data-tab="recipient-groups"><i><span class="siren-icon-wrap" data-icon="users"></span></i><span>수신자 그룹</span></a></li>
+          <li><a href="#auto-trigger" data-tab="auto-trigger"><i><span class="siren-icon-wrap" data-icon="bot"></span></i><span>AI 자동 발송</span></a></li>
+          <li><a href="#system-notification" data-tab="system-notification"><i><span class="siren-icon-wrap" data-icon="bell"></span></i><span>시스템 자동 발송</span></a></li>
+          <li><a href="#send-analytics" data-tab="send-analytics"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>발송 분석</span></a></li>
+          <li><a href="#notification-logs" data-tab="notification-logs"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>알림 발송 로그</span></a></li>
+          <li><a href="#kakao-templates" data-tab="kakao-templates"><i><span class="siren-icon-wrap" data-icon="message-circle"></span></i><span>카카오 알림톡 템플릿</span></a></li>
         </ul>
       </li>
 
-      <!-- ── 🤖 AI 에이전트 ── -->
+      <!-- ── AI 에이전트 ── -->
       <li class="cms-menu-group" data-group="ai">
         <a href="#" data-toggle="ai">
-          <i>🤖</i><span>AI 에이전트</span>
+          <i><span class="siren-icon-wrap" data-icon="bot"></span></i><span>AI 에이전트</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="ai" style="display:none">
-          <li><a href="#ai-chat" data-tab="ai-chat"><i>💬</i><span>대화 시작</span></a></li>
-          <li><a href="#ai-history" data-tab="ai-history"><i>📜</i><span>대화 이력</span></a></li>
-          <li><a href="#ai-cost" data-tab="ai-cost"><i>💰</i><span>비용 관리</span></a></li>
-          <li><a href="#ai-logs" data-tab="ai-logs"><i>📊</i><span>도구 사용 로그</span></a></li>
-          <li><a href="#ai-config" data-tab="ai-config"><i>⚙️</i><span>설정·도구 관리</span></a></li>
+          <li><a href="#ai-chat" data-tab="ai-chat"><i><span class="siren-icon-wrap" data-icon="message-circle"></span></i><span>대화 시작</span></a></li>
+          <li><a href="#ai-history" data-tab="ai-history"><i><span class="siren-icon-wrap" data-icon="scroll"></span></i><span>대화 이력</span></a></li>
+          <li><a href="#ai-cost" data-tab="ai-cost"><i><span class="siren-icon-wrap" data-icon="coins"></span></i><span>비용 관리</span></a></li>
+          <li><a href="#ai-logs" data-tab="ai-logs"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>도구 사용 로그</span></a></li>
+          <li><a href="#ai-config" data-tab="ai-config"><i><span class="siren-icon-wrap" data-icon="settings"></span></i><span>설정·도구 관리</span></a></li>
         </ul>
       </li>
 
-      <!-- ── 🛎 운영 관리 (직원·권한·급여 등 내부 운영) ── -->
+      <!-- ── 운영 관리 (직원·권한·급여 등 내부 운영) ── -->
       <li class="cms-menu-group" data-group="ops-mgmt">
         <a href="#" data-toggle="ops-mgmt">
-          <i>🛎</i><span>운영 관리</span>
+          <i><span class="siren-icon-wrap" data-icon="bell"></span></i><span>운영 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="ops-mgmt" style="display:none">
-          <li><a href="#payroll" data-tab="payroll"><i>💰</i><span>급여관리</span></a></li>
-          <li><a href="#role-policy" data-tab="role-policy"><i>🛡️</i><span>권한정책관리</span></a></li>
-          <li><a href="#milestone-review" data-tab="milestone-review"><i>🏆</i><span>성과관리 설정</span></a></li>
-          <li><a href="#att-ops" data-tab="att-ops"><i>🟢</i><span>근태 현황</span></a></li>
-          <li><a href="#att-config" data-tab="att-config"><i>⚙️</i><span>근태 설정</span></a></li>
-          <li><a href="#att-door" data-tab="att-door"><i>🚪</i><span>출입문 제어</span></a></li>
+          <li><a href="#payroll" data-tab="payroll"><i><span class="siren-icon-wrap" data-icon="coins"></span></i><span>급여관리</span></a></li>
+          <li><a href="#role-policy" data-tab="role-policy"><i><span class="siren-icon-wrap" data-icon="shield"></span></i><span>권한정책관리</span></a></li>
+          <li><a href="#milestone-review" data-tab="milestone-review"><i><span class="siren-icon-wrap" data-icon="trophy"></span></i><span>성과관리 설정</span></a></li>
+          <li><a href="#att-ops" data-tab="att-ops"><i><span class="siren-icon-wrap" data-icon="circle-dot"></span></i><span>근태 현황</span></a></li>
+          <li><a href="#att-config" data-tab="att-config"><i><span class="siren-icon-wrap" data-icon="settings"></span></i><span>근태 설정</span></a></li>
+          <li><a href="#att-door" data-tab="att-door"><i><span class="siren-icon-wrap" data-icon="door-open"></span></i><span>출입문 제어</span></a></li>
         </ul>
       </li>
 
-      <!-- ── 📚 콘텐츠 관리 (영수증·폼·게임·팝업 등 사용자 노출) ── -->
+      <!-- ── 콘텐츠 관리 (영수증·폼·게임·팝업 등 사용자 노출) ── -->
       <li class="cms-menu-group" data-group="content-mgmt">
         <a href="#" data-toggle="content-mgmt">
-          <i>📚</i><span>콘텐츠 관리</span>
+          <i><span class="siren-icon-wrap" data-icon="book"></span></i><span>콘텐츠 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="content-mgmt" style="display:none">
-          <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
-          <li><a href="#forms-builder" data-tab="forms-builder"><i>📋</i><span>응답폼·신청폼</span></a></li>
-          <li><a href="#gamification" data-tab="gamification"><i>🎮</i><span>게이미피케이션</span></a></li>
-          <li><a href="#popups" data-tab="popups"><i>📢</i><span>팝업 관리</span></a></li>
-          <li><a href="#memorial" data-tab="memorial"><i>🕊️</i><span>온라인 추모관</span></a></li>
-          <li><a href="#family-stories" data-tab="family-stories"><i>📖</i><span>유가족 이야기</span></a></li>
+          <li><a href="#receipt-settings" data-tab="receipt-settings"><i><span class="siren-icon-wrap" data-icon="file-text"></span></i><span>영수증 설정</span></a></li>
+          <li><a href="#forms-builder" data-tab="forms-builder"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>응답폼·신청폼</span></a></li>
+          <li><a href="#gamification" data-tab="gamification"><i><span class="siren-icon-wrap" data-icon="gamepad-2"></span></i><span>게이미피케이션</span></a></li>
+          <li><a href="#popups" data-tab="popups"><i><span class="siren-icon-wrap" data-icon="megaphone"></span></i><span>팝업 관리</span></a></li>
+          <li><a href="#memorial" data-tab="memorial"><i><span class="siren-icon-wrap" data-icon="dove"></span></i><span>온라인 추모관</span></a></li>
+          <li><a href="#family-stories" data-tab="family-stories"><i><span class="siren-icon-wrap" data-icon="book-open"></span></i><span>유가족 이야기</span></a></li>
         </ul>
       </li>
 
@@ -605,14 +606,14 @@ if (window.self !== window.top) {
       <div class="cms-top-user">
         <button type="button" id="sessionTimer" onclick="extendAdminSession()" title="클릭하면 세션이 연장됩니다"
           style="display:none;align-items:center;gap:6px;padding:6px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
-          <span id="sessionTimerIcon">🔓</span><span id="sessionTimerText">--:--</span>
+          <span id="sessionTimerIcon"><span class="siren-icon-wrap" data-icon="unlock"></span></span><span id="sessionTimerText">--:--</span>
         </button>
         <span class="cms-user-name" id="cmsUserName">관리자</span>
         <div class="cms-avatar" id="cmsAvatar">A</div>
         <!-- 2026-06-03: 로그아웃 (Swain — 통합 CMS에 로그아웃 부재) -->
         <button type="button" id="cmsLogout" title="로그아웃"
           style="display:inline-flex;align-items:center;gap:5px;margin-left:4px;padding:6px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
-          <span aria-hidden="true">🚪</span><span>로그아웃</span>
+          <span aria-hidden="true"><span class="siren-icon-wrap" data-icon="door-open"></span></span><span>로그아웃</span>
         </button>
       </div>
     </header>
@@ -623,25 +624,25 @@ if (window.self !== window.top) {
       <section class="cms-page show" id="page-dashboard">
         <div class="cms-kpi-grid">
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">👥</div>
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4"><span class="siren-icon-wrap" data-icon="users"></span></div>
             <div class="cms-kpi-label">전체 회원</div>
             <div class="cms-kpi-value" id="kpiTotal">-</div>
             <div class="cms-kpi-delta">↑ 이번달 신규 <span id="kpiNew">-</span>명</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">🎗</div>
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a"><span class="siren-icon-wrap" data-icon="ribbon"></span></div>
             <div class="cms-kpi-label">유족 회원</div>
             <div class="cms-kpi-value" id="kpiFamily">-</div>
             <div class="cms-kpi-delta">1기~10기 전체</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">💰</div>
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00"><span class="siren-icon-wrap" data-icon="coins"></span></div>
             <div class="cms-kpi-label">후원 회원</div>
             <div class="cms-kpi-value" id="kpiDonor">-</div>
             <div class="cms-kpi-delta">정기 <span id="kpiRegular">-</span> · 예비 <span id="kpiOnetime">-</span></div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">🤝</div>
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46"><span class="siren-icon-wrap" data-icon="handshake"></span></div>
             <div class="cms-kpi-label">봉사 회원</div>
             <div class="cms-kpi-value" id="kpiVolunteer">-</div>
             <div class="cms-kpi-delta">활동 가능</div>
@@ -666,21 +667,21 @@ if (window.self !== window.top) {
             </div>
             <div class="cms-source-list">
               <div class="cms-source-item">
-                <div class="cms-source-icon" style="background:#e6f0ff">🌐</div>
+                <div class="cms-source-icon" style="background:#e6f0ff"><span class="siren-icon-wrap" data-icon="globe"></span></div>
                 <div class="cms-source-info">
                   <div class="cms-source-name">싸이렌 웹사이트</div>
                   <div class="cms-source-count" id="srcWeb">-명</div>
                 </div>
               </div>
               <div class="cms-source-item">
-                <div class="cms-source-icon" style="background:#fff4e0">📋</div>
+                <div class="cms-source-icon" style="background:#fff4e0"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></div>
                 <div class="cms-source-info">
                   <div class="cms-source-name">Excel 일괄 등록</div>
                   <div class="cms-source-count" id="srcExcel">-명</div>
                 </div>
               </div>
               <div class="cms-source-item">
-                <div class="cms-source-icon" style="background:#e8f5ed">📞</div>
+                <div class="cms-source-icon" style="background:#e8f5ed"><span class="siren-icon-wrap" data-icon="phone"></span></div>
                 <div class="cms-source-info">
                   <div class="cms-source-name">수기 접수</div>
                   <div class="cms-source-count" id="srcManual">-명</div>
@@ -708,19 +709,19 @@ if (window.self !== window.top) {
         </div>
       </section>
 
-      <!-- ============ 💰 후원자 관리 > 🏦 효성 자동이체 (조회 전용) ============ -->
+      <!-- ============ 후원자 관리 > 효성 자동이체 (조회 전용) ============ -->
       <section class="cms-page" id="page-hyosung">
         <!-- 조회 전용 안내 배너 -->
         <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#1a5ec4;line-height:1.7">
-          💡 <strong>이 화면은 효성 자동이체 후원자 현황 조회 전용입니다.</strong><br>
-          효성 CMS+ 자료 업로드는 [📥 입금 매칭·통과 → 자료 업로드·통과] 탭에서 진행하세요.
+          <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>이 화면은 효성 자동이체 후원자 현황 조회 전용입니다.</strong><br>
+          효성 CMS+ 자료 업로드는 [<span class="siren-icon-wrap" data-icon="inbox"></span> 입금 매칭·통과 → 자료 업로드·통과] 탭에서 진행하세요.
           여기서는 통과 처리된 결과(계약 명단·월별 입금 현황)만 조회됩니다.
         </div>
         <div class="cms-panel" style="padding:0">
           <!-- 탭 헤더 -->
           <div class="cms-tabs-bar" style="display:flex;border-bottom:2px solid #e0e3e8;background:#fafaf9">
-            <button class="hy-tab on" data-hy-tab="contracts" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid #1a5ec4;font-weight:600;cursor:pointer">📋 계약 명단</button>
-            <button class="hy-tab" data-hy-tab="billings" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">📅 월별 입금 현황</button>
+            <button class="hy-tab on" data-hy-tab="contracts" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid #1a5ec4;font-weight:600;cursor:pointer"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 계약 명단</button>
+            <button class="hy-tab" data-hy-tab="billings" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer"><span class="siren-icon-wrap" data-icon="calendar"></span> 월별 입금 현황</button>
           </div>
 
           <!-- 탭 1: 계약 관리 -->
@@ -824,19 +825,19 @@ if (window.self !== window.top) {
             <div id="hyBillingPagination" style="text-align:center;padding:16px"></div>
           </div>
 
-          <!-- (옛 CSV 업로드 탭은 [📥 입금 매칭·통과 → 자료 업로드·통과]로 통합 — 2026-05-16) -->
+          <!-- (옛 CSV 업로드 탭은 [입금 매칭·통과 → 자료 업로드·통과]로 통합 — 2026-05-16) -->
         </div>
       </section>
 
       <!-- ============ 2. 통합 회원 ============ -->
-            <!-- ============ 💰 후원 관리 > 💳 KICC 빌링 (자동 청구) ============ -->
+            <!-- ============ 후원 관리 > KICC 빌링 (자동 청구) ============ -->
       <section class="cms-page" id="page-toss-billing">
         <div class="cms-panel" style="padding:0">
           <!-- 탭 헤더 -->
           <div class="cms-tabs-bar" style="display:flex;border-bottom:2px solid #e0e3e8;background:#fafaf9">
-            <button class="tb-tab on" data-tb-tab="keys" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid #3c7c42;font-weight:600;cursor:pointer">📋 빌링키 관리</button>
-            <button class="tb-tab" data-tb-tab="logs" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">💳 빌링 이력</button>
-            <button class="tb-tab" data-tb-tab="schedule" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">📅 스케줄 & 만료</button>
+            <button class="tb-tab on" data-tb-tab="keys" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid #3c7c42;font-weight:600;cursor:pointer"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 빌링키 관리</button>
+            <button class="tb-tab" data-tb-tab="logs" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer"><span class="siren-icon-wrap" data-icon="credit-card"></span> 빌링 이력</button>
+            <button class="tb-tab" data-tb-tab="schedule" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer"><span class="siren-icon-wrap" data-icon="calendar"></span> 스케줄 & 만료</button>
           </div>
 
           <!-- ========== 탭 1: 빌링키 관리 ========== -->
@@ -869,7 +870,7 @@ if (window.self !== window.top) {
                 <option value="active">활성</option>
                 <option value="inactive">해지됨</option>
               </select>
-              <button id="tbKeysRefresh" class="cms-btn">🔄 새로고침</button>
+              <button id="tbKeysRefresh" class="cms-btn"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 새로고침</button>
             </div>
 
             <!-- 목록 테이블 -->
@@ -919,7 +920,7 @@ if (window.self !== window.top) {
 
             <!-- 실패 사유 Top 5 -->
             <div id="tbLogsTopErrors" style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8;margin-bottom:16px">
-              <div style="font-weight:600;margin-bottom:8px">🚨 최근 30일 실패 사유 Top 5</div>
+              <div style="font-weight:600;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="siren"></span> 최근 30일 실패 사유 Top 5</div>
               <div id="tbLogsTopErrorsList" style="color:#666;font-size:14px">조회 중…</div>
             </div>
 
@@ -937,7 +938,7 @@ if (window.self !== window.top) {
                 <option value="retry">재시도</option>
                 <option value="manual">수동</option>
               </select>
-              <button id="tbLogsRefresh" class="cms-btn">🔄 새로고침</button>
+              <button id="tbLogsRefresh" class="cms-btn"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 새로고침</button>
             </div>
 
             <!-- 로그 테이블 -->
@@ -967,20 +968,20 @@ if (window.self !== window.top) {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
               <!-- 다음 30일 청구 예정 -->
               <div style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8">
-                <div style="font-weight:600;margin-bottom:12px;font-size:16px">📅 다음 30일 청구 예정</div>
+                <div style="font-weight:600;margin-bottom:12px;font-size:16px"><span class="siren-icon-wrap" data-icon="calendar"></span> 다음 30일 청구 예정</div>
                 <div id="tbScheduleUpcoming" style="color:#666;font-size:14px">조회 중…</div>
               </div>
 
               <!-- 카드 만료 예정 -->
               <div style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8">
-                <div style="font-weight:600;margin-bottom:12px;font-size:16px">⚠️ 카드 만료 예정 / 만료됨</div>
+                <div style="font-weight:600;margin-bottom:12px;font-size:16px"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 카드 만료 예정 / 만료됨</div>
                 <div id="tbScheduleExpiring" style="color:#666;font-size:14px">조회 중…</div>
               </div>
             </div>
 
             <!-- 안내 -->
             <div style="background:#fff8e1;padding:16px;border-radius:8px;border-left:4px solid #ffb300;margin-top:16px">
-              <div style="font-weight:600;margin-bottom:8px;color:#e65100">ℹ️ 자동 청구 시스템 안내</div>
+              <div style="font-weight:600;margin-bottom:8px;color:#e65100"><span class="siren-icon-wrap" data-icon="info"></span> 자동 청구 시스템 안내</div>
               <ul style="margin:0;padding-left:20px;color:#555;line-height:1.8;font-size:14px">
                 <li>매일 <strong>KST 00:00 자정</strong>에 오늘 약정일 회원을 자동 청구합니다</li>
                 <li>실패 시 <strong>1일 후 → 3일 후</strong> 자동 재시도</li>
@@ -996,7 +997,7 @@ if (window.self !== window.top) {
       <section class="cms-page" id="page-members">
         <!-- R38 A-3: 회원 추가·운영자·어드민 권한 안내 -->
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#1e3a8a;line-height:1.75">
-          💡 <strong>직원 추가·운영자·어드민 권한 부여</strong><br>
+          <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>직원 추가·운영자·어드민 권한 부여</strong><br>
           • <strong>신규 회원 추가</strong>: 우측 상단 <strong>[+ 회원 추가]</strong> 버튼<br>
           • <strong>운영자 권한</strong>: 회원 상세 모달 → <strong>"운영자 활성"</strong> 토글<br>
           • <strong>어드민 권한</strong>: 회원 상세 모달 → <strong>"역할"</strong> 변경 (regular → admin → super_admin)<br>
@@ -1006,31 +1007,31 @@ if (window.self !== window.top) {
         <!-- 가입경로별 인원수 KPI (Phase 2 단계 D 후속) -->
         <div class="cms-kpi-grid donor-kpi-grid">
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252">👥</div>
+            <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252"><span class="siren-icon-wrap" data-icon="users"></span></div>
             <div class="cms-kpi-label">전체 회원</div>
             <div class="cms-kpi-value" id="msKpiTotal">-</div>
             <div class="cms-kpi-delta">통합 풀 전체</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">🌐</div>
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4"><span class="siren-icon-wrap" data-icon="globe"></span></div>
             <div class="cms-kpi-label">싸이렌</div>
             <div class="cms-kpi-value" id="msKpiSiren">-</div>
             <div class="cms-kpi-delta">웹 직접 가입</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">🏦</div>
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00"><span class="siren-icon-wrap" data-icon="landmark"></span></div>
             <div class="cms-kpi-label">효성</div>
             <div class="cms-kpi-value" id="msKpiHyosung">-</div>
             <div class="cms-kpi-delta">효성 CMS+ 흡수</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">✍️</div>
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46"><span class="siren-icon-wrap" data-icon="pencil"></span></div>
             <div class="cms-kpi-label">수기</div>
             <div class="cms-kpi-value" id="msKpiManual">-</div>
             <div class="cms-kpi-delta">관리자 수동 등록</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">🤝</div>
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a"><span class="siren-icon-wrap" data-icon="handshake"></span></div>
             <div class="cms-kpi-label">기타</div>
             <div class="cms-kpi-value" id="msKpiOther">-</div>
             <div class="cms-kpi-delta">이벤트·기타·미분류</div>
@@ -1048,14 +1049,14 @@ if (window.self !== window.top) {
             </select>
             <select id="filterSource">
               <option value="all">전체 가입경로</option>
-              <option value="siren">🌐 싸이렌</option>
-              <option value="hyosung">🏦 효성</option>
-              <option value="manual">✍️ 수기</option>
+              <option value="siren">싸이렌</option>
+              <option value="hyosung">효성</option>
+              <option value="manual">수기</option>
             </select>
             <select id="filterDonorType">
               <option value="all">후원 상태 전체</option>
-              <option value="regular">🔁 정기</option>
-              <option value="prospect">💡 잠재</option>
+              <option value="regular">정기</option>
+              <option value="prospect">잠재</option>
               <option value="none">— 비후원</option>
             </select>
             <input type="text" id="filterSearch" placeholder="이름·이메일·전화번호 검색...">
@@ -1068,8 +1069,8 @@ if (window.self !== window.top) {
               </svg>
               새로고침
             </button>
-            <button class="cms-btn cms-btn-ghost" id="btnExportMembersCsv" type="button">📥 CSV</button>
-            <button class="cms-btn cms-btn-ghost" id="btnExportMembersXlsx" type="button">📊 엑셀</button>
+            <button class="cms-btn cms-btn-ghost" id="btnExportMembersCsv" type="button"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV</button>
+            <button class="cms-btn cms-btn-ghost" id="btnExportMembersXlsx" type="button"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 엑셀</button>
             <button class="cms-btn cms-btn-primary" id="btnAddMember">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -1105,21 +1106,21 @@ if (window.self !== window.top) {
 
       </section>
 
-      <!-- ============ 💰 후원자 관리 > 📥 입금 매칭·통과 ============ -->
+      <!-- ============ 후원자 관리 > 입금 매칭·통과 ============ -->
       <section class="cms-page" id="page-import">
 
         <!-- 페이지 안내 배너 -->
         <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:8px;padding:13px 16px;margin-bottom:16px;font-size:12.5px;color:#7d5400;line-height:1.7">
-          📥 <strong>효성·기업은행 입금 자료를 SIREN 후원 시스템에 정식 반영하는 작업장입니다.</strong><br>
-          여기서 통과한 입금은 <strong>후원 결제 내역에 ✅ 정식 반영</strong>되고, 회원 신분이 <strong>정기/예비 후원자로 자동 전환</strong>됩니다.<br>
+          <span class="siren-icon-wrap" data-icon="inbox"></span> <strong>효성·기업은행 입금 자료를 SIREN 후원 시스템에 정식 반영하는 작업장입니다.</strong><br>
+          여기서 통과한 입금은 <strong>후원 결제 내역에 <span class="siren-icon-wrap" data-icon="circle-check"></span> 정식 반영</strong>되고, 회원 신분이 <strong>정기/예비 후원자로 자동 전환</strong>됩니다.<br>
           효성 자동이체 화면(계약 명단·월별 입금 현황)도 같이 자동 갱신됩니다.
         </div>
 
         <!-- 탭 선택 -->
         <div class="content-tabs" id="importTabs" style="margin-bottom:20px">
-          <button type="button" class="ct-tab on" data-itab="bulk">📋 신규 회원 일괄 등록</button>
-          <button type="button" class="ct-tab" data-itab="csv">📥 자료 업로드·통과 <small style="font-weight:400;font-size:11px;margin-left:4px">(효성·IBK CSV)</small></button>
-          <button type="button" class="ct-tab" data-itab="verify">🔍 데이터 검증 <small style="font-weight:400;font-size:11px;margin-left:4px">(미매칭·중복 진단)</small></button>
+          <button type="button" class="ct-tab on" data-itab="bulk"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 신규 회원 일괄 등록</button>
+          <button type="button" class="ct-tab" data-itab="csv"><span class="siren-icon-wrap" data-icon="inbox"></span> 자료 업로드·통과 <small style="font-weight:400;font-size:11px;margin-left:4px">(효성·IBK CSV)</small></button>
+          <button type="button" class="ct-tab" data-itab="verify"><span class="siren-icon-wrap" data-icon="search"></span> 데이터 검증 <small style="font-weight:400;font-size:11px;margin-left:4px">(미매칭·중복 진단)</small></button>
         </div>
 
         <!-- 탭 1: 일괄 등록 -->
@@ -1127,19 +1128,19 @@ if (window.self !== window.top) {
 
         <div class="cms-panel">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">📋 신규 회원 일괄 등록</div>
+            <div class="cms-panel-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 신규 회원 일괄 등록</div>
             <span class="cms-panel-tag">Excel/CSV 명단으로 회원만 추가</span>
           </div>
           <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.7">
-            💡 <strong>언제 사용하나요?</strong> 외부 명단(Excel 등)을 한 번에 회원으로 추가할 때 사용합니다.
+            <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>언제 사용하나요?</strong> 외부 명단(Excel 등)을 한 번에 회원으로 추가할 때 사용합니다.
             오프라인 신규 회원이나 옛 명단을 옮겨올 때 유용합니다.<br>
-            ⚠️ 이 탭은 <strong>회원만 등록</strong>합니다 — 후원 입금 반영은 [📥 자료 업로드·통과] 탭에서 하세요.
+            <span class="siren-icon-wrap" data-icon="alert-triangle"></span> 이 탭은 <strong>회원만 등록</strong>합니다 — 후원 입금 반영은 [<span class="siren-icon-wrap" data-icon="inbox"></span> 자료 업로드·통과] 탭에서 하세요.
           </div>
 
           <div class="cms-import-grid">
             <!-- 업로드 영역 -->
             <div class="cms-upload-zone" id="uploadZone">
-              <div class="cms-upload-icon">📋</div>
+              <div class="cms-upload-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></div>
               <h3>파일을 끌어놓거나 클릭해 선택</h3>
               <p>CSV, XLSX 형식 · 최대 5MB</p>
               <input type="file" id="uploadFile" accept=".csv,.xlsx,.xls" hidden>
@@ -1150,7 +1151,7 @@ if (window.self !== window.top) {
 
             <!-- 템플릿 다운로드 -->
             <div class="cms-template-info">
-              <h4>📝 등록 전 준비사항</h4>
+              <h4><span class="siren-icon-wrap" data-icon="file-pen"></span> 등록 전 준비사항</h4>
               <ul>
                 <li>엑셀 첫 행은 <strong>헤더</strong>여야 합니다</li>
                 <li>필수 컬럼: 이름, 전화번호</li>
@@ -1171,7 +1172,7 @@ if (window.self !== window.top) {
           <!-- 미리보기 -->
           <div class="cms-preview" id="importPreview" style="display:none">
             <div class="cms-preview-head">
-              <h4>📋 미리보기 (상위 5행)</h4>
+              <h4><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 미리보기 (상위 5행)</h4>
               <span id="previewCount"></span>
             </div>
             <div class="cms-preview-table-wrap">
@@ -1190,7 +1191,7 @@ if (window.self !== window.top) {
         <!-- 수기 등록 -->
         <div class="cms-panel" style="margin-top:20px">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">✍️ 개별 수기 등록</div>
+            <div class="cms-panel-title"><span class="siren-icon-wrap" data-icon="pencil"></span> 개별 수기 등록</div>
           </div>
           <form id="manualAddForm" class="cms-form-grid">
             <div class="cms-fg">
@@ -1232,7 +1233,7 @@ if (window.self !== window.top) {
         <!-- 탭 2: 자료 업로드·통과 -->
         <div data-itab-pane="csv" style="display:none">
           <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.7">
-            📥 <strong>업로드 순서를 꼭 지켜주세요 (오류 방지)</strong><br>
+            <span class="siren-icon-wrap" data-icon="inbox"></span> <strong>업로드 순서를 꼭 지켜주세요 (오류 방지)</strong><br>
             <span style="display:inline-block;background:#fff;border:1px solid #e3c388;border-radius:4px;padding:2px 8px;margin:3px 0;font-weight:600;color:#7d5400">①</span>
             <strong>효성 계약 CSV 먼저</strong> — 효성 사이트 [계약정보] 탭에서 받은 파일. 회원·계약을 먼저 등록해 둬야 다음 단계 매칭이 됨.<br>
             <span style="display:inline-block;background:#fff;border:1px solid #e3c388;border-radius:4px;padding:2px 8px;margin:3px 0;font-weight:600;color:#7d5400">②</span>
@@ -1240,12 +1241,12 @@ if (window.self !== window.top) {
             <span style="display:inline-block;background:#fff;border:1px solid #e3c388;border-radius:4px;padding:2px 8px;margin:3px 0;font-weight:600;color:#7d5400">③</span>
             <strong>기업은행(IBK) 통장 CSV</strong> — 직접 계좌이체 일시 후원 매칭용. 효성과 무관하니 언제 올려도 무방.<br>
             <br>
-            ⚠️ <strong>순서를 뒤집으면</strong> "회원이 없음. 효성 계약 파일 먼저 통과 처리하세요" 라는 거부 메시지가 뜹니다. 데이터는 망가지지 않으니 안내대로 ① 먼저 올린 뒤 ②를 다시 시도하면 됩니다.<br>
+            <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>순서를 뒤집으면</strong> "회원이 없음. 효성 계약 파일 먼저 통과 처리하세요" 라는 거부 메시지가 뜹니다. 데이터는 망가지지 않으니 안내대로 ① 먼저 올린 뒤 ②를 다시 시도하면 됩니다.<br>
             <br>
             "통과" 클릭 시:<br>
-            &nbsp;&nbsp;✅ 후원 결제 내역에 정식 행 생성 &nbsp;|&nbsp; ✅ 효성 자동이체 화면(계약 명단·월별 입금 현황) 자동 갱신 &nbsp;|&nbsp; ✅ 회원 신분(정기/예비 후원자) 자동 전환<br>
+            &nbsp;&nbsp;<span class="siren-icon-wrap" data-icon="circle-check"></span> 후원 결제 내역에 정식 행 생성 &nbsp;|&nbsp; <span class="siren-icon-wrap" data-icon="circle-check"></span> 효성 자동이체 화면(계약 명단·월별 입금 현황) 자동 갱신 &nbsp;|&nbsp; <span class="siren-icon-wrap" data-icon="circle-check"></span> 회원 신분(정기/예비 후원자) 자동 전환<br>
             <br>
-            ⚠️ IBK 매칭은 회원이 먼저 있어야 됩니다 — 없다면 [📋 신규 회원 일괄 등록] 탭에서 먼저 등록해 주세요.
+            <span class="siren-icon-wrap" data-icon="alert-triangle"></span> IBK 매칭은 회원이 먼저 있어야 됩니다 — 없다면 [<span class="siren-icon-wrap" data-icon="clipboard-list"></span> 신규 회원 일괄 등록] 탭에서 먼저 등록해 주세요.
           </div>
           <!-- CSV 매핑 컨텐츠 — id는 그대로 유지 (JS 참조) -->
           <div id="csv-import-inner"></div>
@@ -1264,12 +1265,12 @@ if (window.self !== window.top) {
       <section class="cms-page" id="page-receipt-settings">
         <div class="cms-panel">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">📄 기부금 영수증 설정</div>
+            <div class="cms-panel-title"><span class="siren-icon-wrap" data-icon="file-text"></span> 기부금 영수증 설정</div>
             <span class="cms-panel-tag cms-tag-info">DB 동기화</span>
           </div>
 
           <div class="rs-info-banner">
-            💡 이 설정은 <strong>사이렌 웹 관리자</strong>와 <strong>교유협 통합 CMS</strong>에서 모두 공유됩니다.<br />
+            <span class="siren-icon-wrap" data-icon="lightbulb"></span> 이 설정은 <strong>사이렌 웹 관리자</strong>와 <strong>교유협 통합 CMS</strong>에서 모두 공유됩니다.<br />
             한 곳에서 변경하면 양쪽 모두에 즉시 반영되며, 다음 발급되는 PDF 영수증부터 적용됩니다.
           </div>
 
@@ -1280,7 +1281,7 @@ if (window.self !== window.top) {
           <form id="receiptSettingsForm">
 
             <!-- 기관 정보 -->
-            <div class="rs-section-title">🏢 기관 정보</div>
+            <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="building-2"></span> 기관 정보</div>
             <div class="rs-form-grid">
               <label for="rsOrgName">단체명</label>
               <input type="text" id="rsOrgName" name="orgName" placeholder="사단법인 교사유가족협의회" maxlength="100">
@@ -1299,7 +1300,7 @@ if (window.self !== window.top) {
             </div>
 
             <!-- 양식 텍스트 -->
-            <div class="rs-section-title">📝 영수증 양식 텍스트</div>
+            <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="file-pen"></span> 영수증 양식 텍스트</div>
             <div class="rs-form-grid">
               <label for="rsTitle">제목</label>
               <input type="text" id="rsTitle" name="title" placeholder="기 부 금  영 수 증" maxlength="100">
@@ -1315,7 +1316,7 @@ if (window.self !== window.top) {
             </div>
 
             <!-- 하단 안내문 (동적 추가/삭제) -->
-            <div class="rs-section-title">📋 하단 안내문 (최대 10개)</div>
+            <div class="rs-section-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 하단 안내문 (최대 10개)</div>
             <p style="font-size:12px;color:#888;margin:-6px 0 10px">각 줄은 영수증 PDF 하단에 안내문으로 표시됩니다.</p>
             <div class="rs-footer-list" id="rsFooterList">
               <!-- JS가 동적 생성 -->
@@ -1324,9 +1325,9 @@ if (window.self !== window.top) {
 
             <!-- 액션 버튼 -->
             <div class="rs-actions">
-              <button type="submit" class="cms-btn cms-btn-primary" style="flex:1;padding:11px">💾 저장하기</button>
-              <button type="button" class="cms-btn cms-btn-ghost" id="rsPreviewBtn" style="flex:1;padding:11px">👀 PDF 미리보기</button>
-              <button type="button" class="cms-btn cms-btn-ghost" id="rsReloadBtn" style="padding:11px 18px">🔄 다시 불러오기</button>
+              <button type="submit" class="cms-btn cms-btn-primary" style="flex:1;padding:11px"><span class="siren-icon-wrap" data-icon="save"></span> 저장하기</button>
+              <button type="button" class="cms-btn cms-btn-ghost" id="rsPreviewBtn" style="flex:1;padding:11px"><span class="siren-icon-wrap" data-icon="eye"></span> PDF 미리보기</button>
+              <button type="button" class="cms-btn cms-btn-ghost" id="rsReloadBtn" style="padding:11px 18px"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 다시 불러오기</button>
             </div>
           </form>
         </div>
@@ -1336,7 +1337,7 @@ if (window.self !== window.top) {
       <section class="cms-page" id="page-donations"></section>
       <section class="cms-page" id="page-finance-income">
         <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#1a5ec4;line-height:1.7">
-          📊 <strong>손익 현황 — 수입·지출 통합 보고</strong><br>
+          <span class="siren-icon-wrap" data-icon="bar-chart-3"></span> <strong>손익 현황 — 수입·지출 통합 보고</strong><br>
           • 수입 합산: KICC (정기·일시) + 효성 자동이체 + IBK 통장(직접 계좌이체 통과) + 후원 외 매출<br>
           • 지출 합산: 지출 관리에서 승인된 행 전체<br>
           • 당기 순이익 = 총 매출(환불 차감) − 총 지출(환불 차감). 음수면 "당기 순손실"로 표시.
@@ -1429,7 +1430,7 @@ if (window.self !== window.top) {
       <!-- ============ ★ 작업 C(#15): CSV 자동 매핑 ============ -->
       <section class="cms-page" id="page-csv-import">
         <div class="cms-card" style="padding:18px">
-          <h3 style="margin:0 0 6px;font-size:16px">📥 CSV 자동 매핑 — 효성 + 기업은행</h3>
+          <h3 style="margin:0 0 6px;font-size:16px"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV 자동 매핑 — 효성 + 기업은행</h3>
           <p style="margin:0 0 14px;color:#666;font-size:12.5px;line-height:1.6">
             효성 CMS+ 또는 기업은행(IBK) 거래내역 CSV를 업로드하면 입금 행을 추출해 자동 매칭(이름·금액·날짜·계좌끝4)을 시도하고,
             <strong>미확정 후원</strong> 목록에 적재합니다. 검토 후 1건 또는 일괄로 확정하면 정식 후원 내역에 반영됩니다.
@@ -1457,14 +1458,14 @@ if (window.self !== window.top) {
                   <input type="checkbox" id="csvAutoMatch" checked> 업로드 시 자동 매칭 점수 계산
                 </label>
                 <button type="submit" id="csvImportBtn" class="cms-btn cms-btn-primary" style="padding:10px;font-size:13px">
-                  📥 업로드 + 매칭
+                  <span class="siren-icon-wrap" data-icon="inbox"></span> 업로드 + 매칭
                 </button>
                 <div id="csvImportResult" style="font-size:12px;color:#666;line-height:1.6;min-height:18px"></div>
               </form>
             </div>
 
             <div style="border:1px solid #e0e3e8;border-radius:8px;padding:14px;background:#fff">
-              <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">📊 미확정 / 매칭 / 확정 / 무시</div>
+              <div style="font-weight:600;font-size:13.5px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 미확정 / 매칭 / 확정 / 무시</div>
               <div id="csvSummary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
                 <div style="padding:12px 6px;background:#fff7e6;border-radius:6px">
                   <div style="font-size:18px;font-weight:700;color:#c47a00" id="csvSumPending">-</div>
@@ -1493,7 +1494,7 @@ if (window.self !== window.top) {
           <!-- ★ Phase 3 D 보강: 자동 매칭 + 상태 전이 미리보기 -->
           <div id="csvPreviewPanel" style="margin-bottom:14px;padding:12px 14px;border:1px solid #e0e3e8;border-radius:8px;background:#fbfdff">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-              <strong style="font-size:13px">🔍 매칭 미리보기 — 확정 전 검토</strong>
+              <strong style="font-size:13px"><span class="siren-icon-wrap" data-icon="search"></span> 매칭 미리보기 — 확정 전 검토</strong>
               <span style="font-size:11.5px;color:#888">현재 목록(페이지) 기준 분류 · 카드 클릭 시 해당 필터 적용</span>
             </div>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
@@ -1505,7 +1506,7 @@ if (window.self !== window.top) {
               </div>
               <div class="csv-bucket-card" data-bucket="manual"
                    style="cursor:pointer;padding:12px;border:1px solid #f5d8a8;border-radius:6px;background:#fff7e6">
-                <div style="font-size:11.5px;color:#c47a00;font-weight:600">⚠ 수동 매칭 필요</div>
+                <div style="font-size:11.5px;color:#c47a00;font-weight:600"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 수동 매칭 필요</div>
                 <div style="font-size:22px;font-weight:700;color:#c47a00;margin:4px 0" id="csvBucketManual">-</div>
                 <div style="font-size:10.5px;color:#666;line-height:1.4">매칭 점수 부족 — 회원 ID 수동 지정 후 통과</div>
               </div>
@@ -1517,7 +1518,7 @@ if (window.self !== window.top) {
               </div>
             </div>
             <div id="csvPreviewHint" style="margin-top:10px;font-size:11.5px;color:#666;display:none">
-              💡 행 별 <strong>상태 전이</strong> 컬럼에서 통과 시 변경되는 분류(정기/잠재/없음)를 미리 확인할 수 있습니다.
+              <span class="siren-icon-wrap" data-icon="lightbulb"></span> 행 별 <strong>상태 전이</strong> 컬럼에서 통과 시 변경되는 분류(정기/잠재/없음)를 미리 확인할 수 있습니다.
             </div>
           </div>
 
@@ -1539,12 +1540,12 @@ if (window.self !== window.top) {
             </select>
             <input type="search" id="csvFilterSearch" placeholder="이름·메모 검색"
               style="flex:1;min-width:160px;padding:7px 10px;border:1px solid #d0d4dc;border-radius:5px;font-size:12.5px">
-            <button type="button" id="csvRefreshBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px">🔄 새로고침</button>
+            <button type="button" id="csvRefreshBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 새로고침</button>
             <button type="button" id="csvBatchConfirmBtn" class="cms-btn cms-btn-primary" style="padding:7px 14px;font-size:12.5px" disabled>
-              ✅ 선택 일괄 통과 (<span id="csvSelectedCount">0</span>)
+              <span class="siren-icon-wrap" data-icon="circle-check"></span> 선택 일괄 통과 (<span id="csvSelectedCount">0</span>)
             </button>
             <button type="button" id="csvBatchIgnoreBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px" disabled>
-              🗑 선택 일괄 무시
+              <span class="siren-icon-wrap" data-icon="trash"></span> 선택 일괄 무시
             </button>
           </div>
 
@@ -1581,31 +1582,31 @@ if (window.self !== window.top) {
         <!-- KPI 5종 -->
         <div class="cms-kpi-grid donor-kpi-grid">
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">🔁</div>
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46"><span class="siren-icon-wrap" data-icon="repeat"></span></div>
             <div class="cms-kpi-label">정기 후원자 총수</div>
             <div class="cms-kpi-value" id="drKpiTotal">-</div>
             <div class="cms-kpi-delta">활성 정기 회원</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">💳</div>
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4"><span class="siren-icon-wrap" data-icon="credit-card"></span></div>
             <div class="cms-kpi-label">KICC</div>
             <div class="cms-kpi-value" id="drKpiToss">-</div>
             <div class="cms-kpi-delta">KICC 빌링 활성</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">🏦</div>
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00"><span class="siren-icon-wrap" data-icon="landmark"></span></div>
             <div class="cms-kpi-label">효성</div>
             <div class="cms-kpi-value" id="drKpiHyosung">-</div>
             <div class="cms-kpi-delta">효성 CMS+ 활성</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252">⚡</div>
+            <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252"><span class="siren-icon-wrap" data-icon="zap"></span></div>
             <div class="cms-kpi-label">두 채널 모두</div>
             <div class="cms-kpi-value" id="drKpiBoth">-</div>
             <div class="cms-kpi-delta">KICC + 효성 동시</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">💰</div>
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a"><span class="siren-icon-wrap" data-icon="coins"></span></div>
             <div class="cms-kpi-label">정기금액 월 합계</div>
             <div class="cms-kpi-value" id="drKpiSum">-</div>
             <div class="cms-kpi-delta">매월 청구 예정</div>
@@ -1623,13 +1624,13 @@ if (window.self !== window.top) {
                 <option value="all">전체 채널</option>
                 <option value="toss">KICC만</option>
                 <option value="hyosung">효성만</option>
-                <option value="both">⚠ 효성+KICC 중복</option>
+                <option value="both">효성+KICC 중복</option>
               </select>
               <input type="text" id="drFilterSearch" placeholder="이름·연락처 검색...">
             </div>
             <div class="cms-filter-actions">
-              <button class="cms-btn cms-btn-ghost" id="drBtnExportCsv" type="button">📥 CSV</button>
-              <button class="cms-btn cms-btn-ghost" id="drBtnExportXlsx" type="button">📊 엑셀</button>
+              <button class="cms-btn cms-btn-ghost" id="drBtnExportCsv" type="button"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV</button>
+              <button class="cms-btn cms-btn-ghost" id="drBtnExportXlsx" type="button"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 엑셀</button>
               <button class="cms-btn cms-btn-ghost" id="drBtnRefresh">새로고침</button>
             </div>
           </div>
@@ -1663,19 +1664,19 @@ if (window.self !== window.top) {
         <!-- KPI 3종 -->
         <div class="cms-kpi-grid donor-kpi-grid">
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">💡</div>
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00"><span class="siren-icon-wrap" data-icon="lightbulb"></span></div>
             <div class="cms-kpi-label">잠재 후원자 총수</div>
             <div class="cms-kpi-value" id="dpKpiTotal">-</div>
             <div class="cms-kpi-delta">재유치 대상</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">🎁</div>
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4"><span class="siren-icon-wrap" data-icon="gift"></span></div>
             <div class="cms-kpi-label">일시 후원자</div>
             <div class="cms-kpi-value" id="dpKpiOnetime">-</div>
             <div class="cms-kpi-delta">정기 미가입 + 일시 1회+</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">⏸</div>
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a"><span class="siren-icon-wrap" data-icon="pause"></span></div>
             <div class="cms-kpi-label">정기 중단자</div>
             <div class="cms-kpi-value" id="dpKpiCancelled">-</div>
             <div class="cms-kpi-delta">KICC/효성 해지 회원</div>
@@ -1691,8 +1692,8 @@ if (window.self !== window.top) {
           <!-- 분류 탭 -->
           <div class="cms-tabs-bar dp-subtype-tabs">
             <button class="dp-subtab on" data-dp-subtype="all" type="button">전체</button>
-            <button class="dp-subtab" data-dp-subtype="onetime" type="button">🎁 일시</button>
-            <button class="dp-subtab" data-dp-subtype="cancelled" type="button">⏸ 중단</button>
+            <button class="dp-subtab" data-dp-subtype="onetime" type="button"><span class="siren-icon-wrap" data-icon="gift"></span> 일시</button>
+            <button class="dp-subtab" data-dp-subtype="cancelled" type="button"><span class="siren-icon-wrap" data-icon="pause"></span> 중단</button>
           </div>
 
           <div class="cms-filter-bar">
@@ -1700,8 +1701,8 @@ if (window.self !== window.top) {
               <input type="text" id="dpFilterSearch" placeholder="이름·연락처 검색...">
             </div>
             <div class="cms-filter-actions">
-              <button class="cms-btn cms-btn-ghost" id="dpBtnExportCsv" type="button">📥 CSV</button>
-              <button class="cms-btn cms-btn-ghost" id="dpBtnExportXlsx" type="button">📊 엑셀</button>
+              <button class="cms-btn cms-btn-ghost" id="dpBtnExportCsv" type="button"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV</button>
+              <button class="cms-btn cms-btn-ghost" id="dpBtnExportXlsx" type="button"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 엑셀</button>
               <button class="cms-btn cms-btn-ghost" id="dpBtnRefresh">새로고침</button>
               <button class="cms-btn cms-btn-primary" id="dpBtnAdd" type="button">＋ 등록</button>
             </div>
@@ -1735,13 +1736,13 @@ if (window.self !== window.top) {
         <div id="dpAddModal" class="pd-modal-bg" style="display:none">
           <div class="pd-modal-card">
             <div class="pd-modal-head">
-              <strong>💡 예비 후원자 등록</strong>
+              <strong><span class="siren-icon-wrap" data-icon="lightbulb"></span> 예비 후원자 등록</strong>
               <button type="button" class="pd-modal-close" id="dpAddModalClose" aria-label="닫기">&times;</button>
             </div>
 
             <div class="pd-tabs">
-              <button type="button" class="pd-tab active" data-dp-tab="manual">📝 직접 입력</button>
-              <button type="button" class="pd-tab" data-dp-tab="ai">🤖 AI 자동 분석 (사진·PDF·엑셀)</button>
+              <button type="button" class="pd-tab active" data-dp-tab="manual"><span class="siren-icon-wrap" data-icon="file-pen"></span> 직접 입력</button>
+              <button type="button" class="pd-tab" data-dp-tab="ai"><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동 분석 (사진·PDF·엑셀)</button>
             </div>
 
             <!-- ── 직접 입력 폼 ── -->
@@ -1784,7 +1785,7 @@ if (window.self !== window.top) {
             <!-- ── AI 자동 분석 패널 ── -->
             <div class="pd-form" data-dp-panel="ai" style="display:none">
               <div style="background:#fff7e6;border-left:3px solid #c47a00;padding:12px 14px;border-radius:6px;margin-bottom:14px;font-size:12.5px;color:#1a2236;line-height:1.6">
-                💡 <strong>이렇게 사용하세요:</strong><br>
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>이렇게 사용하세요:</strong><br>
                 · <strong>사진·PDF</strong> (캠페인 후원자 명단·기부 신청서) → 직접 업로드<br>
                 · <strong>엑셀</strong> (.xlsx, .xls, .csv) → 시트 자동 텍스트 변환 후 AI 분석<br>
                 <span style="color:#666">AI가 이름·연락처·이메일을 자동 추출 → 미리보기 → 일괄 등록 (donor_type='prospect')</span>
@@ -1813,7 +1814,7 @@ if (window.self !== window.top) {
               </div>
 
               <div class="pd-form-actions" style="margin-top:6px">
-                <button type="button" class="cms-btn cms-btn-primary" id="dpAiBtnExtract">🤖 AI로 추출 시작</button>
+                <button type="button" class="cms-btn cms-btn-primary" id="dpAiBtnExtract"><span class="siren-icon-wrap" data-icon="bot"></span> AI로 추출 시작</button>
               </div>
 
               <div id="dpAiPreview" style="display:none;margin-top:18px">
@@ -1850,19 +1851,19 @@ if (window.self !== window.top) {
         <!-- KPI 3종 -->
         <div class="cms-kpi-grid donor-kpi-grid">
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e8f5e9;color:#2e7d32">🌱</div>
+            <div class="cms-kpi-icon" style="background:#e8f5e9;color:#2e7d32"><span class="siren-icon-wrap" data-icon="sprout"></span></div>
             <div class="cms-kpi-label">잠재 후원자 총수</div>
             <div class="cms-kpi-value" id="pdKpiTotal">-</div>
             <div class="cms-kpi-delta">이벤트·활동 참여자</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e3f2fd;color:#1565c0">🔗</div>
+            <div class="cms-kpi-icon" style="background:#e3f2fd;color:#1565c0"><span class="siren-icon-wrap" data-icon="link"></span></div>
             <div class="cms-kpi-label">정식 회원 연결됨</div>
             <div class="cms-kpi-value" id="pdKpiLinked">-</div>
             <div class="cms-kpi-delta">싸이렌 회원 매핑</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fff8e1;color:#e65100">⏳</div>
+            <div class="cms-kpi-icon" style="background:#fff8e1;color:#e65100"><span class="siren-icon-wrap" data-icon="hourglass"></span></div>
             <div class="cms-kpi-label">미연결 (잠재군)</div>
             <div class="cms-kpi-value" id="pdKpiUnlinked">-</div>
             <div class="cms-kpi-delta">후원 전환 대상</div>
@@ -1878,8 +1879,8 @@ if (window.self !== window.top) {
             <option value="no">미연결</option>
             <option value="yes">연결됨</option>
           </select>
-          <button class="cms-btn cms-btn-ghost" id="pdBtnExportCsv" type="button">📥 CSV</button>
-          <button class="cms-btn cms-btn-ghost" id="pdBtnExportXlsx" type="button">📊 엑셀</button>
+          <button class="cms-btn cms-btn-ghost" id="pdBtnExportCsv" type="button"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV</button>
+          <button class="cms-btn cms-btn-ghost" id="pdBtnExportXlsx" type="button"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 엑셀</button>
           <button class="cms-btn cms-btn-ghost" id="pdBtnRefresh">새로고침</button>
           <button class="cms-btn cms-btn-primary" id="pdBtnAdd" style="margin-left:auto">＋ 등록</button>
         </div>
@@ -1912,14 +1913,14 @@ if (window.self !== window.top) {
         <div id="pdAddModal" class="pd-modal-bg" style="display:none">
           <div class="pd-modal-card">
             <div class="pd-modal-head">
-              <strong>🌱 잠재 후원자 등록</strong>
+              <strong><span class="siren-icon-wrap" data-icon="sprout"></span> 잠재 후원자 등록</strong>
               <button type="button" class="pd-modal-close" id="pdAddModalClose" aria-label="닫기">&times;</button>
             </div>
 
             <!-- 탭: 직접 입력 / AI 자동 분석 -->
             <div class="pd-tabs">
-              <button type="button" class="pd-tab active" data-pd-tab="manual">📝 직접 입력</button>
-              <button type="button" class="pd-tab" data-pd-tab="ai">🤖 AI 자동 분석 (사진·PDF·엑셀)</button>
+              <button type="button" class="pd-tab active" data-pd-tab="manual"><span class="siren-icon-wrap" data-icon="file-pen"></span> 직접 입력</button>
+              <button type="button" class="pd-tab" data-pd-tab="ai"><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동 분석 (사진·PDF·엑셀)</button>
             </div>
 
             <!-- ── 직접 입력 폼 ── -->
@@ -1970,7 +1971,7 @@ if (window.self !== window.top) {
             <!-- ── AI 자동 분석 패널 ── -->
             <div class="pd-form" data-pd-panel="ai" style="display:none">
               <div style="background:#f0f7ff;border-left:3px solid #1a5ec4;padding:12px 14px;border-radius:6px;margin-bottom:14px;font-size:12.5px;color:#1a2236;line-height:1.6">
-                💡 <strong>이렇게 사용하세요:</strong><br>
+                <span class="siren-icon-wrap" data-icon="lightbulb"></span> <strong>이렇게 사용하세요:</strong><br>
                 · <strong>사진</strong> (참가자 명단 사진·명함·방명록 등) → 이미지 직접 업로드<br>
                 · <strong>PDF</strong> (행사 참가자 PDF) → 직접 업로드<br>
                 · <strong>엑셀</strong> (.xlsx, .xls, .csv) → 시트 내용을 자동 텍스트로 변환 후 AI 분석<br>
@@ -1999,7 +2000,7 @@ if (window.self !== window.top) {
               </div>
 
               <div class="pd-form-actions" style="margin-top:6px">
-                <button type="button" class="cms-btn cms-btn-primary" id="pdAiBtnExtract">🤖 AI로 추출 시작</button>
+                <button type="button" class="cms-btn cms-btn-primary" id="pdAiBtnExtract"><span class="siren-icon-wrap" data-icon="bot"></span> AI로 추출 시작</button>
               </div>
 
               <!-- 추출 결과 미리보기 -->
@@ -2034,9 +2035,9 @@ if (window.self !== window.top) {
       </section>
 
       <!-- ============ 알림 발송 관리 ============ -->
-      <!-- ============ 📤 발송 작업 ============ -->
+      <!-- ============ 발송 작업 ============ -->
 
-      <!-- ============ 💌 후원자 너처링 (iframe 통합) ============ -->
+      <!-- ============ 후원자 너처링 (iframe 통합) ============ -->
       <section class="cms-page nf-iframe-page" id="page-nurture">
         <iframe class="nf-iframe" data-nf-src="/admin-nurture.html" title="후원자 너처링"></iframe>
       </section>
@@ -2083,28 +2084,28 @@ if (window.self !== window.top) {
         <!-- KPI 6종 -->
         <div class="dd-kpi-grid">
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">👥</div>
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4"><span class="siren-icon-wrap" data-icon="users"></span></div>
             <div class="cms-kpi-label">전체 회원</div>
             <div class="cms-kpi-value" id="ddKpiTotal">-</div>
           </div>
           <div class="cms-kpi" data-dd-jump="donor-regular" style="cursor:pointer" title="정기 후원자 관리 탭으로 이동">
-            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">🔁</div>
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46"><span class="siren-icon-wrap" data-icon="repeat"></span></div>
             <div class="cms-kpi-label">정기 후원자</div>
             <div class="cms-kpi-value" id="ddKpiRegular">-</div>
             <div class="cms-kpi-delta" id="ddKpiRegularDetail">-</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">🏦</div>
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00"><span class="siren-icon-wrap" data-icon="landmark"></span></div>
             <div class="cms-kpi-label">효성 채널</div>
             <div class="cms-kpi-value" id="ddKpiHyosung">-</div>
           </div>
           <div class="cms-kpi">
-            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">💳</div>
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4"><span class="siren-icon-wrap" data-icon="credit-card"></span></div>
             <div class="cms-kpi-label">KICC 채널</div>
             <div class="cms-kpi-value" id="ddKpiToss">-</div>
           </div>
           <div class="cms-kpi" data-dd-jump="donor-prospect" style="cursor:pointer" title="잠재 후원자 관리 탭으로 이동">
-            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">💡</div>
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a"><span class="siren-icon-wrap" data-icon="lightbulb"></span></div>
             <div class="cms-kpi-label">잠재 후원자</div>
             <div class="cms-kpi-value" id="ddKpiProspect">-</div>
             <div class="cms-kpi-delta" id="ddKpiProspectDetail">-</div>
@@ -2119,7 +2120,7 @@ if (window.self !== window.top) {
         <!-- Alert 패널 -->
         <div class="cms-panel" style="margin-top:14px">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">🔔 검증 Alert <span id="ddAlertTotalBadge" class="cms-badge cms-b-mute" style="margin-left:6px;font-size:10.5px">-</span></div>
+            <div class="cms-panel-title"><span class="siren-icon-wrap" data-icon="bell"></span> 검증 Alert <span id="ddAlertTotalBadge" class="cms-badge cms-b-mute" style="margin-left:6px;font-size:10.5px">-</span></div>
             <button class="cms-btn cms-btn-ghost" id="ddBtnRefresh">새로고침</button>
           </div>
           <div id="ddAlertPanel" style="padding:18px">
@@ -2130,7 +2131,7 @@ if (window.self !== window.top) {
         <!-- 최근 CSV Import 이력 -->
         <div class="cms-panel" style="margin-top:14px">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">📥 최근 CSV Import 이력</div>
+            <div class="cms-panel-title"><span class="siren-icon-wrap" data-icon="inbox"></span> 최근 CSV Import 이력</div>
           </div>
           <table class="cms-tbl">
             <thead>
@@ -2150,7 +2151,7 @@ if (window.self !== window.top) {
         <div style="padding:8px 0 4px;font-size:11px;color:#aaa;text-align:right" id="ddGeneratedAt"></div>
       </section>
 
-      <!-- ============ 🤖 AI 에이전트 4개 섹션 ============ -->
+      <!-- ============ AI 에이전트 4개 섹션 ============ -->
 
       <!-- 1. 대화 시작 — iframe으로 풀스크린 페이지 임베드 -->
       <section class="cms-page nf-iframe-page" id="page-ai-chat">
@@ -2160,7 +2161,7 @@ if (window.self !== window.top) {
       <!-- 2. 대화 이력 -->
       <section class="cms-page" id="page-ai-history">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700">📜 AI 비서 대화 이력</span>
+          <span style="font-size:15px;font-weight:700"><span class="siren-icon-wrap" data-icon="scroll"></span> AI 비서 대화 이력</span>
           <span style="color:#94a3b8;font-size:12px">전체 관리자의 AI 사용 기록</span>
         </div>
         <div class="cms-filter-bar">
@@ -2206,7 +2207,7 @@ if (window.self !== window.top) {
       <!-- 3. 도구 사용 로그 -->
       <section class="cms-page" id="page-ai-logs">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700">📊 도구 사용 통계 (최근 30일)</span>
+          <span style="font-size:15px;font-weight:700"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 도구 사용 통계 (최근 30일)</span>
         </div>
         <div class="cms-table-wrap" style="margin-bottom:24px">
           <table class="cms-tbl">
@@ -2323,7 +2324,7 @@ if (window.self !== window.top) {
       <!-- 옛 정적 안내 (참고용 — 보이지 않음) -->
       <section class="cms-page" id="page-ai-config-legacy" style="display:none">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700">⚙️ AI 에이전트 설정 (레거시)</span>
+          <span style="font-size:15px;font-weight:700"><span class="siren-icon-wrap" data-icon="settings"></span> AI 에이전트 설정 (레거시)</span>
         </div>
 
         <div class="cms-panel" style="margin-bottom:14px">
@@ -2342,27 +2343,27 @@ if (window.self !== window.top) {
           <div class="cms-panel-head"><div class="cms-panel-title">사용 가능 도구 22개</div></div>
           <div style="padding:14px 18px">
             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:12.5px">
-              <div><b>📄 콘텐츠·관리 (5)</b><br>
+              <div><b><span class="siren-icon-wrap" data-icon="file-text"></span> 콘텐츠·관리 (5)</b><br>
                 <span style="color:#64748b">content_pages_list, content_pages_update, notice_create, campaign_create, nav_menus_list</span>
               </div>
-              <div><b>👥 회원 (4)</b><br>
+              <div><b><span class="siren-icon-wrap" data-icon="users"></span> 회원 (4)</b><br>
                 <span style="color:#64748b">members_search, members_detail, members_stats, members_recent</span>
               </div>
-              <div><b>💰 후원 (3)</b><br>
+              <div><b><span class="siren-icon-wrap" data-icon="coins"></span> 후원 (3)</b><br>
                 <span style="color:#64748b">donations_recent, donations_stats, donations_by_member</span>
               </div>
-              <div><b>🚨 SIREN 신고 (4)</b><br>
+              <div><b><span class="siren-icon-wrap" data-icon="siren"></span> SIREN 신고 (4)</b><br>
                 <span style="color:#64748b">incidents_list, incidents_detail, harassment_reports_list, legal_consultations_list</span>
               </div>
-              <div><b>💬 게시판·캠페인 (3)</b><br>
+              <div><b><span class="siren-icon-wrap" data-icon="message-circle"></span> 게시판·캠페인 (3)</b><br>
                 <span style="color:#64748b">board_posts_list, campaigns_list, campaigns_detail</span>
               </div>
-              <div><b>📊 워크스페이스·KPI (3)</b><br>
+              <div><b><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 워크스페이스·KPI (3)</b><br>
                 <span style="color:#64748b">tasks_list, notifications_recent, kpi_summary</span>
               </div>
             </div>
             <div style="margin-top:14px;padding:10px 12px;background:#fff8e1;border-left:3px solid #ca8a04;border-radius:4px;font-size:12px;color:#713f12">
-              ⚠️ 변경 작업(content_pages_update, notice_create, campaign_create)은 항상 dry-run 미리보기 → 사용자 명시 승인 후에만 실제 적용됩니다.
+              <span class="siren-icon-wrap" data-icon="alert-triangle"></span> 변경 작업(content_pages_update, notice_create, campaign_create)은 항상 dry-run 미리보기 → 사용자 명시 승인 후에만 실제 적용됩니다.
             </div>
           </div>
         </div>
@@ -2391,9 +2392,9 @@ if (window.self !== window.top) {
       </header>
 
       <nav class="mdm-tabs">
-        <button type="button" class="mdm-tab on" data-mdm-tab="info">📋 기본 정보</button>
-        <button type="button" class="mdm-tab" data-mdm-tab="donations">💰 후원 내역</button>
-        <button type="button" class="mdm-tab" data-mdm-tab="hyosung">🏦 효성 계약</button>
+        <button type="button" class="mdm-tab on" data-mdm-tab="info"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 기본 정보</button>
+        <button type="button" class="mdm-tab" data-mdm-tab="donations"><span class="siren-icon-wrap" data-icon="coins"></span> 후원 내역</button>
+        <button type="button" class="mdm-tab" data-mdm-tab="hyosung"><span class="siren-icon-wrap" data-icon="landmark"></span> 효성 계약</button>
       </nav>
 
       <div class="mdm-body">
@@ -2476,19 +2477,19 @@ if (window.self !== window.top) {
           <div class="cms-fg">
             <label>회원 유형 <span style="color:#c5293a">*</span></label>
             <select name="type" required>
-              <option value="regular">👤 일반 회원</option>
-              <option value="family">🎗 유족 회원</option>
-              <option value="volunteer">🤝 봉사 회원</option>
+              <option value="regular">일반 회원</option>
+              <option value="family">유족 회원</option>
+              <option value="volunteer">봉사 회원</option>
             </select>
           </div>
           <div class="cms-fg">
             <label>분류 (선택)</label>
             <select name="memberCategory">
               <option value="">자동 분류</option>
-              <option value="sponsor">💝 후원 회원</option>
-              <option value="regular">👤 일반</option>
-              <option value="family">🎗 유족</option>
-              <option value="etc">🤝 기타</option>
+              <option value="sponsor">후원 회원</option>
+              <option value="regular">일반</option>
+              <option value="family">유족</option>
+              <option value="etc">기타</option>
             </select>
           </div>
           <div class="cms-fg cms-fg-full" style="grid-column:1/-1">
@@ -2496,7 +2497,7 @@ if (window.self !== window.top) {
             <textarea name="memo" rows="3" maxlength="2000" placeholder="특이사항·등록 사유 등"></textarea>
           </div>
           <div class="cms-fg cms-fg-full" style="grid-column:1/-1;background:#f0f7ff;border:1px solid #c5daf5;padding:10px 12px;border-radius:6px;font-size:12px;color:#1a5ec4">
-            ℹ️ 임시 비밀번호가 자동 생성되며, 회원이 첫 로그인 시 변경하도록 안내해주세요.
+            <span class="siren-icon-wrap" data-icon="info"></span> 임시 비밀번호가 자동 생성되며, 회원이 첫 로그인 시 변경하도록 안내해주세요.
           </div>
         </form>
       </div>
@@ -2556,13 +2557,13 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260706-door"></script>
-  <script src="/js/admin-session-timer.js?v=20260709-6h"></script>
-  <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
-  <script src="/js/ai-assistant-proactive.js?v=20260701" defer></script>
+  <script src="/js/cms-tbfa.js?v=20260707-door"></script>
+  <script src="/js/admin-session-timer.js?v=20260710-6h"></script>
+  <script src="/js/admin-notif-bell.js?v=20260604-dropdown"></script>
+  <script src="/js/ai-assistant-proactive.js?v=20260702" defer></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
-  <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
-  <script src="/js/quick-jump.js?v=20260706-door"></script>
+  <script src="/js/cms-tbfa-import.js?v=2027-05-10-d5"></script>
+  <script src="/js/quick-jump.js?v=20260707-door"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <script src="/js/cms-tbfa-source-kpi.js?v=2026-05-10-q4"></script>
   <!-- 알림 발송 모듈 (Phase 10 R3) — 발송 작업 목록은 /admin-send-jobs.html(iframe)에서만 동작.
@@ -2570,29 +2571,29 @@ if (window.self !== window.top) {
        DOMContentLoaded에서 bindEvents가 null 에러를 던지므로 여기서 로드하지 않음. -->
   <script src="/js/admin-recipient-groups.js?v=2026-05-11-a1"></script>
   <!-- ★ AI 에이전트 위젯 (admin/operator 전용 — 우하단 플로팅) -->
-  <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+  <script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
   <!-- ★ 어드민 내 정보 수정 모달 (우상단 사용자 영역 클릭 시) -->
-  <script src="/js/admin-profile-modal.js?v=20260516"></script>
+  <script src="/js/admin-profile-modal.js?v=20260517"></script>
   <!-- Phase 22-B-R1: 재정 관리 (admin.html에서 이전) -->
-  <script src="/js/admin-donations.js?v=20260521-r40kicc"></script>
+  <script src="/js/admin-donations.js?v=20260522-r40kicc"></script>
   <script src="/js/admin-finance-income.js?v=20260516ibk-fix"></script>
-  <script src="/js/admin-other-revenues.js?v=20260516revcathier"></script>
-  <script src="/js/admin-expenses.js?v=20260515bugfix2"></script>
+  <script src="/js/admin-other-revenues.js?v=20260517revcathier"></script>
+  <script src="/js/admin-expenses.js?v=20260516bugfix2"></script>
   <!-- Phase 22-D-R1: 전표 관리 -->
-  <script src="/js/admin-expenses-voucher.js?v=20260515p22dr3b"></script>
+  <script src="/js/admin-expenses-voucher.js?v=20260516p22dr3b"></script>
   <!-- Phase 22-B-R2: 예산 편성 + 결재 -->
-  <script src="/js/admin-finance-budget.js?v=20260701rate"></script>
-  <script src="/js/admin-budget-accounts.js?v=20260701"></script>
-  <script src="/js/admin-approval.js?v=20260701b"></script>
-  <script src="/js/admin-finance-report.js?v=20260516banners"></script>
+  <script src="/js/admin-finance-budget.js?v=20260702rate"></script>
+  <script src="/js/admin-budget-accounts.js?v=20260702"></script>
+  <script src="/js/admin-approval.js?v=20260702b"></script>
+  <script src="/js/admin-finance-report.js?v=20260517banners"></script>
   <!-- Phase 22-D-R2: 통장 거래내역 자동화 -->
-  <script src="/js/admin-bank-transactions.js?v=20260516rename"></script>
+  <script src="/js/admin-bank-transactions.js?v=20260517rename"></script>
 
   <!-- ★ Round 3 #5: 빌링키 재활성화 모달 -->
   <div id="tbReactivateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9900;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <strong style="font-size:15px">🔄 정기후원 재활성화</strong>
+        <strong style="font-size:15px"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 정기후원 재활성화</strong>
         <button type="button" onclick="tbCloseReactivateModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666">&times;</button>
       </div>
       <p style="font-size:13px;color:#555;margin:0 0 14px">

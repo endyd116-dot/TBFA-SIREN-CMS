@@ -12,10 +12,10 @@
 
   function urgencyInfo(u) {
     const map = {
-      urgent: { icon: '🚨', label: 'URGENT — 24~72시간 내 조치 필요', cls: 'urgent' },
-      high:   { icon: '⚠️', label: 'HIGH — 1~2주 내 대응 필요',       cls: 'high' },
-      normal: { icon: '⚖️', label: 'NORMAL — 일반 절차로 충분',        cls: 'normal' },
-      low:    { icon: '💡', label: 'LOW — 단순 자문/참고',             cls: 'low' },
+      urgent: { icon: '', label: 'URGENT — 24~72시간 내 조치 필요', cls: 'urgent' },
+      high:   { icon: '', label: 'HIGH — 1~2주 내 대응 필요',       cls: 'high' },
+      normal: { icon: '', label: 'NORMAL — 일반 절차로 충분',        cls: 'normal' },
+      low:    { icon: '', label: 'LOW — 단순 자문/참고',             cls: 'low' },
     };
     return map[u] || map.normal;
   }
@@ -218,12 +218,12 @@
     if (skipBtn) skipBtn.disabled = true;
 
     if (skipAi) {
-      if (skipBtn) skipBtn.textContent = '📋 처리 중...';
+      if (skipBtn) skipBtn.textContent = '처리 중...';
     } else {
-      if (submitBtn) submitBtn.textContent = '🤖 AI 법률 분석 중... (최대 15초)';
+      if (submitBtn) submitBtn.textContent = 'AI 법률 분석 중... (최대 15초)';
       const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
       showAiToast(
-        '🤖 AI 법률 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
+        'AI 법률 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
         toastMs
       );
     }
@@ -258,7 +258,7 @@
         const finalIcon = document.getElementById('legalFinalIcon');
         const finalTitle = document.getElementById('legalFinalTitle');
         const finalMsg = document.getElementById('legalFinalMsg');
-        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalIcon) finalIcon.textContent = '';
         if (finalTitle) finalTitle.textContent = '법률 상담 신청이 접수되었습니다';
         if (finalMsg) finalMsg.innerHTML =
           '소중한 신청 감사합니다.<br />' +
@@ -356,7 +356,7 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:19px;font-weight:700;color:#7a1f2b;margin-bottom:14px">' +
-        escapeHtml(notice.title || '🎗 사이렌 후원 회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 후원 회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:20px">' +
         safeMessage +
@@ -396,7 +396,7 @@
       const finalMsg = document.getElementById('legalFinalMsg');
 
       if (requested) {
-        if (finalIcon) finalIcon.textContent = '👨‍⚖️';
+        if (finalIcon) finalIcon.textContent = '';
         if (finalTitle) finalTitle.textContent = '변호사 매칭이 신청되었습니다';
         if (finalMsg) finalMsg.innerHTML =
           '소중한 신청 감사합니다.<br />' +
@@ -404,7 +404,7 @@
           '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.<br /><br />' +
           '<span style="color:var(--text-3);font-size:12px">※ 변호사 배정까지 영업일 기준 1~3일이 소요될 수 있습니다.</span>';
       } else {
-        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalIcon) finalIcon.textContent = '';
         if (finalTitle) finalTitle.textContent = 'AI 자문으로 종료 처리되었습니다';
         if (finalMsg) finalMsg.innerHTML =
           '상담 내역이 기록되었습니다.<br />' +

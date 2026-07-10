@@ -132,14 +132,14 @@
         
         // 데모 경고 (베타 → 정식 서비스 전환으로 베타 경고 제거)
         if (status === 'demo') {
-          if (!confirm('⚠️ 이 서비스는 DEMO 버전입니다.\n실제 데이터가 저장되지 않습니다.\n\n계속하시겠습니까?')) {
+          if (!confirm('이 서비스는 DEMO 버전입니다.\n실제 데이터가 저장되지 않습니다.\n\n계속하시겠습니까?')) {
             e.preventDefault();
             return;
           }
         } else if (status === 'active' && service === 'on') {
           // 함께워크 ON 정식 오픈 안내 (베타 경고 대체 알림)
           // 다른 서비스 카드는 새 탭(target="_blank")으로 열림 → 허브는 그대로 유지
-          toast('함께워크 ON 정식 오픈! 🎉 새 탭에서 엽니다');
+          toast('함께워크 ON 정식 오픈! 새 탭에서 엽니다');
         }
 
         console.log('[Hub] Navigating to service:', service);

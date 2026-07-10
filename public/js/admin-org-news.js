@@ -47,12 +47,12 @@ function urgencyBadge(urgency) {
   return '<span class="badge badge-' + (cls[label] || 'urg-low') + '">' + esc(label) + '</span>';
 }
 
-/* ── 🚨 교육계 사망·사건사고 카드 (협회 관심·지원 대상·빠른 파악용) ── */
+/* ── 교육계 사망·사건사고 카드 (협회 관심·지원 대상·빠른 파악용) ── */
 function renderIncidentsCard(incidents) {
   var html = '<div class="card" style="border:1px solid #fecaca;background:#fff7f7">';
-  html += '<div class="card-title">🚨 교육계 사망·사건사고 — 협회 관심·지원 대상</div>';
+  html += '<div class="card-title">교육계 사망·사건사고 — 협회 관심·지원 대상</div>';
   if (!incidents || incidents.length === 0) {
-    html += '<div style="text-align:center;padding:20px 0;color:#9ca3af;font-size:13px">최근 협회가 도울 만한 교육계 사건이 없습니다. (🔄 최신 재조사로 갱신)</div>';
+    html += '<div style="text-align:center;padding:20px 0;color:#9ca3af;font-size:13px">최근 협회가 도울 만한 교육계 사건이 없습니다. (최신 재조사로 갱신)</div>';
     return html + '</div>';
   }
   var urgOrder = { '높음': 0, '보통': 1, '낮음': 2 };
@@ -78,9 +78,9 @@ function renderIncidentsCard(incidents) {
     if (inc.source) meta.push('#' + esc(inc.source));
     if (inc.pubDate) meta.push(esc(fmtDateShort(inc.pubDate)));
     if (meta.length) html += '<div class="incident-meta">' + meta.join(' · ') + '</div>';
-    if (inc.affected) html += '<div class="incident-action" style="background:#fef2f2;color:#991b1b">🧑‍🤝‍🧑 도움 대상: <b>' + esc(inc.affected) + '</b></div>';
-    if (inc.reason) html += '<div class="incident-reason">📌 ' + esc(inc.reason) + '</div>';
-    if (inc.suggestedAction) html += '<div class="incident-action">💬 지원 방안: ' + esc(inc.suggestedAction) + '</div>';
+    if (inc.affected) html += '<div class="incident-action" style="background:#fef2f2;color:#991b1b">도움 대상: <b>' + esc(inc.affected) + '</b></div>';
+    if (inc.reason) html += '<div class="incident-reason">' + esc(inc.reason) + '</div>';
+    if (inc.suggestedAction) html += '<div class="incident-action">지원 방안: ' + esc(inc.suggestedAction) + '</div>';
     html += '</div>';
   });
   return html + '</div>';
@@ -207,14 +207,14 @@ function renderReport(report) {
 
   /* 활동·이슈 요약 */
   html += '<div class="card">';
-  html += '<div class="card-title">📋 활동·이슈 요약</div>';
+  html += '<div class="card-title">활동·이슈 요약</div>';
   html += '<p style="font-size:13.5px;line-height:1.8;color:#1e293b;margin:0;white-space:pre-wrap">' + esc(report.summary || '요약 없음') + '</p>';
   html += '</div>';
 
   /* 여론 상세 */
   if (sentiment.label) {
     html += '<div class="card">';
-    html += '<div class="card-title">📊 여론 분석 ' + sentimentBadge(sentiment.label) + '</div>';
+    html += '<div class="card-title">여론 분석 ' + sentimentBadge(sentiment.label) + '</div>';
     if (sentiment.positive != null || sentiment.neutral != null || sentiment.negative != null) {
       html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">';
       html += '<span class="stat-chip">긍정 ' + (Math.round(sentiment.positive||0)) + '%</span>';
@@ -228,22 +228,22 @@ function renderReport(report) {
     html += '</div>';
   }
 
-  /* 🚨 교육계 사망·사건사고 — 상단 배치(긴 소스 목록에 묻히지 않게·빠른 파악) */
+  /* 교육계 사망·사건사고 — 상단 배치(긴 소스 목록에 묻히지 않게·빠른 파악) */
   html += renderIncidentsCard(incidents);
 
   /* 워드클라우드 */
   html += '<div class="card">';
-  html += '<div class="card-title">☁️ 연관 키워드 클라우드</div>';
+  html += '<div class="card-title">연관 키워드 클라우드</div>';
   html += '<canvas id="wc-canvas" width="600" height="260"></canvas>';
   html += '</div>';
 
   /* AI 추천 */
   if (recs.length) {
     html += '<div class="card">';
-    html += '<div class="card-title">💡 AI 추천 액션</div>';
+    html += '<div class="card-title">AI 추천 액션</div>';
     recs.forEach(function(r) {
       html += '<div class="rec-card">';
-      html += '<div class="rec-card-title">▶ ' + esc(r.title) + '</div>';
+      html += '<div class="rec-card-title">' + esc(r.title) + '</div>';
       html += '<div class="rec-card-detail">' + esc(r.detail) + '</div>';
       html += '</div>';
     });
@@ -253,7 +253,7 @@ function renderReport(report) {
   /* 변경점 */
   if (report.diffSummary || report.diff_summary) {
     html += '<div class="card">';
-    html += '<div class="card-title">🔄 직전 보고서 대비 변경점</div>';
+    html += '<div class="card-title">직전 보고서 대비 변경점</div>';
     html += '<div class="diff-block">' + esc(report.diffSummary || report.diff_summary) + '</div>';
     html += '</div>';
   }
@@ -261,7 +261,7 @@ function renderReport(report) {
   /* 소스 링크 — 길어서 기본 접힘(사건·사고는 위로 이동) */
   if (sources.length) {
     html += '<div class="card">';
-    html += '<details><summary style="cursor:pointer;font-size:14px;font-weight:700;color:#111;outline:none">🔗 수집 소스 목록 (' + sources.length + '건) — 펼치기</summary>';
+    html += '<details><summary style="cursor:pointer;font-size:14px;font-weight:700;color:#111;outline:none">수집 소스 목록 (' + sources.length + '건) — 펼치기</summary>';
     html += '<div style="margin-top:10px">';
     sources.forEach(function(s) {
       html += '<div class="source-row">';
@@ -372,13 +372,13 @@ function loadHistoryDetail(id) {
 /* ── 재조사 (백그라운드 위임 + 폴링·2026-05-26 504 fix) ── */
 function doRefresh() {
   var btn = document.getElementById('btnRefresh');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ 조사 중...'; }
+  if (btn) { btn.disabled = true; btn.textContent = '조사 중...'; }
   showLoading(true);
   var prevId = (_currentReport && (_currentReport.id || _currentReport.reportId)) || 0;
   api('/api/admin-org-news-refresh', { method: 'POST' }).then(function(res) {
     showLoading(false);
     if (!res.ok) {
-      if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
+      if (btn) { btn.disabled = false; btn.textContent = '최신 재조사'; }
       var msg = (res.data && (res.data.error || (res.data.data && res.data.data.error))) || ('오류 ' + res.status);
       if (res.status === 403) msg = '슈퍼어드민만 재조사를 실행할 수 있습니다.';
       showToast(msg, 'error');
@@ -386,11 +386,11 @@ function doRefresh() {
     }
     /* 백그라운드 분석 시작됨 → 새 보고서 등장까지 폴링 */
     showToast('재조사를 시작했습니다. 1~2분 정도 걸립니다…', 'success');
-    if (btn) btn.textContent = '⏳ 분석 중...';
+    if (btn) btn.textContent = '분석 중...';
     pollNewReport(prevId, 0);
   }).catch(function(e) {
     showLoading(false);
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
+    if (btn) { btn.disabled = false; btn.textContent = '최신 재조사'; }
     showToast('네트워크 오류: ' + e.message, 'error');
   });
 }
@@ -398,7 +398,7 @@ function doRefresh() {
 function pollNewReport(prevId, tries) {
   var btn = document.getElementById('btnRefresh');
   if (tries >= 18) {  /* 약 3.6분(12초 × 18) 후 중단 */
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
+    if (btn) { btn.disabled = false; btn.textContent = '최신 재조사'; }
     showToast('분석이 지연되고 있습니다. 잠시 후 "최신 재조사"를 다시 누르거나 새로고침해 주세요.', 'error');
     return;
   }
@@ -413,7 +413,7 @@ function pollNewReport(prevId, tries) {
         document.getElementById('lastGenAt').textContent = at ? ('마지막 생성: ' + fmtDate(at)) : '';
         setTimeout(function() { renderWordCloud(report.keywordCloud || report.keyword_cloud || [], 'wc-canvas'); }, 100);
         _historyLoaded = false;
-        if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
+        if (btn) { btn.disabled = false; btn.textContent = '최신 재조사'; }
         showToast('재조사가 완료됐습니다.', 'success');
         return;
       }

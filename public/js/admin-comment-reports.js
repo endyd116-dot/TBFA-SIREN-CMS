@@ -37,9 +37,9 @@
 
   /* ★ R41 Q2-006: 서버 허용 상태집합(pending/approved/dismissed)과 일치 */
   var STATUS_MAP = {
-    pending:   { cls: 'badge-pending',  txt: '🟡 검토대기' },
-    approved:  { cls: 'badge-reviewed', txt: '✅ 처리완료' },
-    dismissed: { cls: 'badge-rejected', txt: '⬜ 기각' },
+    pending:   { cls: 'badge-pending',  txt: '검토대기' },
+    approved:  { cls: 'badge-reviewed', txt: '처리완료' },
+    dismissed: { cls: 'badge-rejected', txt: '기각' },
   };
 
   var TYPE_MAP = {
