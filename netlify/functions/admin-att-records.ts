@@ -206,7 +206,8 @@ export default async function handler(req: Request) {
         lateCount:    statusCnt["LATE"] ?? 0,
         earlyLeaveCount: statusCnt["EARLY_LEAVE"] ?? 0,
         absentCount:  statusCnt["ABSENT"] ?? 0,
-        leaveCount:   (statusCnt["LEAVE"] ?? 0) + leaveCount,
+        // [감사#35] 이중합산 제거 — LEAVE 기록 수만 사용(승인휴가 건수는 아래 approvedLeave로 별도 노출). 기존엔 둘을 더해 휴가일이 2배로 표시됐음
+        leaveCount:   statusCnt["LEAVE"] ?? 0,
         holidayCount: statusCnt["HOLIDAY"] ?? 0,
         // R34-P2 (round2 M2): work_mode별 집계 추가
         officeCount:       workModeCnt["OFFICE"] ?? 0,

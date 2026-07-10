@@ -38,6 +38,14 @@ export default async (_req: Request, _ctx: Context) => {
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
+    // [감사#33] 주말(토·일) 미출근 알림 스킵 — 스케줄이 기간만 매칭해 요일을 안 봐서 매 주말 전원에게 거짓 '미출근' 알림이 갔음
+    const kstDow = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCDay(); // 0=일, 6=토 (KST 기준)
+    if (kstDow === 0 || kstDow === 6) {
+      console.info("[cron-att-morning] 주말 — 알림 스킵");
+      return new Response(JSON.stringify({ ok: true, message: "주말", absentCount: 0 }),
+        { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+
     // 오늘 출근 스케줄 있는 운영자 목록 (attSchedules 기준 — 휴가 승인 직원 제외)
     // REMOTE·BUSINESS_TRIP 직원도 출근 체크는 필요하므로 work_mode로는 제외하지 않음
     const scheduledRows: any = await db.execute(sql`
