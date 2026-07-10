@@ -1011,7 +1011,7 @@ export async function executeTool(
       case "campaigns_list":       return await tool_campaignsList(args);
       case "campaigns_detail":     return await tool_campaignsDetail(args);
       /* 워크스페이스·알림·KPI */
-      case "tasks_list":           return await tool_tasksList(args);
+      case "tasks_list":           return await tool_tasksList(args, adminId);
       case "notifications_recent": return await tool_notificationsRecent(args);
       case "kpi_summary":          return await tool_kpiSummary();
       /* 추가 읽기 도구 (보안·발송·후원자 분석) */
@@ -1523,11 +1523,15 @@ async function tool_campaignsDetail(args: any): Promise<ToolResult> {
    워크스페이스·알림·KPI
    ───────────────────────────────────────── */
 
-async function tool_tasksList(args: any): Promise<ToolResult> {
+async function tool_tasksList(args: any, adminId: number | null): Promise<ToolResult> {
   const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 20→10, 50→30 */
   const conds: any[] = [];
   if (args?.status) conds.push(sql`status = ${String(args.status)}`);
   if (args?.memberId) conds.push(sql`member_id = ${Number(args.memberId)}`);
+  // [감사#44] 본 화면과 동일 — 일반 운영자는 본인 관련(소유/담당/지시) 작업만. super_admin은 전체. 전 운영자 작업 무제한 노출 방지.
+  if (adminId && !(await aiIsSuperAdmin(adminId))) {
+    conds.push(sql`(member_id = ${adminId} OR assigned_to = ${adminId} OR assigned_by = ${adminId})`);
+  }
   const where = conds.length > 0
     ? sql`WHERE ${conds.reduce((a, b, i) => i === 0 ? b : sql`${a} AND ${b}`)}`
     : sql``;
