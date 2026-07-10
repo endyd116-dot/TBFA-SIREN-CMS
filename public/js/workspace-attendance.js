@@ -767,7 +767,12 @@
         const id = btn.dataset.id;
         if (!id || !confirm('이 휴가 신청을 철회하시겠습니까?')) return;
         try {
-          await api('/api/att-leave-request?id=' + id, { method: 'DELETE' });
+          // P2-67 fix: api()는 실패 시 throw하지 않으므로 결과를 확인 (과거: 409 거부에도 '철회됨' 거짓 토스트 → 출근 사고 위험)
+          const res = await api('/api/att-leave-request?id=' + id, { method: 'DELETE' });
+          if (!res || res.ok === false) {
+            toast('철회 실패: ' + (res?.data?.error || '이미 승인·반려된 신청일 수 있습니다'));
+            return;
+          }
           toast('신청이 철회되었습니다');
           loadLeaveHistory();
         } catch (err) {

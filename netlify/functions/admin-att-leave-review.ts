@@ -132,6 +132,13 @@ export default async function handler(req: Request) {
       return jsonError("already_reviewed", new Error("이미 처리된 신청"), 409);
     }
 
+    // P2-56 fix: 셀프 결재 차단 — 본인이 신청한 휴가는 본인이 승인할 수 없음 (이사장 예외). 매출 성과검증 4-eye 원칙과 동일.
+    if (action === "APPROVED"
+        && String(request.memberUid) === String(auth.ctx.member.id)
+        && auth.ctx.member.role !== "super_admin") {
+      return jsonError("self_review", new Error("본인이 신청한 건은 본인이 승인할 수 없습니다 (다른 결재자에게 요청하세요)"), 403);
+    }
+
     // 결재 상태 업데이트
     const [updated] = await db
       .update(attLeaveRequests)
@@ -148,12 +155,13 @@ export default async function handler(req: Request) {
     if (action === "APPROVED") {
       const year = new Date(request.startDate).getFullYear();
       try {
+        // P2-69 fix: UPSERT로 변경 — 해당 연도·종류 잔여 행이 없어도(연도 경계 등) 차감이 조용히 누락되지 않도록.
+        //           (과거 단순 UPDATE는 행 없으면 0행 갱신 후 warn만 → 잔여가 실제보다 많게 남음)
         await db.execute(sql`
-          UPDATE att_leave_balances
-          SET used_days = used_days + ${request.days}
-          WHERE member_uid = ${request.memberUid}
-            AND leave_type_id = ${request.leaveTypeId}
-            AND year = ${year}
+          INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)
+          VALUES (${request.memberUid}, ${request.leaveTypeId}, ${year}, 0, ${request.days})
+          ON CONFLICT (member_uid, leave_type_id, year)
+          DO UPDATE SET used_days = att_leave_balances.used_days + ${request.days}
         `);
       } catch (err) {
         console.warn("[admin-att-leave-review] 잔여 휴가 차감 실패:", err);

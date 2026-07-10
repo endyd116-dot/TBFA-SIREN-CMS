@@ -136,13 +136,17 @@ export default async function handler(req: Request) {
   // 조퇴 판정 — 첫 출근 ~ 현재 기준 (유연근무 시 ±X 범위·조퇴 미판정)
   const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
   const checkInForStatus = summary.checkInTime ?? new Date(existing.checkInTime ?? now);
-  const status = determineStatus(checkInForStatus, now, {
+  const computedStatus = determineStatus(checkInForStatus, now, {
     checkInTime: String(policy.checkInTime), checkOutTime: String(policy.checkOutTime),
     lateGraceMins: policy.lateGraceMins, earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
     coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
     coreEndTime: policy.coreEndTime ? String(policy.coreEndTime) : null,
     flexEnabled: policy.flexEnabled, flexRangeMins,
   }, false, false, existing.workMode);
+  // P1-17 fix: 출근 시 확정된 반차·휴가·공휴일 상태는 퇴근 시각 기준 재판정으로 덮지 않음
+  //           (과거: 반차 오후출근→퇴근 시 '지각'으로 뒤바뀌어 만근 박탈·지각누적 경고·급여 오류 유발)
+  const PRESERVE_STATUS = ["PARTIAL_LEAVE", "HOLIDAY", "LEAVE"];
+  const status = PRESERVE_STATUS.includes(String(existing.status)) ? existing.status : computedStatus;
 
   // REMOTE 퇴근 시 오늘 보고서 제출 여부
   let reportSubmitted = false;

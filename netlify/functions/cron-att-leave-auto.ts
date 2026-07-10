@@ -126,7 +126,21 @@ export default async (_req: Request, _ctx: Context) => {
         const lateCnt   = Number(v.late_cnt ?? 0);
         const earlyCnt  = Number(v.early_cnt ?? 0);
 
-        if (absentCnt === 0 && lateCnt === 0 && earlyCnt === 0 && policy.perfectBonus > 0) {
+        // P2-16 fix (Swain 결정 2026-07-10): 만근 = 위반 0건 + 그달 영업일(주말·공휴일 제외) 전부 출근/승인휴가 기록.
+        //   (과거: 결근이 자동기록 안 돼 무출근·장기결근도 위반 0 → 만근으로 보너스 연차 오지급)
+        const bizRows: any = await db.execute(sql`
+          SELECT
+            (SELECT COUNT(*) FROM generate_series(${prevMonthStart}::date, ${prevMonthEnd}::date, interval '1 day') d
+              WHERE EXTRACT(DOW FROM d) NOT IN (0,6)
+                AND d::date NOT IN (SELECT date FROM att_holidays WHERE date BETWEEN ${prevMonthStart}::date AND ${prevMonthEnd}::date)) AS biz_days,
+            (SELECT COUNT(DISTINCT date) FROM att_records
+              WHERE member_uid = ${op.uid} AND date >= ${prevMonthStart}::date AND date <= ${prevMonthEnd}::date
+                AND status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE','LEAVE','HOLIDAY')) AS recorded_days
+        `);
+        const bz = (Array.isArray(bizRows) ? bizRows[0] : ((bizRows as any).rows ?? [])[0]) ?? {};
+        const fullyPresent = Number(bz.biz_days ?? 0) > 0 && Number(bz.recorded_days ?? 0) >= Number(bz.biz_days ?? 0);
+
+        if (absentCnt === 0 && lateCnt === 0 && earlyCnt === 0 && fullyPresent && policy.perfectBonus > 0) {
           // 만근 → +perfectBonus 일 upsert
           await db.execute(sql`
             INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)

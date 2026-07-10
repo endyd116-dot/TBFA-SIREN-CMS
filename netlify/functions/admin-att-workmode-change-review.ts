@@ -113,18 +113,15 @@ export default async function handler(req: Request) {
       return jsonError("already_reviewed", new Error("이미 처리된 신청"), 409);
     }
 
-    const [updated] = await db
-      .update(attWorkmodeChangeRequests)
-      .set({
-        status: action,
-        reviewedBy: String((auth as any).ctx.member.id),
-        reviewNote: note ?? null,
-        updatedAt: new Date(),
-      } as any)
-      .where(eq(attWorkmodeChangeRequests.id, requestId))
-      .returning();
+    // P2-56 fix: 셀프 결재 차단 — 본인이 신청한 근무형태 변경은 본인이 승인할 수 없음 (이사장 예외)
+    if (action === "APPROVED"
+        && String(reqRow.memberUid) === String((auth as any).ctx.member.id)
+        && (auth as any).ctx.member.role !== "super_admin") {
+      return jsonError("self_review", new Error("본인이 신청한 건은 본인이 승인할 수 없습니다 (다른 결재자에게 요청하세요)"), 403);
+    }
 
-    // APPROVED: att_schedule_overrides UPSERT
+    // P2-68 fix: APPROVED는 근무형태 재정의(override)를 먼저 반영하고, 성공 후에만 결재 상태 변경.
+    //           (과거: 상태를 먼저 APPROVED로 바꾸고 UPSERT 실패는 warn만 → 미반영인데 '승인' 알림 발송)
     if (action === "APPROVED") {
       try {
         await db.execute(sql`
@@ -140,9 +137,21 @@ export default async function handler(req: Request) {
             created_by = EXCLUDED.created_by
         `);
       } catch (err) {
-        console.warn("[admin-att-workmode-change-review] override UPSERT 실패:", err);
+        // 조용한 실패 방지 — 재정의 반영 실패 시 결재 중단(상태·알림 진행 안 함)
+        return jsonError("apply_override", err);
       }
     }
+
+    const [updated] = await db
+      .update(attWorkmodeChangeRequests)
+      .set({
+        status: action,
+        reviewedBy: String((auth as any).ctx.member.id),
+        reviewNote: note ?? null,
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(attWorkmodeChangeRequests.id, requestId))
+      .returning();
 
     // 신청자에게 결과 알림
     try {

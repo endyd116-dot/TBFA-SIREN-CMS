@@ -81,10 +81,11 @@ export default async function handler(req: Request) {
 
   /* ★ 2026-07-09 유연근무 출근 하한(floor) — OFFICE + 유연근무만. 하한 이전 출근은 근무·야근 미산입. */
   let minStart: Date | null = null;
+  let flexRangeMins: number | undefined = undefined;
   if (policy.flexEnabled && ns.length && ns[0].in) {   // 2026-07-10: 전 근무형태 하한 적용
     try {
-      const flexRange = await getFlexRangeMins();
-      minStart = flexStartFloor(new Date(ns[0].in), String(policy.checkInTime), flexRange);
+      flexRangeMins = await getFlexRangeMins();
+      minStart = flexStartFloor(new Date(ns[0].in), String(policy.checkInTime), flexRangeMins);
     } catch (e) { console.warn("[att-session-edit] 유연 하한 계산 실패:", e); }
   }
 
@@ -92,12 +93,16 @@ export default async function handler(req: Request) {
     dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
   }, minStart);
   const checkInForStatus = summary.checkInTime ?? new Date(existing.checkInTime ?? Date.now());
-  const status = determineStatus(checkInForStatus, summary.checkOutTime, {
+  const computedStatus = determineStatus(checkInForStatus, summary.checkOutTime, {
     checkInTime: String(policy.checkInTime), checkOutTime: String(policy.checkOutTime),
     lateGraceMins: policy.lateGraceMins, earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
     coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
     coreEndTime: policy.coreEndTime ? String(policy.coreEndTime) : null,
+    flexEnabled: policy.flexEnabled, flexRangeMins,   // P2-34 fix: 셀프 수정에도 유연근무 범위 전달(과거 누락→정상이 지각으로 뒤바뀜)
   }, false, false, existing.workMode);
+  // P1-17 fix: 출근 시 확정된 반차·휴가·공휴일 상태는 셀프 수정 시 재판정으로 덮지 않음
+  const PRESERVE_STATUS = ["PARTIAL_LEAVE", "HOLIDAY", "LEAVE"];
+  const status = PRESERVE_STATUS.includes(String(existing.status)) ? existing.status : computedStatus;
 
   try {
     const [rec] = await db.update(attRecords).set({

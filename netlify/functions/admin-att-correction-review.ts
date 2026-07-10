@@ -109,6 +109,13 @@ export default async function handler(req: Request) {
       return jsonError("already_reviewed", new Error("이미 처리된 요청"), 409);
     }
 
+    // P2-56 fix: 셀프 결재 차단 — 본인이 신청한 정정은 본인이 승인할 수 없음 (이사장 예외)
+    if (action === "APPROVED"
+        && String(correction.memberUid) === String(auth.ctx.member.id)
+        && auth.ctx.member.role !== "super_admin") {
+      return jsonError("self_review", new Error("본인이 신청한 건은 본인이 승인할 수 없습니다 (다른 결재자에게 요청하세요)"), 403);
+    }
+
     // ── APPROVED: 먼저 att_records에 반영(근무·야근 재계산 포함). 실패 시 결재 중단(조용한 실패 방지) ──
     if (action === "APPROVED") {
       try {
