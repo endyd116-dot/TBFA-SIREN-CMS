@@ -49,6 +49,8 @@ export default async (req: Request, _ctx: Context) => {
 
         const rows: any = await db.execute(sql`
           SELECT *,
+            content_html AS "contentHtml",
+            is_pinned AS "isPinned",
             show_in_calendar AS "showInCalendar",
             TO_CHAR(event_date, 'YYYY-MM-DD') AS "eventDate",
             TO_CHAR(event_time, 'HH24:MI:SS') AS "eventTime"

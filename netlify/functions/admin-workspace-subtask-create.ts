@@ -58,14 +58,14 @@ export default async (req: Request, _ctx: Context) => {
     const canEdit = isSuperAdmin || parent.memberId === meId || (parent.assignedTo === meId && parent.assignedBy) || parent.assignedBy === meId;
     if (!canEdit) return jsonError(403, "forbidden", "이 작업에 서브태스크를 추가할 권한이 없습니다");
 
-    /* dueDate 처리 — 미지정 시 부모 마감일 사용 (workspaceTasks.dueDate NOT NULL 제약) */
-    let dueDate: Date;
+    /* dueDate 처리 — 미지정 시 부모 마감일 상속. 부모가 마감일 없으면(2026-07-09 선택화) null 저장 (과거: new Date(null)→1970-01-01 오염) */
+    let dueDate: Date | null;
     if (body?.dueDate) {
       const d = new Date(body.dueDate);
       if (isNaN(d.getTime())) return jsonError(400, "validate", "dueDate 형식 오류");
       dueDate = d;
     } else {
-      dueDate = new Date(parent.dueDate);
+      dueDate = parent.dueDate ? new Date(parent.dueDate) : null;
     }
 
     const description = body?.description ? String(body.description) : null;

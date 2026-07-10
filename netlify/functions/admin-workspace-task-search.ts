@@ -176,6 +176,12 @@ export default async (req: Request, _ctx: Context) => {
         tags: workspaceTasks.tags,
         aiRiskScore: workspaceTasks.aiRiskScore,
         createdAt: workspaceTasks.createdAt,
+        // P1-9: 검색 결과 카드를 열어 저장할 때 설명·체크리스트가 빈 값으로 덮어써지지 않도록 전체 필드 포함
+        description: workspaceTasks.description,
+        checklistItems: workspaceTasks.checklistItems,
+        estimatedHours: workspaceTasks.estimatedHours,
+        actualHours: workspaceTasks.actualHours,
+        bookmarkedBy: workspaceTasks.bookmarkedBy,
       })
       .from(workspaceTasks)
       .where(conds.length > 0 ? and(...conds) : undefined)
