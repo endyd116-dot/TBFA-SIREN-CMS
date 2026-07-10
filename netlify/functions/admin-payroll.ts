@@ -193,6 +193,11 @@ export default async function handler(req: Request) {
       const [cur] = await db.select().from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
       if (!cur) return jsonBadRequest("명세서를 찾을 수 없습니다");
 
+      // P2-25 fix: 지급 완료(PAID) 명세서는 서버에서도 금액 수정·상태 변경 차단 (화면 잠금만으론 직접 호출로 우회 가능)
+      if (cur.status === "PAID" && (isEdit || typeof body.status === "string")) {
+        return jsonBadRequest("지급 완료된 명세서는 수정·상태 변경할 수 없습니다 (정정은 지급 취소 절차로 진행)");
+      }
+
       const update: any = { updatedAt: new Date() };
       const auditRows: Array<{ field: string; oldValue: string; newValue: string }> = [];
 
@@ -279,6 +284,13 @@ export default async function handler(req: Request) {
     if (action === "approve") {
       if (!idNum) return jsonBadRequest("id 필수");
       try {
+        // P2-25 fix: 초안·검토완료·보류에서만 승인 (지급완료·발송된 건의 상태 회귀 차단)
+        const [curA] = await db.select({ status: payrollSlips.status })
+          .from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
+        if (!curA) return jsonBadRequest("명세서를 찾을 수 없습니다");
+        if (!["DRAFT", "REVIEWED", "HOLD"].includes(curA.status)) {
+          return jsonBadRequest("초안·검토완료·보류 상태에서만 승인할 수 있습니다");
+        }
         const update: any = {
           status: "APPROVED",
           approvedBy: String(admin.id),
@@ -298,6 +310,11 @@ export default async function handler(req: Request) {
       let body: any = {};
       try { body = await req.json(); } catch { /* 본문 없어도 허용 */ }
       try {
+        // P2-25 fix: 지급 완료 명세서는 보류로 되돌릴 수 없음
+        const [curH] = await db.select({ status: payrollSlips.status })
+          .from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
+        if (!curH) return jsonBadRequest("명세서를 찾을 수 없습니다");
+        if (curH.status === "PAID") return jsonBadRequest("지급 완료된 명세서는 보류할 수 없습니다");
         const update: any = { status: "HOLD", updatedAt: new Date() };
         if (typeof body.reviewNote === "string") update.reviewNote = body.reviewNote;
         const [updated] = await db.update(payrollSlips).set(update)

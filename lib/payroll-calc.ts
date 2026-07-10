@@ -146,7 +146,10 @@ export async function calculatePayrollForMonth(
       // 2-1. att_records 집계
       const attRows = await db.execute(sql`
         SELECT
-          COUNT(*) FILTER (WHERE status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE'))::int AS working_days,
+          -- P1-20 fix: 반차(PARTIAL_LEAVE)는 출근 0.5일로 집계. 나머지 반나절은 유급휴가 0.5일로 별도 합산되므로
+          --            (아래 paidDays=출근일+유급휴가일) 하루 상한 1.0일 보장 (과거: 출근 1일+휴가 0.5=1.5일 과지급).
+          (COUNT(*) FILTER (WHERE status IN ('NORMAL','LATE','EARLY_LEAVE'))
+            + 0.5 * COUNT(*) FILTER (WHERE status = 'PARTIAL_LEAVE'))::numeric AS working_days,
           COALESCE(SUM(working_mins) FILTER (WHERE working_mins IS NOT NULL), 0)::int AS working_mins,
           COALESCE(SUM(overtime_mins), 0)::int AS overtime_mins,
           COUNT(*) FILTER (WHERE status = 'LATE')::int AS late_count,
@@ -279,8 +282,10 @@ export async function calculatePayrollForMonth(
       const existingRow = ((existing as any).rows || (existing as any[]))[0];
 
       if (existingRow) {
-        // REVIEWED 이상·PAID·수동 수정된 슬립은 재집계가 덮지 않음 (force 제외)
-        const lockable = ["REVIEWED", "APPROVED", "SENT", "PAID"].includes(existingRow.status)
+        // REVIEWED 이상·PAID·보류(HOLD)·수동 수정된 슬립은 재집계가 덮지 않음 (force 제외)
+        // P1-31 fix: HOLD 추가 — 분쟁 검토 중 보류한 명세서가 일반 재집계에 조용히 덮여 초안으로 풀리던 문제 차단
+        //            (확인창 문구 '검토 이상 보존'과 실제 동작 일치). 보류 해제는 승인 또는 보류해제 버튼으로.
+        const lockable = ["REVIEWED", "APPROVED", "SENT", "PAID", "HOLD"].includes(existingRow.status)
           || existingRow.manually_edited === true;
         if (lockable && !force) {
           result.skipped++;
@@ -333,6 +338,12 @@ export async function calculatePayrollForMonth(
             net_pay = ${r2(netPayFinal)},
             calculation_snapshot = ${JSON.stringify(snapshot)}::jsonb,
             status = 'DRAFT',
+            -- P2-51 fix: 재집계로 '자동 계산 초안'으로 되돌리므로 수동수정 표식·승인/발송/지급 일자도 함께 초기화.
+            --            (과거: 표식이 남아 이후 일반 재집계가 그 직원만 영구 skip, 초안인데 지급확정일이 표시되던 모순)
+            manually_edited = FALSE,
+            approved_by = NULL, approved_at = NULL,
+            sent_at = NULL,
+            paid_by = NULL, paid_at = NULL,
             updated_at = NOW()
           WHERE id = ${Number(existingRow.id)}
           RETURNING id
