@@ -1208,7 +1208,9 @@
   async function setupLogout() {
     document.getElementById('wsBtnLogout')?.addEventListener('click', async () => {
       if (!confirm('로그아웃하시겠습니까?')) return;
-      await api('/api/logout', { method: 'POST' });
+      // 사용자·관리자 세션 모두 종료 (근태 페이지는 어느 세션으로도 진입 가능)
+      await api('/api/auth/logout', { method: 'POST' });
+      await api('/api/admin/logout', { method: 'POST' });
       location.href = '/index.html';
     });
   }

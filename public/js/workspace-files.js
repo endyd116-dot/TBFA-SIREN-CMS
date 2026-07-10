@@ -294,7 +294,7 @@
         if (state.currentView === 'mine') params.set('mine', '1');
         if (state.currentView === 'shared') params.set('shared', '1');
       }
-      if (state.searchKeyword) params.set('q', state.searchKeyword);
+      if (state.searchKeyword) params.set('search', state.searchKeyword);
       const res = await api(`/api/admin-workspace-files?${params}`);
       state.files = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       renderFileList();

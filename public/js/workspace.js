@@ -28,7 +28,7 @@
     events: '/api/admin-workspace-events?list=1',
     memos: '/api/admin-workspace-memos?list=1',
     feed: '/api/admin-workspace-tasks?feed=1&limit=20',
-    logout: '/api/admin-logout'
+    logout: '/api/admin/logout'
   };
 
   const POLL_MS = 60000; // 60초 폴링 (briefing만)
@@ -1487,7 +1487,7 @@
     if (!list) return;
     let items = [];
     try {
-      const ws = STATE.currentWorkspaceId || 1;
+      const ws = (window.STATE && window.STATE.currentWorkspaceId) || 1;
       const res = await api(`/api/workspace-task-mentions?workspaceId=${ws}&unreadOnly=true`);
       items = (res.data || res).mentions || [];
     } catch (_) {
@@ -1577,7 +1577,7 @@
   /* ─────────── 권한 조회 + 초기화 ─────────── */
   async function detectAdmin() {
     try {
-      const res = await api('/api/admin-me');
+      const res = await api('/api/admin/me');
       const me = (res && res.data) || res || {};
       return !!(me && (me.role === 'super_admin' || me.role === 'admin' || me.isAdmin));
     } catch (_) {
