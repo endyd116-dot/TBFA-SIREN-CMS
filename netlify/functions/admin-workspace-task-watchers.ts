@@ -37,14 +37,31 @@ export default async (req: Request, _ctx: Context) => {
     const guard = await requireAdmin(req);
     if (!guard.ok) return (guard as { ok: false; res: Response }).res;
     const meId = guard.ctx.member.id as number;
+    const isSuperAdmin = (guard.ctx.member as any).role === "super_admin";
 
     const url = new URL(req.url);
+
+    // [감사#168] 작업 접근 검증 헬퍼 — 소유/담당/지시/완료자/super_admin만 워처 조회·등록 가능
+    const assertTaskAccess = async (taskId: number): Promise<Response | null> => {
+      const [t]: any = await db.select({
+        memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo,
+        assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy,
+      }).from(workspaceTasks).where(eq(workspaceTasks.id, taskId)).limit(1);
+      if (!t) return jsonError(404, "작업을 찾을 수 없습니다", "task_access");
+      if (!(isSuperAdmin || t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId))
+        return jsonError(403, "이 작업에 접근할 권한이 없습니다", "task_access");
+      return null;
+    };
 
     /* ───── GET — 워처 목록 + 본인 등록 여부 ───── */
     if (req.method === "GET") {
       step = "get_validate";
       const taskId = Number(url.searchParams.get("taskId"));
       if (!Number.isFinite(taskId) || taskId <= 0) return jsonError(400, "taskId 필수", step);
+
+      step = "check_access";
+      const denied = await assertTaskAccess(taskId);
+      if (denied) return denied;
 
       step = "select_watchers";
       const rows = await db
@@ -70,10 +87,9 @@ export default async (req: Request, _ctx: Context) => {
       const taskId = Number(body?.taskId);
       if (!Number.isFinite(taskId) || taskId <= 0) return jsonError(400, "taskId 필수", step);
 
-      step = "select_task";
-      const [task]: any = await db.select({ id: workspaceTasks.id })
-        .from(workspaceTasks).where(eq(workspaceTasks.id, taskId)).limit(1);
-      if (!task) return jsonError(404, "작업을 찾을 수 없습니다", step);
+      step = "check_access";
+      const denied = await assertTaskAccess(taskId);
+      if (denied) return denied;
 
       step = "insert_watcher_idempotent";
       /* UNIQUE(task_id, watcher_uid) 위반 시 ON CONFLICT DO NOTHING 효과 */

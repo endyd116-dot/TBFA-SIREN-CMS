@@ -3,14 +3,16 @@
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { workspaceEventRsvps, members } from "../../db/schema";
+import { workspaceEventRsvps, workspaceEvents, members } from "../../db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
-import { ok, badRequest, methodNotAllowed, serverError } from "../../lib/response";
+import { ok, badRequest, methodNotAllowed, serverError, forbidden, notFound } from "../../lib/response";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
+  const meId = guard.ctx.member.id as number;
+  const isSuperAdmin = (guard.ctx.member as any).role === "super_admin";
 
   try {
     if (req.method !== "GET") return methodNotAllowed();
@@ -18,6 +20,13 @@ export default async (req: Request, _ctx: Context) => {
     const url = new URL(req.url);
     const eventId = Number(url.searchParams.get("eventId") || 0);
     if (!eventId) return badRequest("eventId 필수");
+
+    // [감사#72] RSVP 목록 조회 IDOR 차단 — 단건 조회와 동일(소유자/참석자/super_admin만)
+    const [ev]: any = await db.select().from(workspaceEvents).where(eq(workspaceEvents.id, eventId)).limit(1);
+    if (!ev) return notFound("일정을 찾을 수 없습니다");
+    const attendees = Array.isArray(ev.attendees) ? ev.attendees : [];
+    const isAttendee = attendees.some((a: any) => a.memberId === meId);
+    if (!(isSuperAdmin || ev.memberId === meId || isAttendee)) return forbidden("조회 권한이 없습니다");
 
     const rows: any = await db
       .select()

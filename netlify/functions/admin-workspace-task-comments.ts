@@ -69,12 +69,23 @@ export default async (req: Request, _ctx: Context) => {
           .limit(1);
         const row = rows[0];
         if (!row || row.deletedAt) return notFound("댓글을 찾을 수 없습니다");
+        // [감사#100·101] 댓글 단건 조회 IDOR 차단 — 보고서 API와 동일(소유/담당/지시/완료자/super_admin)
+        if (!isSuperAdmin) {
+          const [t]: any = await db.select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy }).from(workspaceTasks).where(eq(workspaceTasks.id, row.taskId)).limit(1);
+          if (!(t && (t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId))) return forbidden("조회 권한이 없습니다");
+        }
         return ok(row);
       }
 
       if (!taskIdRaw) return badRequest("taskId 또는 id 필수");
       const taskId = Number(taskIdRaw);
       if (!taskId) return badRequest("taskId 유효하지 않음");
+
+      // [감사#100·101] 댓글 목록 조회 IDOR 차단 — 보고서 API와 동일(소유/담당/지시/완료자/super_admin)
+      if (!isSuperAdmin) {
+        const [t]: any = await db.select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy }).from(workspaceTasks).where(eq(workspaceTasks.id, taskId)).limit(1);
+        if (!(t && (t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId))) return forbidden("조회 권한이 없습니다");
+      }
 
       const items: any = await db
         .select({
