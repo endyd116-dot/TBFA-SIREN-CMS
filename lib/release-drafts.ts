@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.1";
+export const APP_VERSION = "2026-07-12.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -30,6 +30,18 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
       { text: "파일함에 '내 파일'·'공유받음' 탭과 검색, 100개 초과 목록의 '더 보기'가 동작합니다", link: "/workspace-files.html" },
       { text: "구글 캘린더 동기화를 여러 번 눌러도 일정이 중복 생성되지 않습니다" },
       { text: "AI 비서로 작업을 지시·완료하면 담당자 알림과 원본 신고 종결이 정상 처리됩니다" },
+    ],
+  },
+  {
+    key: "2026-07-12-e2e-critical-fixes",
+    title: "작업 카드 열기·서브태스크 개수 등 오류 수정",
+    items: [
+      { text: "알림이나 링크로 작업 카드를 열면 오류가 나던 문제를 고쳤습니다", link: "/workspace-kanban.html" },
+      { text: "칸반 카드의 하위 작업 개수가 항상 0으로 보이던 문제를 고쳤습니다", link: "/workspace-kanban.html" },
+      { text: "캘린더에서 다른 운영자의 일정에 이름이 안 보이던 문제를 고쳤습니다", link: "/workspace-calendar.html" },
+      { text: "자료실 목록이 열리지 않던 오류를 고쳤습니다", link: "/resources.html" },
+      { text: "알림 벨 숫자가 두 값 사이에서 깜빡이던 문제를 고쳤습니다" },
+      { text: "AI 작업 검색·근태 알림 등에서 이름이 비어 보이던 문제를 고쳤습니다" },
     ],
   },
 ];
