@@ -31,6 +31,8 @@
   }
   function won(n) { return Math.round(Number(n || 0)).toLocaleString('ko-KR'); }
   function hoursOf(m) { return (Number(m || 0) / 60).toFixed(1); }
+  /* 근무일수는 반차·반반차 때문에 소수가 나온다 (예: 10.75일) */
+  function days(n) { return (Math.round(Number(n || 0) * 100) / 100).toString(); }
   function dt(d) {
     if (!d) return '-';
     try { return new Date(d).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }); }
@@ -229,7 +231,7 @@
       }
       html += '<tr class="wp-row" data-id="' + r.id + '">' +
         '<td style="' + td + ';font-weight:700">' + r.payYear + '년 ' + String(r.payMonth).padStart(2, '0') + '월</td>' +
-        '<td style="' + td + ';text-align:right">' + (r.workingDays || 0) + '일</td>' +
+        '<td style="' + td + ';text-align:right">' + days(r.workingDays) + '일</td>' +
         '<td style="' + td + ';text-align:right;font-weight:600;color:#3730a3">' + won(r.grossPay) + '</td>' +
         '<td style="' + td + ';text-align:right;color:#b91c1c">' + (Number(r.totalDeduction) > 0 ? '−' + won(r.totalDeduction) : '0') + '</td>' +
         '<td style="' + td + ';text-align:right;font-weight:700;color:#0f766e">' + won(r.netPay) + ' 원</td>' +

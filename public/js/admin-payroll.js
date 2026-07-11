@@ -52,6 +52,11 @@
     const v = Number(m || 0);
     return (v / 60).toFixed(1);
   }
+  /* 근무일수는 반차·반반차 때문에 소수가 나온다 (예: 10.75일). 정수면 소수점을 떼고 보여준다. */
+  function days(n) {
+    return (Math.round(Number(n || 0) * 100) / 100).toString();
+  }
+
   function statusBadge(s) {
     return '<span class="status-badge s-' + esc(s) + '">' + esc(s) + '</span>';
   }
@@ -191,7 +196,7 @@
       return '<tr>' +
         '<td>' + name + editMark + '</td>' +
         '<td>' + role + '</td>' +
-        '<td class="r">' + (r.workingDays || 0) + '</td>' +
+        '<td class="r">' + days(r.workingDays) + '</td>' +
         '<td class="r">' + won(r.baseSalaryMonth) + '</td>' +
         '<td class="r">' + won(r.performanceBonus) + '</td>' +
         '<td class="r" style="font-weight:700">' + won(r.grossPay) + '</td>' +
@@ -571,7 +576,7 @@
         (editable ? '' : ' <span style="color:#0f766e;font-size:12px;font-weight:600">지급 완료 — 편집 잠금</span>') + '</dd>' +
       '<dt>근태 (출근·근무·지각·결근·유급·무급·만근)</dt>' +
       '<dd>' +
-        (slip.workingDays || 0) + '일 · ' +
+        days(slip.workingDays) + '일 · ' +
         hours(slip.workingMins) + 'h · ' +
         (slip.lateCount || 0) + '회 · ' +
         (slip.absentCount || 0) + '회 · ' +

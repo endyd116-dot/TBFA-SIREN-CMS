@@ -3860,14 +3860,17 @@ export const payrollSlips = pgTable("payroll_slips", {
   payYear:              integer("pay_year").notNull(),
   payMonth:             integer("pay_month").notNull(),                    // CHECK 1~12 (DB 제약)
 
-  // 근태 집계
-  workingDays:          integer("working_days").default(0).notNull(),
+  /* 근태 집계
+     2026-07-12: 지급일수를 실제 근무시간으로 산정하면서 소수가 나온다 (반차 0.5일 · 반반차 0.75일).
+     integer로 두면 저장 자체가 실패하고(10.75 → 오류), 읽을 때도 소수점이 잘린다.
+     → numeric(6,2). migrate-payroll-fractional-days 적용 완료. */
+  workingDays:          numeric("working_days", { precision: 6, scale: 2 }).default("0").notNull(),
   workingMins:          integer("working_mins").default(0).notNull(),
   overtimeMins:         integer("overtime_mins").default(0).notNull(),
   lateCount:            integer("late_count").default(0).notNull(),
   absentCount:          integer("absent_count").default(0).notNull(),
-  paidLeaveDays:        numeric("paid_leave_days", { precision: 5, scale: 1 }).default("0").notNull(),
-  unpaidLeaveDays:      numeric("unpaid_leave_days", { precision: 5, scale: 1 }).default("0").notNull(),
+  paidLeaveDays:        numeric("paid_leave_days", { precision: 6, scale: 2 }).default("0").notNull(),
+  unpaidLeaveDays:      numeric("unpaid_leave_days", { precision: 6, scale: 2 }).default("0").notNull(),
   perfectAttendance:    boolean("perfect_attendance").default(false).notNull(),
 
   // 급여 구성 (KRW·세전)
