@@ -441,6 +441,8 @@ export default async function handler(req: Request) {
     }
 
     // 월별 수동 재집계 — lib/payroll-calc.ts 의 calculatePayrollForMonth 공유
+    //   memberUid 지정 시 그 직원 1명만 재집계 (다른 직원 명세서는 손대지 않음).
+    //   근태를 뒤늦게 바로잡았는데 그 달 다른 직원은 이미 승인·발송된 상황에서 필요.
     if (action === "recalculate") {
       const y = Number(url.searchParams.get("year") || 0);
       const m = Number(url.searchParams.get("month") || 0);
@@ -448,8 +450,9 @@ export default async function handler(req: Request) {
       let body: any = {};
       try { body = await req.json(); } catch { /* 본문 없어도 허용 */ }
       const force = body?.force === true;
+      const memberUid = url.searchParams.get("memberUid") || body?.memberUid || undefined;
       try {
-        const r = await calculatePayrollForMonth(y, m, { force });
+        const r = await calculatePayrollForMonth(y, m, { force, memberUid });
         return jsonOk(r);
       } catch (err) { return jsonError("recalculate", err); }
     }

@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.2";
+export const APP_VERSION = "2026-07-12.3";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -30,6 +30,16 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
       { text: "파일함에 '내 파일'·'공유받음' 탭과 검색, 100개 초과 목록의 '더 보기'가 동작합니다", link: "/workspace-files.html" },
       { text: "구글 캘린더 동기화를 여러 번 눌러도 일정이 중복 생성되지 않습니다" },
       { text: "AI 비서로 작업을 지시·완료하면 담당자 알림과 원본 신고 종결이 정상 처리됩니다" },
+    ],
+  },
+  {
+    key: "2026-07-12-payroll-attendance-sync",
+    title: "근태를 바로잡으면 급여 재집계에 반영됩니다",
+    items: [
+      { text: "보류 중인 급여 명세서가 재집계에서 조용히 빠지던 문제를 고쳤습니다 — 근태를 고친 뒤 재집계하면 금액이 갱신됩니다 (보류 표시는 그대로 유지)", link: "/cms-tbfa.html#payroll" },
+      { text: "직원별 [재집계] 버튼이 생겼습니다 — 승인·발송이 끝난 달에도 한 명만 골라 최신 근태로 다시 계산할 수 있습니다 (다른 직원 명세서는 그대로)", link: "/cms-tbfa.html#payroll" },
+      { text: "재집계가 건너뛴 명세서가 있으면 누구를·왜 건너뛰었는지 알려줍니다", link: "/cms-tbfa.html#payroll" },
+      { text: "관리자가 출퇴근 시각을 직접 고치면 지각·정상 판정도 함께 다시 계산됩니다 (급여의 출근일·지각횟수·만근에 반영)", link: "/cms-tbfa.html#att-ops" },
     ],
   },
   {

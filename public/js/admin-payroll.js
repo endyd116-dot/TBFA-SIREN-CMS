@@ -54,6 +54,12 @@
   function statusBadge(s) {
     return '<span class="status-badge s-' + esc(s) + '">' + esc(s) + '</span>';
   }
+  /* 확인창 등 순수 텍스트 자리에 쓸 한글 상태명 */
+  var STATUS_TEXT = {
+    DRAFT: '초안', REVIEWED: '검토 완료', APPROVED: '승인됨',
+    SENT: '발송됨', PAID: '지급 완료', HOLD: '보류',
+  };
+  function statusText(s) { return STATUS_TEXT[s] || String(s || ''); }
   function fmtDate(d) {
     try { return new Date(d).toLocaleString('ko-KR'); } catch (_) { return String(d || ''); }
   }
@@ -155,6 +161,11 @@
       if (r.status !== 'SENT' && r.status !== 'HOLD' && r.status !== 'PAID') {
         actions.push('<button class="btn btn-danger btn-sm" onclick="holdSlip(' + r.id + ')">보류</button>');
       }
+      /* 이 직원만 재집계 — 근태를 뒤늦게 바로잡았을 때, 그 달 다른 직원의 승인·발송·수동수정은
+         건드리지 않고 이 한 명만 최신 근태로 다시 계산한다. (월 전체 강제 재집계의 안전한 대안) */
+      actions.push('<button class="btn btn-warning btn-sm" onclick="recalcOne(' +
+        r.id + ',\'' + String(r.memberUid).replace(/'/g, '') + '\',\'' + name.replace(/'/g, '') + '\')"' +
+        ' title="이 직원만 최신 근태로 다시 계산">재집계</button>');
       return '<tr>' +
         '<td>' + name + editMark + '</td>' +
         '<td>' + role + '</td>' +
@@ -169,11 +180,42 @@
     }).join('');
   }
 
-  /* ── 재집계 ── */
+  /* ── 재집계 ──
+     보존(건너뛴) 건이 있으면 '누구를·왜'를 반드시 화면에 띄운다.
+     과거엔 "재집계 완료"만 뜨고 건너뛴 명세서는 조용히 옛 숫자로 남아, 근태를 바로잡아도
+     급여에 반영이 안 되는 걸 알아챌 방법이 없었다. (2026-06 실제 발생) */
+  function reportRecalcResult(d, whoLabel) {
+    if ((d.candidateCount || 0) === 0) {
+      toast(whoLabel
+        ? (whoLabel + ' — 재집계 대상이 아닙니다 (기본연봉 미설정이거나 퇴사·비활성 직원)')
+        : '재집계 대상 0명 — 연봉(기본급)이 설정된 직원이 없습니다. 회원 상세 → 기본연봉 설정 후 다시 시도하세요.', 'err');
+      return;
+    }
+    toast('재집계 완료 — 대상 ' + d.candidateCount + '명 · 신규 ' + (d.created || 0)
+      + ' · 갱신 ' + (d.updated || 0) + ' · 보존 ' + (d.skipped || 0)
+      + (d.errors?.length ? ' · 오류 ' + d.errors.length : ''), d.errors?.length ? 'err' : 'ok');
+
+    const kept = (d.skippedDetail || []).filter(s =>
+      !/기록이 없음/.test(String(s.reason || '')));   // '근무기록 없음'은 보존이 아니라 대상 아님
+    if (kept.length) {
+      alert(
+        '아래 ' + kept.length + '건은 갱신하지 않고 그대로 두었습니다.\n' +
+        '이미 확정 단계이거나 금액을 직접 수정한 명세서이기 때문입니다.\n\n' +
+        kept.map(s => '  · ' + (s.memberName || s.memberUid) + '  —  ' + s.reason).join('\n') +
+        '\n\n최신 근태를 반영하려면 해당 직원 줄의 [재집계] 버튼을 누르세요.\n' +
+        '(그 직원 한 명만 다시 계산하며, 다른 직원의 승인·발송 명세서는 건드리지 않습니다.)'
+      );
+    }
+    if (d.errors?.length) {
+      alert('재집계 중 오류 ' + d.errors.length + '건:\n\n' +
+        d.errors.map(e => '  · 회원 ' + e.memberUid + ': ' + e.message).join('\n'));
+    }
+  }
+
   async function recalc(force) {
     const y = $('selYear').value, m = $('selMonth').value;
     if (force && !confirm(y + '년 ' + m + '월 명세서를 강제 재집계합니다.\n승인·발송·지급완료는 물론 수동으로 직접 수정한 금액·조정 라인까지 모두 자동 계산값으로 덮어씁니다. 계속할까요?')) return;
-    if (!force && !confirm(y + '년 ' + m + '월 명세서를 자동 재집계합니다.\n(DRAFT 상태만 갱신 · REVIEWED 이상·수동수정 건은 보존)')) return;
+    if (!force && !confirm(y + '년 ' + m + '월 명세서를 최신 근태로 다시 계산합니다.\n\n· 초안·보류 건은 갱신됩니다 (보류 표시는 유지)\n· 승인·발송·지급완료·금액 직접수정 건은 그대로 보존됩니다\n  → 이 건들도 반영하려면 직원별 [재집계] 버튼을 쓰세요')) return;
 
     $('btnRecalc').disabled = true; $('btnRecalcForce').disabled = true;
     try {
@@ -184,20 +226,40 @@
         toast('재집계 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err');
         return;
       }
-      const d = res.data?.data || res.data;
-      /* 2026-06-03: 대상 0명이면 원인(연봉 미설정) 안내 — 빈 결과의 진짜 이유 */
-      if ((d.candidateCount || 0) === 0) {
-        toast('재집계 대상 0명 — 연봉(기본급)이 설정된 직원이 없습니다. 회원 상세 → 기본연봉 설정 후 다시 시도하세요.', 'err');
-      } else {
-        toast('재집계 완료 — 대상 ' + d.candidateCount + '명 · 신규 ' + (d.created || 0)
-          + ' · 갱신 ' + (d.updated || 0) + ' · 보존 ' + (d.skipped || 0)
-          + (d.errors?.length ? ' · 오류 ' + d.errors.length : ''), d.errors?.length ? 'err' : 'ok');
-      }
+      reportRecalcResult(res.data?.data || res.data, null);
       await loadList();
     } finally {
       $('btnRecalc').disabled = false; $('btnRecalcForce').disabled = false;
     }
   }
+
+  /* 직원 1명만 재집계 — 확정 단계(승인·발송·지급)·수동수정 건도 덮어쓴다.
+     근태를 뒤늦게 바로잡은 뒤 그 직원의 급여만 다시 맞출 때 사용. */
+  window.recalcOne = async function (slipId, memberUid, memberName) {
+    const y = $('selYear').value, m = $('selMonth').value;
+    const row = (currentRows || []).find(r => r.id === slipId) || {};
+    const locked = ['REVIEWED', 'APPROVED', 'SENT', 'PAID'].indexOf(row.status) >= 0 || row.manuallyEdited;
+    var msg = memberName + ' 님의 ' + y + '년 ' + m + '월 명세서를 최신 근태로 다시 계산합니다.\n\n' +
+      '다른 직원의 명세서는 건드리지 않습니다.';
+    if (locked) {
+      msg += '\n\n[주의] 이 명세서는 현재 "' + statusText(row.status) + '"' +
+        (row.manuallyEdited ? ' · 금액 직접수정됨' : '') + ' 상태입니다.\n' +
+        '다시 계산하면 자동 계산값으로 덮어쓰고 초안으로 되돌아갑니다' +
+        (row.manuallyEdited ? ' (직접 수정한 금액도 사라집니다)' : '') + '.\n계속할까요?';
+    }
+    if (!confirm(msg)) return;
+
+    const res = await api('/api/admin-payroll?action=recalculate&year=' + y + '&month=' + m +
+      '&memberUid=' + encodeURIComponent(memberUid), {
+      method: 'POST', body: { force: true }
+    });
+    if (!res.ok) {
+      toast('재집계 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err');
+      return;
+    }
+    reportRecalcResult(res.data?.data || res.data, memberName);
+    await loadList();
+  };
 
   /* ── AI 분석 (이상치·점검·요약) ── */
   async function analyzePayroll() {

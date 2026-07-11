@@ -19,7 +19,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { getDefaultPolicy, calcWorkingMins, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
+import { getDefaultPolicy, calcWorkingMins, determineStatus, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
 import { rebuildSingleSession } from "../../lib/att-session";
 import { logAdminAction } from "../../lib/audit";
 
@@ -117,21 +117,29 @@ export default async function handler(req: Request, _ctx: Context) {
      (기존엔 시각만 바꾸고 파생 시간은 그대로라 표에 반영 안 됐음) — 양쪽 시각이 다 있을 때만. */
   let recalcWorkingMins: number | undefined;
   let recalcOvertimeMins: number | undefined;
+  /* 2026-07-11 fix: 근태 상태(정상/지각/조퇴/결근)도 함께 다시 판정.
+     급여는 이 상태값으로 출근일수·지각횟수·만근을 세므로(payroll-calc), 상태를 안 고치면
+     어드민이 출근 시각을 바로잡아도 급여에는 계속 옛 판정(지각·결근)이 남아 금액이 안 맞았다.
+     직원 정정요청 승인(admin-att-correction-review)·직원 본인 수정(att-session-edit)은 이미
+     재판정하고 있었고, 어드민 직접수정 경로만 빠져 있어 경로별로 결과가 달랐다. */
+  let recalcStatus: string | undefined;
   /* sessions 동기화: 어드민이 시각을 수정하면 sessions 배열도 요약 시각에 맞춰 재구성.
      (안 하면 같은 날 직원의 재출근·정상 퇴근 시 stale sessions 재계산으로 어드민 수정이 되돌아감) */
   let newSessions: any[] | undefined;
   if (newCheckIn !== undefined || newCheckOut !== undefined) {
     const effIn  = newCheckIn  !== undefined ? newCheckIn  : (old.check_in_time  ? new Date(old.check_in_time).toISOString()  : null);
     const effOut = newCheckOut !== undefined ? newCheckOut : (old.check_out_time ? new Date(old.check_out_time).toISOString() : null);
-    if (effIn && effOut) {
-      try {
-        const policy = await getDefaultPolicy();
-        if (policy) {
-          /* 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
+    const effWorkMode = newWorkMode !== undefined ? newWorkMode : old.work_mode;
+    try {
+      const policy = await getDefaultPolicy();
+      if (policy) {
+        const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
+
+        if (effIn && effOut) {
+          /* 2026-07-09 유연근무 출근 하한 — 표준출근-유연범위(예 08:00) 이전 출근은 근무·야근 미산입 */
           let calcIn = new Date(effIn);
-          const wm = newWorkMode !== undefined ? newWorkMode : old.work_mode;
           if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
-            const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());
+            const floor = flexStartFloor(calcIn, String(policy.checkInTime), flexRangeMins!);
             if (calcIn.getTime() < floor.getTime()) calcIn = floor;
           }
           const r = calcWorkingMins(calcIn, new Date(effOut), {
@@ -142,9 +150,30 @@ export default async function handler(req: Request, _ctx: Context) {
           recalcWorkingMins = r.workingMins;
           recalcOvertimeMins = r.overtimeMins;
         }
-      } catch (e) {
-        console.warn("[admin-att-record-edit] 근무시간 재계산 실패(무시):", e);
+
+        /* 상태 재판정 — 반차·휴가·공휴일로 확정된 날은 시각 수정으로 덮지 않음
+           (att-checkout·att-session-edit과 동일 규칙) */
+        const PRESERVE_STATUS = ["PARTIAL_LEAVE", "HOLIDAY", "LEAVE"];
+        if (!PRESERVE_STATUS.includes(String(old.status))) {
+          recalcStatus = determineStatus(
+            effIn ? new Date(effIn) : null,
+            effOut ? new Date(effOut) : null,
+            {
+              checkInTime:         String(policy.checkInTime),
+              checkOutTime:        String(policy.checkOutTime),
+              lateGraceMins:       policy.lateGraceMins,
+              earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+              coreStartTime:       policy.coreStartTime ? String(policy.coreStartTime) : null,
+              coreEndTime:         policy.coreEndTime   ? String(policy.coreEndTime)   : null,
+              flexEnabled:         policy.flexEnabled,
+              flexRangeMins,
+            },
+            false, false, effWorkMode,
+          );
+        }
       }
+    } catch (e) {
+      console.warn("[admin-att-record-edit] 근무시간·상태 재계산 실패(무시):", e);
     }
     newSessions = rebuildSingleSession(effIn, effOut, {
       inLat: old.check_in_lat, inLng: old.check_in_lng,
@@ -174,6 +203,9 @@ export default async function handler(req: Request, _ctx: Context) {
     }
     if (recalcOvertimeMins !== undefined) {
       setExpr = sql`${setExpr}, overtime_mins = ${recalcOvertimeMins}`;
+    }
+    if (recalcStatus !== undefined) {
+      setExpr = sql`${setExpr}, status = ${recalcStatus}`;
     }
     if (newSessions !== undefined) {
       setExpr = sql`${setExpr}, sessions = ${JSON.stringify(newSessions)}::jsonb`;
@@ -240,8 +272,11 @@ async function createRecord(req: Request, auth: any, body: any) {
   const effOut = co ?? null;
 
   const workMode = body.workMode ? String(body.workMode) : null;
-  const status = body.status ? String(body.status) : "NORMAL";
   const note = body.note != null && body.note !== "" ? String(body.note) : null;
+  /* 2026-07-11 fix: 상태를 명시하지 않으면 출퇴근 시각으로 판정한다.
+     과거엔 무조건 '정상'으로 저장돼, 지각 시각으로 기록을 만들어도 급여는 정상 출근으로 계산됐다.
+     (출근 시각이 없으면 determineStatus가 결근으로 판정 — 결근 기록 생성도 자연히 맞아떨어진다.) */
+  let status = body.status ? String(body.status) : "";
 
   /* 같은 직원·날짜 중복 방지 (member_uid+date UNIQUE) */
   try {
@@ -253,18 +288,19 @@ async function createRecord(req: Request, auth: any, body: any) {
     }
   } catch (err) { return jsonStepErr("dup_check", err); }
 
-  /* 양쪽 시각이 다 있으면 근무시간·세션 계산 */
+  /* 양쪽 시각이 다 있으면 근무시간·세션 계산 + 상태 판정 */
   let workingMins: number | null = null;
   let overtimeMins = 0;
   let sessions: any[] = [];
-  if (effIn && effOut) {
-    try {
-      const policy = await getDefaultPolicy();
-      if (policy) {
-        /* 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
+  try {
+    const policy = await getDefaultPolicy();
+    if (policy) {
+      const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
+      if (effIn && effOut) {
+        /* 2026-07-09 유연근무 출근 하한 — 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
         let calcIn = new Date(effIn);
         if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
-          const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());
+          const floor = flexStartFloor(calcIn, String(policy.checkInTime), flexRangeMins!);
           if (calcIn.getTime() < floor.getTime()) calcIn = floor;
         }
         const r = calcWorkingMins(calcIn, new Date(effOut), {
@@ -275,7 +311,27 @@ async function createRecord(req: Request, auth: any, body: any) {
         workingMins = r.workingMins;
         overtimeMins = r.overtimeMins;
       }
-    } catch (e) { console.warn("[admin-att-record-edit:create] 근무시간 계산 실패(무시):", e); }
+      if (!status) {
+        status = determineStatus(
+          effIn ? new Date(effIn) : null,
+          effOut ? new Date(effOut) : null,
+          {
+            checkInTime:         String(policy.checkInTime),
+            checkOutTime:        String(policy.checkOutTime),
+            lateGraceMins:       policy.lateGraceMins,
+            earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+            coreStartTime:       policy.coreStartTime ? String(policy.coreStartTime) : null,
+            coreEndTime:         policy.coreEndTime   ? String(policy.coreEndTime)   : null,
+            flexEnabled:         policy.flexEnabled,
+            flexRangeMins,
+          },
+          false, false, workMode ?? undefined,
+        );
+      }
+    }
+  } catch (e) { console.warn("[admin-att-record-edit:create] 근무시간·상태 계산 실패(무시):", e); }
+  if (!status) status = effIn ? "NORMAL" : "ABSENT";   // 정책 로드 실패 시 폴백
+  if (effIn && effOut) {
     sessions = rebuildSingleSession(effIn, effOut, {
       inLat: null, inLng: null, outLat: null, outLng: null, workplaceId: null,
     });

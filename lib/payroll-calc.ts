@@ -63,6 +63,8 @@ export interface PayrollCalcResult {
   created: number;
   updated: number;
   skipped: number;          // 이미 REVIEWED 이상이라 보존된 케이스
+  /** 2026-07-11 fix: 건너뛴 대상의 '누구를·왜'. 과거엔 숫자만 반환해 조용한 실패로 보였다. */
+  skippedDetail: Array<{ memberUid: string; memberName: string; reason: string }>;
   errors: Array<{ memberUid: string; message: string }>;
   slipIds: number[];
 }
@@ -70,6 +72,9 @@ export interface PayrollCalcResult {
 export interface PayrollCalcOptions {
   /** REVIEWED 이상 상태도 강제로 덮어쓰기 (재집계 강제·기본 false) */
   force?: boolean;
+  /** 특정 직원 1명만 재집계 (미지정 시 전원). 승인·발송 완료된 달에서 한 명의 근태 오류만
+   *  바로잡을 때 사용 — 월 전체 강제 재집계가 다른 직원의 승인·수동수정까지 초기화하는 것을 막는다. */
+  memberUid?: string | number;
 }
 
 /** 분기 계산: 1·2·3 → 1, 4·5·6 → 2, ... */
@@ -114,11 +119,15 @@ export async function calculatePayrollForMonth(
     year, month,
     candidateCount: 0,
     created: 0, updated: 0, skipped: 0,
+    skippedDetail: [],
     errors: [], slipIds: [],
   };
 
   // 1. 후보 회원 — admin·또는 operatorActive 운영자·baseSalary>0·active
   /* 2026-05-29 P2-5 fix — hire_date 동봉. 월 중 입사 시 일할 적용. */
+  const onlyUid = options.memberUid != null && String(options.memberUid) !== ""
+    ? Number(options.memberUid) : null;
+  const memberFilter = onlyUid && Number.isFinite(onlyUid) ? sql` AND id = ${onlyUid}` : sql``;
   let memberRows: any[];
   try {
     const r = await db.execute(sql`
@@ -127,6 +136,7 @@ export async function calculatePayrollForMonth(
       WHERE status = 'active'
         AND (type = 'admin' OR operator_active = TRUE)
         AND COALESCE(base_salary, 0) > 0
+        ${memberFilter}
       ORDER BY id
     `);
     memberRows = (r as any).rows || (r as any[]) || [];
@@ -188,6 +198,10 @@ export async function calculatePayrollForMonth(
       const hasActivity = workingDays > 0 || overtimeMins > 0 || paidLeaveDays > 0 || unpaidLeaveDays > 0;
       if (!hasActivity) {
         result.skipped++;
+        result.skippedDetail.push({
+          memberUid, memberName: String(m.name ?? memberUid),
+          reason: "그 달 출퇴근·휴가 기록이 없음 (명세서 생성 안 함)",
+        });
         continue;
       }
 
@@ -282,16 +296,34 @@ export async function calculatePayrollForMonth(
       const existingRow = ((existing as any).rows || (existing as any[]))[0];
 
       if (existingRow) {
-        // REVIEWED 이상·PAID·보류(HOLD)·수동 수정된 슬립은 재집계가 덮지 않음 (force 제외)
-        // P1-31 fix: HOLD 추가 — 분쟁 검토 중 보류한 명세서가 일반 재집계에 조용히 덮여 초안으로 풀리던 문제 차단
-        //            (확인창 문구 '검토 이상 보존'과 실제 동작 일치). 보류 해제는 승인 또는 보류해제 버튼으로.
-        const lockable = ["REVIEWED", "APPROVED", "SENT", "PAID", "HOLD"].includes(existingRow.status)
+        /* 확정 단계(검토완료·승인·발송·지급)와 어드민이 금액을 직접 손댄 명세서만 재집계가 보존한다.
+           2026-07-11 fix: 여기 있던 '보류(HOLD)'를 뺐다.
+             보류는 "지급 확정 전, 뭔가 이상해서 멈춰둔 상태"다. 실제 운영 흐름은
+             '급여 이상함 → 보류 → 근태 정정 받아 수정 → 재집계'인데, 보류를 잠가버리니
+             재집계가 그 명세서만 조용히 건너뛰고 화면엔 "재집계 완료"만 떠서
+             근태를 고쳐도 급여가 옛날 숫자에 멈춰 있었다(2026-06 실제 발생·출근 7일 vs 실제 13일).
+             유일한 대안인 '강제 재집계'는 그 달 전원의 승인·발송·수동수정까지 초기화해 쓸 수 없었다.
+           P1-31이 막으려던 것은 '보류가 조용히 초안(DRAFT)으로 풀리는 것'이었으므로,
+           아래에서 금액·근태만 최신화하고 상태는 계속 보류로 유지해 그 의도는 그대로 지킨다. */
+        const lockable = ["REVIEWED", "APPROVED", "SENT", "PAID"].includes(existingRow.status)
           || existingRow.manually_edited === true;
         if (lockable && !force) {
           result.skipped++;
           result.slipIds.push(Number(existingRow.id));
+          const STATUS_LABEL: Record<string, string> = {
+            REVIEWED: "검토 완료", APPROVED: "승인됨", SENT: "발송됨", PAID: "지급 완료",
+          };
+          result.skippedDetail.push({
+            memberUid, memberName: String(m.name ?? memberUid),
+            reason: existingRow.manually_edited === true
+              ? "금액을 직접 수정한 명세서"
+              : (STATUS_LABEL[String(existingRow.status)] ?? String(existingRow.status)),
+          });
           continue;
         }
+        /* 보류 명세서는 숫자만 최신화하고 '보류' 표시를 유지 (강제 재집계는 초안으로 되돌림). */
+        const keepHold = !force && String(existingRow.status) === "HOLD";
+        const nextStatus = keepHold ? "HOLD" : "DRAFT";
         /* P1-16 fix: force 재집계가 기본 구성요소만 다시 계산하고 어드민이 추가한 조정라인
            (adjustments)·기타공제(other_deduction)는 컬럼에 남겨두면서 gross/net 합계엔 반영 안 해
            "라인은 보이는데 세전·실수령엔 빠진" 모순이 생긴다. 편집 공식(admin-payroll.ts)과 동일하게
@@ -337,7 +369,7 @@ export async function calculatePayrollForMonth(
             total_deduction = ${r2(totalDeductionFinal)},
             net_pay = ${r2(netPayFinal)},
             calculation_snapshot = ${JSON.stringify(snapshot)}::jsonb,
-            status = 'DRAFT',
+            status = ${nextStatus},
             -- P2-51 fix: 재집계로 '자동 계산 초안'으로 되돌리므로 수동수정 표식·승인/발송/지급 일자도 함께 초기화.
             --            (과거: 표식이 남아 이후 일반 재집계가 그 직원만 영구 skip, 초안인데 지급확정일이 표시되던 모순)
             manually_edited = FALSE,
