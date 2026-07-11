@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>업데이트 소식 관리 - SIREN</title>
+<meta name="robots" content="noindex,nofollow">
+<script src="/js/icons.js?v=20260712-noemoji"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background: #f8f9fa; color: #111827; padding: 20px; font-size: 14px; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .desc { font-size: 12.5px; color: #6b7280; margin-bottom: 16px; line-height: 1.6; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  button { font-family: inherit; font-size: 13px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; padding: 8px 14px; cursor: pointer; }
+  button:hover { background: #f3f4f6; }
+  button.primary { background: #7a1f2b; border-color: #7a1f2b; color: #fff; font-weight: 600; }
+  button.primary:hover { background: #641823; }
+  button.small { padding: 4px 10px; font-size: 12px; }
+  button.danger { color: #dc2626; border-color: #fca5a5; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  th { background: #f8fafc; color: #64748b; font-size: 12px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+  .badge.draft { background: #fef3c7; color: #92400e; }
+  .badge.published { background: #dcfce7; color: #166534; }
+  /* 편집 폼 */
+  #editWrap { display: none; background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  #editWrap label { display: block; font-size: 12px; color: #64748b; margin: 12px 0 4px; }
+  #editWrap input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 7px; font-size: 13px; font-family: inherit; }
+  .item-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .item-row input.txt { flex: 3; }
+  .item-row input.lnk { flex: 2; }
+  .form-actions { display: flex; gap: 8px; margin-top: 14px; }
+  #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: #111827; color: #fff; padding: 10px 18px; border-radius: 9px; font-size: 13px; display: none; z-index: 100; }
+  .empty { padding: 30px; text-align: center; color: #9ca3af; }
+</style>
+</head>
+<body>
+  <h1>업데이트 소식 관리</h1>
+  <p class="desc">
+    배포된 새 기능·개선 사항을 운영자들에게 알리는 소식판입니다. 배포 시 초안이 자동 준비되며,
+    <strong>[초안 가져오기] → 검토·수정 → [발행]</strong> 하면 워크스페이스·어드민 화면에 "새 소식" 배지로 표시됩니다.
+    발행 전(초안)에는 직원에게 보이지 않습니다.
+  </p>
+
+  <div class="toolbar">
+    <button class="primary" id="btnImport">초안 가져오기</button>
+    <button id="btnNew">직접 작성</button>
+    <button id="btnReload">새로고침</button>
+  </div>
+
+  <div id="editWrap">
+    <input type="hidden" id="editId" value="" />
+    <label>제목</label>
+    <input type="text" id="editTitle" maxlength="200" placeholder="예: 7월 둘째 주 업데이트" />
+    <label>변경 항목 (내용 + 이동 링크는 선택)</label>
+    <div id="itemRows"></div>
+    <button class="small" id="btnAddItem" type="button">+ 항목 추가</button>
+    <div class="form-actions">
+      <button class="primary" id="btnSave">저장</button>
+      <button id="btnCancel">닫기</button>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th style="width:44%">제목</th><th>상태</th><th>발행일</th><th style="width:30%">동작</th></tr>
+    </thead>
+    <tbody id="listBody">
+      <tr><td colspan="4" class="empty">불러오는 중...</td></tr>
+    </tbody>
+  </table>
+
+  <div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+  }
+  function toast(msg) {
+    var t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+    setTimeout(function () { t.style.display = 'none'; }, 2600);
+  }
+  async function api(path, opts) {
+    opts = opts || {};
+    opts.credentials = 'include';
+    opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    if (opts.body && typeof opts.body !== 'string') opts.body = JSON.stringify(opts.body);
+    var res = await fetch(path, opts);
+    var json = null;
+    try { json = await res.json(); } catch (e) {}
+    if (!res.ok) throw new Error((json && json.error) || ('HTTP ' + res.status));
+    return json;
+  }
+  function fmt(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    return d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate();
+  }
+
+  var NOTES = [];
+
+  async function load() {
+    try {
+      var res = await api('/api/release-notes?list=1&limit=50');
+      NOTES = (res.data && res.data.items) || [];
+      render();
+    } catch (err) {
+      $('#listBody').innerHTML = '<tr><td colspan="4" class="empty">로드 실패: ' + esc(err.message) + '</td></tr>';
+    }
+  }
+
+  function render() {
+    var tb = $('#listBody');
+    if (!NOTES.length) {
+      tb.innerHTML = '<tr><td colspan="4" class="empty">등록된 소식이 없습니다. [초안 가져오기]를 눌러보세요.</td></tr>';
+      return;
+    }
+    tb.innerHTML = NOTES.map(function (n) {
+      var pub = n.status === 'published';
+      return '<tr>' +
+        '<td>' + esc(n.title) + ' <small style="color:#9ca3af">(' + (Array.isArray(n.items) ? n.items.length : 0) + '항목)</small></td>' +
+        '<td><span class="badge ' + (pub ? 'published' : 'draft') + '">' + (pub ? '발행됨' : '초안') + '</span></td>' +
+        '<td>' + fmt(n.publishedAt) + '</td>' +
+        '<td>' +
+          '<button class="small" data-edit="' + n.id + '">수정</button> ' +
+          (pub
+            ? '<button class="small" data-unpub="' + n.id + '">발행취소</button> '
+            : '<button class="small primary" data-pub="' + n.id + '">발행</button> ') +
+          '<button class="small danger" data-del="' + n.id + '">삭제</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+
+  /* ── 편집 폼 ── */
+  function itemRow(text, link) {
+    var div = document.createElement('div');
+    div.className = 'item-row';
+    var xIcon = (window.Icons && Icons.svg) ? Icons.svg('x') : '삭제';
+    div.innerHTML = '<input type="text" class="txt" maxlength="300" placeholder="변경 내용" value="' + esc(text || '') + '">' +
+      '<input type="text" class="lnk" maxlength="300" placeholder="/workspace-kanban.html (선택)" value="' + esc(link || '') + '">' +
+      '<button class="small danger" type="button">' + xIcon + '</button>';
+    div.querySelector('button').addEventListener('click', function () { div.remove(); });
+    return div;
+  }
+  function openEdit(note) {
+    $('#editId').value = note ? note.id : '';
+    $('#editTitle').value = note ? note.title : '';
+    var rows = $('#itemRows');
+    rows.innerHTML = '';
+    var items = (note && Array.isArray(note.items)) ? note.items : [{ text: '', link: '' }];
+    items.forEach(function (it) { rows.appendChild(itemRow(it.text, it.link)); });
+    $('#editWrap').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function collect() {
+    var items = [];
+    document.querySelectorAll('#itemRows .item-row').forEach(function (r) {
+      var text = r.querySelector('.txt').value.trim();
+      var link = r.querySelector('.lnk').value.trim();
+      if (text) items.push(link ? { text: text, link: link } : { text: text });
+    });
+    return { title: $('#editTitle').value.trim(), items: items };
+  }
+
+  /* ── 이벤트 ── */
+  $('#btnImport').addEventListener('click', async function () {
+    try {
+      var res = await api('/api/release-notes', { method: 'POST', body: { importDrafts: true } });
+      toast(res.message || '가져오기 완료');
+      load();
+    } catch (err) { toast('실패: ' + err.message); }
+  });
+  $('#btnNew').addEventListener('click', function () { openEdit(null); });
+  $('#btnReload').addEventListener('click', load);
+  $('#btnAddItem').addEventListener('click', function () { $('#itemRows').appendChild(itemRow('', '')); });
+  $('#btnCancel').addEventListener('click', function () { $('#editWrap').style.display = 'none'; });
+
+  $('#btnSave').addEventListener('click', async function () {
+    var body = collect();
+    if (!body.title) { toast('제목을 입력하세요'); return; }
+    var id = $('#editId').value;
+    try {
+      if (id) await api('/api/release-notes?id=' + id, { method: 'PATCH', body: body });
+      else await api('/api/release-notes', { method: 'POST', body: body });
+      toast('저장되었습니다');
+      $('#editWrap').style.display = 'none';
+      load();
+    } catch (err) { toast('저장 실패: ' + err.message); }
+  });
+
+  document.addEventListener('click', async function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.edit) {
+      var note = NOTES.find(function (n) { return String(n.id) === t.dataset.edit; });
+      if (note) openEdit(note);
+    } else if (t.dataset && t.dataset.pub) {
+      try { var r = await api('/api/release-notes?id=' + t.dataset.pub + '&action=publish', { method: 'PATCH' }); toast(r.message || '발행됨'); load(); }
+      catch (err) { toast('실패: ' + err.message); }
+    } else if (t.dataset && t.dataset.unpub) {
+      try { await api('/api/release-notes?id=' + t.dataset.unpub + '&action=unpublish', { method: 'PATCH' }); toast('발행 취소됨'); load(); }
+      catch (err) { toast('실패: ' + err.message); }
+    } else if (t.dataset && t.dataset.del) {
+      if (!confirm('이 소식을 삭제할까요?')) return;
+      try { await api('/api/release-notes?id=' + t.dataset.del, { method: 'DELETE' }); toast('삭제됨'); load(); }
+      catch (err) { toast('실패: ' + err.message); }
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

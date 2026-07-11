@@ -477,6 +477,7 @@ if (window.self !== window.top) {
       </li>
       <li><a href="#dashboard" class="on" data-tab="dashboard"><i><span class="siren-icon-wrap" data-icon="trending-up"></span></i><span>대시보드</span></a></li>
       <li><a href="#org-news" data-tab="org-news"><i><span class="siren-icon-wrap" data-icon="newspaper"></span></i><span>여론·뉴스 분석</span></a></li>
+      <li><a href="#release-notes" data-tab="release-notes"><i><span class="siren-icon-wrap" data-icon="megaphone"></span></i><span>업데이트 소식</span></a></li>
 
       <!-- ── 회원·유가족 관리 ── -->
       <li class="cms-menu-section">
@@ -2315,6 +2316,10 @@ if (window.self !== window.top) {
         <iframe class="nf-iframe" data-nf-src="/admin-org-news.html" title="여론·뉴스 분석"></iframe>
       </section>
 
+      <section class="cms-page nf-iframe-page" id="page-release-notes">
+        <iframe class="nf-iframe" data-nf-src="/admin-release-notes.html" title="업데이트 소식"></iframe>
+      </section>
+
       <!-- 2026-05-26 순직 인정 지원 시스템 (Deep-Relief AI v0) -->
       <section class="cms-page nf-iframe-page" id="page-martyrdom">
         <iframe class="nf-iframe" data-nf-src="/admin-martyrdom.html" title="순직 인정 지원"></iframe>
@@ -2588,6 +2593,7 @@ if (window.self !== window.top) {
   <script src="/js/admin-finance-report.js?v=20260517banners"></script>
   <!-- Phase 22-D-R2: 통장 거래내역 자동화 -->
   <script src="/js/admin-bank-transactions.js?v=20260517rename"></script>
+  <script src="/js/release-notes-widget.js?v=1" defer></script>
 
   <!-- ★ Round 3 #5: 빌링키 재활성화 모달 -->
   <div id="tbReactivateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9900;align-items:center;justify-content:center">

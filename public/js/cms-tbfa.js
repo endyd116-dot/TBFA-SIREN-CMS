@@ -260,6 +260,7 @@
           'donor-prospect': '예비 후원자 관리',
           'donor-potential': '잠재 후원자 관리',
           'nurture': '후원자 너처링',
+          'release-notes': '업데이트 소식',
           'notify-send': '알림 발송',
           'send-jobs': '발송 작업',
           'send-template': '발송 템플릿',
@@ -324,6 +325,7 @@
         else if (tab === 'donor-prospect') renderDonorProspect();
         else if (tab === 'donor-potential') renderPotentialDonor();
         else if (tab === 'nurture') renderNurture();
+        else if (tab === 'release-notes') renderReleaseNotes();
         else if (tab === 'notify-send') renderNotifySend();
         else if (tab === 'send-jobs') renderSendJobs();
         else if (tab === 'send-template') renderSendTemplate();
@@ -2534,7 +2536,7 @@
     'role-policy': 'cms_role_policy',
     'milestone-review': 'milestone:manage',
     'att-ops': 'att_manage', 'att-config': 'att_config',
-    'org-news': 'org_news',
+    'org-news': 'org_news', 'release-notes': 'org_news',
     'receipt-settings': 'receipt_config',
     'forms-builder': 'cms_forms', gamification: 'cms_gamification', popups: 'cms_popup',
     memorial: 'cms_memorial', 'family-stories': 'cms_family_stories',
@@ -4017,6 +4019,7 @@ function _nfLoadIframe(pageId) {
   iframe.src = src;
 }
 function renderNurture()         { _nfLoadIframe('page-nurture'); }
+function renderReleaseNotes()    { _nfLoadIframe('page-release-notes'); }
 function renderSendJobs()        { _nfLoadIframe('page-send-jobs'); }
 function renderSendTemplate()    { _nfLoadIframe('page-send-template'); }
 function renderRecipientGroups() { _nfLoadIframe('page-recipient-groups'); }
