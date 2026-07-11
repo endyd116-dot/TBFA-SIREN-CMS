@@ -4787,3 +4787,23 @@ export const doorCommand = pgTable("door_command", {
 export type DoorCommand    = typeof doorCommand.$inferSelect;
 export type NewDoorCommand = typeof doorCommand.$inferInsert;
 /* === 출입문 자동 개폐 끝 === */
+
+/* === 업데이트 소식 (release_notes) — 2026-07-12 A안: 운영자용 변경내역·발행 === */
+export const releaseNotes = pgTable("release_notes", {
+  id: serial("id").primaryKey(),
+  draftKey: varchar("draft_key", { length: 60 }),          // 자동 초안 중복 방지 키 (수동 생성은 null)
+  title: varchar("title", { length: 200 }).notNull(),
+  items: jsonb("items").$type<{ text: string; link?: string }[]>().default([]).notNull(),
+  audience: varchar("audience", { length: 20 }).default("operator").notNull(), // operator | public(향후 확장)
+  status: varchar("status", { length: 20 }).default("draft").notNull(),        // draft | published
+  publishedAt: timestamp("published_at"),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  rnStatusIdx: index("release_notes_status_idx").on(t.status),
+  rnDraftKeyUq: uniqueIndex("release_notes_draft_key_uq").on(t.draftKey),
+}));
+export type ReleaseNote    = typeof releaseNotes.$inferSelect;
+export type NewReleaseNote = typeof releaseNotes.$inferInsert;
+/* === 업데이트 소식 끝 === */
