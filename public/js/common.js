@@ -298,6 +298,26 @@
     return roots;
   }
 
+  /* [메인] nav 아이콘 SVG화 — DB icon 필드(이모지 or 아이콘이름)를 SVG로. 미등록·미로드 시 '' (원문 이모지 노출 방지) */
+  function navIcon(value) {
+    if (!value || !window.Icons || !Icons.svg) return '';
+    var name = (Icons.forEmoji && Icons.forEmoji(value)) || value;
+    if (!Icons._paths || !Icons._paths[name]) return '';
+    return Icons.svg(name) + ' ';
+  }
+  /* [메인] DB label 선두에 박힌 이모지를 SVG로 분리 (예: "📗 자료실" → 아이콘 + "자료실") */
+  function navLabel(label) {
+    var s = String(label || '');
+    var sp = s.indexOf(' ');
+    if (sp > 0 && window.Icons && Icons.forEmoji) {
+      var name = Icons.forEmoji(s.slice(0, sp));
+      if (name && Icons._paths && Icons._paths[name]) {
+        return Icons.svg(name) + ' ' + escHtml(s.slice(sp + 1));
+      }
+    }
+    return escHtml(s);
+  }
+
   /* 1뎁스 메뉴 1개 HTML */
   function renderTopLevelMenu(parent) {
     const label = parent.label || '';
@@ -321,10 +341,8 @@
       linkAttrs = `href="${escHtml(href)}"${tgt}`;
     }
 
-    /* 아이콘 (사이렌 등) */
-    const iconHtml = icon
-      ? `<span class="siren-icon" aria-hidden="true">${escHtml(icon)}</span> `
-      : '';
+    /* 아이콘 (사이렌 등) — [메인] 이모지→SVG */
+    const iconHtml = navIcon(icon);
 
     /* 자식 드롭다운 */
     let dropdownHtml = '';
@@ -336,7 +354,7 @@
       dropdownHtml = `<ul class="dropdown">${itemsHtml}</ul>`;
     }
 
-    return `<li${dataPageAttr}${classAttr}><a ${linkAttrs}>${iconHtml}${escHtml(label)}</a>${dropdownHtml}</li>`;
+    return `<li${dataPageAttr}${classAttr}><a ${linkAttrs}>${iconHtml}${navLabel(label)}</a>${dropdownHtml}</li>`;
   }
 
   /* 2뎁스 메뉴 1개 HTML */
@@ -361,7 +379,7 @@
       linkAttrs = `href="${escHtml(href)}"${tgt}`;
     }
 
-    return `<li><a ${linkAttrs}>${escHtml(label)}</a></li>`;
+    return `<li><a ${linkAttrs}>${navLabel(label)}</a></li>`;
   }
 
   /* 메인 렌더 함수 — partials 로드 직후 호출됨 */
