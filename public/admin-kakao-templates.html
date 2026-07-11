@@ -105,6 +105,10 @@ const EVENTS = [
   { v: "operator.donation", label: "[운영자] 새 후원 접수 알림" },
   { v: "operator.siren_report", label: "[운영자] SIREN 신고 접수 알림" },
   { v: "operator.support_signup", label: "[운영자] 유족지원·가입 접수 알림" },
+  /* 급여명세 (2026-07-12) — 승인 전에는 문자로 발송되고, 승인되면 자동으로 알림톡으로 바뀝니다.
+     변수: #{이름} #{기간} #{실수령액} #{서명일시} #{기관명} */
+  { v: "payroll.issued", label: "[직원] 급여명세서 도착 (수령확인 요청)" },
+  { v: "payroll.acknowledged", label: "[직원] 급여명세서 수령확인 완료" },
 ];
 const STATUS_LABEL = { draft: "작성", registered: "등록", inspecting: "검수중", approved: "승인", rejected: "반려" };
 

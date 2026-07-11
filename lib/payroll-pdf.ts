@@ -90,12 +90,28 @@ function ensureSpace(ctx: DrawCtx, needed: number) {
     ctx.y = A4_H - ctx.margin;
   }
 }
-/** 폭에 맞게 잘라내기 (계산방법 문구가 길 때) */
-function clip(ctx: DrawCtx, str: string, size: number, maxW: number): string {
-  let s = String(str ?? "");
-  if (ctx.font.widthOfTextAtSize(s, size) <= maxW) return s;
-  while (s.length > 1 && ctx.font.widthOfTextAtSize(s + "…", size) > maxW) s = s.slice(0, -1);
-  return s + "…";
+/** 폭에 맞게 줄바꿈. 계산방법은 법정 기재사항이라 잘라내면 안 되므로 여러 줄로 흘린다. */
+function wrapText(ctx: DrawCtx, str: string, size: number, maxW: number): string[] {
+  const words = String(str ?? "").split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [""];
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (ctx.font.widthOfTextAtSize(next, size) <= maxW) { cur = next; continue; }
+    if (cur) lines.push(cur);
+    /* 공백 없이 긴 덩어리는 글자 단위로 쪼갠다 */
+    let chunk = w;
+    while (ctx.font.widthOfTextAtSize(chunk, size) > maxW && chunk.length > 1) {
+      let cut = chunk.length;
+      while (cut > 1 && ctx.font.widthOfTextAtSize(chunk.slice(0, cut), size) > maxW) cut--;
+      lines.push(chunk.slice(0, cut));
+      chunk = chunk.slice(cut);
+    }
+    cur = chunk;
+  }
+  if (cur) lines.push(cur);
+  return lines;
 }
 
 function kst(d: any): string {
@@ -126,7 +142,6 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
   const rightX = A4_W - MARGIN;
   const labelX = MARGIN + 14;
   const methodX = MARGIN + 150;          // 계산방법 열 시작
-  const methodMaxW = 300;                // 금액 열과 겹치지 않는 폭
   const GRAY = rgb(0.45, 0.45, 0.45);
 
   /* 교부일 — 문서마다 고정. 발송 전이면(관리자 미리보기) 오늘 날짜에 '(미교부)' 표시 */
@@ -167,53 +182,85 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
   text(ctx, "근태 집계", MARGIN, 13, rgb(0.1, 0.1, 0.4));
   ctx.y -= 20;
   const colBx = 320;
+  const WARN = rgb(0.7, 0.35, 0.03);
   for (let i = 0; i < bd.attendance.length; i += 2) {
     ensureSpace(ctx, 20);
     const a = bd.attendance[i], b = bd.attendance[i + 1];
-    text(ctx, a.label, labelX, 9.5, GRAY);
-    textRight(ctx, a.value, 250, 10);
+    text(ctx, a.label, labelX, 9.5, a.warn ? WARN : GRAY);
+    textRight(ctx, a.value, 250, 10, a.warn ? WARN : rgb(0, 0, 0));
     if (b) {
-      text(ctx, b.label, colBx, 9.5, GRAY);
-      textRight(ctx, b.value, rightX, 10);
+      text(ctx, b.label, colBx, 9.5, b.warn ? WARN : GRAY);
+      textRight(ctx, b.value, rightX, 10, b.warn ? WARN : rgb(0, 0, 0));
     }
     ctx.y -= 17;
+  }
+  /* 급여에서 빠진 날이 있으면 그 이유를 문서에 남긴다 — 직원이 왜 줄었는지 알 수 있어야 한다 */
+  const warned = bd.attendance.find(a => a.warn);
+  if (warned) {
+    ensureSpace(ctx, 18);
+    text(ctx, `※ ${warned.label} ${warned.value} — ${warned.hint ?? "근무 불인정"}`, labelX, 8, WARN);
+    ctx.y -= 14;
   }
   ctx.y -= 6;
   hr(ctx);
   ctx.y -= 22;
+
+  /* 항목 한 줄 그리기 — 계산방법이 금액 칸을 침범하지 않도록 금액 폭을 실제로 재서 남는 만큼만 쓰고,
+     넘치면 잘라내지 않고 아랫줄로 흘린다 (계산방법은 법정 기재사항이라 생략 불가). */
+  const drawMoneyRow = (row: { label: string; method: string; amount: number; kind: string; taxFree?: boolean }, forceMinus = false) => {
+    const minus = forceMinus || row.kind === "DEDUCT";
+    const amt = won(row.amount);
+    const amtW = ctx.font.widthOfTextAtSize(amt, 10.5);
+    const availW = Math.max(90, rightX - amtW - 14 - methodX);
+    const lines = wrapText(ctx, row.method, 8, availW);
+    const rowH = Math.max(19, 6 + lines.length * 11);
+    ensureSpace(ctx, rowH + 4);
+
+    const color = minus ? rgb(0.55, 0.12, 0.12) : rgb(0.1, 0.35, 0.1);
+    const label = `${minus ? "−" : "+"}  ${row.label}`;
+    text(ctx, label, labelX, 10.5, color);
+    if (row.taxFree) {
+      const w = ctx.font.widthOfTextAtSize(label, 10.5);
+      text(ctx, "[비과세]", labelX + w + 5, 7.5, rgb(0.1, 0.42, 0.63));
+    }
+    textRight(ctx, amt, rightX, 10.5);
+    let ly = ctx.y;
+    for (const l of lines) {
+      ctx.page.drawText(l, { x: methodX, y: ly, size: 8, font: ctx.font, color: GRAY });
+      ly -= 11;
+    }
+    ctx.y -= rowH;
+  };
 
   /* ── 지급 항목 + 계산방법 ── */
   ensureSpace(ctx, 60);
   text(ctx, "지급 항목", MARGIN, 13, rgb(0.1, 0.1, 0.4));
   text(ctx, "계산방법", methodX, 9, GRAY);
   ctx.y -= 20;
-  for (const row of bd.earnings) {
-    ensureSpace(ctx, 22);
-    const minus = row.kind === "DEDUCT";
-    text(ctx, `${minus ? "−" : "+"}  ${row.label}`, labelX, 10.5, minus ? rgb(0.6, 0.1, 0.1) : rgb(0.1, 0.35, 0.1));
-    text(ctx, clip(ctx, row.method, 8, methodMaxW), methodX, 8, GRAY);
-    textRight(ctx, won(row.amount), rightX, 10.5);
-    ctx.y -= 19;
-  }
+  for (const row of bd.earnings) drawMoneyRow(row);
   ctx.y -= 2;
   hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
   ctx.y -= 18;
   text(ctx, "세전 총액", MARGIN, 12, rgb(0.1, 0.1, 0.5));
   textRight(ctx, won(bd.grossPay), rightX, 12, rgb(0.1, 0.1, 0.5));
-  ctx.y -= 26;
+  ctx.y -= 16;
+
+  /* 비과세 지급이 있으면 '보험료·세금을 매기는 기준 금액'을 밝힌다 —
+     아래 공제 항목의 계산방법이 이 금액을 가리키므로, 이게 없으면 직원이 검산할 수 없다. */
+  if (bd.nonTaxableTotal > 0) {
+    ensureSpace(ctx, 20);
+    text(ctx, `과세 대상액  (세전 총액 − 비과세 ${won(bd.nonTaxableTotal)})`, MARGIN + 2, 9.5, rgb(0.1, 0.42, 0.63));
+    textRight(ctx, won(bd.taxableBase), rightX, 10, rgb(0.1, 0.42, 0.63));
+    ctx.y -= 14;
+  }
+  ctx.y -= 10;
 
   /* ── 공제 항목 + 계산방법 ── */
   ensureSpace(ctx, 60);
   text(ctx, "공제 항목", MARGIN, 13, rgb(0.4, 0.1, 0.1));
   text(ctx, "계산방법", methodX, 9, GRAY);
   ctx.y -= 20;
-  for (const row of bd.deductions) {
-    ensureSpace(ctx, 22);
-    text(ctx, `−  ${row.label}`, labelX, 10.5, rgb(0.5, 0.15, 0.15));
-    text(ctx, clip(ctx, row.method, 8, methodMaxW), methodX, 8, GRAY);
-    textRight(ctx, won(row.amount), rightX, 10.5);
-    ctx.y -= 19;
-  }
+  for (const row of bd.deductions) drawMoneyRow(row, true);
   ctx.y -= 2;
   hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
   ctx.y -= 18;

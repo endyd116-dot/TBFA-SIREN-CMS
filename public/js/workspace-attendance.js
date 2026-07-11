@@ -987,8 +987,88 @@
       btnToday.addEventListener('click', () => loadReport(toDateStr()));
     }
 
-    // 지난 보고서 히스토리도 갱신
+    const btnBack = document.getElementById('attBtnBackToday');
+    if (btnBack && !btnBack._bound) {
+      btnBack._bound = true;
+      btnBack.addEventListener('click', () => loadReport(toDateStr()));
+    }
+
+    /* 어느 날짜를 쓰고 있는지 항상 보이게 — 지난 재택일 보고서를 쓸 때 헷갈리지 않도록 */
+    const dateBar = document.getElementById('attReportDateBar');
+    const dateText = document.getElementById('attReportDateText');
+    if (dateBar && dateText) {
+      const isToday = dateStr === toDateStr();
+      dateBar.style.display = isToday ? 'none' : 'flex';
+      if (!isToday) dateText.innerHTML = '<b>' + dateStr + '</b> 재택근무 보고서를 작성하고 있습니다.';
+    }
+
+    // 미제출 재택일 + 지난 보고서 히스토리 갱신
+    loadPendingRemoteDays();
     loadReportHistory();
+  }
+
+  /* ─── 아직 안 낸 재택일 (마감 안내) ───
+     기존 화면은 '오늘 보고서'만 보여줘서, 재택했는데 안 낸 날이 있어도 알 수가 없었다.
+     제출 기한(재택일 +3일)이 생겼으므로 '무엇을 언제까지 내야 하는지'를 맨 위에 띄운다. */
+  const PENDING_TONE = {
+    danger: { bg: '#fef2f2', bd: '#fecaca', fg: '#b91c1c' },
+    warn:   { bg: '#fffbeb', bd: '#fde68a', fg: '#b45309' },
+    info:   { bg: '#f0f9ff', bd: '#bae6fd', fg: '#0369a1' },
+    closed: { bg: '#f3f4f6', bd: '#d1d5db', fg: '#6b7280' },
+  };
+
+  async function loadPendingRemoteDays() {
+    const box = document.getElementById('attPendingBox');
+    if (!box) return;
+
+    const res = await api('/api/att/remote-report?pending=1');
+    if (!res.ok) { box.style.display = 'none'; return; }
+    const d = (res.data && res.data.data) || res.data || {};
+    const list = d.list || [];
+    if (list.length === 0) { box.style.display = 'none'; return; }
+
+    const open = list.filter(x => !x.closed);
+    const closed = list.filter(x => x.closed);
+
+    const chip = (x) => {
+      const t = PENDING_TONE[x.badgeTone] || PENDING_TONE.info;
+      const clickable = !x.closed;
+      return '<button type="button" class="att-pending-chip" data-date="' + x.date + '"' +
+        (clickable ? '' : ' disabled') +
+        ' style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;' +
+        'background:' + t.bg + ';border:1px solid ' + t.bd + ';color:' + t.fg + ';font-size:12.5px;font-weight:600;' +
+        'cursor:' + (clickable ? 'pointer' : 'not-allowed') + ';font-family:inherit">' +
+        '<span>' + x.date + '</span>' +
+        '<span style="font-weight:700">' + x.badgeText + '</span>' +
+        (x.hasDraft ? '<span style="font-weight:400;opacity:.8">임시저장 있음</span>' : '') +
+        '</button>';
+    };
+
+    let html = '<div style="padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #e5e7eb">';
+    html += '<div style="font-size:13.5px;font-weight:700;color:#111827;margin-bottom:6px">' +
+      '<span class="siren-icon-wrap" data-icon="alert-triangle"></span> 아직 제출하지 않은 재택근무 보고서' +
+      '</div>';
+    html += '<div style="font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:10px">' +
+      escapeHtml(d.notice || '') + '</div>';
+
+    if (open.length) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:' + (closed.length ? '12px' : '0') + '">' +
+        open.map(chip).join('') + '</div>';
+    }
+    if (closed.length) {
+      html += '<div style="font-size:12px;color:#991b1b;font-weight:600;margin-bottom:6px">' +
+        '기한이 지나 근무 불인정된 날 (' + closed.length + '일) — 제출할 수 없습니다. 사정이 있으면 관리자에게 예외 인정을 요청하세요.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px">' + closed.map(chip).join('') + '</div>';
+    }
+    html += '</div>';
+
+    box.innerHTML = html;
+    box.style.display = 'block';
+    if (window.Icons && Icons.hydrate) { try { Icons.hydrate(box); } catch (e) {} }
+
+    box.querySelectorAll('.att-pending-chip:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => loadReport(btn.dataset.date));
+    });
   }
 
   /* ─── 지난 보고서 히스토리 ─── */

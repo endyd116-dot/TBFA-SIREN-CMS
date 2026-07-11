@@ -89,6 +89,13 @@
       '.wp-att span:first-child{color:#6b7280}',
       '.wp-att span:last-child{font-weight:600;color:#111827}',
       '.wp-att .hint{display:block;font-size:10.5px;color:#9ca3af;font-weight:400;margin-top:1px}',
+      /* 급여에서 빠진 항목(재택보고서 미제출 등)은 눈에 띄게 — 직원이 이유를 알 수 있어야 한다 */
+      '.wp-att div.warn{background:#fffbeb;border:1px solid #fde68a}',
+      '.wp-att div.warn span:first-child{color:#92400e}',
+      '.wp-att div.warn span:last-child{color:#b45309}',
+      '.wp-att div.warn .hint{color:#b45309}',
+      '.wp-tag{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:4px;background:#e0f2fe;color:#0369a1;font-size:10px;font-weight:700;vertical-align:1px}',
+      '.wp-taxable{font-size:12px;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;margin-top:8px;line-height:1.6}',
       '.wp-tbl{width:100%;border-collapse:collapse;font-size:13px}',
       '.wp-tbl th{text-align:left;font-size:11px;color:#9ca3af;font-weight:600;padding:0 0 6px;border-bottom:1px solid #e5e7eb}',
       '.wp-tbl th.r,.wp-tbl td.r{text-align:right}',
@@ -268,14 +275,16 @@
     var slip = d.slip, org = d.org, mem = d.member, bd = d.breakdown;
 
     var attHtml = bd.attendance.map(function (a) {
-      return '<div><span>' + esc(a.label) + (a.hint ? '<span class="hint">' + esc(a.hint) + '</span>' : '') +
+      return '<div' + (a.warn ? ' class="warn"' : '') + '><span>' + esc(a.label) +
+        (a.hint ? '<span class="hint">' + esc(a.hint) + '</span>' : '') +
         '</span><span>' + esc(a.value) + '</span></div>';
     }).join('');
 
     var rowHtml = function (r) {
       var minus = r.kind === 'DEDUCT';
       return '<tr' + (minus ? ' class="minus"' : '') + '>' +
-        '<td class="lbl">' + (minus ? '−' : '+') + ' ' + esc(r.label) + '</td>' +
+        '<td class="lbl">' + (minus ? '−' : '+') + ' ' + esc(r.label) +
+          (r.taxFree ? ' <span class="wp-tag">비과세</span>' : '') + '</td>' +
         '<td class="mth">' + esc(r.method) + '</td>' +
         '<td class="amt r">' + won(r.amount) + '</td></tr>';
     };
@@ -286,6 +295,12 @@
         '<td class="mth">' + esc(r.method) + '</td>' +
         '<td class="amt r">' + won(r.amount) + '</td></tr>';
     }).join('');
+
+    /* 비과세 지급이 있으면 보험료·세금을 매기는 기준 금액을 밝힌다 (공제 계산방법과 짝을 이룸) */
+    var taxableHtml = Number(bd.nonTaxableTotal) > 0
+      ? '<div class="wp-taxable">비과세 <b>' + won(bd.nonTaxableTotal) + '</b>원을 제외한 ' +
+        '<b>' + won(bd.taxableBase) + '</b>원이 보험료·세금을 매기는 기준 금액입니다.</div>'
+      : '';
 
     var verTag = slip.documentVersion > 1
       ? ' <span style="font-size:12px;color:#b91c1c;font-weight:700">정정 ' + slip.documentVersion + '차</span>' : '';
@@ -318,6 +333,7 @@
         '<table class="wp-tbl"><thead><tr><th>항목</th><th>계산방법</th><th class="r">금액</th></tr></thead>' +
         '<tbody>' + earnHtml + '</tbody></table>' +
         '<div class="wp-sum gross"><span>세전 총액</span><span>' + won(bd.grossPay) + ' 원</span></div>' +
+        taxableHtml +
 
         '<div class="wp-sec ded">' + icon('minus') + ' 공제 항목</div>' +
         '<table class="wp-tbl"><thead><tr><th>항목</th><th>계산방법</th><th class="r">금액</th></tr></thead>' +

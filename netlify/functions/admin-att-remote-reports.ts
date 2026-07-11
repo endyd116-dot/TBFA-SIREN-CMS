@@ -1,8 +1,13 @@
 import { db } from "../../db/index";
 import { attRemoteWorkReports, members, workspaceTasks } from "../../db/schema";
-import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, desc, inArray, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import {
+  REMOTE_REPORT_REQUIRED_FROM, REMOTE_REPORT_DEADLINE_DAYS,
+  todayKstDate, reportDeadline, daysLeftToDeadline, isReportClosed, deadlineBadge,
+} from "../../lib/att-remote-policy";
 
 // R35-GAP-P2 M-G5: wbsCardIds → wbsCards JOIN helper
 async function fetchWbsCardsMap(allCardIds: number[]): Promise<Record<number, any>> {
@@ -52,6 +57,78 @@ export default async function handler(req: Request) {
     });
   }
 
+  /* POST ?action=exempt — 기한을 놓친 재택일을 관리자가 '예외 인정'한다.
+     사유를 남기고 근무를 인정한다(급여 산정에 다시 포함). 직원에게 알림도 나간다.
+     body: { memberUid, date, reason } */
+  if (req.method === "POST") {
+    const url = new URL(req.url);
+    if (url.searchParams.get("action") !== "exempt") {
+      return jsonError("action", new Error("action=exempt 만 지원합니다"), 400);
+    }
+    let body: any = {};
+    try { body = await req.json(); } catch { /* 본문 없으면 아래 검증에서 걸림 */ }
+
+    const memberUid = String(body?.memberUid ?? "").trim();
+    const date = String(body?.date ?? "").slice(0, 10);
+    const reason = String(body?.reason ?? "").trim();
+    if (!memberUid || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return jsonError("validate", new Error("memberUid·date(YYYY-MM-DD) 필수"), 400);
+    }
+    if (!reason) {
+      return jsonError("validate", new Error("예외 인정 사유는 필수입니다 (기록에 남습니다)"), 400);
+    }
+
+    try {
+      /* 그 날 재택 기록이 실제로 있는지 확인 (없는 날을 인정해줄 순 없다) */
+      const chk: any = await db.execute(sql`
+        SELECT 1 FROM att_records
+         WHERE member_uid = ${memberUid} AND date = ${date}::date
+           AND work_mode = 'REMOTE' AND status IN ('NORMAL','LATE','EARLY_LEAVE')
+         LIMIT 1
+      `);
+      if (((chk as any).rows ?? chk ?? []).length === 0) {
+        return jsonError("not_found", new Error("그 날짜에 재택근무 기록이 없습니다"), 404);
+      }
+
+      /* 예외 인정 = 보고서를 '인정됨(EXEMPTED)'으로 기록.
+         급여 집계는 SUBMITTED·EXEMPTED를 모두 '냈다'로 보므로 그 날은 다시 근무로 인정된다. */
+      const note = `[관리자 예외 인정] ${reason} (처리: ${auth.ctx.member.name ?? auth.ctx.member.id})`;
+      await db.execute(sql`
+        INSERT INTO att_remote_work_reports (member_uid, date, status, content, supervisor_note, submitted_at)
+        VALUES (${memberUid}, ${date}::date, 'EXEMPTED', ${note}, ${note}, NOW())
+        ON CONFLICT (member_uid, date) DO UPDATE
+          SET status = 'EXEMPTED',
+              supervisor_note = ${note},
+              submitted_at = COALESCE(att_remote_work_reports.submitted_at, NOW()),
+              updated_at = NOW()
+      `);
+
+      try {
+        const mid = Number(memberUid);
+        if (Number.isFinite(mid)) {
+          await sendWorkspaceNotification({
+            memberId: mid,
+            sourceType: "event" as any,
+            sourceId: 0,
+            notifType: "approved",
+            channel: "bell",
+            title: `${date} 재택근무가 예외 인정되었습니다`,
+            body: `보고서 미제출이었지만 관리자가 근무를 인정했습니다. 사유: ${reason.slice(0, 100)}`,
+            actionUrl: "/workspace-attendance.html",
+            category: "system",
+          });
+        }
+      } catch (err) { console.warn("[admin-att-remote-reports] 예외 인정 알림 실패:", err); }
+
+      return jsonOk({
+        memberUid, date, status: "EXEMPTED",
+        message: "예외 인정 완료 — 급여 재집계 시 근무일에 다시 포함됩니다",
+      });
+    } catch (err) {
+      return jsonError("exempt", err);
+    }
+  }
+
   // GET: 보고서 목록 조회 또는 단건 조회 (?id=)
   if (req.method === "GET") {
     const url = new URL(req.url);
@@ -95,6 +172,54 @@ export default async function handler(req: Request) {
         return jsonOk({ ...r, memberName, wbsCards });
       } catch (err) {
         return jsonError("select_one", err);
+      }
+    }
+
+    /* ── 미제출 현황 (2026-07-12) ──
+       재택했는데 보고서를 안 낸 날 목록. 기한(재택일 +3일)까지 남은 일수와
+       이미 근무 불인정으로 확정된 건을 함께 준다. 관리자는 여기서 예외 인정을 할 수 있다. */
+    if (url.searchParams.get("pending") === "1") {
+      try {
+        const today = todayKstDate();
+        const rows: any = await db.execute(sql`
+          SELECT ar.member_uid, ar.date::text AS date, ar.status,
+                 rep.status AS report_status,
+                 m.name AS member_name
+            FROM att_records ar
+            LEFT JOIN att_remote_work_reports rep
+              ON rep.member_uid = ar.member_uid AND rep.date = ar.date
+            LEFT JOIN members m ON m.id = NULLIF(ar.member_uid,'')::int
+           WHERE ar.work_mode = 'REMOTE'
+             AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE')
+             AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
+             AND ar.date >= (CURRENT_DATE - INTERVAL '90 days')
+             AND (rep.status IS NULL OR rep.status NOT IN ('SUBMITTED','EXEMPTED'))
+           ORDER BY ar.date DESC, m.name
+           LIMIT 200
+        `);
+        const list = ((rows as any).rows ?? rows ?? []).map((r: any) => {
+          const d = String(r.date).slice(0, 10);
+          const badge = deadlineBadge(d, today);
+          return {
+            memberUid: String(r.member_uid),
+            memberName: r.member_name ?? `회원 ${r.member_uid}`,
+            date: d,
+            hasDraft: r.report_status === "DRAFT",
+            deadline: reportDeadline(d),
+            daysLeft: daysLeftToDeadline(d, today),
+            closed: isReportClosed(d, today),
+            badgeText: badge.text,
+            badgeTone: badge.tone,
+          };
+        });
+        return jsonOk({
+          list,
+          openCount: list.filter((x: any) => !x.closed).length,
+          unrecognizedCount: list.filter((x: any) => x.closed).length,
+          deadlineDays: REMOTE_REPORT_DEADLINE_DAYS,
+        });
+      } catch (err) {
+        return jsonError("pending_reports", err);
       }
     }
 

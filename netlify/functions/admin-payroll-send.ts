@@ -17,6 +17,7 @@ import { sendEmail } from "../../lib/email";
 import { payrollSlipFilename } from "../../lib/payroll-pdf";
 import { issuePayrollDocument, fetchPayrollDocument } from "../../lib/payroll-document";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { notifyPayrollIssued } from "../../lib/notify-payroll";
 
 export const config = { path: "/api/admin-payroll-send" };
 
@@ -197,8 +198,8 @@ export default async function handler(req: Request) {
             console.warn("[admin-payroll-send] post-send update failed:", e);
           }
 
-          /* 직원에게 알림 — 메일만 보내면 안 보는 경우가 많다. 워크스페이스 종에도 띄워
-             바로 명세서를 열고 수령확인(전자서명)까지 할 수 있게 한다. */
+          /* 직원에게 알림 — 메일만 보내면 안 보는 경우가 많다.
+             ① 워크스페이스 종(인앱) ② 카카오 알림톡(승인 전이면 문자) 둘 다 보낸다. */
           try {
             await sendWorkspaceNotification({
               memberId,
@@ -212,7 +213,18 @@ export default async function handler(req: Request) {
               category: "system",
             });
           } catch (e) {
-            console.warn("[admin-payroll-send] 수령확인 알림 실패:", e);
+            console.warn("[admin-payroll-send] 인앱 알림 실패:", e);
+          }
+          try {
+            await notifyPayrollIssued({
+              memberId,
+              memberName: memberInfo.name,
+              year, month,
+              netPay: slip.netPay,
+              orgName,
+            });
+          } catch (e) {
+            console.warn("[admin-payroll-send] 알림톡·문자 발송 실패:", e);
           }
         } else {
           failed++;

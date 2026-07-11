@@ -19,6 +19,7 @@ import { db } from "../../db";
 import { members, attRecords, attRemoteWorkReports } from "../../db/schema";
 import { eq, and, isNull, inArray, isNotNull, sql } from "drizzle-orm";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { reportDeadline } from "../../lib/att-remote-policy";
 
 export const config = { schedule: "0 15 * * *" };
 
@@ -78,7 +79,7 @@ export default async (req: Request, _ctx: Context) => {
       LEFT JOIN att_remote_work_reports rep
         ON rep.member_uid = r.member_uid
         AND rep.date = r.date
-        AND rep.status = 'SUBMITTED'
+        AND rep.status IN ('SUBMITTED', 'EXEMPTED')
       WHERE r.date = ${today}::date
         AND r.work_mode = 'REMOTE'
         AND rep.id IS NULL
@@ -97,7 +98,8 @@ export default async (req: Request, _ctx: Context) => {
             notifType: "reminder_3d" as any,
             channel: "bell" as any,
             title: "재택근무 보고서 미제출",
-            body: `${today} 재택근무 일일 보고서를 아직 제출하지 않았습니다.`,
+            body: `${today} 재택근무 일일 보고서를 아직 제출하지 않았습니다. ` +
+              `${reportDeadline(today)} 자정까지 제출하지 않으면 그 날은 근무로 인정되지 않습니다 (급여 산정 제외).`,
             actionUrl: "/workspace-attendance.html",
             category: "system" as any,
           });

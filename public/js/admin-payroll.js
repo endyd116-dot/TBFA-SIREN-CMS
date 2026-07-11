@@ -16,6 +16,7 @@
   const $ = (id) => document.getElementById(id);
   let currentRows = [];
   let _curSlip = null;   // 상세 모달에서 편집 중인 명세서
+  let _settings = null;  // 공제 요율 (자동 계산 미리보기용)
 
   /* ── 유틸 ── */
   function toast(msg, type) {
@@ -373,14 +374,21 @@
   }
 
   function adjRowHtml(a, editable) {
-    a = a || { label: '', amount: 0, kind: 'ADD', reason: '' };
+    a = a || { label: '', amount: 0, kind: 'ADD', reason: '', taxable: true };
     const disabled = editable ? '' : ' disabled';
+    /* taxable을 지정 안 한 옛 데이터는 '과세'로 본다 (보험료를 덜 떼는 쪽으로 기울지 않게) */
+    const taxFree = a.taxable === false;
     return '<div class="adj-row">' +
-      '<input class="adj-label" type="text" placeholder="항목명 (예: 명절 상여)" value="' + esc(a.label) + '"' + disabled + '>' +
+      '<input class="adj-label" type="text" placeholder="항목명 (예: 성과금, 차량유지비)" value="' + esc(a.label) + '"' + disabled + '>' +
       '<input class="adj-amount" type="number" step="1" placeholder="금액" value="' + (Number(a.amount || 0)) + '"' + disabled + ' oninput="recomputePreview()">' +
       '<select class="adj-kind"' + disabled + ' onchange="recomputePreview()">' +
         '<option value="ADD"' + (a.kind !== 'DEDUCT' ? ' selected' : '') + '>가산(+)</option>' +
         '<option value="DEDUCT"' + (a.kind === 'DEDUCT' ? ' selected' : '') + '>차감(−)</option>' +
+      '</select>' +
+      '<select class="adj-taxable"' + disabled + ' onchange="recomputePreview()" ' +
+        'title="과세: 4대보험·소득세를 매김 (성과금·상여 등) / 비과세: 안 매김 (차량유지비·식대 등 · 통상 월 20만원 한도)">' +
+        '<option value="1"' + (!taxFree ? ' selected' : '') + '>과세</option>' +
+        '<option value="0"' + (taxFree ? ' selected' : '') + '>비과세</option>' +
       '</select>' +
       '<input class="adj-reason" type="text" placeholder="사유 (필수)" value="' + esc(a.reason) + '"' + disabled + '>' +
       (editable ? '<button class="adj-del" type="button" title="삭제" onclick="this.closest(\'.adj-row\').remove();recomputePreview()">×</button>' : '<span></span>') +
@@ -401,34 +409,105 @@
       const label = (row.querySelector('.adj-label')?.value || '').trim();
       const amount = Number(row.querySelector('.adj-amount')?.value || 0);
       const kind = row.querySelector('.adj-kind')?.value === 'DEDUCT' ? 'DEDUCT' : 'ADD';
+      const taxable = row.querySelector('.adj-taxable')?.value !== '0';
       const reason = (row.querySelector('.adj-reason')?.value || '').trim();
       if (!label && !amount && !reason) return; // 완전 빈 행 무시
-      out.push({ label, amount, kind, reason });
+      out.push({ label, amount, kind, reason, taxable });
     });
     return out;
   }
+
+  /* 공제 자동 계산 여부 (기본 ON) */
+  function autoDeductionOn() {
+    const el = $('autoDedChk');
+    return !el || el.checked;
+  }
+
+  /* 자동 계산 시 공제 입력칸은 잠근다 — 손으로 고쳐도 저장 때 덮어써지므로 헷갈리지 않게 */
+  function syncDeductionInputs() {
+    const auto = autoDeductionOn();
+    DED_FIELDS.forEach(dd => {
+      const el = document.querySelector('#modalBody input.money[data-field="' + dd.f + '"]');
+      if (!el || el.dataset.locked === '1') return;   // 지급완료 등으로 이미 잠긴 건 건드리지 않음
+      /* 기타공제는 자동 계산 대상이 아니라 항상 직접 입력 */
+      if (dd.f === 'otherDeduction') return;
+      el.disabled = auto;
+      el.title = auto ? '공제 자동 계산 중 — 직접 넣으려면 위 체크를 해제하세요' : '';
+    });
+    recomputePreview();
+  }
+  window.syncDeductionInputs = syncDeductionInputs;
 
   function fieldVal(f) {
     const el = document.querySelector('#modalBody input.money[data-field="' + f + '"]');
     return el ? Number(el.value || 0) : 0;
   }
 
-  /* 실시간 미리보기 (백엔드 공식과 동일) */
+  /* 실시간 미리보기 (백엔드 공식과 동일)
+     공제 자동 계산이 켜져 있으면 '과세 대상액'(세전 − 비과세 지급액) 기준으로 4대보험을 다시 계산해
+     화면에 그대로 보여준다 → 저장 결과와 미리보기가 어긋나지 않는다. */
   function recomputePreview() {
     const base = fieldVal('baseSalaryMonth');
     const perf = fieldVal('performanceBonus');
     const perfect = fieldVal('perfectBonus');
     const adj = readAdjustments();
-    const adjAdd = adj.filter(a => a.kind === 'ADD').reduce((s, a) => s + (Number(a.amount) || 0), 0);
+    const adjAdd = adj.filter(a => a.kind !== 'DEDUCT').reduce((s, a) => s + (Number(a.amount) || 0), 0);
     const adjDeduct = adj.filter(a => a.kind === 'DEDUCT').reduce((s, a) => s + (Number(a.amount) || 0), 0);
     const gross = base + perf + perfect + adjAdd - adjDeduct;  // 야근·무급차감 제외
 
-    const totalDeduction = DED_FIELDS.reduce((s, d) => s + fieldVal(d.f), 0);
+    const nonTaxable = adj
+      .filter(a => a.kind !== 'DEDUCT' && a.taxable === false)
+      .reduce((s, a) => s + (Number(a.amount) || 0), 0);
+    const taxableBase = Math.max(0, gross - nonTaxable);
+
+    const auto = autoDeductionOn();
+    const s = _settings || {};
+    let totalDeduction;
+    if (auto && s.pensionRate != null) {
+      const pension = taxableBase * Number(s.pensionRate || 0);
+      const health = taxableBase * Number(s.healthRate || 0);
+      const longterm = health * Number(s.longtermRate || 0);
+      const employment = taxableBase * Number(s.employmentRate || 0);
+      const incomeRate = Number(s.incomeTaxRate || 0);
+      const income = incomeRate > 0 ? taxableBase * incomeRate : fieldVal('incomeTax');
+      const local = income * 0.1;
+      const other = fieldVal('otherDeduction');
+      totalDeduction = pension + health + longterm + employment + income + local + other;
+
+      /* 자동 계산 결과를 입력칸에 그대로 반영 (직원이 보게 될 값과 동일) */
+      const put = (f, v) => {
+        const el = document.querySelector('#modalBody input.money[data-field="' + f + '"]');
+        if (el && el.disabled) el.value = Math.round(v);
+      };
+      put('nationalPension', pension);
+      put('healthInsurance', health);
+      put('longTermCare', longterm);
+      put('employmentInsurance', employment);
+      if (incomeRate > 0) { put('incomeTax', income); put('localTax', local); }
+      else put('localTax', local);
+    } else {
+      totalDeduction = DED_FIELDS.reduce((acc, d) => acc + fieldVal(d.f), 0);
+    }
+
     const net = gross - totalDeduction;
 
     if ($('previewGross')) $('previewGross').textContent = won(gross) + ' 원';
     if ($('previewDeduction')) $('previewDeduction').textContent = won(totalDeduction) + ' 원';
     if ($('previewNet')) $('previewNet').textContent = won(net) + ' 원';
+
+    /* 비과세가 있으면 과세 대상액을 보여준다 (명세서에도 이 금액이 계산 기준으로 찍힌다) */
+    const tb = $('previewTaxable');
+    if (tb) {
+      if (nonTaxable > 0) {
+        tb.style.display = '';
+        tb.innerHTML = '비과세 <b>' + won(nonTaxable) + '</b>원 제외 → 보험료·세금 기준 <b>' + won(taxableBase) + '</b>원' +
+          (nonTaxable > 200000
+            ? '<br><span style="color:#b45309">※ 비과세 합계가 월 20만원을 넘습니다 — 한도 초과분은 과세 대상일 수 있으니 확인하세요</span>'
+            : '');
+      } else {
+        tb.style.display = 'none';
+      }
+    }
   }
 
   async function openDetail(id) {
@@ -522,7 +601,7 @@
       payHtml +
 
       '<div class="pay-section-title" style="display:flex;justify-content:space-between;align-items:center">' +
-        '<span>조정 라인</span>' +
+        '<span>조정 라인 <span style="font-weight:400;color:#9ca3af;font-size:11.5px">— 성과금·차량지원 등. 비과세로 지정하면 보험료·세금을 매기지 않습니다</span></span>' +
         (editable ? '<button class="btn btn-light btn-sm" type="button" onclick="addAdjRow()">+ 조정 추가</button>' : '') +
       '</div>' +
       '<div class="adj-wrap" id="adjRows">' + adjInner + '</div>' +
@@ -531,8 +610,17 @@
         '<tr class="pay-total-row"><td class="lbl">세전 총액</td>' +
         '<td class="val"><span class="pay-readonly-val" id="previewGross">' + won(slip.grossPay) + ' 원</span></td></tr>' +
       '</tbody></table>' +
+      '<div id="previewTaxable" style="display:none;font-size:12px;color:#6b7280;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin-top:6px;line-height:1.6"></div>' +
 
-      '<div class="pay-section-title">공제 항목' + (editable ? ' <span style="font-weight:400;color:#9ca3af">(직접 수정 가능)</span>' : '') + '</div>' +
+      '<div class="pay-section-title" style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span>공제 항목</span>' +
+        (editable
+          ? '<label style="font-weight:400;font-size:12px;color:#4b5563;display:flex;align-items:center;gap:5px;cursor:pointer">' +
+              '<input type="checkbox" id="autoDedChk" checked onchange="syncDeductionInputs()">' +
+              '4대보험·소득세 자동 계산 <span style="color:#9ca3af">(과세 대상액 기준)</span>' +
+            '</label>'
+          : '') +
+      '</div>' +
       dedHtml +
 
       '<table class="pay-edit"><tbody>' +
@@ -577,6 +665,12 @@
     actions.innerHTML = acts.join(' ');
 
     $('modal').classList.add('show');
+
+    /* 공제 요율을 가져와 자동 계산 미리보기를 켠다 (저장 결과와 화면이 같아지도록) */
+    if (editable) {
+      await ensureSettings();
+      syncDeductionInputs();
+    }
   }
 
   const AUDIT_FIELD_KO = {
@@ -599,9 +693,19 @@
       if (!a.reason) { toast('조정 라인의 사유는 필수입니다.', 'err'); return; }
     }
 
-    const body = { adjustments, reason };
+    /* autoDeduction=true면 서버가 '과세 대상액'(세전 − 비과세) 기준으로 4대보험·소득세를 다시 계산한다.
+       → 명세서에 적히는 계산방법("과세 대상액 × 4.5%")과 실제 금액이 항상 일치한다. */
+    const body = { adjustments, reason, autoDeduction: autoDeductionOn() };
     for (const p of PAY_FIELDS) body[p.f] = fieldVal(p.f);
     for (const dd of DED_FIELDS) body[dd.f] = fieldVal(dd.f);
+
+    /* 이미 교부된 명세서를 고치면 문서·서명이 초기화된다 — 모르고 누르지 않게 미리 알린다 */
+    if ((_curSlip.status === 'SENT' || _curSlip.status === 'PAID') || _curSlip.ackStatus === 'ACKNOWLEDGED') {
+      if (!confirm('이미 교부된 명세서입니다.\n\n' +
+        '금액을 바꾸면 지금 보관된 문서는 더 이상 유효하지 않으므로 폐기되고,\n' +
+        '직원의 수령 확인(서명)도 다시 받아야 합니다.\n' +
+        '(다시 발송하면 정정본으로 나갑니다. 지난 서명 기록은 그대로 보존됩니다.)\n\n계속할까요?')) return;
+    }
 
     const res = await api('/api/admin-payroll?id=' + _curSlip.id, { method: 'PATCH', body });
     if (!res.ok) { toast('저장 실패: ' + (res.data?.error || res.data?.detail || res.status), 'err'); return; }
@@ -672,8 +776,30 @@
       const el = $(elId);
       if (el) el.value = s[SETTING_SNAKE[camel]] ?? '';
     }
+    cacheSettings(s);
     const meta = $('settingsMeta');
     if (meta && s.updated_at) meta.textContent = '최종 수정: ' + fmtDate(s.updated_at);
+  }
+
+  /* 공제 요율 — 상세 모달의 자동 계산 미리보기가 서버와 같은 값을 쓰도록 캐시 */
+  function cacheSettings(s) {
+    if (!s) return;
+    _settings = {
+      pensionRate:    Number(s.pension_rate    ?? s.pensionRate    ?? 0),
+      healthRate:     Number(s.health_rate     ?? s.healthRate     ?? 0),
+      longtermRate:   Number(s.longterm_rate   ?? s.longtermRate   ?? 0),
+      employmentRate: Number(s.employment_rate ?? s.employmentRate ?? 0),
+      incomeTaxRate:  Number(s.income_tax_rate ?? s.incomeTaxRate  ?? 0),
+    };
+  }
+
+  /** 상세 모달을 열 때 요율이 아직 없으면 조용히 한 번 가져온다 */
+  async function ensureSettings() {
+    if (_settings) return;
+    try {
+      const res = await api('/api/admin-payroll-settings');
+      if (res.ok) cacheSettings((res.data?.data || res.data)?.settings || {});
+    } catch (_) { /* 실패해도 미리보기만 못 할 뿐 저장은 서버가 계산 */ }
   }
 
   async function saveSettings() {

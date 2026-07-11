@@ -3,6 +3,10 @@ import { attRemoteWorkReports, members } from "../../db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { todayKST } from "../../lib/att-utils";
+import {
+  REMOTE_REPORT_REQUIRED_FROM, REMOTE_REPORT_DEADLINE_DAYS, REMOTE_REPORT_NOTICE,
+  todayKstDate, reportDeadline, daysLeftToDeadline, isReportClosed, deadlineBadge,
+} from "../../lib/att-remote-policy";
 
 export const config = { path: "/api/att/remote-report" };
 
@@ -19,6 +23,19 @@ function jsonError(step: string, err: any, status = 500) {
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 
+/** 제출 기한(재택일 +3일)이 지난 날짜는 저장·제출을 막는다. 예외는 관리자 인정으로만. */
+function closedResponse(date: string) {
+  return new Response(JSON.stringify({
+    ok: false,
+    error: `제출 기한이 지났습니다 (${date} 재택 → ${reportDeadline(date)} 자정 마감). ` +
+      `그 날은 근무로 인정되지 않습니다. 사정이 있으면 관리자에게 예외 인정을 요청하세요.`,
+    step: "deadline",
+    closed: true,
+    date,
+    deadline: reportDeadline(date),
+  }), { status: 403, headers: { "Content-Type": "application/json" } });
+}
+
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
   if (operatorGuardFailed(auth)) return auth.res;
@@ -27,9 +44,55 @@ export default async function handler(req: Request) {
   // att_remote_work_reports.member_uid 는 R29-ATT-GAP1 부터 varchar(36)
   const memberUidStr = String(memberId);
 
-  // GET: 오늘/특정 날짜 보고서 조회 (list=1이면 내 보고서 히스토리 목록)
+  // GET: 오늘/특정 날짜 보고서 조회 (list=1 히스토리 · pending=1 미제출 재택일)
   if (req.method === "GET") {
     const url = new URL(req.url);
+
+    /* ── 아직 보고서를 내지 않은 재택근무일 ──
+       기존 화면은 '오늘 보고서'만 보여줘서, 재택했는데 아직 안 낸 날이 있는지 알 방법이 없었다.
+       마감(재택일 +3일)을 두려면 직원이 '무엇을 언제까지 내야 하는지'부터 보여야 한다. */
+    if (url.searchParams.get("pending") === "1") {
+      try {
+        const today = todayKstDate();
+        const rows: any = await db.execute(sql`
+          SELECT ar.date::text AS date, ar.status, ar.work_mode,
+                 rep.status AS report_status
+            FROM att_records ar
+            LEFT JOIN att_remote_work_reports rep
+              ON rep.member_uid = ar.member_uid AND rep.date = ar.date
+           WHERE ar.member_uid = ${memberUidStr}
+             AND ar.work_mode = 'REMOTE'
+             AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE')
+             AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
+             AND ar.date >= (CURRENT_DATE - INTERVAL '60 days')
+             AND (rep.status IS NULL OR rep.status NOT IN ('SUBMITTED','EXEMPTED'))
+           ORDER BY ar.date DESC
+           LIMIT 60
+        `);
+        const list = ((rows as any).rows ?? rows ?? []).map((r: any) => {
+          const d = String(r.date).slice(0, 10);
+          const badge = deadlineBadge(d, today);
+          return {
+            date: d,
+            hasDraft: r.report_status === "DRAFT",
+            deadline: reportDeadline(d),
+            daysLeft: daysLeftToDeadline(d, today),
+            closed: isReportClosed(d, today),
+            badgeText: badge.text,
+            badgeTone: badge.tone,
+          };
+        });
+        return jsonOk({
+          list,
+          openCount: list.filter((x: any) => !x.closed).length,
+          closedCount: list.filter((x: any) => x.closed).length,
+          deadlineDays: REMOTE_REPORT_DEADLINE_DAYS,
+          notice: REMOTE_REPORT_NOTICE,
+        });
+      } catch (err) {
+        return jsonError("pending_reports", err);
+      }
+    }
 
     // ── 히스토리 목록 ──
     if (url.searchParams.get("list") === "1") {
@@ -69,12 +132,20 @@ export default async function handler(req: Request) {
       let wbsCards: Array<{ id: number; title: string }> = [];
       if (report && Array.isArray((report as any).wbsCardIds) && (report as any).wbsCardIds.length > 0) {
         try {
-          const ids = (report as any).wbsCardIds as number[];
-          const cardRows = await db.execute(sql`
-            SELECT id, title FROM workspace_tasks WHERE id = ANY(${ids}::int[])
-          `);
-          wbsCards = ((cardRows as any).rows ?? cardRows ?? []).map((r: any) => ({ id: r.id, title: r.title }));
-        } catch { /* JOIN 실패 시 빈 배열 fallback */ }
+          /* JS 배열을 그대로 ANY(...)에 넘기면 드라이버가 직렬화하지 못하고 예외가 난다.
+             여기서는 catch가 삼켜서 '작업 카드가 조용히 안 뜨는' 상태였다 (2026-07-12 fix). */
+          const ids = ((report as any).wbsCardIds as any[])
+            .map(Number).filter((n: number) => Number.isFinite(n));
+          if (ids.length > 0) {
+            const cardRows = await db.execute(sql`
+              SELECT id, title FROM workspace_tasks
+               WHERE id = ANY(ARRAY[${sql.raw(ids.join(","))}]::int[])
+            `);
+            wbsCards = ((cardRows as any).rows ?? cardRows ?? []).map((r: any) => ({ id: r.id, title: r.title }));
+          }
+        } catch (err) {
+          console.warn("[att-remote-report] 작업 카드 조회 실패:", err);
+        }
       }
       return jsonOk(report ? { ...report, wbsCards } : null);
     } catch (err) {
@@ -88,6 +159,7 @@ export default async function handler(req: Request) {
     try { body = await req.json(); } catch { body = {}; }
 
     const date: string = body.date ?? todayKST();
+    if (isReportClosed(date)) return closedResponse(date);
     const content: string | undefined = body.content;
     const hasWbs = Array.isArray(body.wbsCardIds);         // 미제공 시 기존 wbsCardIds 보존(AI 초안 유실 방지)
     const wbsCardIds: number[] = hasWbs ? body.wbsCardIds : [];
@@ -126,6 +198,7 @@ export default async function handler(req: Request) {
     try { body = await req.json(); } catch { body = {}; }
 
     const date: string = body.date ?? todayKST();
+    if (isReportClosed(date)) return closedResponse(date);
     const content: string = body.content ?? "";
 
     if (!content.trim()) {

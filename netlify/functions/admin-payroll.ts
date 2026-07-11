@@ -14,7 +14,8 @@ import { db } from "../../db/index";
 import { payrollSlips, payrollAudit, members } from "../../db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { calculatePayrollForMonth } from "../../lib/payroll-calc";
+import { calculatePayrollForMonth, loadPayrollSettings, computeDeductions } from "../../lib/payroll-calc";
+import { taxableBaseOf } from "../../lib/payroll-breakdown";
 import { callGemini } from "../../lib/ai-gemini";
 
 export const config = { path: "/api/admin-payroll" };
@@ -223,7 +224,9 @@ export default async function handler(req: Request) {
           next[f] = (f in body) ? Number(body[f]) : Number((cur as any)[f] || 0);
           if (!Number.isFinite(next[f])) return jsonBadRequest(`${f} 숫자 오류`);
         }
-        // 조정 라인 [{label, amount, kind:'ADD'|'DEDUCT', reason}]
+        /* 조정 라인 [{label, amount, kind:'ADD'|'DEDUCT', reason, taxable}]
+           taxable=false → 비과세 지급 (차량유지비·식대 등). 4대보험·소득세 산정에서 제외된다.
+           지정하지 않은 옛 데이터는 '과세'로 본다 (공제를 덜 떼는 쪽으로 기울지 않게). */
         let adjustments: any[] = Array.isArray((cur as any).adjustments) ? (cur as any).adjustments : [];
         if ("adjustments" in body) {
           if (!Array.isArray(body.adjustments)) return jsonBadRequest("adjustments는 배열이어야 합니다");
@@ -232,13 +235,37 @@ export default async function handler(req: Request) {
             amount: Number(a?.amount) || 0,
             kind: a?.kind === "DEDUCT" ? "DEDUCT" : "ADD",
             reason: String(a?.reason || "").slice(0, 200),
+            taxable: a?.taxable === false ? false : true,
           }));
         }
-        const adjAdd = adjustments.filter(a => a.kind === "ADD").reduce((s, a) => s + (Number(a.amount) || 0), 0);
+        const adjAdd = adjustments.filter(a => a.kind !== "DEDUCT").reduce((s, a) => s + (Number(a.amount) || 0), 0);
         const adjDeduct = adjustments.filter(a => a.kind === "DEDUCT").reduce((s, a) => s + (Number(a.amount) || 0), 0);
 
         const grossPay = next.baseSalaryMonth + next.overtimePay - next.deductionUnpaid
           + next.performanceBonus + next.perfectBonus + adjAdd - adjDeduct;
+
+        /* 4대보험·소득세 자동 계산 (기본 ON).
+           성과금을 더하면 보험료도 그만큼 늘고, 비과세로 지정한 항목은 산정에서 빠진다.
+           이렇게 해야 명세서에 적히는 계산방법("과세 대상액 × 4.5%")과 실제 금액이 일치한다.
+           관리자가 요율표와 다른 금액을 직접 넣어야 하면 화면에서 '자동 계산'을 끄면 된다. */
+        const autoDeduction = body.autoDeduction !== false;
+        if (autoDeduction) {
+          const taxableBase = taxableBaseOf({ adjustments }, grossPay);
+          const settings = await loadPayrollSettings();
+          const auto = computeDeductions(taxableBase, settings);
+          next.nationalPension     = auto.nationalPension;
+          next.healthInsurance     = auto.healthInsurance;
+          next.longTermCare        = auto.longTermCare;
+          next.employmentInsurance = auto.employmentInsurance;
+          /* 소득세는 설정 요율이 0이면(간이세액표 직접 입력 운영) 관리자가 넣은 값을 그대로 둔다 */
+          if (Number(settings.incomeTaxRate) > 0) {
+            next.incomeTax = auto.incomeTax;
+            next.localTax  = auto.localTax;
+          } else {
+            next.localTax = next.incomeTax * 0.1;
+          }
+        }
+
         const totalDeduction = next.incomeTax + next.localTax + next.nationalPension
           + next.healthInsurance + next.longTermCare + next.employmentInsurance + next.otherDeduction;
         const netPay = grossPay - totalDeduction;

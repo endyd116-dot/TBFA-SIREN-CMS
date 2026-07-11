@@ -13,6 +13,8 @@
 // 반환: { created, updated, skipped, errors, slipIds }
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { REMOTE_REPORT_REQUIRED_FROM } from "./att-remote-policy";
+import { taxableBaseOf } from "./payroll-breakdown";
 
 /* === 급여 고도화 (2026-05-20): 계산 기준 + 공제 === */
 export interface PayrollSettings {
@@ -153,21 +155,38 @@ export async function calculatePayrollForMonth(
     const baseSalary = Number(m.base_salary || 0);
 
     try {
-      // 2-1. att_records 집계
+      /* 2-1. att_records 집계
+         2026-07-12: 재택근무일에 일일 보고서를 안 냈으면 그 날은 근무로 인정하지 않는다(2026-07-01부터).
+           근태 기록은 사실대로 두고 집계에서만 뺀다 → 나중에 보고서를 내면 재집계 시 자동으로 다시 인정됨.
+           (lib/att-remote-policy.ts 참고) */
       const attRows = await db.execute(sql`
         SELECT
           -- P1-20 fix: 반차(PARTIAL_LEAVE)는 출근 0.5일로 집계. 나머지 반나절은 유급휴가 0.5일로 별도 합산되므로
           --            (아래 paidDays=출근일+유급휴가일) 하루 상한 1.0일 보장 (과거: 출근 1일+휴가 0.5=1.5일 과지급).
-          (COUNT(*) FILTER (WHERE status IN ('NORMAL','LATE','EARLY_LEAVE'))
-            + 0.5 * COUNT(*) FILTER (WHERE status = 'PARTIAL_LEAVE'))::numeric AS working_days,
-          COALESCE(SUM(working_mins) FILTER (WHERE working_mins IS NOT NULL), 0)::int AS working_mins,
-          COALESCE(SUM(overtime_mins), 0)::int AS overtime_mins,
-          COUNT(*) FILTER (WHERE status = 'LATE')::int AS late_count,
-          COUNT(*) FILTER (WHERE status = 'ABSENT')::int AS absent_count
-        FROM att_records
-        WHERE member_uid = ${memberUid}
-          AND date >= ${first}::date
-          AND date <= ${last}::date
+          (COUNT(*) FILTER (WHERE t.status IN ('NORMAL','LATE','EARLY_LEAVE') AND NOT t.unrecognized)
+            + 0.5 * COUNT(*) FILTER (WHERE t.status = 'PARTIAL_LEAVE'))::numeric AS working_days,
+          COALESCE(SUM(t.working_mins) FILTER (WHERE t.working_mins IS NOT NULL AND NOT t.unrecognized), 0)::int AS working_mins,
+          COALESCE(SUM(t.overtime_mins) FILTER (WHERE NOT t.unrecognized), 0)::int AS overtime_mins,
+          COUNT(*) FILTER (WHERE t.status = 'LATE')::int AS late_count,
+          COUNT(*) FILTER (WHERE t.status = 'ABSENT')::int AS absent_count,
+          COUNT(*) FILTER (WHERE t.unrecognized)::int AS unreported_remote_days
+        FROM (
+          SELECT
+            ar.status, ar.working_mins, ar.overtime_mins,
+            (ar.work_mode = 'REMOTE'
+              AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
+              AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE')
+              AND rep.id IS NULL) AS unrecognized
+          FROM att_records ar
+          LEFT JOIN att_remote_work_reports rep
+            ON rep.member_uid = ar.member_uid
+           AND rep.date = ar.date
+           -- 정상 제출(SUBMITTED) + 관리자 예외 인정(EXEMPTED) 둘 다 '냈다'로 본다
+           AND rep.status IN ('SUBMITTED', 'EXEMPTED')
+          WHERE ar.member_uid = ${memberUid}
+            AND ar.date >= ${first}::date
+            AND ar.date <= ${last}::date
+        ) t
       `);
       const att = ((attRows as any).rows || (attRows as any[]))[0] || {};
       const workingDays = Number(att.working_days || 0);
@@ -175,6 +194,7 @@ export async function calculatePayrollForMonth(
       const overtimeMins = Number(att.overtime_mins || 0);
       const lateCount = Number(att.late_count || 0);
       const absentCount = Number(att.absent_count || 0);
+      const unreportedRemoteDays = Number(att.unreported_remote_days || 0);
 
       // 2-2. att_leave_requests 집계 (APPROVED·해당 월 시작일 기준)
       const leaveRows = await db.execute(sql`
@@ -205,9 +225,10 @@ export async function calculatePayrollForMonth(
         continue;
       }
 
-      // 만근 — 근무일 1일 이상 + 지각·결근·무급 휴가 0
+      // 만근 — 근무일 1일 이상 + 지각·결근·무급 휴가 0 + 재택보고서 미제출(근무 불인정) 0
       const perfectAttendance =
-        workingDays > 0 && lateCount === 0 && absentCount === 0 && unpaidLeaveDays === 0;
+        workingDays > 0 && lateCount === 0 && absentCount === 0 && unpaidLeaveDays === 0
+        && unreportedRemoteDays === 0;
 
       // 2-3. quarterly_settlements 집계 (해당 월이 속한 분기·PAID·members.id 기준)
       const qsRows = await db.execute(sql`
@@ -252,7 +273,7 @@ export async function calculatePayrollForMonth(
         memberId: Number(memberUid),
         memberName: m.name,
         baseSalary,
-        att: { workingDays, workingMins, overtimeMins, lateCount, absentCount },
+        att: { workingDays, workingMins, overtimeMins, lateCount, absentCount, unreportedRemoteDays },
         leave: { paidLeaveDays, unpaidLeaveDays },
         perfectAttendance,
         quarter: { year, q, totalBonusPaid: quarterTotalBonus },
@@ -329,19 +350,37 @@ export async function calculatePayrollForMonth(
            "라인은 보이는데 세전·실수령엔 빠진" 모순이 생긴다. 편집 공식(admin-payroll.ts)과 동일하게
            기존 조정분을 합계에 접어 넣어 일관성 유지(조정라인·기타공제 컬럼은 그대로 보존). */
         const _adjArr = Array.isArray(existingRow.adjustments) ? existingRow.adjustments : [];
-        const _adjAdd = _adjArr.filter((a: any) => a?.kind === "ADD").reduce((s: number, a: any) => s + (Number(a?.amount) || 0), 0);
+        const _adjAdd = _adjArr.filter((a: any) => a?.kind !== "DEDUCT").reduce((s: number, a: any) => s + (Number(a?.amount) || 0), 0);
         const _adjDeduct = _adjArr.filter((a: any) => a?.kind === "DEDUCT").reduce((s: number, a: any) => s + (Number(a?.amount) || 0), 0);
         const _otherDeduction = Number(existingRow.other_deduction || 0);
         const grossPayFinal = grossPay + _adjAdd - _adjDeduct;
-        const totalDeductionFinal = totalDeduction + _otherDeduction;
+
+        /* 2026-07-12: 4대보험·소득세를 '과세 대상액'(세전 − 비과세 지급액) 기준으로 다시 계산한다.
+           과거엔 조정 라인을 세전에만 더하고 공제는 그대로 둬서, 명세서에 적힌 계산방법
+           ("세전 총액 × 4.5%")과 실제 공제액이 서로 맞지 않았다 — 서명받는 문서에선 치명적.
+           성과금을 더하면 보험료도 그만큼 늘고, 비과세로 지정한 차량지원 등은 산정에서 빠진다. */
+        const _taxableBase = taxableBaseOf({ adjustments: _adjArr }, grossPayFinal);
+        const dedFinal = computeDeductions(_taxableBase, settings);
+        const totalDeductionFinal =
+          dedFinal.nationalPension + dedFinal.healthInsurance + dedFinal.longTermCare +
+          dedFinal.employmentInsurance + dedFinal.incomeTax + dedFinal.localTax + _otherDeduction;
         const netPayFinal = grossPayFinal - totalDeductionFinal;
+
         /* Q3-052 fix: 저장 컬럼(gross_pay/net_pay)은 조정분 반영(Final)인데 snapshot.derived는 조정 전 값이라
            둘이 어긋났다. 스냅샷의 합계를 실제 저장값과 일치시키고 조정분도 함께 기록(감사 추적 정합). */
         snapshot.derived.adjustmentAdd = r2(_adjAdd);
         snapshot.derived.adjustmentDeduct = r2(_adjDeduct);
         snapshot.derived.otherDeduction = r2(_otherDeduction);
         snapshot.derived.grossPay = r2(grossPayFinal);
-        snapshot.derived.deductions.totalDeduction = r2(totalDeductionFinal);
+        snapshot.derived.deductions = {
+          nationalPension: r2(dedFinal.nationalPension),
+          healthInsurance: r2(dedFinal.healthInsurance),
+          longTermCare: r2(dedFinal.longTermCare),
+          employmentInsurance: r2(dedFinal.employmentInsurance),
+          incomeTax: r2(dedFinal.incomeTax),
+          localTax: r2(dedFinal.localTax),
+          totalDeduction: r2(totalDeductionFinal),
+        };
         snapshot.derived.netPay = r2(netPayFinal);
         // 갱신
         const upd = await db.execute(sql`
@@ -360,12 +399,12 @@ export async function calculatePayrollForMonth(
             performance_bonus = ${r2(performanceBonus)},
             perfect_bonus = ${r2(perfectBonus)},
             gross_pay = ${r2(grossPayFinal)},
-            national_pension = ${r2(ded.nationalPension)},
-            health_insurance = ${r2(ded.healthInsurance)},
-            long_term_care = ${r2(ded.longTermCare)},
-            employment_insurance = ${r2(ded.employmentInsurance)},
-            income_tax = ${r2(ded.incomeTax)},
-            local_tax = ${r2(ded.localTax)},
+            national_pension = ${r2(dedFinal.nationalPension)},
+            health_insurance = ${r2(dedFinal.healthInsurance)},
+            long_term_care = ${r2(dedFinal.longTermCare)},
+            employment_insurance = ${r2(dedFinal.employmentInsurance)},
+            income_tax = ${r2(dedFinal.incomeTax)},
+            local_tax = ${r2(dedFinal.localTax)},
             total_deduction = ${r2(totalDeductionFinal)},
             net_pay = ${r2(netPayFinal)},
             calculation_snapshot = ${JSON.stringify(snapshot)}::jsonb,

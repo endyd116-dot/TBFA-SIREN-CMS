@@ -20,6 +20,8 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { uploadToR2 } from "../../lib/r2-server";
 import { buildSignedPayrollDocument, normalizeSignaturePng } from "../../lib/payroll-document";
 import { notifyAllSuperAdmins } from "../../lib/notify";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { notifyPayrollAcknowledged } from "../../lib/notify-payroll";
 
 export const config = { path: "/api/payroll-my-ack" };
 
@@ -214,7 +216,10 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
   } catch (err) { return jsonStepErr("record_acknowledgment", err); }
 
-  /* 5) 관리자 알림 (실패해도 서명은 이미 유효) */
+  /* 5) 알림 (실패해도 서명은 이미 유효) */
+  const orgName = process.env.ORG_NAME || "(사)교사유가족협의회";
+
+  /* 5-1. 관리자에게 — 수령확인이 끝났음 */
   try {
     await notifyAllSuperAdmins({
       category: "system",
@@ -223,7 +228,34 @@ export default async function handler(req: Request, _ctx: Context) {
       message: `${signedName} 님이 ${period} 급여명세서에 전자서명했습니다 (이의 없음 동의).`,
       link: "/cms-tbfa.html#payroll",
     });
-  } catch (err) { console.warn("[payroll-my-ack] 수령확인 알림 실패:", err); }
+  } catch (err) { console.warn("[payroll-my-ack] 관리자 알림 실패:", err); }
+
+  /* 5-2. 직원 본인에게 — 서명이 정상 접수됐다는 확인 (인앱 + 알림톡/문자).
+         '내가 서명한 게 접수됐나?' 하는 불안을 없애고, 본인이 안 한 서명이 있으면 즉시 알아챌 수 있게 한다. */
+  try {
+    await sendWorkspaceNotification({
+      memberId: Number(meUid),
+      sourceType: "event" as any,
+      sourceId: id,
+      notifType: "completed",
+      channel: "bell",
+      title: `${period} 급여명세서 수령 확인이 완료되었습니다`,
+      body: "서명본이 보관되었습니다. 언제든 다시 확인·다운로드할 수 있습니다.",
+      actionUrl: `/workspace-attendance.html#payroll-slip=${id}`,
+      category: "system",
+    });
+  } catch (err) { console.warn("[payroll-my-ack] 본인 인앱 알림 실패:", err); }
+
+  try {
+    await notifyPayrollAcknowledged({
+      memberId: Number(meUid),
+      memberName: String(me.name || signedName),
+      year: Number(slip.pay_year),
+      month: Number(slip.pay_month),
+      signedAt,
+      orgName,
+    });
+  } catch (err) { console.warn("[payroll-my-ack] 알림톡·문자 발송 실패:", err); }
 
   return jsonOk(
     { id, ackStatus: "ACKNOWLEDGED", ackAt: signedAt.toISOString(), signedDocumentSha256: signedDocSha },

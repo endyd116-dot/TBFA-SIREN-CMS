@@ -1975,6 +1975,8 @@
     const tbody = document.getElementById('rrListBody');
     tbody.innerHTML = '<tr><td colspan="6" class="att-empty">조회 중...</td></tr>';
 
+    loadRemotePending();   // 미제출 현황도 함께 갱신
+
     try {
       let qs = '?memberUid=' + encodeURIComponent(memberUid || '');
       if (startDate) qs += '&startDate=' + startDate;
@@ -1986,6 +1988,100 @@
       renderReportList(rows);
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + escHtml(e.message) + '</td></tr>';
+    }
+  }
+
+  /* ─── 미제출 현황 (기한 임박·경과) + 예외 인정 ───
+     2026-07-12: 재택보고서를 내지 않으면 그 날은 근무로 인정하지 않는다(재택일 +3일 마감).
+     관리자는 여기서 누가 언제까지 내야 하는지 보고, 사정이 있는 건은 예외 인정으로 근무를 되살린다. */
+  var RR_TONE = {
+    danger: { bg: '#fef2f2', bd: '#fecaca', fg: '#b91c1c' },
+    warn:   { bg: '#fffbeb', bd: '#fde68a', fg: '#b45309' },
+    info:   { bg: '#f0f9ff', bd: '#bae6fd', fg: '#0369a1' },
+    closed: { bg: '#f3f4f6', bd: '#d1d5db', fg: '#6b7280' },
+  };
+
+  async function loadRemotePending() {
+    const box = document.getElementById('rrPendingBox');
+    if (!box) return;
+    try {
+      const res = await apiThrow('/api/admin/att/remote-reports?pending=1');
+      const d = (res.data && res.data.data) || res.data || {};
+      const list = d.list || [];
+      if (list.length === 0) { box.style.display = 'none'; return; }
+
+      const row = function (x) {
+        const t = RR_TONE[x.badgeTone] || RR_TONE.info;
+        return '<tr>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-weight:600">' + escHtml(x.memberName) + '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9">' + escHtml(x.date) + '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#6b7280;font-size:12px">' + escHtml(x.deadline) + ' 자정</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9">' +
+            '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700;' +
+            'background:' + t.bg + ';border:1px solid ' + t.bd + ';color:' + t.fg + '">' + escHtml(x.badgeText) + '</span>' +
+            (x.hasDraft ? ' <span style="font-size:11px;color:#9ca3af">임시저장 있음</span>' : '') +
+          '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:center">' +
+            (x.closed
+              ? '<button type="button" class="rr-exempt" data-uid="' + escHtml(x.memberUid) + '" data-date="' + escHtml(x.date) + '" data-name="' + escHtml(x.memberName) + '" ' +
+                'style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">예외 인정</button>'
+              : '<span style="font-size:11.5px;color:#9ca3af">제출 대기</span>') +
+          '</td></tr>';
+      };
+
+      const closed = list.filter(function (x) { return x.closed; });
+      box.innerHTML =
+        '<div style="padding:14px 16px;border-radius:10px;background:#fff;border:1px solid ' + (closed.length ? '#fecaca' : '#e5e7eb') + '">' +
+          '<div style="font-size:13.5px;font-weight:700;color:#111827;margin-bottom:4px">' +
+            '재택보고서 미제출 현황 — 대기 ' + d.openCount + '건' +
+            (d.unrecognizedCount ? ' · <span style="color:#b91c1c">근무 불인정 ' + d.unrecognizedCount + '건</span>' : '') +
+          '</div>' +
+          '<div style="font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.6">' +
+            '재택일로부터 ' + (d.deadlineDays || 3) + '일 안에 보고서를 내지 않으면 그 날은 근무로 인정되지 않습니다(급여 산정 제외). ' +
+            '사정이 있으면 [예외 인정]으로 근무를 되살릴 수 있습니다.' +
+          '</div>' +
+          '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+            '<thead><tr style="background:#f9fafb">' +
+              '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280">직원</th>' +
+              '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280">재택일</th>' +
+              '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280">제출 마감</th>' +
+              '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280">상태</th>' +
+              '<th style="padding:7px 10px;text-align:center;font-size:12px;color:#6b7280">처리</th>' +
+            '</tr></thead><tbody>' + list.map(row).join('') + '</tbody></table>' +
+        '</div>';
+      box.style.display = 'block';
+
+      box.querySelectorAll('.rr-exempt').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          exemptRemoteDay(btn.dataset.uid, btn.dataset.date, btn.dataset.name);
+        });
+      });
+    } catch (e) {
+      box.style.display = 'none';
+      console.warn('[loadRemotePending]', e.message);
+    }
+  }
+
+  async function exemptRemoteDay(memberUid, date, memberName) {
+    const reason = prompt(
+      memberName + ' 님의 ' + date + ' 재택근무를 예외 인정합니다.\n\n' +
+      '보고서 미제출로 근무 불인정된 날을 다시 근무로 인정합니다.\n' +
+      '(급여 재집계 시 출근일에 다시 포함됩니다)\n\n' +
+      '인정 사유를 입력하세요 (기록에 남습니다):', '');
+    if (reason == null) return;
+    if (!String(reason).trim()) { toast('예외 인정 사유는 필수입니다'); return; }
+
+    try {
+      await apiThrow('/api/admin/att/remote-reports?action=exempt', {
+        method: 'POST',
+        body: { memberUid: memberUid, date: date, reason: String(reason).trim() },
+      });
+      toast('예외 인정 완료 — 급여 재집계 시 근무일에 다시 포함됩니다');
+      loadRemotePending();
+      const sel = document.getElementById('rrMemberSel');
+      if (sel) loadRemoteReports(sel.value);
+    } catch (e) {
+      toast('예외 인정 실패: ' + e.message);
     }
   }
 
@@ -2055,6 +2151,8 @@
   function initRemoteReportsTab() {
     window._awmRrInit = true;
     loadAttMemberList('rrMemberSel');
+    /* 직원을 고르지 않아도 미제출·불인정 현황은 바로 보여야 한다 (운영자가 놓치지 않게) */
+    loadRemotePending();
 
     // 기본 날짜: 이번 달 1일 ~ 오늘
     (function () {

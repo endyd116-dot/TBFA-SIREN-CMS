@@ -12,12 +12,17 @@ export interface BreakdownRow {
   method: string;
   amount: number;
   kind: "ADD" | "DEDUCT";
+  /** 비과세 지급 항목 (4대보험·소득세 산정에서 제외) */
+  taxFree?: boolean;
 }
 
 export interface PayrollBreakdown {
-  attendance: Array<{ label: string; value: string; hint?: string }>;
+  attendance: Array<{ label: string; value: string; hint?: string; warn?: boolean }>;
   earnings: BreakdownRow[];
   grossPay: number;
+  /** 4대보험·소득세를 매기는 기준 금액 = 세전 총액 − 비과세 지급액 */
+  taxableBase: number;
+  nonTaxableTotal: number;
   deductions: BreakdownRow[];
   totalDeduction: number;
   netPay: number;
@@ -31,6 +36,30 @@ export interface PayrollBreakdown {
 }
 
 const num = (v: any) => Number(v ?? 0) || 0;
+
+/** 조정 라인 목록 (형식이 어긋나도 안전하게) */
+function adjustmentsOf(slip: any): any[] {
+  const a = slip?.adjustments;
+  return Array.isArray(a) ? a : [];
+}
+
+/** 비과세로 지급한 금액 합계 (조정 라인 중 '비과세' 표시된 지급 항목).
+ *  taxable을 지정하지 않은 옛 데이터는 '과세'로 본다 — 공제를 덜 떼는 쪽으로 기울지 않게. */
+export function nonTaxableTotalOf(slip: any): number {
+  return adjustmentsOf(slip)
+    .filter(a => a?.kind !== "DEDUCT" && a?.taxable === false)
+    .reduce((s, a) => s + num(a?.amount), 0);
+}
+
+/**
+ * 과세 대상액 = 세전 총액 − 비과세 지급액.
+ * 4대보험·소득세는 반드시 이 금액을 기준으로 계산해야 명세서에 적는 계산방법과 실제 금액이 일치한다.
+ * (예: 차량유지비를 비과세로 30만원 지급했다면 그 30만원엔 보험료를 매기지 않는다)
+ */
+export function taxableBaseOf(slip: any, grossPay?: number): number {
+  const gross = grossPay != null ? num(grossPay) : num(slip?.grossPay ?? slip?.gross_pay);
+  return Math.max(0, gross - nonTaxableTotalOf(slip));
+}
 
 /** 0.03545 → "3.545%" */
 function pct(rate: any): string {
@@ -64,7 +93,7 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
   const paidDays          = derived.paidDays != null ? num(derived.paidDays) : workingDays + paidLeaveDays;
 
   /* ── 근태 근거 ── */
-  const attendance: Array<{ label: string; value: string; hint?: string }> = [
+  const attendance: Array<{ label: string; value: string; hint?: string; warn?: boolean }> = [
     { label: "출근 일수",   value: `${workingDays}일` },
     { label: "유급 휴가",   value: `${paidLeaveDays}일`, hint: "지급 대상에 포함" },
     { label: "지급 대상일", value: `${paidDays}일`,      hint: "출근일 + 유급휴가일" },
@@ -77,6 +106,16 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
   attendance.push({ label: "무급 휴가", value: `${unpaidLeaveDays}일` });
   attendance.push({ label: "지각",      value: `${num(slip.lateCount ?? slip.late_count)}회` });
   attendance.push({ label: "결근",      value: `${num(slip.absentCount ?? slip.absent_count)}회` });
+  /* 재택근무일에 보고서를 안 내면 그 날은 근무로 인정하지 않는다 (2026-07-01부터).
+     급여에서 빠진 날이므로 명세서에 반드시 드러나야 직원이 이유를 알 수 있다. */
+  const unreportedRemote = num(snap?.att?.unreportedRemoteDays);
+  if (unreportedRemote > 0) {
+    attendance.push({
+      label: "재택보고서 미제출", value: `${unreportedRemote}일`,
+      hint: "근무 불인정 — 출근일에서 제외됨 (보고서를 제출하면 다시 인정)",
+      warn: true,
+    });
+  }
   attendance.push({ label: "총 근무시간", value: hoursText(slip.workingMins ?? slip.working_mins) });
   attendance.push({ label: "만근 여부", value: (slip.perfectAttendance ?? slip.perfect_attendance) ? "예" : "아니오" });
 
@@ -124,32 +163,41 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
     earnings.push({ label: "무급 차감", method: "무급일수 차감", amount: unpaidCut, kind: "DEDUCT" });
   }
 
-  /* 관리자가 손으로 더하거나 뺀 조정 라인 — 사유를 그대로 계산근거로 보여준다 */
-  const adjRaw = slip.adjustments;
-  const adjList: any[] = Array.isArray(adjRaw) ? adjRaw : [];
-  for (const a of adjList) {
+  /* 관리자가 손으로 더하거나 뺀 조정 라인 (성과금·차량지원 등) — 사유를 그대로 계산근거로 보여준다.
+     비과세로 지정한 항목은 4대보험·소득세 산정에서 빠지므로 명세서에 그 사실을 표시한다. */
+  for (const a of adjustmentsOf(slip)) {
+    const isDeduct = a?.kind === "DEDUCT";
+    const taxFree = !isDeduct && a?.taxable === false;
     earnings.push({
-      label: `조정: ${String(a?.label ?? "").slice(0, 40) || "기타"}`,
-      method: String(a?.reason ?? "").slice(0, 80) || "관리자 조정",
+      label: String(a?.label ?? "").slice(0, 40) || "기타 조정",
+      method: (String(a?.reason ?? "").slice(0, 80) || "관리자 조정")
+        + (taxFree ? "  ·  비과세 (보험료·세금 산정 제외)" : ""),
       amount: num(a?.amount),
-      kind: a?.kind === "DEDUCT" ? "DEDUCT" : "ADD",
+      kind: isDeduct ? "DEDUCT" : "ADD",
+      taxFree,
     });
   }
 
-  /* ── 공제 항목 + 계산방법 ── */
+  /* ── 공제 항목 + 계산방법 ──
+     기준은 '세전 총액'이 아니라 '과세 대상액'(= 세전 − 비과세 지급액)이다.
+     비과세 항목이 없으면 둘이 같으므로 문구도 '세전 총액'으로 자연스럽게 나온다. */
   const grossPay = num(slip.grossPay ?? slip.gross_pay);
+  const nonTaxableTotal = nonTaxableTotalOf(slip);
+  const taxableBase = Math.max(0, grossPay - nonTaxableTotal);
+  const baseLabel = nonTaxableTotal > 0 ? `과세 대상액 ${won(taxableBase)}` : "세전 총액";
+
   const health   = num(slip.healthInsurance ?? slip.health_insurance);
   const incomeTx = num(slip.incomeTax ?? slip.income_tax);
 
   const deductions: BreakdownRow[] = [
     {
       label: "국민연금", kind: "DEDUCT",
-      method: settings.pensionRate != null ? `세전 총액 × ${pct(settings.pensionRate)}` : "세전 총액 기준 요율",
+      method: settings.pensionRate != null ? `${baseLabel} × ${pct(settings.pensionRate)}` : `${baseLabel} 기준 요율`,
       amount: num(slip.nationalPension ?? slip.national_pension),
     },
     {
       label: "건강보험", kind: "DEDUCT",
-      method: settings.healthRate != null ? `세전 총액 × ${pct(settings.healthRate)}` : "세전 총액 기준 요율",
+      method: settings.healthRate != null ? `${baseLabel} × ${pct(settings.healthRate)}` : `${baseLabel} 기준 요율`,
       amount: health,
     },
     {
@@ -159,12 +207,14 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
     },
     {
       label: "고용보험", kind: "DEDUCT",
-      method: settings.employmentRate != null ? `세전 총액 × ${pct(settings.employmentRate)}` : "세전 총액 기준 요율",
+      method: settings.employmentRate != null ? `${baseLabel} × ${pct(settings.employmentRate)}` : `${baseLabel} 기준 요율`,
       amount: num(slip.employmentInsurance ?? slip.employment_insurance),
     },
     {
       label: "소득세", kind: "DEDUCT",
-      method: settings.incomeTaxRate != null ? `세전 총액 × ${pct(settings.incomeTaxRate)}` : "간이세액표 기준",
+      method: settings.incomeTaxRate != null && num(settings.incomeTaxRate) > 0
+        ? `${baseLabel} × ${pct(settings.incomeTaxRate)}`
+        : "근로소득 간이세액표 기준",
       amount: incomeTx,
     },
     {
@@ -183,6 +233,8 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
     attendance,
     earnings,
     grossPay,
+    taxableBase,
+    nonTaxableTotal,
     deductions,
     totalDeduction: num(slip.totalDeduction ?? slip.total_deduction),
     netPay: num(slip.netPay ?? slip.net_pay),
