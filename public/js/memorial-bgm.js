@@ -1,6 +1,6 @@
 /* =========================================================
    온라인 추모관 — BGM 멀티트랙 플레이어 (공통)
-   - 우상단 고정 토글(🔇/🔊)
+   - 우상단 고정 토글(/)
    - 음소거 상태로 시작 (브라우저 자동재생 정책) · 클릭 시 재생
    - localStorage('memorial_bgm_muted') 로 설정 기억
    - 트랙 순환(한 곡 끝나면 다음 곡)
@@ -80,12 +80,12 @@
   function applyState() {
     if (!toggleBtn) return;
     if (muted) {
-      toggleBtn.textContent = '🔇';
+      toggleBtn.textContent = '';
       toggleBtn.setAttribute('aria-label', '추모 음악 켜기');
       toggleBtn.classList.remove('on');
       if (audio) audio.pause();
     } else {
-      toggleBtn.textContent = '🔊';
+      toggleBtn.textContent = '';
       toggleBtn.setAttribute('aria-label', '추모 음악 끄기');
       toggleBtn.classList.add('on');
       play();
@@ -144,7 +144,7 @@
     toggleBtn.type = 'button';
     toggleBtn.id = 'memorialBgmToggle';
     toggleBtn.className = 'memorial-bgm-toggle';
-    toggleBtn.textContent = '🔇';
+    toggleBtn.textContent = '';
     toggleBtn.style.display = 'none';   /* 트랙 확인 후 노출 */
     toggleBtn.addEventListener('click', toggle);
     document.body.appendChild(toggleBtn);

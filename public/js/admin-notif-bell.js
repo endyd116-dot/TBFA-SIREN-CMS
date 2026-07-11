@@ -4,7 +4,7 @@
     이동하지 말고 현재 화면 위에 작은 알림창. '전체보기'만 전체 페이지로.)
 
    동작:
-   - 우상단(세션 타이머 왼쪽) 🔔 + 미확인 배지 (workspace_notifications 통합 카운트, 60초)
+   - 우상단(세션 타이머 왼쪽) + 미확인 배지 (workspace_notifications 통합 카운트, 60초)
    - 클릭 → 현재 화면 위 작은 드롭다운(최근 8건). 항목 클릭 → 읽음 + 해당 링크 이동.
      하단 [모두 읽음] / [전체보기→/workspace-notifications.html]
    - 미인증(401/403) 시 조용히 숨김
@@ -60,7 +60,7 @@
       ].concat(common).join(';');
     }
     b.innerHTML =
-      '<span aria-hidden="true">🔔</span>' +
+      '<span aria-hidden="true"></span>' +
       '<span id="' + BADGE_ID + '" style="' +
         'display:none;background:#dc2626;color:#fff;font-size:11px;font-weight:700;' +
         'padding:1px 6px;border-radius:9px;line-height:1.4;min-width:18px;text-align:center' +

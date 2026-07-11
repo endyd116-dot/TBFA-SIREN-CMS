@@ -18,9 +18,9 @@
       ops: ["eq", "in"],
       valueType: "selectMulti",
       options: [
-        { value: "regular",  label: "🔁 정기 후원자" },
-        { value: "prospect", label: "💡 예비 후원자 (일시·중단)" },
-        { value: "none",     label: "🌱 미평가 (일반 회원)" },
+        { value: "regular",  label: "정기 후원자" },
+        { value: "prospect", label: "예비 후원자 (일시·중단)" },
+        { value: "none",     label: "미평가 (일반 회원)" },
       ],
     },
     donorChannels: {
@@ -620,9 +620,9 @@
 
     const warnArea = $("pmWarnArea");
     if (Array.isArray(warnings) && warnings.length) {
-      warnArea.innerHTML = warnings.map(w => `<div class="preview-warn">⚠ ${escapeHtml(w)}</div>`).join("");
+      warnArea.innerHTML = warnings.map(w => `<div class="preview-warn">${escapeHtml(w)}</div>`).join("");
     } else if (pv.memberCount === 0) {
-      warnArea.innerHTML = `<div class="preview-warn">⚠ 조건에 맞는 회원이 0명입니다. 조건을 다시 확인해 주세요.</div>`;
+      warnArea.innerHTML = `<div class="preview-warn">조건에 맞는 회원이 0명입니다. 조건을 다시 확인해 주세요.</div>`;
     } else {
       warnArea.innerHTML = "";
     }

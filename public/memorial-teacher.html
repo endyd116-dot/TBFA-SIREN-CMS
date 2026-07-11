@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>선생님을 기억합니다 | 온라인 추모관</title>
 <meta name="description" content="먼저 떠난 선생님 한 분의 이야기를 기억합니다. 촛불과 국화로, 그리고 기억의 편지로 마음을 전해주세요.">
 <meta property="og:title" content="선생님을 기억합니다 | 온라인 추모관">
@@ -154,7 +155,7 @@
   <main>
 
     <div id="mtNotFound" class="mt-notfound" style="display:none">
-      <span class="ic">🕊️</span>
+      <span class="ic"><span class="siren-icon-wrap" data-icon="dove"></span></span>
       <p>해당 추모 공간을 찾을 수 없습니다.</p>
       <p><a class="mt-back" href="/memorial.html">← 추모관으로 돌아가기</a></p>
     </div>
@@ -166,7 +167,7 @@
       <!-- 프로필 -->
       <section class="mt-profile">
         <div class="container">
-          <div class="mt-photo" id="mtPhoto"><div class="silhouette">👤</div></div>
+          <div class="mt-photo" id="mtPhoto"><div class="silhouette"><span class="siren-icon-wrap" data-icon="user"></span></div></div>
           <h1 class="mt-name" id="mtName"></h1>
           <p class="mt-region" id="mtRegion"></p>
           <p class="mt-dates" id="mtDates"></p>
@@ -198,11 +199,11 @@
           <div class="mt-offer-box">
             <div class="mt-offer-counts">밝혀진 촛불·국화 <b id="mtOfferTotal">0</b></div>
             <div class="mt-offer-types" id="mtOfferTypes">
-              <div class="mt-offer-type sel" data-type="candle"><span class="emoji">🕯️</span><span class="nm">촛불</span></div>
-              <div class="mt-offer-type" data-type="flower"><span class="emoji">🏵️</span><span class="nm">국화</span></div>
+              <div class="mt-offer-type sel" data-type="candle"><span class="emoji"><span class="siren-icon-wrap" data-icon="candle"></span></span><span class="nm">촛불</span></div>
+              <div class="mt-offer-type" data-type="flower"><span class="emoji"><span class="siren-icon-wrap" data-icon="ribbon"></span></span><span class="nm">국화</span></div>
             </div>
             <input type="text" id="mtOfferNick" maxlength="40" placeholder="닉네임 (선택)">
-            <button type="button" class="mt-btn-offer" id="mtOfferBtn">🕯️ 헌화하기</button>
+            <button type="button" class="mt-btn-offer" id="mtOfferBtn"><span class="siren-icon-wrap" data-icon="candle"></span> 헌화하기</button>
           </div>
         </div></div>
       </section>
@@ -244,7 +245,7 @@
       <section class="mt-actions">
         <div class="container">
           <div class="row">
-            <button type="button" class="mt-btn ghost" id="mtShareBtn">🔗 링크 복사</button>
+            <button type="button" class="mt-btn ghost" id="mtShareBtn"><span class="siren-icon-wrap" data-icon="link"></span> 링크 복사</button>
             <a href="#" class="mt-btn primary" data-action="open-modal" data-target="donateModal">후원하기</a>
           </div>
           <a class="mt-back" href="/memorial.html">← 추모관 전체 보기</a>
@@ -258,9 +259,9 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/memorial-teacher.js?v=3-r41b2"></script>
-  <script src="/js/memorial-bgm.js?v=2"></script>
+  <script src="/js/common.js?v=3-navicon"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/memorial-teacher.js?v=4-r41b2"></script>
+  <script src="/js/memorial-bgm.js?v=3"></script>
 </body>
 </html>

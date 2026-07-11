@@ -353,7 +353,7 @@
         try {
           const result = await uploadFile(file, uploadContext);
           const safeName = (result.originalName || 'file').replace(/[\[\]]/g, '');
-          editor.insertText(`\n[📎 ${safeName}](${result.url})\n`);
+          editor.insertText(`\n[${safeName}](${result.url})\n`);
           return result;
         } finally {
           el.classList.remove('siren-editor-uploading');

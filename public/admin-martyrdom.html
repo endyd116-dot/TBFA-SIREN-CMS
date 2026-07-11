@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>순직 인정 지원 | 관리자</title>
@@ -797,13 +798,13 @@ body {
 
 <!-- 상단바 -->
 <div class="topbar">
-  <h1>🕊️ 순직 인정 지원 시스템</h1>
+  <h1><span class="siren-icon-wrap" data-icon="dove"></span> 순직 인정 지원 시스템</h1>
   <div class="topbar-right">
-    <button class="topbar-btn" onclick="showDashboard()">📊 현황</button>
-    <button class="topbar-btn" onclick="showGlobalStats()">📈 통계</button>
-    <button class="topbar-btn" onclick="showGlobalPublications()">📚 발간</button>
-    <button class="topbar-btn" onclick="openCorpusModal()">🔎 사례·법령</button>
-    <button class="topbar-btn" onclick="openCriteriaMaster()">⚙️ 인정 요건</button>
+    <button class="topbar-btn" onclick="showDashboard()"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 현황</button>
+    <button class="topbar-btn" onclick="showGlobalStats()"><span class="siren-icon-wrap" data-icon="trending-up"></span> 통계</button>
+    <button class="topbar-btn" onclick="showGlobalPublications()"><span class="siren-icon-wrap" data-icon="book"></span> 발간</button>
+    <button class="topbar-btn" onclick="openCorpusModal()"><span class="siren-icon-wrap" data-icon="search"></span> 사례·법령</button>
+    <button class="topbar-btn" onclick="openCriteriaMaster()"><span class="siren-icon-wrap" data-icon="settings"></span> 인정 요건</button>
     <a href="/cms-tbfa.html" target="_top">← 관리자 홈</a>
   </div>
 </div>
@@ -834,7 +835,7 @@ body {
   <div class="detail-pane">
     <div id="detailPane">
       <div class="empty-detail">
-        <div class="empty-icon">🕊️</div>
+        <div class="empty-icon"><span class="siren-icon-wrap" data-icon="dove"></span></div>
         <div style="font-size:15px;font-weight:600;color:#475569">사건을 선택해주세요</div>
         <div style="font-size:13px;color:#94a3b8">왼쪽 목록에서 사건을 클릭하면 상세 내용이 표시됩니다</div>
       </div>
@@ -949,7 +950,7 @@ body {
 <div class="modal-overlay" id="consentModal">
   <div class="modal-box">
     <div class="modal-title">
-      <strong>🔏 유족 동의 기록</strong>
+      <strong><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 유족 동의 기록</strong>
       <button class="modal-close" onclick="closeConsentModal()">&times;</button>
     </div>
     <p style="font-size:12px;color:#64748b;margin:0 0 12px">고인·유족의 민감정보 활용에 대한 동의 사실을 최소한으로 기록합니다. (원본·데이터는 파기하지 않고 자산으로 축적)</p>
@@ -1045,7 +1046,7 @@ body {
 <div class="modal-overlay" id="corpusModal">
   <div class="modal-box" style="max-width:680px;width:95%">
     <div class="modal-title">
-      <strong>🔎 사례·법령 검색</strong>
+      <strong><span class="siren-icon-wrap" data-icon="search"></span> 사례·법령 검색</strong>
       <button class="modal-close" onclick="closeCorpusModal()">&times;</button>
     </div>
     <p style="font-size:12px;color:#64748b;margin:0 0 10px">과거 인정/불인정 사례와 법령·판례를 의미 검색합니다. (진행 중 사건 자료는 교차 노출되지 않습니다)</p>
@@ -1061,7 +1062,7 @@ body {
 <div class="modal-overlay" id="criteriaMasterModal">
   <div class="modal-box">
     <div class="modal-title">
-      <strong>⚙️ 인정 요건 마스터</strong>
+      <strong><span class="siren-icon-wrap" data-icon="settings"></span> 인정 요건 마스터</strong>
       <button class="modal-close" onclick="closeCriteriaMaster()">&times;</button>
     </div>
     <div class="cm-tools" id="criteriaMasterTools"></div>

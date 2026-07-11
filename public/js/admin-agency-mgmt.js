@@ -44,7 +44,7 @@
     $section.innerHTML = [
       '<div class="panel">',
       '  <div class="adm-page-header" style="margin-bottom:20px">',
-      '    <h2 class="serif" style="margin:0">🏛️ 외부 기관 관리</h2>',
+      '    <h2 class="serif" style="margin:0">외부 기관 관리</h2>',
       '    <button id="amgBtnAdd" class="btn-primary" style="margin-left:auto">+ 기관 등록</button>',
       '  </div>',
       '  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">',
@@ -183,7 +183,7 @@
     if (!agencies.length) {
       listEl.innerHTML = [
         '<div style="text-align:center;padding:60px 20px">',
-        '  <p style="font-size:36px;margin:0 0 12px">📭</p>',
+        '  <p style="font-size:36px;margin:0 0 12px"></p>',
         '  <p style="color:var(--text-3);margin:0 0 20px;font-size:14px">등록된 기관이 없습니다.</p>',
         '  <button id="amgBtnAddEmpty" class="btn-sm btn-sm-primary">+ 기관 등록</button>',
         '</div>'

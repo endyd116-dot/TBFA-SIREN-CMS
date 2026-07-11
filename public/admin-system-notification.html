@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>시스템 자동 발송 관리 | SIREN 어드민</title>
@@ -84,14 +85,14 @@
 
 <div class="wrap">
   <a href="/admin.html" class="back-link" onclick="window.location.href='/admin.html';return false;">← 어드민으로</a>
-  <h1>🔔 시스템 자동 발송 관리</h1>
+  <h1><span class="siren-icon-wrap" data-icon="bell"></span> 시스템 자동 발송 관리</h1>
   <p class="desc">
     회원에게 자동 발송되는 시스템 메시지(정기 결제 안내·카드 만료·자격 심사 결과 등)를 한 곳에서 관리합니다.<br/>
     각 이벤트의 본문을 편집하고, 채널(이메일·SMS·카카오·인앱)별 on/off를 토글할 수 있습니다.
   </p>
 
   <div class="alert">
-    📌 변경한 본문은 다음 자동 발송부터 적용됩니다. 변수(<code>{{name}}</code> 등)는 발송 시 실제 값으로 자동 치환됩니다.
+    <span class="siren-icon-wrap" data-icon="pin"></span> 변경한 본문은 다음 자동 발송부터 적용됩니다. 변수(<code>{{name}}</code> 등)는 발송 시 실제 값으로 자동 치환됩니다.
   </div>
 
   <div id="grid" class="grid">
@@ -108,7 +109,7 @@
     </div>
 
     <div class="forced-section" id="forcedSection">
-      <h3>⚠️ 강제 발송 채널 (회원 보호)</h3>
+      <h3><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 강제 발송 채널 (회원 보호)</h3>
       <p>이 채널은 결제 실패·카드 만료 등 회원 권리에 관련된 알림을 놓치지 않도록 항상 발송됩니다. 해제 시 회원이 결제 문제를 인지하지 못할 수 있습니다.</p>
       <div class="forced-checks" id="forcedChecks"></div>
     </div>
@@ -166,7 +167,7 @@ function render() {
       const isForced = forcedCh.includes(c);
       const cls = isForced ? "ch-chip forced" : (isDefault ? "ch-chip active" : "ch-chip");
       const label = { inapp: "인앱", email: "이메일", sms: "SMS", kakao: "카카오" }[c];
-      return `<span class="${cls}" title="${isForced ? '강제 발송' : (isDefault ? '활성' : '비활성')}">${label}${isForced ? ' 🔒' : ''}</span>`;
+      return `<span class="${cls}" title="${isForced ? '강제 발송' : (isDefault ? '활성' : '비활성')}">${label}${isForced ? ' ' : ''}</span>`;
     }).join("");
     return `
       <div class="card ${ev.isActive ? '' : 'disabled'}">
@@ -233,7 +234,7 @@ function buildForcedSection() {
 
 function buildTabs() {
   const tabs = ["email", "sms", "kakao", "inapp"];
-  const labels = { email: "이메일", sms: "SMS", kakao: "카카오 ⚠️", inapp: "인앱(벨)" };
+  const labels = { email: "이메일", sms: "SMS", kakao: "카카오 ", inapp: "인앱(벨)" };
   document.getElementById("tabs").innerHTML = tabs.map(t =>
     `<div class="tab ${t === _activeTab ? 'active' : ''}" onclick="switchTab('${t}')">${labels[t]}</div>`
   ).join("");
@@ -253,7 +254,7 @@ function buildPanel(ch) {
   const isDefault = tpl?.isDefault === true;
   const defaultBanner = isDefault ? `
     <div style="background:#eff6ff;border-left:4px solid #1e40af;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:0.8rem;color:#1e3a8a;">
-      💡 <b>현재 코드에서 발송 중인 본문입니다.</b> 아래 내용 그대로 발송되고 있으며, 수정하신 후 저장하면 DB로 옮겨져 이후 발송부터 적용됩니다. (수정 안 하시면 현재 코드 동작 그대로 유지)
+      <b>현재 코드에서 발송 중인 본문입니다.</b> 아래 내용 그대로 발송되고 있으며, 수정하신 후 저장하면 DB로 옮겨져 이후 발송부터 적용됩니다. (수정 안 하시면 현재 코드 동작 그대로 유지)
     </div>` : '';
   const emptyBanner = (!tpl) ? `
     <div style="background:#f8fafc;border-left:4px solid #94a3b8;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:0.8rem;color:#475569;">
@@ -262,7 +263,7 @@ function buildPanel(ch) {
 
   return `
     <div class="tab-panel ${ch === _activeTab ? 'active' : ''}" data-panel="${ch}">
-      ${isKakao ? '<div class="kakao-warn">⚠️ 카카오 알림톡은 카카오 비즈 채널에 사전 등록된 본문과 정확히 일치해야 발송됩니다. 본문 수정 시 카카오 콘솔에서 새 본문으로 템플릿 재심사를 신청해야 실제 발송됩니다.</div>' : ''}
+      ${isKakao ? '<div class="kakao-warn">카카오 알림톡은 카카오 비즈 채널에 사전 등록된 본문과 정확히 일치해야 발송됩니다. 본문 수정 시 카카오 콘솔에서 새 본문으로 템플릿 재심사를 신청해야 실제 발송됩니다.</div>' : ''}
       ${defaultBanner}
       ${emptyBanner}
       ${ch === 'email' ? `
@@ -307,7 +308,7 @@ async function saveEvent() {
   });
   if (r.ok) {
     const warns = r.data.warnings || [];
-    alert("저장 완료" + (warns.length > 0 ? "\n\n⚠️ " + warns.join("\n") : ""));
+    alert("저장 완료" + (warns.length > 0 ? "\n\n" + warns.join("\n") : ""));
     closeModal();
     load();
   } else {

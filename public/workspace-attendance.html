@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>근태관리 - SIREN 워크스페이스</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -39,37 +40,37 @@
   <div class="ws-sidebar-inner">
     <div class="quick-jump" data-quick-jump></div>
     <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
-      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-icon"><span class="siren-icon-wrap" data-icon="home"></span></span>
       <span class="ws-logo-text">허브</span>
     </a>
     <nav class="ws-sidebar-nav">
       <ul>
         <li class="ws-nav-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="true">
-            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
             <span class="ws-nav-text">워크스페이스</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul data-sidebar-submenu="workspace" aria-hidden="false">
-            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
-            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
-            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
-            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon">🎯</span><span class="ws-nav-text">로드맵</span></a></li>
-            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
-            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
-            <li id="wsNavMilestones"><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
-            <li><a href="/workspace-attendance.html" title="근태관리" style="background:#eef2ff;border-radius:6px;"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="calendar-days"></span></span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="target"></span></span><span class="ws-nav-text">로드맵</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="files"></span></span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="folder"></span></span><span class="ws-nav-text">파일함</span></a></li>
+            <li id="wsNavMilestones"><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="trophy"></span></span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리" style="background:#eef2ff;border-radius:6px;"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clock"></span></span><span class="ws-nav-text">근태관리</span></a></li>
           </ul>
         </li>
       </ul>
     </nav>
     <div class="ws-sidebar-user">
       <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
-        <span class="ws-user-avatar">👤</span>
+        <span class="ws-user-avatar"><span class="siren-icon-wrap" data-icon="user"></span></span>
         <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
       </a>
       <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
-        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="door-open"></span></span>
         <span class="ws-nav-text">로그아웃</span>
       </button>
     </div>
@@ -83,7 +84,7 @@
     <!-- 페이지 헤더 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
       <div>
-        <h2 style="font-size:20px;font-weight:700;margin:0">🕐 근태관리</h2>
+        <h2 style="font-size:20px;font-weight:700;margin:0"><span class="siren-icon-wrap" data-icon="clock"></span> 근태관리</h2>
         <div style="font-size:13px;color:#6b7280;margin-top:2px" id="attUserSubtitle">로딩 중...</div>
       </div>
     </div>
@@ -95,8 +96,8 @@
       <button class="att-tab" data-tab="stats">통계</button>
       <button class="att-tab" data-tab="leave">휴가</button>
       <button class="att-tab" data-tab="amend">수정 요청</button>
-      <button class="att-tab" data-tab="report">📝 재택보고서</button>
-      <button class="att-tab" data-tab="payroll">💰 급여명세서</button>
+      <button class="att-tab" data-tab="report"><span class="siren-icon-wrap" data-icon="file-pen"></span> 재택보고서</button>
+      <button class="att-tab" data-tab="payroll"><span class="siren-icon-wrap" data-icon="coins"></span> 급여명세서</button>
     </nav>
 
     <!-- ══════════ 탭 1: 출퇴근 ══════════ -->
@@ -108,7 +109,7 @@
           <span class="att-today-date" id="attTodayDate">—</span>
           <span class="att-today-day" id="attTodayDay"></span>
         </div>
-        <span class="att-mode-badge UNKNOWN" id="attModeBadge">⏳ 조회 중</span>
+        <span class="att-mode-badge UNKNOWN" id="attModeBadge"><span class="siren-icon-wrap" data-icon="hourglass"></span> 조회 중</span>
       </div>
 
       <!-- 출근/퇴근 버튼 영역 -->
@@ -118,13 +119,13 @@
         </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
           <button class="att-btn-checkin" id="attBtnCheckin" disabled>
-            🟢 출근
+            <span class="siren-icon-wrap" data-icon="circle-dot"></span> 출근
           </button>
           <button class="att-btn-checkout" id="attBtnCheckout" disabled style="display:none">
-            🔴 퇴근
+            <span class="siren-icon-wrap" data-icon="circle-dot"></span> 퇴근
           </button>
           <button class="att-btn-checkout" id="attBtnDoor" style="display:none;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe">
-            🚪 문 열기
+            <span class="siren-icon-wrap" data-icon="door-open"></span> 문 열기
           </button>
         </div>
         <div style="font-size:12px;color:#9ca3af;text-align:center" id="attGpsNote"></div>
@@ -138,7 +139,7 @@
       <!-- R36 A-1: 근무형태 변경 신청 버튼 -->
       <div style="margin-top:12px;text-align:right">
         <button type="button" id="attBtnWorkmodeChange" style="padding:8px 14px;background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;cursor:pointer">
-          🔄 근무형태 변경 신청
+          <span class="siren-icon-wrap" data-icon="refresh-cw"></span> 근무형태 변경 신청
         </button>
       </div>
 
@@ -150,11 +151,11 @@
             <label style="display:block;margin-bottom:6px;font-size:13px;color:#374151">희망 근무형태</label>
             <select id="wmChangeMode" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px">
               <option value="">선택</option>
-              <option value="OFFICE">🏢 사무실</option>
-              <option value="REMOTE">🏠 재택</option>
-              <option value="FIELD">🚗 외근</option>
-              <option value="BUSINESS_TRIP">✈️ 출장</option>
-              <option value="HYBRID">🔀 혼합</option>
+              <option value="OFFICE">사무실</option>
+              <option value="REMOTE">재택</option>
+              <option value="FIELD">외근</option>
+              <option value="BUSINESS_TRIP">출장</option>
+              <option value="HYBRID">혼합</option>
             </select>
           </div>
           <div style="margin-bottom:12px">
@@ -423,7 +424,7 @@
       <!-- AI 초안 버튼 -->
       <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <button class="att-btn att-btn-primary" id="attBtnAiDraft" style="background:#7c3aed;border:none">
-          ✨ AI 초안 생성
+          <span class="siren-icon-wrap" data-icon="sparkles"></span> AI 초안 생성
         </button>
         <span style="font-size:12px;color:#9ca3af">오늘의 WBS 카드와 최근 보고서를 참고해 초안을 생성합니다</span>
       </div>
@@ -443,27 +444,27 @@
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
         <button class="att-btn" id="attBtnSaveDraft"
           style="background:#f1f5f9;color:#374151;border:none;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer">
-          💾 임시저장
+          <span class="siren-icon-wrap" data-icon="save"></span> 임시저장
         </button>
         <button class="att-btn att-btn-primary" id="attBtnSubmitReport"
           style="background:#2563eb;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer">
-          📤 최종 제출
+          <span class="siren-icon-wrap" data-icon="upload"></span> 최종 제출
         </button>
         <button class="att-btn" id="attBtnEditReport"
           style="display:none;background:#eef2ff;color:#4338ca;border:none;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer">
-          ✏️ 수정
+          <span class="siren-icon-wrap" data-icon="pencil"></span> 수정
         </button>
         <span style="flex:1"></span>
         <button class="att-btn" id="attBtnDeleteReport"
           style="display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:9px 16px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer">
-          🗑 삭제
+          <span class="siren-icon-wrap" data-icon="trash"></span> 삭제
         </button>
       </div>
       <div style="font-size:12px;color:#9ca3af;margin-top:6px">임시저장 후 검토하고 최종 제출하세요. 제출 후에도 '수정'으로 다시 편집·재제출할 수 있습니다.</div>
 
       <!-- 지난 보고서 히스토리 -->
       <div class="att-section-header" style="margin-top:26px">
-        <span class="att-section-title">📋 지난 보고서</span>
+        <span class="att-section-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 지난 보고서</span>
         <button type="button" id="attBtnTodayReport"
           style="background:#f1f5f9;color:#374151;border:none;padding:6px 12px;border-radius:6px;font-size:12.5px;font-weight:500;cursor:pointer">＋ 오늘 보고서</button>
       </div>
@@ -476,7 +477,7 @@
     <!-- ══════════ 탭 7: 본인 급여명세서 (R37) ══════════ -->
     <div class="att-panel" id="attPanelPayroll">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-        <h3 style="font-size:15px;font-weight:700;margin:0">💰 내 급여명세서</h3>
+        <h3 style="font-size:15px;font-weight:700;margin:0"><span class="siren-icon-wrap" data-icon="coins"></span> 내 급여명세서</h3>
         <span style="flex:1"></span>
         <label style="font-size:12.5px;color:#4b5563;font-weight:600">연도</label>
         <select id="payrollYear" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"></select>
@@ -504,13 +505,13 @@
 <!-- KST 표시 헬퍼 -->
 <script src="/js/lib-kst.js?v=1"></script>
 <!-- 워크스페이스 공통 JS -->
-<script src="/js/workspace-common.js?v=20260707-footer"></script>
+<script src="/js/workspace-common.js?v=3-navicon"></script>
 <!-- 근태관리 JS -->
-<script src="/js/workspace-attendance.js?v=25-attfix"></script>
+<script src="/js/workspace-attendance.js?v=26-attfix"></script>
 <!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
 <script src="/js/workspace-payroll.js?v=20260520stage3"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
 <!-- 2026-05-20 fix: quick-jump 사이드바 메뉴 (워크스페이스 다른 페이지와 동일) -->
-<script src="/js/quick-jump.js?v=20260706-door" defer></script>
+<script src="/js/quick-jump.js?v=20260707-door" defer></script>
 </body>
 </html>

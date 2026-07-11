@@ -6,9 +6,9 @@
   'use strict';
 
   const STATUS_LABEL = {
-    pending: '⏳ 대기',
-    approved: '✅ 승인',
-    rejected: '❌ 반려',
+    pending: '대기',
+    approved: '승인',
+    rejected: '반려',
     all: '전체',
   };
 
@@ -52,13 +52,13 @@
     var rev = it.reviewer ? '<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">처리: ' + escapeHtml(it.reviewer.name || '-') + ' / ' + escapeHtml(fmtDate(it.reviewedAt)) + '</div>' : '';
     var note = it.adminNote ? '<div style="margin-top:6px;color:var(--text-2);font-size:12px;background:#f8fafc;border-left:3px solid #cbd5e1;padding:6px 8px;border-radius:4px">메모: ' + escapeHtml(it.adminNote) + '</div>' : '';
     var evidence = it.evidenceBlobId
-      ? '<a href="/api/blob-download?id=' + encodeURIComponent(it.evidenceBlobId) + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;color:var(--primary,#2563eb);font-size:12px;text-decoration:none">📎 증빙 다운로드</a>'
+      ? '<a href="/api/blob-download?id=' + encodeURIComponent(it.evidenceBlobId) + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;color:var(--primary,#2563eb);font-size:12px;text-decoration:none">증빙 다운로드</a>'
       : '<span style="color:var(--text-3);font-size:12px">파일 없음</span>';
     var actions = '';
     if (it.status === 'pending') {
       actions = '' +
-        '<button class="btn-sm btn-sm-primary" data-elig-act="approve" data-elig-id="' + it.id + '" type="button">✅ 승인</button> ' +
-        '<button class="btn-sm btn-sm-ghost" data-elig-act="reject" data-elig-id="' + it.id + '" type="button">❌ 반려</button>';
+        '<button class="btn-sm btn-sm-primary" data-elig-act="approve" data-elig-id="' + it.id + '" type="button">승인</button> ' +
+        '<button class="btn-sm btn-sm-ghost" data-elig-act="reject" data-elig-id="' + it.id + '" type="button">반려</button>';
     } else {
       actions = '<span style="color:var(--text-3);font-size:12px">' + (STATUS_LABEL[it.status] || it.status) + '</span>';
     }
@@ -90,13 +90,13 @@
     page.innerHTML = '' +
       '<div class="panel">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">' +
-          '<h3 style="margin:0">🎓 교원 자격 변경 심사</h3>' +
+          '<h3 style="margin:0">교원 자격 변경 심사</h3>' +
           '<div style="display:flex;gap:6px">' +
-            '<button class="btn-sm btn-sm-ghost" data-elig-tab="pending" type="button">⏳ 대기 <span id="eligCntPending" class="adm-badge" style="display:none">0</span></button>' +
-            '<button class="btn-sm btn-sm-ghost" data-elig-tab="approved" type="button">✅ 승인</button>' +
-            '<button class="btn-sm btn-sm-ghost" data-elig-tab="rejected" type="button">❌ 반려</button>' +
+            '<button class="btn-sm btn-sm-ghost" data-elig-tab="pending" type="button">대기 <span id="eligCntPending" class="adm-badge" style="display:none">0</span></button>' +
+            '<button class="btn-sm btn-sm-ghost" data-elig-tab="approved" type="button">승인</button>' +
+            '<button class="btn-sm btn-sm-ghost" data-elig-tab="rejected" type="button">반려</button>' +
             '<button class="btn-sm btn-sm-ghost" data-elig-tab="all" type="button">전체</button>' +
-            '<button class="btn-sm btn-sm-ghost" id="btnEligRefresh" type="button">🔄 새로고침</button>' +
+            '<button class="btn-sm btn-sm-ghost" id="btnEligRefresh" type="button">새로고침</button>' +
           '</div>' +
         '</div>' +
         '<table class="tbl">' +

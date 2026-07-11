@@ -10,23 +10,23 @@
   var _assignTarget  = null; /* { matchId, matchType } */
 
   var STATUS_LABEL = {
-    pending:   '⏳ 대기',
-    matched:   '✅ 배정',
-    active:    '💬 진행중',
-    closed:    '🔒 종료',
-    rejected:  '❌ 반려',
+    pending:   '대기',
+    matched:   '배정',
+    active:    '진행중',
+    closed:    '종료',
+    rejected:  '반려',
   };
 
   var MATCH_TYPE_LABEL = {
-    lawyer:    '⚖️ 변호사',
-    counselor: '💗 심리상담사',
+    lawyer:    '변호사',
+    counselor: '심리상담사',
   };
 
   var DOMAIN_LABEL = {
-    incident:  '🔍 사건 제보',
-    harassment:'⚠️ 악성민원',
-    legal:     '⚖️ 법률지원',
-    support:   '🤝 유족지원',
+    incident:  '사건 제보',
+    harassment:'악성민원',
+    legal:     '법률지원',
+    support:   '유족지원',
   };
 
   /* ─── 헬퍼 ─── */
@@ -77,15 +77,15 @@
     page.innerHTML = '' +
       '<div class="panel">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">' +
-          '<h3 style="margin:0">⚖️ 1:1 매칭 관리</h3>' +
+          '<h3 style="margin:0">1:1 매칭 관리</h3>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
             '<button class="btn-sm btn-sm-ghost" data-em-adm-tab="pending" type="button">' +
-              '⏳ 대기 <span id="emAdmCntPending" class="adm-badge" style="display:none">0</span>' +
+              '대기 <span id="emAdmCntPending" class="adm-badge" style="display:none">0</span>' +
             '</button>' +
-            '<button class="btn-sm btn-sm-ghost" data-em-adm-tab="active"  type="button">💬 진행중</button>' +
-            '<button class="btn-sm btn-sm-ghost" data-em-adm-tab="closed"  type="button">🔒 완료</button>' +
+            '<button class="btn-sm btn-sm-ghost" data-em-adm-tab="active"  type="button">진행중</button>' +
+            '<button class="btn-sm btn-sm-ghost" data-em-adm-tab="closed"  type="button">완료</button>' +
             '<button class="btn-sm btn-sm-ghost" data-em-adm-tab="all"     type="button">전체</button>' +
-            '<button class="btn-sm btn-sm-ghost" id="btnEmAdmRefresh"      type="button">🔄 새로고침</button>' +
+            '<button class="btn-sm btn-sm-ghost" id="btnEmAdmRefresh"      type="button">새로고침</button>' +
           '</div>' +
         '</div>' +
         '<table class="tbl">' +
@@ -114,7 +114,7 @@
              'box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">' +
           '<div style="padding:16px 22px;background:var(--ink);color:#fff;' +
                'display:flex;justify-content:space-between;align-items:center">' +
-            '<div style="font-weight:700;font-size:15px">⚖️ 전문가 배정</div>' +
+            '<div style="font-weight:700;font-size:15px">전문가 배정</div>' +
             '<button id="btnEmModalClose" style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>' +
           '</div>' +
           '<div style="padding:20px 24px">' +
@@ -278,7 +278,7 @@
     /* 전문가 목록 조회: GET /api/admin/experts-for-match?type=lawyer|counselor */
     var sel = document.getElementById('emExpertSelect');
     if (sel) {
-      sel.innerHTML = '<option value="">⏳ 전문가 목록 불러오는 중...</option>';
+      sel.innerHTML = '<option value="">전문가 목록 불러오는 중...</option>';
       sel.disabled = true;
     }
 
@@ -401,7 +401,7 @@
       tmp.innerHTML =
         '<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">' +
           '<div style="padding:16px 22px;background:var(--ink);color:#fff;display:flex;justify-content:space-between;align-items:center">' +
-            '<div style="font-weight:700;font-size:15px">⚖️ 전문가 직접 배정</div>' +
+            '<div style="font-weight:700;font-size:15px">전문가 직접 배정</div>' +
             '<button id="btnEmDirectClose" style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>' +
           '</div>' +
           '<div style="padding:20px 24px">' +
@@ -409,8 +409,8 @@
             '<div class="fg">' +
               '<label>상담 유형 <span style="color:var(--danger)">*</span></label>' +
               '<select id="emDirectTypeSelect">' +
-                '<option value="lawyer">⚖️ 변호사</option>' +
-                '<option value="counselor">💗 심리상담사</option>' +
+                '<option value="lawyer">변호사</option>' +
+                '<option value="counselor">심리상담사</option>' +
               '</select>' +
             '</div>' +
             '<div class="fg" style="margin-top:12px">' +
@@ -455,7 +455,7 @@
     }
     var sel = document.getElementById('emExpertSelect');
     if (sel) {
-      sel.innerHTML = '<option value="">⏳ 전문가 목록 불러오는 중...</option>';
+      sel.innerHTML = '<option value="">전문가 목록 불러오는 중...</option>';
       sel.disabled = true;
     }
     var r = await api('/api/admin/experts-for-match?type=' + encodeURIComponent(defaultMatchType || 'counselor'));
@@ -492,7 +492,7 @@
     var sel = document.getElementById('emDirectExpertSelect');
     if (!sel) return;
     sel.disabled = true;
-    sel.innerHTML = '<option value="">⏳ 목록 불러오는 중...</option>';
+    sel.innerHTML = '<option value="">목록 불러오는 중...</option>';
     var r = await api('/api/admin/experts-for-match?type=' + encodeURIComponent(matchType || 'counselor'));
     sel.disabled = false;
     var experts = (r.ok && ((r.data && r.data.experts) || (r.data && r.data.data && r.data.data.experts))) || [];

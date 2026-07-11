@@ -61,7 +61,7 @@
       const json = await res.json();
 
       if (!res.ok || !json.ok) {
-        container.innerHTML = `<div class="board-empty"><div class="icon">⚠️</div>목록을 불러오지 못했습니다</div>`;
+        container.innerHTML = `<div class="board-empty"><div class="icon"></div>목록을 불러오지 못했습니다</div>`;
         return;
       }
 
@@ -72,9 +72,9 @@
       if (!list.length) {
         container.innerHTML = `
           <div class="board-empty">
-            <div class="icon">📭</div>
+            <div class="icon"></div>
             ${_listState.q ? '검색 결과가 없습니다' : (_listState.category ? '해당 카테고리에 게시글이 없습니다' : '아직 게시글이 없습니다')}
-            <div style="margin-top:14px"><a href="/board-write.html" class="board-write-btn">✏️ 첫 글 작성하기</a></div>
+            <div style="margin-top:14px"><a href="/board-write.html" class="board-write-btn">첫 글 작성하기</a></div>
           </div>`;
         document.getElementById('boardPagination').style.display = 'none';
         return;
@@ -106,7 +106,7 @@
             <td class="col-author">${escapeHtml(p.authorName)}</td>
             <td class="col-date">${fmtDate(p.createdAt)}</td>
             <td class="col-views">${(p.views || 0).toLocaleString()}</td>
-            <td class="col-comments">${p.commentCount > 0 ? `<span class="board-comment-count">💬 ${p.commentCount}</span>` : '—'}</td>
+            <td class="col-comments">${p.commentCount > 0 ? `<span class="board-comment-count">${p.commentCount}</span>` : '—'}</td>
           </tr>
         `;
       });
@@ -125,7 +125,7 @@
       renderPagination();
     } catch (e) {
       console.error('[board-list]', e);
-      container.innerHTML = `<div class="board-empty"><div class="icon">⚠️</div>네트워크 오류</div>`;
+      container.innerHTML = `<div class="board-empty"><div class="icon"></div>네트워크 오류</div>`;
     }
   }
 
@@ -219,7 +219,7 @@
       if (!res.ok || !json.ok) {
         container.innerHTML = `
           <div class="board-empty">
-            <div class="icon">⚠️</div>
+            <div class="icon"></div>
             ${escapeHtml(json.error || '게시글을 찾을 수 없습니다')}
             <div style="margin-top:14px"><a href="/board.html" class="board-write-btn">목록으로</a></div>
           </div>`;
@@ -235,18 +235,18 @@
       /* 본문 */
       let attachHtml = '';
       if (post.attachments && post.attachments.length) {
-        attachHtml = '<div class="board-view-attachments"><h4>📎 첨부 파일</h4><ul style="list-style:none;padding:0;margin:0">' +
+        attachHtml = '<div class="board-view-attachments"><h4>첨부 파일</h4><ul style="list-style:none;padding:0;margin:0">' +
           post.attachments.map((a) => `
             <li style="padding:6px 0;font-size:13px;display:flex;align-items:center;gap:8px">
               <span>${escapeHtml(a.originalName)}</span>
-              <a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ 다운로드</a>
+              <a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">다운로드</a>
             </li>
           `).join('') + '</ul></div>';
       }
 
       const isOwner = !!post.isOwner;
-      const editBtn = isOwner ? `<a href="/board-write.html?id=${post.id}" class="btn-edit">✏️ 수정</a>` : '';
-      const deleteBtn = isOwner ? `<button type="button" class="btn-delete" id="btnBoardDelete">🗑 삭제</button>` : '';
+      const editBtn = isOwner ? `<a href="/board-write.html?id=${post.id}" class="btn-edit">수정</a>` : '';
+      const deleteBtn = isOwner ? `<button type="button" class="btn-delete" id="btnBoardDelete">삭제</button>` : '';
 
       container.innerHTML = `
         <div class="board-view">
@@ -254,11 +254,11 @@
             <span class="board-view-cat board-cat-badge ${escapeHtml(post.category)}">${escapeHtml(categoryLabel(post.category))}</span>
             <h2 class="board-view-title">${escapeHtml(post.title)}</h2>
             <div class="board-view-meta">
-              <span>👤 ${escapeHtml(post.authorName)}</span>
-              <span>📅 ${fmtDateTime(post.createdAt)}</span>
-              <span>👁 ${(post.views || 0).toLocaleString()}</span>
-              <span>💬 ${post.commentCount || 0}</span>
-              <span>🆔 ${escapeHtml(post.postNo)}</span>
+              <span>${escapeHtml(post.authorName)}</span>
+              <span>${fmtDateTime(post.createdAt)}</span>
+              <span>${(post.views || 0).toLocaleString()}</span>
+              <span>${post.commentCount || 0}</span>
+              <span>${escapeHtml(post.postNo)}</span>
             </div>
           </div>
           <!-- Q2-049: contentHtml은 서버 측 경량 sanitize 적용됨(작성/수정 시 script·on이벤트·javascript: 제거) -->
@@ -266,7 +266,7 @@
           ${attachHtml}
           <div class="board-view-actions">
             <div class="left">
-              <a href="/board.html" class="btn-list">📋 목록</a>
+              <a href="/board.html" class="btn-list">목록</a>
             </div>
             <div class="right">
               ${editBtn}
@@ -288,7 +288,7 @@
 
     } catch (e) {
       console.error('[board-view]', e);
-      container.innerHTML = `<div class="board-empty"><div class="icon">⚠️</div>네트워크 오류</div>`;
+      container.innerHTML = `<div class="board-empty"><div class="icon"></div>네트워크 오류</div>`;
     }
   }
 
@@ -299,7 +299,7 @@
 
     let html = `
       <div class="board-comments">
-        <div class="board-comments-header">💬 댓글 ${comments.length}개</div>
+        <div class="board-comments-header">댓글 ${comments.length}개</div>
     `;
 
     if (isLoggedIn) {
@@ -331,7 +331,7 @@
         html += `
           <li class="board-comment-item" data-cmt-id="${c.id}">
             <div class="board-comment-meta">
-              <span class="author">👤 ${escapeHtml(c.authorName)}</span>
+              <span class="author">${escapeHtml(c.authorName)}</span>
               <span>
                 <span class="date">${fmtDateTime(c.createdAt)}</span>
                 ${delBtn}
@@ -487,7 +487,7 @@
     btn.type = 'button';
     btn.id = 'btnBoardSubscribe';
     btn.className = 'board-subscribe-btn' + (subscribed ? ' subscribed' : '');
-    btn.textContent = subscribed ? '🔔 구독 중' : '🔕 구독하기';
+    btn.textContent = subscribed ? '구독 중' : '구독하기';
     btn.title = subscribed ? '새 댓글 알림 수신 중 (클릭하면 해제)' : '새 댓글 알림 받기';
     btn.addEventListener('click', () => toggleSubscribe(postId, btn));
     leftDiv.appendChild(btn);
@@ -517,7 +517,7 @@
       }
       const nowSubscribed = !isSubscribed;
       btn.classList.toggle('subscribed', nowSubscribed);
-      btn.textContent = nowSubscribed ? '🔔 구독 중' : '🔕 구독하기';
+      btn.textContent = nowSubscribed ? '구독 중' : '구독하기';
       btn.title = nowSubscribed ? '새 댓글 알림 수신 중 (클릭하면 해제)' : '새 댓글 알림 받기';
       window.SIREN.toast(nowSubscribed ? '구독이 시작되었습니다. 새 댓글 알림을 받습니다.' : '구독을 해제했습니다.');
     } catch (e) {

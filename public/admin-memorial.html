@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>온라인 추모관 운영 | 어드민</title>
@@ -84,15 +85,15 @@ tr:last-child td { border-bottom:none; }
 <body>
 
 <div class="tabs">
-  <div class="tab active" data-tab="teachers" onclick="switchTab('teachers')">👨‍🏫 선생님 관리</div>
-  <div class="tab" data-tab="moderation" onclick="switchTab('moderation')">🛡️ 메시지·편지 모더레이션</div>
-  <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ 추모관 설정</div>
+  <div class="tab active" data-tab="teachers" onclick="switchTab('teachers')"><span class="siren-icon-wrap" data-icon="user"></span> 선생님 관리</div>
+  <div class="tab" data-tab="moderation" onclick="switchTab('moderation')"><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</div>
+  <div class="tab" data-tab="settings" onclick="switchTab('settings')"><span class="siren-icon-wrap" data-icon="settings"></span> 추모관 설정</div>
 </div>
 
 <!-- ===== 1. 선생님 관리 ===== -->
 <div class="tab-panel active" id="panel-teachers">
   <div class="page-hd">
-    <h2>👨‍🏫 선생님 관리</h2>
+    <h2><span class="siren-icon-wrap" data-icon="user"></span> 선생님 관리</h2>
     <button class="btn btn-primary" onclick="openAddTeacher()">+ 선생님 추가</button>
   </div>
 
@@ -112,7 +113,7 @@ tr:last-child td { border-bottom:none; }
     <div class="form-row">
       <label>영정 사진</label>
       <div class="photo-up">
-        <div id="photoPreviewWrap"><div class="photo-preview-empty" id="photoEmpty">👤</div></div>
+        <div id="photoPreviewWrap"><div class="photo-preview-empty" id="photoEmpty"><span class="siren-icon-wrap" data-icon="user"></span></div></div>
         <div>
           <input type="file" id="fPhotoFile" accept="image/*" onchange="uploadPhoto()">
           <input type="hidden" id="fPhotoBlobId">
@@ -187,14 +188,14 @@ tr:last-child td { border-bottom:none; }
 
 <!-- ===== 2. 모더레이션 ===== -->
 <div class="tab-panel" id="panel-moderation">
-  <div class="page-hd"><h2>🛡️ 메시지·편지 모더레이션</h2></div>
+  <div class="page-hd"><h2><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</h2></div>
   <div class="mod-filter">
-    <div class="chip active" data-type="message" onclick="switchModType('message')">💬 추모 메시지</div>
-    <div class="chip" data-type="letter" onclick="switchModType('letter')">✉️ 기억의 편지</div>
+    <div class="chip active" data-type="message" onclick="switchModType('message')"><span class="siren-icon-wrap" data-icon="message-circle"></span> 추모 메시지</div>
+    <div class="chip" data-type="letter" onclick="switchModType('letter')"><span class="siren-icon-wrap" data-icon="mail"></span> 기억의 편지</div>
   </div>
   <div class="mod-filter">
-    <div class="chip active" data-sort="report" onclick="switchModSort('report')">🚩 신고순</div>
-    <div class="chip" data-sort="recent" onclick="switchModSort('recent')">🆕 최신순(미검토)</div>
+    <div class="chip active" data-sort="report" onclick="switchModSort('report')"><span class="siren-icon-wrap" data-icon="flag"></span> 신고순</div>
+    <div class="chip" data-sort="recent" onclick="switchModSort('recent')"><span class="siren-icon-wrap" data-icon="sparkles"></span> 최신순(미검토)</div>
   </div>
   <div class="tbl-wrap">
     <table>
@@ -208,7 +209,7 @@ tr:last-child td { border-bottom:none; }
 
 <!-- ===== 3. 추모관 설정 ===== -->
 <div class="tab-panel" id="panel-settings">
-  <div class="page-hd"><h2>⚙️ 추모관 설정</h2></div>
+  <div class="page-hd"><h2><span class="siren-icon-wrap" data-icon="settings"></span> 추모관 설정</h2></div>
   <div class="form-panel">
     <div class="form-row">
       <label>히어로 유튜브 영상 ID</label>
@@ -237,6 +238,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=2-r41b2"></script>
+<script src="/js/admin-memorial.js?v=4-r41b2"></script>
 </body>
 </html>

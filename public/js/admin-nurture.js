@@ -3,7 +3,7 @@
   'use strict';
   var API = '/api/admin-nurture';
   var STATE = null;
-  var CHANNELS = [['sms', '💬 문자'], ['kakao', '📨 알림톡(승인필요)'], ['email', '📧 메일'], ['inapp', '🔔 앱']];
+  var CHANNELS = [['sms', '문자'], ['kakao', '알림톡(승인필요)'], ['email', '메일'], ['inapp', '앱']];
   var CADENCES = [['monthly', '매월'], ['quarterly', '분기'], ['anniversary', '기념일'], ['yearend', '연말']];
   var TAB_SEG = { regular: ['regular'], prospect: ['prospect_onetime', 'prospect_cancelled'], potential: ['potential'] };
   var curTab = 'regular';
@@ -57,14 +57,14 @@
     h += '<div class="jhead"><div><div class="jname">' + esc(j.name) + '</div>';
     h += '<div class="kpi">활성 <b>' + (k.activeCount || 0) + '</b>명 · 전환 <b>' + (k.convertedCount || 0) + '</b>명 · 누적발송 <b>' + (k.sentCount || 0) + '</b>건</div></div>';
     h += '<div class="toggle" data-act="toggle"><span>' + (j.isActive ? '발송 ON' : '발송 OFF') + '</span><div class="switch ' + (j.isActive ? 'on' : '') + '"><i></i></div></div></div>';
-    if (!j.isActive) h += '<div class="off-note">⚠ 현재 OFF — 단계를 검토·테스트한 뒤 켜면 매일 자동 발송됩니다.</div>';
-    h += '<div class="sec-title">📅 타임라인 (D0~D365) <span class="hint">문자/카톡이 1차, 메일은 보조 · 사진 넣으면 자동 MMS</span></div>';
+    if (!j.isActive) h += '<div class="off-note">현재 OFF — 단계를 검토·테스트한 뒤 켜면 매일 자동 발송됩니다.</div>';
+    h += '<div class="sec-title">타임라인 (D0~D365) <span class="hint">문자/카톡이 1차, 메일은 보조 · 사진 넣으면 자동 MMS</span></div>';
     h += '<div class="cards">'; steps.forEach(function (s) { h += stepCard(j.id, s); }); h += '</div>';
     h += '<button class="btn add-step" data-act="addStep" data-jid="' + j.id + '">＋ 단계 추가</button>';
-    h += '<div class="sec-title">🔁 D365 이후 영구 규칙</div>';
+    h += '<div class="sec-title">D365 이후 영구 규칙</div>';
     h += '<div class="cards">'; evs.forEach(function (e) { h += evCard(j.id, e); }); h += '</div>';
     h += '<button class="btn add-ev" data-act="addEv" data-jid="' + j.id + '">＋ 영구 규칙 추가</button>';
-    h += '<div class="foot"><button class="btn btn-p" data-act="preview">👁 오늘 발송 미리보기</button></div>';
+    h += '<div class="foot"><button class="btn btn-p" data-act="preview">오늘 발송 미리보기</button></div>';
     h += '</div>';
     return h;
   }
@@ -79,7 +79,7 @@
     h += '<div class="sc-preview" data-prev>' + previewText(body) + '</div>';
     h += '<div class="sc-img" data-img="' + attr(img) + '">';
     h += '<div class="sc-thumb">' + (img ? '<img src="' + attr(img) + '">' : '<span class="hint">사진 없음</span>') + '</div>';
-    h += '<label class="btn btn-sm">🖼 사진 첨부<input type="file" accept="image/*" class="f-file" hidden></label>';
+    h += '<label class="btn btn-sm">사진 첨부<input type="file" accept="image/*" class="f-file" hidden></label>';
     h += img ? '<button class="btn btn-sm btn-del" data-act="imgDel">사진 제거</button>' : '';
     h += '<span class="img-status hint"></span></div>';
     return h;
@@ -94,7 +94,7 @@
     h += bodyBlock(s ? s.templateId : '', ch);
     h += '<div class="sc-grid"><div class="sc-f sc-grow"><label>보조 메일(선택)</label><select class="f-emailtpl">' + tplOptions(s ? s.emailTemplateId : '', 'email') + '</select></div></div>';
     h += '<div class="sc-actions"><button class="btn btn-sm btn-p" data-act="saveStep">' + (s ? '저장' : '추가') + '</button>';
-    h += s ? '<button class="btn btn-sm" data-act="testStep">✉ 테스트</button><button class="btn btn-sm btn-del" data-act="delStep">삭제</button>' : '<button class="btn btn-sm" data-act="cancelNew">취소</button>';
+    h += s ? '<button class="btn btn-sm" data-act="testStep">테스트</button><button class="btn btn-sm btn-del" data-act="delStep">삭제</button>' : '<button class="btn btn-sm" data-act="cancelNew">취소</button>';
     h += '</div></div>';
     return h;
   }
@@ -217,9 +217,9 @@
       (d.funnel || []).forEach(function (f) { fm[f.journeyId] = f; });
       (d.sentByJourney || []).forEach(function (s) { sm[s.journeyId] = s.sent; });
       (d.channelTotals || []).forEach(function (c) { ch[c.channel] = c.cnt; });
-      var h = '<div class="jcard"><div class="jname">📈 전체 발송</div>';
+      var h = '<div class="jcard"><div class="jname">전체 발송</div>';
       h += '<div class="kpi" style="font-size:14px;margin-top:6px">최근 7일 <b>' + (rec.d7 || 0) + '</b>건 · 30일 <b>' + (rec.d30 || 0) + '</b>건 · 누적 <b>' + (rec.total || 0) + '</b>건</div>';
-      h += '<div class="kpi" style="margin-top:8px">채널: 💬 문자 <b>' + (ch.sms || 0) + '</b> · 📨 카톡 <b>' + (ch.kakao || 0) + '</b> · 📧 메일 <b>' + (ch.email || 0) + '</b> · 🔔 앱 <b>' + (ch.inapp || 0) + '</b></div>';
+      h += '<div class="kpi" style="margin-top:8px">채널: 문자 <b>' + (ch.sms || 0) + '</b> · 카톡 <b>' + (ch.kakao || 0) + '</b> · 메일 <b>' + (ch.email || 0) + '</b> · 앱 <b>' + (ch.inapp || 0) + '</b></div>';
       var et = d.emailTracking || {}; var or = et.sent ? Math.round((et.opens || 0) * 1000 / et.sent) / 10 : 0; var cr = et.sent ? Math.round((et.clicks || 0) * 1000 / et.sent) / 10 : 0;
       h += '<div class="kpi" style="margin-top:6px">보조 메일 추적: 발송 <b>' + (et.sent || 0) + '</b> · 오픈 <b>' + (et.opens || 0) + '</b> (' + or + '%) · 클릭 <b>' + (et.clicks || 0) + '</b> (' + cr + '%)</div></div>';
       (d.journeys || []).forEach(function (j) {

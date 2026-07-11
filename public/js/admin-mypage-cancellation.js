@@ -9,15 +9,15 @@
   const FIELDS = [
     {
       key: 'mypage.cancellationGuide.modalTitle',
-      label: '📌 모달 제목',
+      label: '모달 제목',
       type: 'text',
-      hint: '안내 모달 상단에 표시되는 제목 (예: 🎗 정기 후원 해지 안내)',
+      hint: '안내 모달 상단에 표시되는 제목 (예: 정기 후원 해지 안내)',
       rows: 1,
       maxLength: 100,
     },
     {
       key: 'mypage.cancellationGuide.greeting',
-      label: '🙏 1. 인사말',
+      label: '1. 인사말',
       type: 'textarea',
       hint: '회원에게 전하는 감사 인사. 줄바꿈 가능. 정중하고 따뜻한 어조 권장',
       rows: 4,
@@ -25,15 +25,15 @@
     },
     {
       key: 'mypage.cancellationGuide.procedure',
-      label: '📋 2. 해지 절차',
+      label: '2. 해지 절차',
       type: 'textarea',
-      hint: '단계별 해지 방법. ▶ 또는 1) 2) 3) 같은 마커 사용 권장',
+      hint: '단계별 해지 방법. 또는 1) 2) 3) 같은 마커 사용 권장',
       rows: 6,
       maxLength: 1500,
     },
     {
       key: 'mypage.cancellationGuide.warnings',
-      label: '⚠️ 3. 주의사항 / 안내',
+      label: '3. 주의사항 / 안내',
       type: 'textarea',
       hint: '해지 시 발생하는 영향 안내. • (불릿) 마커 권장. 영수증 발급, 효성 CMS 등 특수 케이스 포함',
       rows: 8,
@@ -41,7 +41,7 @@
     },
     {
       key: 'mypage.cancellationGuide.contactInfo',
-      label: '💬 4. 문의처',
+      label: '4. 문의처',
       type: 'textarea',
       hint: '해지 외 다른 옵션(일시중단/금액변경 등)이 있다면 안내. 1:1 상담 / 이메일 등',
       rows: 5,
@@ -149,24 +149,24 @@
       </style>
 
       <div class="mc-wrap">
-        <h2 class="mc-section-title">🎗 정기 후원 해지 안내 편집</h2>
+        <h2 class="mc-section-title">정기 후원 해지 안내 편집</h2>
         <p class="mc-section-desc">
           마이페이지 → 후원 내역 → "정기 후원 해지 안내" 버튼을 누르면 표시되는 모달의 5개 영역을 편집합니다.<br />
-          각 항목은 별도로 임시저장(Draft)되며, 우측 상단의 <strong>🚀 모든 변경사항 배포</strong>를 누르면 일괄 반영됩니다.
+          각 항목은 별도로 임시저장(Draft)되며, 우측 상단의 <strong>모든 변경사항 배포</strong>를 누르면 일괄 반영됩니다.
         </p>
 
         <div class="mc-info-box">
-          💡 <strong>편집 가이드</strong><br />
+          <strong>편집 가이드</strong><br />
           • 이 안내는 <strong>회원이 정기 후원을 해지하기 직전에</strong> 보는 화면입니다 — 정중하고 명확한 어조로 작성해 주세요<br />
-          • 줄바꿈은 그대로 보존되며, 이모지·특수문자(▶, •, ✓ 등)도 자유롭게 사용 가능합니다<br />
-          • 실제 해지는 모달 닫은 뒤 정기 후원 카드의 "🛑 해지하기" 버튼으로 진행됩니다 (이 모달은 안내 전용)
+          • 줄바꿈은 그대로 보존되며, 이모지·특수문자(, •, ✓ 등)도 자유롭게 사용 가능합니다<br />
+          • 실제 해지는 모달 닫은 뒤 정기 후원 카드의 "해지하기" 버튼으로 진행됩니다 (이 모달은 안내 전용)
         </div>
 
         ${fieldsHtml}
 
         <div class="mc-save-bar">
-          <button type="button" class="mc-btn-mini" id="mcReloadBtn">🔄 처음부터 다시 불러오기</button>
-          <button type="button" class="mc-btn-save" id="mcSaveBtn">💾 변경사항 모두 임시저장</button>
+          <button type="button" class="mc-btn-mini" id="mcReloadBtn">처음부터 다시 불러오기</button>
+          <button type="button" class="mc-btn-save" id="mcSaveBtn">변경사항 모두 임시저장</button>
         </div>
       </div>
     `;
@@ -190,7 +190,7 @@
   function renderField(fld) {
     const setting = _settingsMap[fld.key];
     const value = getCurrentText(setting);
-    const draftBadge = setting?.hasDraft ? '<span class="mc-badge">📝 Draft</span>' : '';
+    const draftBadge = setting?.hasDraft ? '<span class="mc-badge">Draft</span>' : '';
     const hintHtml = fld.hint ? `<div class="mc-hint">${escapeHtml(fld.hint)}</div>` : '';
     const counterHtml = fld.maxLength
       ? `<div class="mc-counter" data-mc-counter="${escapeHtml(fld.key)}" data-mc-max="${fld.maxLength}">0 / ${fld.maxLength}</div>`
@@ -244,7 +244,7 @@
     });
 
     if (updates.length === 0) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
       toast('변경된 항목이 없습니다');
       return;
     }
@@ -259,8 +259,8 @@
       else { failCount++; console.warn('[mypage-cancellation]', u.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
-    if (failCount === 0) toast(`${okCount}건 임시저장 완료 — 우측 상단 🚀 배포 버튼으로 운영 반영`);
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
+    if (failCount === 0) toast(`${okCount}건 임시저장 완료 — 우측 상단 배포 버튼으로 운영 반영`);
     else toast(`${okCount}건 성공 / ${failCount}건 실패`);
 
     /* 미리보기 새로고침 + Draft 카운터 갱신 */

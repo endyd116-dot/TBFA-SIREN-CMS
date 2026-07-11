@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>SIREN 운영자 메뉴얼 · (사)교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 <meta name="description" content="SIREN 운영자·간사·슈퍼어드민용 메뉴얼. 신고 운영·워크스페이스·후원 운영을 실제 화면과 함께.">
@@ -322,12 +323,12 @@
       <div>
         <div class="name">SIREN 운영자 메뉴얼</div>
         <div class="sub">ADMIN GUIDE v1</div>
-        <span class="pill">🛡️ ADMIN</span>
+        <span class="pill"><span class="siren-icon-wrap" data-icon="shield"></span> ADMIN</span>
       </div>
     </div>
 
     <div class="search-wrap">
-      <input id="search" type="search" placeholder="🔍 검색 ( / 키로 빠른 이동, ESC 초기화)" autocomplete="off">
+      <input id="search" type="search" placeholder="검색 ( / 키로 빠른 이동, ESC 초기화)" autocomplete="off">
     </div>
 
     <nav>
@@ -339,8 +340,8 @@
       <a href="#admin-report" class="lvl-2">신고 처리 흐름</a>
       <a href="#admin-action" class="lvl-2">운영자 5가지 액션</a>
       <a href="#admin-similar" class="lvl-2">유사 사건 매칭</a>
-      <a href="#admin-anon" class="lvl-2">🔐 익명 신원 식별</a>
-      <a href="#admin-audit" class="lvl-2">📜 감사 로그</a>
+      <a href="#admin-anon" class="lvl-2"><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 익명 신원 식별</a>
+      <a href="#admin-audit" class="lvl-2"><span class="siren-icon-wrap" data-icon="scroll"></span> 감사 로그</a>
 
       <div class="toc-section">D. 워크스페이스 운영</div>
       <a href="#d-overview" class="lvl-2">메인·8개 메뉴</a>
@@ -356,16 +357,16 @@
       <a href="#e-payment" class="lvl-2">결제 수단 3종 운영</a>
       <a href="#e-flow" class="lvl-2">후원 처리 흐름</a>
       <a href="#e-receipt" class="lvl-2">영수증·기부금 영수증</a>
-      <a href="#e-send" class="lvl-2">📤 발송 운영</a>
-      <a href="#e-trigger" class="lvl-2">🤖 AI 자동 트리거</a>
+      <a href="#e-send" class="lvl-2"><span class="siren-icon-wrap" data-icon="upload"></span> 발송 운영</a>
+      <a href="#e-trigger" class="lvl-2"><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동 트리거</a>
       <a href="#e-stats" class="lvl-2">통계·KPI</a>
       <a href="#e-member-action" class="lvl-2">회원 상세 작업</a>
       <a href="#e-payroll" class="lvl-2">급여 관리(R37)</a>
-      <a href="#e-ai-ops" class="lvl-2">🛡️ AI 운영·비용</a>
+      <a href="#e-ai-ops" class="lvl-2"><span class="siren-icon-wrap" data-icon="shield"></span> AI 운영·비용</a>
       <a href="#e-emergency" class="lvl-2">비상·예외 처리</a>
-      <a href="#admin-memorial">🕯️ 추모관 운영</a>
+      <a href="#admin-memorial"><span class="siren-icon-wrap" data-icon="candle"></span> 추모관 운영</a>
 
-      <div class="toc-section">🕊️ 딥릴리프 (순직 인정 지원)</div>
+      <div class="toc-section"><span class="siren-icon-wrap" data-icon="dove"></span> 딥릴리프 (순직 인정 지원)</div>
       <a href="#deeprelief">개요 · 안전 원칙</a>
       <a href="#dr-p1" class="lvl-2">P1. 자료 토대</a>
       <a href="#dr-p2" class="lvl-2">P2. 분석</a>
@@ -375,7 +376,7 @@
       <a href="#dr-permission" class="lvl-2">권한 · 비용</a>
       <a href="#dr-faq" class="lvl-2">자주 묻는 질문</a>
 
-      <div class="toc-section">🌐 일반 사용자용</div>
+      <div class="toc-section"><span class="siren-icon-wrap" data-icon="globe"></span> 일반 사용자용</div>
       <a href="/manual.html" class="lvl-2 external">→ manual.html</a>
     </nav>
   </aside>
@@ -385,7 +386,7 @@
 
     <!-- ============ HERO ============ -->
     <section class="hero">
-      <span class="tag">🛠️ SIREN 운영자 메뉴얼 · v1 · 2026-05-20</span>
+      <span class="tag"><span class="siren-icon-wrap" data-icon="wrench"></span> SIREN 운영자 메뉴얼 · v1 · 2026-05-20</span>
       <h1>운영자가 직접 보는<br><em>SIREN 어드민 가이드</em></h1>
       <p>신고 운영 · 워크스페이스 협업 · 후원/결제 관리 — 어드민 화면에서 무엇을, 어디서, 어떻게 하는지 실제 화면과 함께 안내합니다.</p>
       <div class="hero-meta">
@@ -397,13 +398,13 @@
 
     <!-- 일반 사용자용 안내 -->
     <div class="callout" style="margin-bottom:24px;">
-      <div class="title">👥 일반 회원·후원자·신고자세요?</div>
+      <div class="title"><span class="siren-icon-wrap" data-icon="users"></span> 일반 회원·후원자·신고자세요?</div>
       이 메뉴얼은 운영자·간사·슈퍼어드민용입니다. 일반 사용자 화면(donate·mypage·report 등)은 <a href="/manual.html"><strong>manual.html</strong></a>을 참고하세요.
     </div>
 
     <!-- ============ 개요 ============ -->
     <section id="overview">
-      <h2><span class="badge-area">📖</span>운영자 메뉴얼 개요</h2>
+      <h2><span class="badge-area"><span class="siren-icon-wrap" data-icon="book-open"></span></span>운영자 메뉴얼 개요</h2>
       <p>본 메뉴얼은 어드민 화면(<code>admin-*.html</code>) 사용 권한을 가진 운영진을 대상으로 합니다. 일반 회원이 보는 화면 안내는 <a href="/manual.html">manual.html</a>을 참고하세요.</p>
 
       <div class="grid cols-4" style="margin-top:24px;">
@@ -415,22 +416,22 @@
 
       <h3>본문 안내 범위</h3>
       <div class="callout ok">
-        <div class="title">✅ R39 신규 기능 운영 중</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="circle-check"></span> R39 신규 기능 운영 중</div>
         역할 동적 CRUD · 카카오 지도 위치 시각화 · 실시간 출퇴근 현황 · 어드민 수동 휴가·출퇴근 수정 · 근무형태 변경 결재 · 비매출 검토 화면 · 워크툴 메인 출퇴근 버튼 등 R39 신규 기능이 모두 <strong>운영 중</strong>입니다. 각 기능의 위치는 아래 해당 섹션 안내를 참고하세요.
       </div>
 
       <h3>운영자 메뉴얼 구성</h3>
       <div class="grid cols-3">
         <a href="#admin-report" class="card" style="text-decoration:none;color:inherit;display:block;border-top:3px solid var(--siren);">
-          <h4 style="color:var(--siren);">🚨 신고 운영</h4>
+          <h4 style="color:var(--siren);"><span class="siren-icon-wrap" data-icon="siren"></span> 신고 운영</h4>
           <p style="font-size:13px;margin-bottom:0;">사건·괴롭힘·법률 신고를 검토·회신·확정·반려. 익명 신원 식별 + 감사 로그.</p>
         </a>
         <a href="#area-d" class="card" style="text-decoration:none;color:inherit;display:block;border-top:3px solid var(--brand);">
-          <h4 style="color:var(--brand);">📋 워크스페이스</h4>
+          <h4 style="color:var(--brand);"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 워크스페이스</h4>
           <p style="font-size:13px;margin-bottom:0;">내부 협업 — 칸반·캘린더·파일함·성과·근태·AI 비서.</p>
         </a>
         <a href="#area-e" class="card" style="text-decoration:none;color:inherit;display:block;border-top:3px solid var(--gold);">
-          <h4 style="color:var(--gold);">💳 어드민 후원·결제</h4>
+          <h4 style="color:var(--gold);"><span class="siren-icon-wrap" data-icon="credit-card"></span> 어드민 후원·결제</h4>
           <p style="font-size:13px;margin-bottom:0;">결제 수단 운영·영수증·발송 작업·자동 트리거.</p>
         </a>
       </div>
@@ -438,28 +439,28 @@
 
     <!-- ============ 권한 체계 (공통, 짧게) ============ -->
     <section id="permission">
-      <h2><span class="badge-area">🔑</span>권한 체계</h2>
+      <h2><span class="badge-area"><span class="siren-icon-wrap" data-icon="key"></span></span>권한 체계</h2>
 
       <table>
         <thead><tr><th width="160">권한</th><th>설명</th><th width="220">대표 화면</th></tr></thead>
         <tbody>
-          <tr><td><span class="role admin">🛡️ 슈퍼어드민</span></td><td>시스템 전체 권한. 운영자 추가·역할 변경·익명 식별 감사·AI 설정 전권.</td><td>/admin-hub.html 전 메뉴</td></tr>
-          <tr><td><span class="role op">🤝 운영자</span></td><td>회원·후원·신고·발송 등 일상 운영. 슈퍼어드민 전용 메뉴 일부 제한.</td><td>/admin.html, /admin-send-jobs.html</td></tr>
-          <tr><td><span class="role op">🤝 간사</span></td><td>워크스페이스(협업) 위주. 신고 운영 권한은 정책에 따라 부여.</td><td>/workspace.html 전 메뉴</td></tr>
-          <tr><td><span class="role member">👥 일반 회원</span></td><td>본인 마이페이지·신고 등. 어드민 진입 불가.</td><td><a href="/manual.html">manual.html 참고</a></td></tr>
+          <tr><td><span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span></td><td>시스템 전체 권한. 운영자 추가·역할 변경·익명 식별 감사·AI 설정 전권.</td><td>/admin-hub.html 전 메뉴</td></tr>
+          <tr><td><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 운영자</span></td><td>회원·후원·신고·발송 등 일상 운영. 슈퍼어드민 전용 메뉴 일부 제한.</td><td>/admin.html, /admin-send-jobs.html</td></tr>
+          <tr><td><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 간사</span></td><td>워크스페이스(협업) 위주. 신고 운영 권한은 정책에 따라 부여.</td><td>/workspace.html 전 메뉴</td></tr>
+          <tr><td><span class="role member"><span class="siren-icon-wrap" data-icon="users"></span> 일반 회원</span></td><td>본인 마이페이지·신고 등. 어드민 진입 불가.</td><td><a href="/manual.html">manual.html 참고</a></td></tr>
         </tbody>
       </table>
 
       <div class="callout">
-        <div class="title">📅 세션 시간</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="calendar"></span> 세션 시간</div>
         관리자 JWT는 <strong>2시간</strong>(일반 회원은 7일). 보안상 짧게 설정. 만료 시 재로그인 필요.
       </div>
     </section>
 
     <!-- ===================== 신고 운영 ===================== -->
     <section id="admin-report">
-      <h2><span class="badge-area">🚨</span>신고 운영</h2>
-      <p><span class="role op">🤝 운영자</span> <span class="role admin">🛡️ 슈퍼어드민</span> · 사건·괴롭힘·법률 신고를 어드민에서 처리하는 공통 흐름. 회원 측 신고 작성 안내는 <a href="/manual.html#area-c">manual.html C 영역</a>.</p>
+      <h2><span class="badge-area"><span class="siren-icon-wrap" data-icon="siren"></span></span>신고 운영</h2>
+      <p><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 운영자</span> <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> · 사건·괴롭힘·법률 신고를 어드민에서 처리하는 공통 흐름. 회원 측 신고 작성 안내는 <a href="/manual.html#area-c">manual.html C 영역</a>.</p>
 
       <h3 id="admin-report">신고 처리 흐름 (어드민 관점)</h3>
       <div class="flow">
@@ -495,21 +496,21 @@
           </div>
 
           <div style="background:var(--brand-soft);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;border-left:3px solid var(--brand);">
-            <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:6px;">🤖 AI 자동 분류 · 분석 결과</div>
+            <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:6px;"><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동 분류 · 분석 결과</div>
             <div style="font-size:13px;color:var(--text-2);">학생 안전 관련 · 즉각 검토 권고 · 신뢰도 92%<br>과거 유사 사건 3건: #INC-2025-0142, #INC-2024-0891, #INC-2024-0517</div>
           </div>
 
           <div style="background:var(--gold-soft);border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;border-left:3px solid var(--gold);">
-            <div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:4px;">⚠️ 익명 신고</div>
+            <div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:4px;"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 익명 신고</div>
             <div style="font-size:12.5px;color:var(--text-2);">신원 정보 저장 안 됨. 회신 채널 없음. 식별이 필요하면 별도 권한 페이지 사용 (감사 로그 기록).</div>
           </div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="background:var(--brand);color:#fff;border:none;padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">✍️ AI 회신 초안</button>
-            <button style="background:var(--bg);color:var(--text);border:1px solid var(--line);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">🔍 유사 사건 보기</button>
-            <button style="background:var(--bg);color:var(--warn);border:1px solid var(--warn);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">📝 보완 요청</button>
-            <button style="background:var(--bg);color:var(--ok);border:1px solid var(--ok);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">✅ 확정</button>
-            <button style="background:var(--bg);color:var(--siren);border:1px solid var(--siren);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">⛔ 반려</button>
+            <button style="background:var(--brand);color:#fff;border:none;padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;"><span class="siren-icon-wrap" data-icon="pencil"></span> AI 회신 초안</button>
+            <button style="background:var(--bg);color:var(--text);border:1px solid var(--line);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;"><span class="siren-icon-wrap" data-icon="search"></span> 유사 사건 보기</button>
+            <button style="background:var(--bg);color:var(--warn);border:1px solid var(--warn);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;"><span class="siren-icon-wrap" data-icon="file-pen"></span> 보완 요청</button>
+            <button style="background:var(--bg);color:var(--ok);border:1px solid var(--ok);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;"><span class="siren-icon-wrap" data-icon="circle-check"></span> 확정</button>
+            <button style="background:var(--bg);color:var(--siren);border:1px solid var(--siren);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;"><span class="siren-icon-wrap" data-icon="octagon-x"></span> 반려</button>
           </div>
         </div>
       </div>
@@ -521,27 +522,27 @@
         <thead><tr><th width="180">액션</th><th>언제 쓰나</th><th>회원 측 결과</th></tr></thead>
         <tbody>
           <tr>
-            <td><strong style="color:var(--brand);">✍️ AI 회신 초안</strong></td>
+            <td><strong style="color:var(--brand);"><span class="siren-icon-wrap" data-icon="pencil"></span> AI 회신 초안</strong></td>
             <td>회원에게 답변할 때 AI가 사안 맥락에 맞춰 초안 자동 생성</td>
             <td>운영자가 [발송]하면 회원이 메시지로 받음</td>
           </tr>
           <tr>
-            <td><strong style="color:var(--brand);">🔍 유사 사건</strong></td>
+            <td><strong style="color:var(--brand);"><span class="siren-icon-wrap" data-icon="search"></span> 유사 사건</strong></td>
             <td>과거 처리 사례 참조 (일관성 확보)</td>
             <td>운영자 화면에만 표시</td>
           </tr>
           <tr>
-            <td><strong style="color:var(--warn);">📝 보완 요청</strong></td>
+            <td><strong style="color:var(--warn);"><span class="siren-icon-wrap" data-icon="file-pen"></span> 보완 요청</strong></td>
             <td>추가 정보가 필요할 때</td>
             <td>회원에게 보완 요청 메시지 + 상태 → "보완 요청"</td>
           </tr>
           <tr>
-            <td><strong style="color:var(--ok);">✅ 확정</strong></td>
+            <td><strong style="color:var(--ok);"><span class="siren-icon-wrap" data-icon="circle-check"></span> 확정</strong></td>
             <td>공식 사건으로 등록</td>
             <td>상태 → "확정" · 공개 목록 게시(회원 동의 시)</td>
           </tr>
           <tr>
-            <td><strong style="color:var(--siren);">⛔ 반려</strong></td>
+            <td><strong style="color:var(--siren);"><span class="siren-icon-wrap" data-icon="octagon-x"></span> 반려</strong></td>
             <td>접수 불가 · 사유 입력 필수</td>
             <td>상태 → "반려" · 회원에게 사유 알림</td>
           </tr>
@@ -557,7 +558,7 @@
       </ul>
 
       <h3 id="admin-similar">유사 사건 매칭 자세히</h3>
-      <p>운영자가 [🔍 유사 사건 보기]를 누르면 AI가 같은 분류·유사 키워드의 과거 사건을 자동 검색합니다.</p>
+      <p>운영자가 [<span class="siren-icon-wrap" data-icon="search"></span> 유사 사건 보기]를 누르면 AI가 같은 분류·유사 키워드의 과거 사건을 자동 검색합니다.</p>
       <ul>
         <li><strong>점수 기준</strong>: 분류 일치도 + 키워드 유사도 + 발생 시기 가중</li>
         <li><strong>표시 정보</strong>: 사건 번호·요약·처리 결과(확정/반려)·처리 기간</li>
@@ -573,7 +574,7 @@
       </ul>
 
       <!-- 익명 신원 식별 -->
-      <h3 id="admin-anon">🔐 익명 신원 식별 페이지 <span class="role admin">🛡️ 슈퍼어드민</span></h3>
+      <h3 id="admin-anon"><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 익명 신원 식별 페이지 <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span></h3>
       <p>익명 신고자의 신원을 봐야 할 정당한 사유(법적 의무 보고, 회원 본인 요청 등)가 있을 때만 사용. 진입 <code>/admin-anon-reveal.html</code></p>
 
       <h4>사용 절차</h4>
@@ -586,7 +587,7 @@
       </div>
 
       <div class="callout danger">
-        <div class="title">⚠️ 절대 금지 행위</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 절대 금지 행위</div>
         호기심 · 개인적 친분 · 비공식 요청으로 익명 신원을 식별하는 것. 시스템은 막지 않지만 행위가 감사 로그에 영구 기록되고, 최고관리자가 정기 점검합니다. <strong>부적절한 식별은 사후 추궁됩니다.</strong>
       </div>
 
@@ -599,13 +600,13 @@
       </ul>
 
       <!-- 감사 로그 -->
-      <h3 id="admin-audit">📜 감사 로그 페이지 <span class="role admin">🛡️ 슈퍼어드민</span></h3>
+      <h3 id="admin-audit"><span class="siren-icon-wrap" data-icon="scroll"></span> 감사 로그 페이지 <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span></h3>
       <p>모든 익명 신원 식별 행위가 영구 기록되는 곳. 진입 <code>/admin-anon-audit.html</code></p>
 
       <h4>로그에 기록되는 정보</h4>
       <div class="grid cols-2">
         <div class="card">
-          <h4>📌 식별 정보</h4>
+          <h4><span class="siren-icon-wrap" data-icon="pin"></span> 식별 정보</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>식별 일시 (분 단위까지)</li>
             <li>식별한 운영자 ID·이름</li>
@@ -614,7 +615,7 @@
           </ul>
         </div>
         <div class="card">
-          <h4>🔍 점검 도구</h4>
+          <h4><span class="siren-icon-wrap" data-icon="search"></span> 점검 도구</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>기간·운영자·신고 번호 필터</li>
             <li>의심스러운 식별 패턴 알림 (단시간 다건 등)</li>
@@ -632,7 +633,7 @@
       </ul>
 
       <div class="callout gold">
-        <div class="title">💡 운영자도 자기 행위 이력을 볼 수 있나?</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="lightbulb"></span> 운영자도 자기 행위 이력을 볼 수 있나?</div>
         본인이 한 식별 이력은 본인이 조회할 수 있습니다. 다만 <strong>로그 자체는 수정·삭제 불가</strong>이며, 본인이 자기 이력을 봐도 그 조회 또한 별도 로그에 기록됩니다.
       </div>
     </section>
@@ -640,7 +641,7 @@
     <!-- ===================== 영역 D ===================== -->
     <section id="area-d">
       <h2><span class="badge-area">D</span>워크스페이스 운영</h2>
-      <p><span class="role op">🤝 간사·운영자</span> <span class="role admin">🛡️ 슈퍼어드민</span> · 내부 협업 도구. 진입 <code>/workspace.html</code></p>
+      <p><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 간사·운영자</span> <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> · 내부 협업 도구. 진입 <code>/workspace.html</code></p>
 
       <h3 id="d-overview">D-0. 페이지 한눈에</h3>
       <table>
@@ -667,26 +668,26 @@
         <div class="mock-body" style="padding:24px 28px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
             <div>
-              <div style="font-family:var(--font-serif);font-size:20px;font-weight:600;color:var(--text);">👋 안녕하세요, 김간사 님</div>
+              <div style="font-family:var(--font-serif);font-size:20px;font-weight:600;color:var(--text);"><span class="siren-icon-wrap" data-icon="waving-hand"></span> 안녕하세요, 김간사 님</div>
               <div style="font-size:12.5px;color:var(--text-3);margin-top:2px;">오늘은 2026년 5월 20일 화요일</div>
             </div>
             <div style="display:flex;gap:8px;">
-              <button style="background:var(--ok);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">🟢 출근</button>
+              <button style="background:var(--ok);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;"><span class="siren-icon-wrap" data-icon="circle-dot"></span> 출근</button>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
             <div style="background:var(--brand-soft);border-radius:var(--radius);padding:14px;">
-              <div style="font-size:11px;color:var(--brand);font-weight:700;letter-spacing:.1em;">📋 내 업무</div>
+              <div style="font-size:11px;color:var(--brand);font-weight:700;letter-spacing:.1em;"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 내 업무</div>
               <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">7건</div>
               <div style="font-size:11px;color:var(--text-3);margin-top:2px;">이번주 마감 3 · 지연 1</div>
             </div>
             <div style="background:var(--gold-soft);border-radius:var(--radius);padding:14px;">
-              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;">📅 오늘 일정</div>
+              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;"><span class="siren-icon-wrap" data-icon="calendar"></span> 오늘 일정</div>
               <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">2개</div>
               <div style="font-size:11px;color:var(--text-3);margin-top:2px;">14:00 운영회의 · 16:00 면담</div>
             </div>
             <div style="background:rgba(197,41,58,.08);border-radius:var(--radius);padding:14px;">
-              <div style="font-size:11px;color:var(--siren);font-weight:700;letter-spacing:.1em;">🔔 알림</div>
+              <div style="font-size:11px;color:var(--siren);font-weight:700;letter-spacing:.1em;"><span class="siren-icon-wrap" data-icon="bell"></span> 알림</div>
               <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">5건</div>
               <div style="font-size:11px;color:var(--text-3);margin-top:2px;">멘션 2 · 할당 2 · 코멘트 1</div>
             </div>
@@ -703,7 +704,7 @@
         <div class="mock-body" style="padding:20px;">
           <div class="kanban">
             <div class="kanban-col">
-              <h5>📥 대기 <span class="count">4</span></h5>
+              <h5><span class="siren-icon-wrap" data-icon="inbox"></span> 대기 <span class="count">4</span></h5>
               <div class="kanban-card">
                 <span class="tag b">기획</span>
                 <div class="title">5월 정기 캠페인 기획안</div>
@@ -716,11 +717,11 @@
               </div>
             </div>
             <div class="kanban-col">
-              <h5>🔄 진행 <span class="count">3</span></h5>
+              <h5><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 진행 <span class="count">3</span></h5>
               <div class="kanban-card">
                 <span class="tag r">긴급</span>
                 <div class="title">사건 #INC-0287 회신 작성</div>
-                <div class="meta"><span>이심사</span><span style="color:var(--siren);">D-1 ⚠️</span></div>
+                <div class="meta"><span>이심사</span><span style="color:var(--siren);">D-1 <span class="siren-icon-wrap" data-icon="alert-triangle"></span></span></div>
               </div>
               <div class="kanban-card">
                 <span class="tag b">기획</span>
@@ -729,7 +730,7 @@
               </div>
             </div>
             <div class="kanban-col">
-              <h5>🔍 검토 <span class="count">2</span></h5>
+              <h5><span class="siren-icon-wrap" data-icon="search"></span> 검토 <span class="count">2</span></h5>
               <div class="kanban-card">
                 <span class="tag o">완료대기</span>
                 <div class="title">후원자 안내 메일 초안</div>
@@ -737,7 +738,7 @@
               </div>
             </div>
             <div class="kanban-col">
-              <h5>✅ 완료 <span class="count">12</span></h5>
+              <h5><span class="siren-icon-wrap" data-icon="circle-check"></span> 완료 <span class="count">12</span></h5>
               <div class="kanban-card" style="opacity:.7;">
                 <span class="tag o">완료</span>
                 <div class="title">R37 명세서 발급</div>
@@ -763,18 +764,18 @@
         </tbody>
       </table>
 
-      <h4>🤖 AI 자동화 3종</h4>
+      <h4><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동화 3종</h4>
       <div class="grid cols-3">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>📝 AI 작업 요약</h4>
+          <h4><span class="siren-icon-wrap" data-icon="file-pen"></span> AI 작업 요약</h4>
           <p style="font-size:13px;margin-bottom:0;">설명이 100자 이상이면 카드 생성 시 자동으로 1줄 요약 생성. 카드 목록에서 한눈에 파악.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--warn);">
-          <h4>⚠️ AI 리스크 점수</h4>
+          <h4><span class="siren-icon-wrap" data-icon="alert-triangle"></span> AI 리스크 점수</h4>
           <p style="font-size:13px;margin-bottom:0;">매일 새벽 6시 30분(KST) 자동 갱신. 마감 임박·지연·우선순위 종합. 카드에 색상 표시.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--ok);">
-          <h4>✅ AI 완료 보고서</h4>
+          <h4><span class="siren-icon-wrap" data-icon="circle-check"></span> AI 완료 보고서</h4>
           <p style="font-size:13px;margin-bottom:0;">카드를 [완료]로 이동 시 완료 보고서 초안 자동 생성. 운영자 검수 후 회의록·결산에 활용.</p>
         </div>
       </div>
@@ -792,32 +793,32 @@
       <h4>이벤트 종류</h4>
       <div class="grid cols-3">
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">📅</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="calendar"></span></div>
           <h4 style="margin-top:6px;">업무 마감</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">칸반 카드의 마감일 자동 표시</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">👥</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="users"></span></div>
           <h4 style="margin-top:6px;">회의·면담</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">참석자 지정 + RSVP</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">🏖️</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="sunrise"></span></div>
           <h4 style="margin-top:6px;">휴가·외근</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">근태 시스템과 연동 자동 반영</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">📣</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="megaphone"></span></div>
           <h4 style="margin-top:6px;">캠페인</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">시작·종료 자동 등록</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">🕯️</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="candle"></span></div>
           <h4 style="margin-top:6px;">협의회 일정</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">기일·정기 행사</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">📞</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="phone"></span></div>
           <h4 style="margin-top:6px;">출장·외근</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">위치 + 일정 일원 관리</p>
         </div>
@@ -843,17 +844,17 @@
 
       <div class="grid cols-3">
         <div class="card" style="text-align:center;">
-          <div style="font-size:28px;">⏳</div>
+          <div style="font-size:28px;"><span class="siren-icon-wrap" data-icon="hourglass"></span></div>
           <h4 style="margin-top:6px;">만료일 설정</h4>
           <p style="font-size:12.5px;color:var(--text-3);margin-bottom:0;">예: 7일 후 자동 비활성화</p>
         </div>
         <div class="card" style="text-align:center;">
-          <div style="font-size:28px;">🔒</div>
+          <div style="font-size:28px;"><span class="siren-icon-wrap" data-icon="lock"></span></div>
           <h4 style="margin-top:6px;">비밀번호 보호</h4>
           <p style="font-size:12.5px;color:var(--text-3);margin-bottom:0;">받는 사람에게 별도 안내</p>
         </div>
         <div class="card" style="text-align:center;">
-          <div style="font-size:28px;">🔢</div>
+          <div style="font-size:28px;"><span class="siren-icon-wrap" data-icon="hash"></span></div>
           <h4 style="margin-top:6px;">다운로드 횟수</h4>
           <p style="font-size:12.5px;color:var(--text-3);margin-bottom:0;">예: 5회 후 자동 비활성화</p>
         </div>
@@ -878,34 +879,34 @@
         <li>KPI는 어드민의 성과관리 설정에서 정의</li>
       </ul>
 
-      <h4>🆕 성과 v4 체계 (2026)</h4>
+      <h4><span class="siren-icon-wrap" data-icon="sparkles"></span> 성과 v4 체계 (2026)</h4>
       <ul>
         <li><strong>매출:비매출 5:5</strong> — 역할별 영역 캡(정책국장 850/850·사무국장 800/800·SI 1,110/740만원). 한쪽 초과분이 다른쪽으로 이전되지 않아 양쪽 균형을 맞춰야 최대 보상. 상한은 <strong>역할 카탈로그</strong>에서 직접 편집.</li>
         <li><strong>비매출 5개 카테고리</strong>(미션·정책 영향력 / 유족·회원 직접 지원 / 사회적 가치·인식 / 조직 역량 / 운영 효율) — 분기당 최대 7개·카테고리당 2개 선택.</li>
-        <li><strong>🤖 매트릭스 AI 매핑</strong> — 분기 성과 기준표(표·문장)를 '마일스톤 정의' 탭의 <em>매트릭스 분석</em>에 붙여넣으면 AI가 정의 후보를 추출하고 기존 정의와 중복을 판정해 일괄 등록.</li>
+        <li><strong><span class="siren-icon-wrap" data-icon="bot"></span> 매트릭스 AI 매핑</strong> — 분기 성과 기준표(표·문장)를 '마일스톤 정의' 탭의 <em>매트릭스 분석</em>에 붙여넣으면 AI가 정의 후보를 추출하고 기존 정의와 중복을 판정해 일괄 등록.</li>
       </ul>
 
-      <h4>📰 여론·뉴스 분석 (신규)</h4>
-      <p>통합 CMS → <strong>운영 관리 → 여론·뉴스 분석</strong>. 매일 아침(09:00) 자동 + <em>🔄 최신 재조사</em> 버튼으로 네이버에서 협회·대표(박두용) 관련 최근 1주 콘텐츠를 수집 → AI가 <strong>활동·이슈 요약 / 연관 키워드 워드클라우드 / 여론 경향 / 추천 액션 / 직전 대비 변경점</strong>을 생성. <strong>🚨 협회 관련 사건·사고</strong> 섹션은 최근 교사 사망·교권 침해 등 협회가 참여할 만한 사건을 시급도와 함께 제시. 보고서는 히스토리로 누적 조회.</p>
+      <h4><span class="siren-icon-wrap" data-icon="newspaper"></span> 여론·뉴스 분석 (신규)</h4>
+      <p>통합 CMS → <strong>운영 관리 → 여론·뉴스 분석</strong>. 매일 아침(09:00) 자동 + <em><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 최신 재조사</em> 버튼으로 네이버에서 협회·대표(박두용) 관련 최근 1주 콘텐츠를 수집 → AI가 <strong>활동·이슈 요약 / 연관 키워드 워드클라우드 / 여론 경향 / 추천 액션 / 직전 대비 변경점</strong>을 생성. <strong><span class="siren-icon-wrap" data-icon="siren"></span> 협회 관련 사건·사고</strong> 섹션은 최근 교사 사망·교권 침해 등 협회가 참여할 만한 사건을 시급도와 함께 제시. 보고서는 히스토리로 누적 조회.</p>
 
-      <h4>🤖 AI 자동화</h4>
+      <h4><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동화</h4>
       <div class="grid cols-3">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>🎯 AI 자동 분류</h4>
+          <h4><span class="siren-icon-wrap" data-icon="target"></span> AI 자동 분류</h4>
           <p style="font-size:13px;margin-bottom:0;">새 업무 카드 생성 시 적합한 마일스톤 자동 추천.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--warn);">
-          <h4>💬 AI 코칭</h4>
+          <h4><span class="siren-icon-wrap" data-icon="message-circle"></span> AI 코칭</h4>
           <p style="font-size:13px;margin-bottom:0;">마일스톤 지연·정체 시 행동 제안 메시지 자동 발송.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--ok);">
-          <h4>📊 AI 인사이트</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> AI 인사이트</h4>
           <p style="font-size:13px;margin-bottom:0;">분기 종료 시 회고 보고서 초안 자동 작성.</p>
         </div>
       </div>
 
       <div class="callout ok">
-        <div class="title">✅ 비매출 검토 화면 운영 중</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="circle-check"></span> 비매출 검토 화면 운영 중</div>
         운영자가 제출한 비매출 성과를 슈퍼어드민이 검토·승인·반려하는 화면이 운영 중입니다. 위치: <strong>통합 CMS → 운영 관리 → 성과관리 → "비매출 검토" 탭</strong>. 1차 검토·승인·반려·금액 결정의 단계별 승인 흐름을 지원합니다.
       </div>
 
@@ -914,10 +915,10 @@
       <p>직원 본인 화면 <code>/workspace-attendance.html</code> · 운영 관리는 통합 CMS 안의 근태 메뉴에서.</p>
 
       <div class="callout">
-        <div class="title">📂 근태 메뉴가 2개로 나뉘었습니다</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="folder-open"></span> 근태 메뉴가 2개로 나뉘었습니다</div>
         <ul style="margin:6px 0 0;font-size:13.5px;">
-          <li><strong>🟢 근태 현황</strong> (8탭) — 실시간 현황·출퇴근 기록·휴가/잔여·근무형태 변경 결재 등 <em>매일 보는 운영 화면</em></li>
-          <li><strong>⚙️ 근태 설정</strong> (4탭) — 근무 정책·휴일·휴가 종류·근무 거점 등 <em>가끔 바꾸는 설정 화면</em></li>
+          <li><strong><span class="siren-icon-wrap" data-icon="circle-dot"></span> 근태 현황</strong> (8탭) — 실시간 현황·출퇴근 기록·휴가/잔여·근무형태 변경 결재 등 <em>매일 보는 운영 화면</em></li>
+          <li><strong><span class="siren-icon-wrap" data-icon="settings"></span> 근태 설정</strong> (4탭) — 근무 정책·휴일·휴가 종류·근무 거점 등 <em>가끔 바꾸는 설정 화면</em></li>
         </ul>
       </div>
 
@@ -930,7 +931,7 @@
       </ul>
 
       <div class="callout ok">
-        <div class="title">✅ 출퇴근 보강 기능 운영 중</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="circle-check"></span> 출퇴근 보강 기능 운영 중</div>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li>실시간 출퇴근 현황 (지금 출근·퇴근·미출근 직원)</li>
           <li>카카오 지도 위치 시각화 (직원이 찍은 좌표·거점 비교)</li>
@@ -940,12 +941,12 @@
           <li><strong>퇴근도 사무실 거점 반경 강제</strong> — 일반근무(사무실) 직원은 출근뿐 아니라 <em>퇴근</em>도 거점 반경 안에서만 가능. 재택·외근·출장은 위치 검증 없음</li>
           <li>실시간 현황에서 <strong>직원 이름 클릭 → 그 직원의 출퇴근 기록으로 바로 이동</strong></li>
           <li>어드민 직원 출퇴근 직접 수정 + 직원 확인 알림 — <strong>근태 현황 → 출퇴근 기록</strong></li>
-          <li>근무형태 변경 신청·결재 — <strong>근태 현황 → "🔄 근무형태 변경" 탭</strong> (직원 신청 → 어드민 승인 시 해당 날짜 자동 반영)</li>
+          <li>근무형태 변경 신청·결재 — <strong>근태 현황 → "<span class="siren-icon-wrap" data-icon="refresh-cw"></span> 근무형태 변경" 탭</strong> (직원 신청 → 어드민 승인 시 해당 날짜 자동 반영)</li>
         </ul>
       </div>
 
       <div class="callout ok">
-        <div class="title">✅ 직원 정보 편집 · 운영자 해제</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="circle-check"></span> 직원 정보 편집 · 운영자 해제</div>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li>직원의 <strong>이름·연락처·입사일</strong>을 운영자 관리 화면에서 직접 수정 (입사일은 연차 근속 계산에 사용)</li>
           <li>위치: <strong>통합 CMS → 운영 관리 → 권한·운영자 관리</strong> 화면의 직원 카드 [정보 수정]</li>
@@ -960,7 +961,7 @@
       </ul>
 
       <div class="callout">
-        <div class="title">📐 연차 산정 정책 — 모드 A / 모드 B 택일 <span class="role admin">🛡️ 슈퍼어드민</span></div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="ruler"></span> 연차 산정 정책 — 모드 A / 모드 B 택일 <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span></div>
         <p style="font-size:13.5px;margin:6px 0 8px;">연차를 <strong>어떤 방식으로 자동 적립</strong>할지 한 가지를 골라 둡니다. 위치: <strong>근태 설정 → "근무 정책" 탭</strong>의 연차 산정 정책 영역. 매월 1일 자동 부여가 선택한 모드대로 동작합니다.</p>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li><strong>모드 A — 월 만근 적립 (5인 이하 권장)</strong>: 전월을 결근·무단지각·무단조퇴 없이 만근한 직원에게 매월 <strong>+1일</strong>(보너스 일수 조정 가능)</li>
@@ -971,7 +972,7 @@
       </div>
 
       <div class="callout ok">
-        <div class="title">✅ 휴가 수동 부여·차감 운영 중</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="circle-check"></span> 휴가 수동 부여·차감 운영 중</div>
         어드민이 직원 잔여 휴가를 직접 +1·-1 하거나 숫자로 직접 입력해 조정할 수 있습니다. 잔여 기록이 없던 직원에게도 <strong>첫 부여</strong>가 가능합니다. 위치: <strong>근태 현황 → "잔여 휴가" 탭</strong>. 자동 부여 외 수동 조정 시 사유 입력 필수(감사 추적).
       </div>
 
@@ -1004,7 +1005,7 @@
       </table>
 
       <div class="callout">
-        <div class="title">🔒 변경 작업은 항상 dry-run</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="lock"></span> 변경 작업은 항상 dry-run</div>
         생성·수정·삭제·발송 같은 변경 작업은 비서가 절대 자동 실행하지 않습니다. 어떤 데이터가 어떻게 바뀌는지 먼저 보여주고, 운영자가 [승인]해야 실제 수행됩니다.
       </div>
 
@@ -1047,10 +1048,10 @@
     <!-- ===================== 영역 E ===================== -->
     <section id="area-e">
       <h2><span class="badge-area">E</span>어드민 후원·결제 운영</h2>
-      <p><span class="role admin">🛡️ 슈퍼어드민</span> <span class="role op">🤝 후원 담당 운영자</span> · 진입 <code>/admin.html</code> · <code>/admin-hub.html</code></p>
+      <p><span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> <span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 후원 담당 운영자</span> · 진입 <code>/admin.html</code> · <code>/admin-hub.html</code></p>
 
       <div class="callout">
-        <div class="title">🎯 이 영역에서 운영자가 매일 하는 일</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="target"></span> 이 영역에서 운영자가 매일 하는 일</div>
         결제 모니터링 · 실패 회원 안내 · 영수증 재발송 · 발송 작업 만들기 · 자동 트리거 점검 · 통계 확인 — 후원 흐름을 끊김 없이 유지합니다.
       </div>
 
@@ -1081,7 +1082,7 @@
 
       <div class="grid cols-3">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>💳 KICC (이지페이)</h4>
+          <h4><span class="siren-icon-wrap" data-icon="credit-card"></span> KICC (이지페이)</h4>
           <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">카드 결제 · 일시 + 정기(빌링키)</p>
           <ul style="font-size:13px;margin-bottom:0;">
             <li><strong>설정</strong>: 환경변수 <code>KICC_MODE=test|live</code></li>
@@ -1093,7 +1094,7 @@
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>🏦 효성 CMS+</h4>
+          <h4><span class="siren-icon-wrap" data-icon="landmark"></span> 효성 CMS+</h4>
           <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">계좌 자동이체 · 일시 + 정기</p>
           <ul style="font-size:13px;margin-bottom:0;">
             <li><strong>등록</strong>: 회원이 계좌·생년월일·인감 등록</li>
@@ -1104,7 +1105,7 @@
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--text-3);">
-          <h4>📮 계좌이체</h4>
+          <h4><span class="siren-icon-wrap" data-icon="mailbox"></span> 계좌이체</h4>
           <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">무통장 입금 · 일시만</p>
           <ul style="font-size:13px;margin-bottom:0;">
             <li><strong>흐름</strong>: 회원이 직접 협의회 계좌로 입금</li>
@@ -1130,19 +1131,19 @@
       <h4>정기 후원 운영</h4>
       <div class="grid cols-2">
         <div class="card">
-          <h4>📈 신규 등록 모니터링</h4>
+          <h4><span class="siren-icon-wrap" data-icon="trending-up"></span> 신규 등록 모니터링</h4>
           <p style="font-size:13.5px;margin-bottom:0;">매일 신규 빌링 등록 수 확인. 캠페인 효과·이상 가입 패턴 점검.</p>
         </div>
         <div class="card">
-          <h4>💔 결제 실패 처리</h4>
+          <h4><span class="siren-icon-wrap" data-icon="heart-crack"></span> 결제 실패 처리</h4>
           <p style="font-size:13.5px;margin-bottom:0;">실패 회원 목록을 사유(잔액·카드정지·만료)별로 정리. 사유별 다른 안내 메시지.</p>
         </div>
         <div class="card">
-          <h4>⏳ 카드 만료 알림</h4>
+          <h4><span class="siren-icon-wrap" data-icon="hourglass"></span> 카드 만료 알림</h4>
           <p style="font-size:13.5px;margin-bottom:0;">시스템이 만료 2개월 전 자동 알림. 응답 없는 회원에게 운영자가 추가 안내.</p>
         </div>
         <div class="card">
-          <h4>⛔ 강제 해지</h4>
+          <h4><span class="siren-icon-wrap" data-icon="octagon-x"></span> 강제 해지</h4>
           <p style="font-size:13.5px;margin-bottom:0;">회원 직접 해지 외에도 운영자가 블랙·환불 등 사유로 강제 해지 가능. 사유 입력 필수.</p>
         </div>
       </div>
@@ -1150,15 +1151,15 @@
       <h4>후원자 보상·소통 (자동화 도구)</h4>
       <div class="grid cols-3">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>🎂 기념일 알림</h4>
+          <h4><span class="siren-icon-wrap" data-icon="cake"></span> 기념일 알림</h4>
           <p style="font-size:13px;margin-bottom:0;">시스템이 매일 기일·후원 시작일을 체크해 자동 메시지 트리거.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--warn);">
-          <h4>🔮 이탈 예측</h4>
+          <h4><span class="siren-icon-wrap" data-icon="sparkles"></span> 이탈 예측</h4>
           <p style="font-size:13px;margin-bottom:0;">2회 연속 실패·6개월 무결제 등 패턴 감지 → 운영자에게 회복 캠페인 제안.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>📄 계약서 일괄 생성</h4>
+          <h4><span class="siren-icon-wrap" data-icon="file-text"></span> 계약서 일괄 생성</h4>
           <p style="font-size:13px;margin-bottom:0;">회원 목록에서 선택 → [계약서 일괄 생성] → 협의회 양식 PDF 일괄 다운로드.</p>
         </div>
       </div>
@@ -1168,7 +1169,7 @@
 
       <div class="grid cols-2">
         <div class="card">
-          <h4>📧 일반 영수증</h4>
+          <h4><span class="siren-icon-wrap" data-icon="mail"></span> 일반 영수증</h4>
           <dl class="kv">
             <dt>발급 시점</dt><dd>결제 직후 자동 (PDF + NotoSansKR 폰트 임베드)</dd>
             <dt>회원 다운로드</dt><dd>마이페이지에서 상시</dd>
@@ -1177,7 +1178,7 @@
           </dl>
         </div>
         <div class="card">
-          <h4>🧾 연말 기부금 영수증</h4>
+          <h4><span class="siren-icon-wrap" data-icon="receipt"></span> 연말 기부금 영수증</h4>
           <dl class="kv">
             <dt>발급 시점</dt><dd>매년 1~2월 일괄 트리거</dd>
             <dt>발급 기준</dt><dd>주민번호 등록된 회원만</dd>
@@ -1188,16 +1189,16 @@
       </div>
 
       <div class="callout warn">
-        <div class="title">⚠️ 주민번호 미등록 회원 사전 캠페인</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 주민번호 미등록 회원 사전 캠페인</div>
         매년 11~12월에 주민번호 미등록 회원만 골라 사전 입력 안내를 발송하는 것이 권장됩니다. 1월 일괄 발급 직전엔 너무 늦습니다. 수신자 그룹 [주민번호 미등록 + 후원 이력 있음]을 활용.
       </div>
 
       <!-- E-4 발송 운영 -->
-      <h3 id="e-send">E-4. 발송 운영 📤</h3>
+      <h3 id="e-send">E-4. 발송 운영 <span class="siren-icon-wrap" data-icon="upload"></span></h3>
       <p>후원 운영자가 가장 자주 쓰는 영역. 결제 실패 안내·카드 만료·연말 영수증·신규 캠페인·기념일 메시지 등을 일괄 발송합니다.</p>
 
       <div class="callout">
-        <div class="title">📡 발송 채널 — 이메일 · 문자(SMS) · 알림톡</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="satellite-dish"></span> 발송 채널 — 이메일 · 문자(SMS) · 알림톡</div>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li><strong>이메일</strong>은 메일 발송 서비스로, <strong>문자(SMS)·알림톡과 휴대폰 본인인증은 솔라피(SOLAPI)</strong>를 통해 발송됩니다.</li>
           <li>카카오 <strong>알림톡</strong>은 발신 프로필 승인 후 사용 가능하며, 결제 실패·카드 만료·청구 예정·영수증 등 정형 안내에 쓰입니다.</li>
@@ -1219,33 +1220,33 @@
       <div class="mock">
         <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/admin-send-job-create.html</span></div>
         <div class="mock-body" style="padding:24px 28px;">
-          <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin-bottom:18px;color:var(--text);">📤 새 발송 작업</div>
+          <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin-bottom:18px;color:var(--text);"><span class="siren-icon-wrap" data-icon="upload"></span> 새 발송 작업</div>
 
           <div style="margin-bottom:16px;">
             <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;">1. 수신자 그룹</div>
             <div style="display:flex;gap:10px;align-items:center;padding:10px 14px;background:var(--brand-soft);border-radius:var(--radius);border:1px solid rgba(122,31,43,.18);">
-              <div style="font-size:13px;font-weight:600;color:var(--brand);">💳 카드 만료 임박 (60일 내)</div>
+              <div style="font-size:13px;font-weight:600;color:var(--brand);"><span class="siren-icon-wrap" data-icon="credit-card"></span> 카드 만료 임박 (60일 내)</div>
               <div style="font-size:11.5px;color:var(--text-3);margin-left:auto;">예상 수신자 247명</div>
             </div>
           </div>
 
           <div style="margin-bottom:16px;">
             <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;">2. 템플릿</div>
-            <div style="padding:10px 14px;background:var(--bg-mute);border-radius:var(--radius);border:1px solid var(--line);font-size:13px;color:var(--text-2);">📧 카드 만료 안내 v3 (한글 · 변수 4개)</div>
+            <div style="padding:10px 14px;background:var(--bg-mute);border-radius:var(--radius);border:1px solid var(--line);font-size:13px;color:var(--text-2);"><span class="siren-icon-wrap" data-icon="mail"></span> 카드 만료 안내 v3 (한글 · 변수 4개)</div>
           </div>
 
           <div style="margin-bottom:16px;">
             <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;">3. 발송 시각</div>
             <div style="display:flex;gap:8px;">
-              <div style="padding:8px 16px;border:1.5px solid var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700;border-radius:var(--radius-pill);font-size:13px;">⏰ 예약</div>
+              <div style="padding:8px 16px;border:1.5px solid var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700;border-radius:var(--radius-pill);font-size:13px;"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 예약</div>
               <div style="padding:8px 16px;border:1px solid var(--line);font-size:13px;color:var(--text-2);border-radius:var(--radius-pill);">즉시 발송</div>
             </div>
-            <div style="font-size:12px;color:var(--text-3);margin-top:8px;">📅 2026-05-21 09:00 (KST)</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:8px;"><span class="siren-icon-wrap" data-icon="calendar"></span> 2026-05-21 09:00 (KST)</div>
           </div>
 
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--line);">
             <div style="font-size:12px;color:var(--text-3);">예상 비용 · 약 ₩2,470 (이메일 + 첨부 없음)</div>
-            <button style="background:var(--brand);color:#fff;border:none;padding:10px 24px;border-radius:var(--radius-pill);font-weight:600;font-size:13px;">🚀 발송 시작</button>
+            <button style="background:var(--brand);color:#fff;border:none;padding:10px 24px;border-radius:var(--radius-pill);font-weight:600;font-size:13px;"><span class="siren-icon-wrap" data-icon="rocket"></span> 발송 시작</button>
           </div>
         </div>
       </div>
@@ -1255,32 +1256,32 @@
 
       <div class="grid cols-3">
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:22px;">🏆</div>
+          <div style="font-size:22px;"><span class="siren-icon-wrap" data-icon="trophy"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">등급 필터</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">Bronze ~ Platinum</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:22px;">💝</div>
+          <div style="font-size:22px;"><span class="siren-icon-wrap" data-icon="gift"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">후원 상태</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">정기·일시·일시정지·해지</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:22px;">📅</div>
+          <div style="font-size:22px;"><span class="siren-icon-wrap" data-icon="calendar"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">기간</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">가입일·최근 후원일</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:22px;">🌐</div>
+          <div style="font-size:22px;"><span class="siren-icon-wrap" data-icon="globe"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">가입 채널</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">?src=캠페인 추적</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:22px;">⚠️</div>
+          <div style="font-size:22px;"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">위험 신호</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">카드 만료·결제 실패</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:22px;">🔄</div>
+          <div style="font-size:22px;"><span class="siren-icon-wrap" data-icon="refresh-cw"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">조합</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">위 조건 AND/OR 조합</p>
         </div>
@@ -1290,24 +1291,24 @@
       <table>
         <thead><tr><th width="180">지표</th><th>의미</th><th width="120">권장 기준</th></tr></thead>
         <tbody>
-          <tr><td>📨 발송 성공률</td><td>실제 발송된 건 / 전체 대상</td><td>≥ 95%</td></tr>
-          <tr><td>👀 열람률 (open)</td><td>이메일을 연 회원 비율</td><td>20~30%</td></tr>
-          <tr><td>🖱️ 클릭률 (click)</td><td>본문 링크를 누른 비율</td><td>3~8%</td></tr>
-          <tr><td>↩️ 반송률 (bounce)</td><td>주소 오류로 반송된 비율</td><td>≤ 2%</td></tr>
-          <tr><td>🚫 수신거부</td><td>이번 발송으로 거부 전환된 비율</td><td>≤ 0.5%</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="mail"></span> 발송 성공률</td><td>실제 발송된 건 / 전체 대상</td><td>≥ 95%</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="eye"></span> 열람률 (open)</td><td>이메일을 연 회원 비율</td><td>20~30%</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="mouse-pointer"></span> 클릭률 (click)</td><td>본문 링크를 누른 비율</td><td>3~8%</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="undo-2"></span> 반송률 (bounce)</td><td>주소 오류로 반송된 비율</td><td>≤ 2%</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="ban"></span> 수신거부</td><td>이번 발송으로 거부 전환된 비율</td><td>≤ 0.5%</td></tr>
         </tbody>
       </table>
 
       <div class="callout danger">
-        <div class="title">⚠️ 잘못 발송된 작업 멈추기</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 잘못 발송된 작업 멈추기</div>
         <code>/admin-send-jobs.html</code>에서 해당 작업 → <strong>[일시 정지] 또는 [취소]</strong>. 이미 발송된 건은 회수 불가이므로, 잘못 받은 회원에게 정정 안내를 후속 발송하세요.
       </div>
 
-      <h4>💬 카카오 알림톡 템플릿 관리</h4>
-      <p>위치: <strong>통합 CMS → 알림·발송 → 💬 카카오 알림톡 템플릿</strong>. 카카오 알림톡은 카카오에서 <strong>미리 승인된 템플릿으로만</strong> 발송할 수 있습니다(자유 문구 불가). 이 화면에서 운영자가 직접 템플릿을 등록하고, 검수 상태를 확인하고, 발송 상황에 연결합니다. 예전처럼 템플릿마다 별도 설정 키를 시스템에 넣을 필요 없이, <strong>운영자가 화면에서 직접 관리</strong>합니다.</p>
+      <h4><span class="siren-icon-wrap" data-icon="message-circle"></span> 카카오 알림톡 템플릿 관리</h4>
+      <p>위치: <strong>통합 CMS → 알림·발송 → <span class="siren-icon-wrap" data-icon="message-circle"></span> 카카오 알림톡 템플릿</strong>. 카카오 알림톡은 카카오에서 <strong>미리 승인된 템플릿으로만</strong> 발송할 수 있습니다(자유 문구 불가). 이 화면에서 운영자가 직접 템플릿을 등록하고, 검수 상태를 확인하고, 발송 상황에 연결합니다. 예전처럼 템플릿마다 별도 설정 키를 시스템에 넣을 필요 없이, <strong>운영자가 화면에서 직접 관리</strong>합니다.</p>
 
       <div class="callout">
-        <div class="title">📋 템플릿 등록·운영 4단계</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 템플릿 등록·운영 4단계</div>
         <ol style="margin:6px 0 0;font-size:13.5px;">
           <li><strong>등록</strong>: <strong>[＋ 새 템플릿 등록]</strong>에서 이름·본문·강조 제목·연결 이벤트를 입력합니다. 본문에서 회원 이름·금액처럼 사람마다 달라지는 부분은 <code>#{변수명}</code> 형식으로 적습니다. 등록하면 시스템이 <strong>카카오 검수를 자동으로 요청</strong>합니다.</li>
           <li><strong>검수 확인</strong>: 검수 상태(작성 / 검수중 / 승인 / 반려)는 <strong>매시간 자동으로 갱신</strong>되며, <strong>[상태 새로고침]</strong>으로 즉시 확인할 수도 있습니다. 카카오 검수는 보통 <strong>1~3 영업일</strong>이 걸립니다.</li>
@@ -1316,22 +1317,22 @@
         </ol>
       </div>
 
-      <p><strong>🔗 연결 이벤트</strong> — 정기 결제 실패·카드 만료·출금 완료·출금 예정·연간 영수증·후원 정보 변경처럼 <strong>시스템이 자동으로 보내는 상황</strong>에 템플릿을 연결해 두면, 그 상황이 생길 때마다 자동으로 카카오톡이 나갑니다. 연결하지 않은 템플릿은 일반 보관용으로만 남습니다.</p>
+      <p><strong><span class="siren-icon-wrap" data-icon="link"></span> 연결 이벤트</strong> — 정기 결제 실패·카드 만료·출금 완료·출금 예정·연간 영수증·후원 정보 변경처럼 <strong>시스템이 자동으로 보내는 상황</strong>에 템플릿을 연결해 두면, 그 상황이 생길 때마다 자동으로 카카오톡이 나갑니다. 연결하지 않은 템플릿은 일반 보관용으로만 남습니다.</p>
 
-      <p><strong>📲 테스트 발송</strong> — 승인된 템플릿은 <strong>[테스트 발송]</strong>으로 운영자 본인 휴대폰에 미리 보내 실제 모습을 확인할 수 있습니다.</p>
+      <p><strong><span class="siren-icon-wrap" data-icon="smartphone"></span> 테스트 발송</strong> — 승인된 템플릿은 <strong>[테스트 발송]</strong>으로 운영자 본인 휴대폰에 미리 보내 실제 모습을 확인할 수 있습니다.</p>
 
       <div class="callout">
-        <div class="title">✅ 이미 등록된 기본 템플릿 6종</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="circle-check"></span> 이미 등록된 기본 템플릿 6종</div>
         <p style="font-size:13.5px;margin:6px 0 0;">결제 실패 · 카드 만료 · 출금 완료 · 출금 예정 · 연간 영수증 · 후원 정보 변경 — 자주 쓰는 6종은 <strong>기본으로 등록·연결</strong>되어 있어 그대로 쓰면 됩니다.</p>
       </div>
 
       <div class="callout">
-        <div class="title">🔑 권한</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="key"></span> 권한</div>
         <p style="font-size:13.5px;margin:6px 0 0;"><strong>조회</strong>는 운영자 이상, <strong>등록·삭제 등 변경</strong>은 관리자 이상만 할 수 있습니다.</p>
       </div>
 
       <!-- E-5 자동 트리거 -->
-      <h3 id="e-trigger">E-5. AI 자동 트리거 🤖</h3>
+      <h3 id="e-trigger">E-5. AI 자동 트리거 <span class="siren-icon-wrap" data-icon="bot"></span></h3>
       <p><code>/admin-auto-triggers.html</code> — 조건을 정의하면 AI가 메시지를 자동 생성해 발송. 운영자 검수 옵션도 지원.</p>
 
       <h4>트리거 예시 4가지</h4>
@@ -1348,7 +1349,7 @@
       <h4>시스템 자동 발송과 차이</h4>
       <div class="grid cols-2">
         <div class="card">
-          <h4>📌 시스템 자동 발송</h4>
+          <h4><span class="siren-icon-wrap" data-icon="pin"></span> 시스템 자동 발송</h4>
           <p style="font-size:13.5px;color:var(--text-3);"><code>/admin-system-notification.html</code></p>
           <ul style="font-size:13px;margin-bottom:0;">
             <li>결제 실패·이메일 인증 같은 <strong>고정 이벤트</strong></li>
@@ -1357,7 +1358,7 @@
           </ul>
         </div>
         <div class="card">
-          <h4>🤖 AI 자동 트리거</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동 트리거</h4>
           <p style="font-size:13.5px;color:var(--text-3);"><code>/admin-auto-triggers.html</code></p>
           <ul style="font-size:13px;margin-bottom:0;">
             <li>운영자가 <strong>조건만</strong> 정의</li>
@@ -1398,7 +1399,7 @@
           </div>
 
           <div style="font-size:12.5px;color:var(--text-3);">결제수단별 비중 · 일별 추이 · 등급별 분포 그래프 영역</div>
-          <div style="height:80px;background:linear-gradient(90deg,var(--brand-soft) 0%,var(--gold-soft) 50%,var(--bg-mute) 100%);border-radius:var(--radius);margin-top:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px;">📊 Chart.js 차트</div>
+          <div style="height:80px;background:linear-gradient(90deg,var(--brand-soft) 0%,var(--gold-soft) 50%,var(--bg-mute) 100%);border-radius:var(--radius);margin-top:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px;"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> Chart.js 차트</div>
         </div>
       </div>
 
@@ -1432,12 +1433,12 @@
             </div>
           </div>
           <div style="display:flex;border-bottom:1px solid var(--line);overflow-x:auto;">
-            <div style="padding:12px 18px;border-bottom:2px solid var(--brand);color:var(--brand);font-weight:700;font-size:13px;white-space:nowrap;">💝 후원 내역</div>
-            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">🔄 정기 후원</div>
-            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">⭐ 포인트</div>
-            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">📨 발송 이력</div>
-            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">📝 메모</div>
-            <div style="padding:12px 18px;color:var(--siren);font-size:13px;white-space:nowrap;">⛔ 블랙</div>
+            <div style="padding:12px 18px;border-bottom:2px solid var(--brand);color:var(--brand);font-weight:700;font-size:13px;white-space:nowrap;"><span class="siren-icon-wrap" data-icon="gift"></span> 후원 내역</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;"><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 정기 후원</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;"><span class="siren-icon-wrap" data-icon="star"></span> 포인트</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;"><span class="siren-icon-wrap" data-icon="mail"></span> 발송 이력</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;"><span class="siren-icon-wrap" data-icon="file-pen"></span> 메모</div>
+            <div style="padding:12px 18px;color:var(--siren);font-size:13px;white-space:nowrap;"><span class="siren-icon-wrap" data-icon="octagon-x"></span> 블랙</div>
           </div>
           <div style="padding:16px 24px;">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);">
@@ -1446,8 +1447,8 @@
                 <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">2025.03 ~ 진행 중</div>
               </div>
               <div style="display:flex;gap:6px;">
-                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📄 영수증</button>
-                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📨 재발송</button>
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);"><span class="siren-icon-wrap" data-icon="file-text"></span> 영수증</button>
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);"><span class="siren-icon-wrap" data-icon="mail"></span> 재발송</button>
               </div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
@@ -1456,8 +1457,8 @@
                 <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">2026.05.18</div>
               </div>
               <div style="display:flex;gap:6px;">
-                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📄 영수증</button>
-                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📨 재발송</button>
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);"><span class="siren-icon-wrap" data-icon="file-text"></span> 영수증</button>
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);"><span class="siren-icon-wrap" data-icon="mail"></span> 재발송</button>
               </div>
             </div>
           </div>
@@ -1468,12 +1469,12 @@
       <table>
         <thead><tr><th width="160">탭</th><th>가능한 작업</th></tr></thead>
         <tbody>
-          <tr><td>💝 후원 내역</td><td>전체 후원 + 영수증 재발송 · 환불 메모</td></tr>
-          <tr><td>🔄 정기 후원</td><td>빌링 상태 확인 · 금액 변경 권장 · 강제 해지 (사유 필수)</td></tr>
-          <tr><td>⭐ 포인트</td><td>수동 적립/차감 (사유 입력 필수)</td></tr>
-          <tr><td>📨 발송 이력</td><td>이 회원에게 보낸 모든 메시지 · 열람 여부</td></tr>
-          <tr><td>📝 메모</td><td>운영자 간 공유 메모 (회원은 못 봄)</td></tr>
-          <tr><td>⛔ 블랙</td><td>후원·신고·게시판 접근 차단 (사유 필수)</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="gift"></span> 후원 내역</td><td>전체 후원 + 영수증 재발송 · 환불 메모</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="refresh-cw"></span> 정기 후원</td><td>빌링 상태 확인 · 금액 변경 권장 · 강제 해지 (사유 필수)</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="star"></span> 포인트</td><td>수동 적립/차감 (사유 입력 필수)</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="mail"></span> 발송 이력</td><td>이 회원에게 보낸 모든 메시지 · 열람 여부</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="file-pen"></span> 메모</td><td>운영자 간 공유 메모 (회원은 못 봄)</td></tr>
+          <tr><td><span class="siren-icon-wrap" data-icon="octagon-x"></span> 블랙</td><td>후원·신고·게시판 접근 차단 (사유 필수)</td></tr>
         </tbody>
       </table>
 
@@ -1497,7 +1498,7 @@
       </ul>
 
       <div class="callout ok">
-        <div class="title">🤖 급여 AI 분석 — 발급 전 점검</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="bot"></span> 급여 AI 분석 — 발급 전 점검</div>
         <p style="font-size:13.5px;margin:6px 0 8px;">급여 화면의 <strong>[분석] 버튼</strong>을 누르면 AI가 이번 달 급여 데이터를 훑어 발급 전에 짚어 줍니다.</p>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li><strong>이상치 탐지</strong> — 평소보다 유난히 크거나 작은 금액, 튀는 항목을 표시</li>
@@ -1508,12 +1509,12 @@
       </div>
 
       <!-- E-9 AI 운영 -->
-      <h3 id="e-ai-ops">E-9. AI 운영 · 비용 관리 🛡️</h3>
+      <h3 id="e-ai-ops">E-9. AI 운영 · 비용 관리 <span class="siren-icon-wrap" data-icon="shield"></span></h3>
       <p>AI 비서·자동 트리거·회신 초안 등 모든 AI 호출은 비용을 발생시킵니다. 운영자가 월 한도와 도구 권한을 통제합니다.</p>
 
       <div class="grid cols-2">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>💰 AI 비용 관리 <code>/admin-ai-cost.html</code></h4>
+          <h4><span class="siren-icon-wrap" data-icon="coins"></span> AI 비용 관리 <code>/admin-ai-cost.html</code></h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>기능별 월 한도 설정 (자동 트리거·AI 회신·작업 요약 등)</li>
             <li>한도 초과 시 자동 차단 (추가 과금 0)</li>
@@ -1522,7 +1523,7 @@
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>🛡️ AI 비서 설정 <code>/admin-ai-config.html</code></h4>
+          <h4><span class="siren-icon-wrap" data-icon="shield"></span> AI 비서 설정 <code>/admin-ai-config.html</code></h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>시스템 프롬프트 편집 (슈퍼어드민)</li>
             <li>84개 도구별 활성/비활성 토글</li>
@@ -1568,7 +1569,7 @@
           <tr><td>정기 후원이 두 번 결제됐다</td><td>결제 로그·KICC 콘솔 확인 → 중복 결제면 KICC에서 환불 + 시스템 메모.</td></tr>
           <tr><td>환불은 시스템에서 되나?</td><td>자동 환불 없음. KICC/효성 콘솔에서 수동 + 시스템 메모.</td></tr>
           <tr><td>카드 만료 회원 한 번에 알리려면?</td><td>수신자 그룹 [카드 만료 임박] → 발송 작업 생성. 자동 트리거가 이미 처리 중일 수 있음.</td></tr>
-          <tr><td>카카오 알림톡 문구를 바꾸거나 새로 만들려면?</td><td>알림·발송 → 💬 카카오 알림톡 템플릿에서 [＋ 새 템플릿 등록]. 변수는 <code>#{변수명}</code>으로, 등록하면 카카오 검수가 자동 요청됨. 승인(1~3 영업일)되어야 발송에 사용. 등록·삭제는 관리자 이상.</td></tr>
+          <tr><td>카카오 알림톡 문구를 바꾸거나 새로 만들려면?</td><td>알림·발송 → <span class="siren-icon-wrap" data-icon="message-circle"></span> 카카오 알림톡 템플릿에서 [＋ 새 템플릿 등록]. 변수는 <code>#{변수명}</code>으로, 등록하면 카카오 검수가 자동 요청됨. 승인(1~3 영업일)되어야 발송에 사용. 등록·삭제는 관리자 이상.</td></tr>
           <tr><td>후원자 명단을 엑셀로 받고 싶다</td><td>회원 목록 필터 적용 → [Excel 내보내기].</td></tr>
           <tr><td>연말 기부금 영수증 절차는?</td><td>1~2월 별도 일괄 발급 트리거. 주민번호 미등록자 11~12월 사전 캠페인.</td></tr>
           <tr><td>신규 후원 채널 성과를 보고 싶다</td><td>회원 목록 > 채널별 KPI. URL <code>?src=채널명</code>으로 유입되어야 분류됨.</td></tr>
@@ -1578,22 +1579,22 @@
       </table>
 
       <div class="callout gold">
-        <div class="title">📚 manual-admin.html 본문</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="book"></span> manual-admin.html 본문</div>
         신고 운영 · 워크스페이스(D) · 어드민 후원·결제(E) 전 영역 + <strong>R39 신규 기능(역할 동적 CRUD·근태 보강·근무형태 변경 결재·비매출 검토·휴가 수동조정 등) 운영 중</strong> 안내 반영 완료.
       </div>
     </section>
 
     <!-- 추모관 운영 -->
     <section id="admin-memorial">
-      <h2><span class="badge-area">🕯️</span>추모관 운영</h2>
-      <p>온라인 추모관(공개: <code>/memorial.html</code>)과 유가족 이야기(<code>/family-stories.html</code>)는 통합 CMS <strong>🕯️ 추모관 관리</strong>·<strong>🕊️ 유가족 이야기</strong>에서 운영합니다.</p>
+      <h2><span class="badge-area"><span class="siren-icon-wrap" data-icon="candle"></span></span>추모관 운영</h2>
+      <p>온라인 추모관(공개: <code>/memorial.html</code>)과 유가족 이야기(<code>/family-stories.html</code>)는 통합 CMS <strong><span class="siren-icon-wrap" data-icon="candle"></span> 추모관 관리</strong>·<strong><span class="siren-icon-wrap" data-icon="dove"></span> 유가족 이야기</strong>에서 운영합니다.</p>
       <table>
         <thead><tr><th>기능</th><th>위치</th><th>설명</th></tr></thead>
         <tbody>
           <tr><td>선생님 등록·수정</td><td>추모관 관리 &gt; 선생님</td><td>성함·생몰일·학교/지역·한 줄 헌사·약력·타임라인 입력, 영정 사진 업로드(미업로드 시 실루엣), 공개 토글·정렬.</td></tr>
           <tr><td>메시지·편지 모더레이션</td><td>추모관 관리 &gt; 모더레이션</td><td>신고순 목록에서 부적절한 글을 숨김·삭제. 정상 글은 공개 유지.</td></tr>
           <tr><td>추모관 설정</td><td>추모관 관리 &gt; 설정</td><td>히어로 유튜브 영상·헌사 문구·BGM 트랙 목록 편집. BGM 음원 미등록 시 재생 토글 숨김.</td></tr>
-          <tr><td>유가족 이야기 영상</td><td>유가족 이야기</td><td>유튜브 URL 붙여넣기 → 제목·썸네일 자동, ✨AI 초안 생성 후 검수·발행.</td></tr>
+          <tr><td>유가족 이야기 영상</td><td>유가족 이야기</td><td>유튜브 URL 붙여넣기 → 제목·썸네일 자동, <span class="siren-icon-wrap" data-icon="sparkles"></span>AI 초안 생성 후 검수·발행.</td></tr>
         </tbody>
       </table>
       <p>헌화는 비회원도 가능(닉네임), 메시지·편지 작성은 회원만. 영정·실명·약력은 <strong>유가족 동의 범위</strong>에서 운영하세요.</p>
@@ -1601,16 +1602,16 @@
 
     <!-- ===================== 딥릴리프 (순직 인정 지원) ===================== -->
     <section id="deeprelief">
-      <h2><span class="badge-area">🕊️</span>딥릴리프 — 순직 인정 지원</h2>
-      <p><span class="role op">🤝 운영자·간사</span> <span class="role admin">🛡️ 슈퍼어드민</span> · 진입 <strong>통합 CMS 좌측 사이드바 → 🕊️ 딥릴리프</strong> (1뎁스 메뉴)</p>
+      <h2><span class="badge-area"><span class="siren-icon-wrap" data-icon="dove"></span></span>딥릴리프 — 순직 인정 지원</h2>
+      <p><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 운영자·간사</span> <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> · 진입 <strong>통합 CMS 좌측 사이드바 → <span class="siren-icon-wrap" data-icon="dove"></span> 딥릴리프</strong> (1뎁스 메뉴)</p>
 
       <div class="callout">
-        <div class="title">🕊️ 딥릴리프가 하는 일 (한 줄 정의)</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="dove"></span> 딥릴리프가 하는 일 (한 줄 정의)</div>
         교사(공무원)의 <strong>순직 인정</strong>을 협회 운영자가 AI 지원으로 돕는 시스템입니다. 사건별로 자료를 모으면 AI가 자동으로 글자를 뽑고 분류·분석해, 운영자가 인정 신청을 준비하도록 돕습니다. <strong>유족에게 직접 노출되지 않는 운영자 전용 도구</strong>입니다.
       </div>
 
       <div class="callout danger">
-        <div class="title">⚠️ 가장 먼저 기억할 안전 원칙 3가지</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 가장 먼저 기억할 안전 원칙 3가지</div>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li><strong>AI 결과는 항상 "전문가 검토용 초안"</strong> — AI가 만든 전략·분석·서면은 그대로 쓰지 말고 <strong>변호사·노무사 검토</strong>를 거칩니다. 순직 인정은 틀리면 유족에게 치명적이므로 운영자 검증 후에만 전달합니다.</li>
           <li><strong>근거를 추적합니다</strong> — AI 답변은 어떤 과거 사례·법령을 근거로 했는지 출처를 함께 보여 줍니다. 근거를 확인하고 신뢰하세요.</li>
@@ -1639,7 +1640,7 @@
       <h4>② 자료 업로드 (거의 모든 형식)</h4>
       <div class="grid cols-2">
         <div class="card">
-          <h4>📎 올릴 수 있는 형식</h4>
+          <h4><span class="siren-icon-wrap" data-icon="paperclip"></span> 올릴 수 있는 형식</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>PDF · 이미지(사진·스캔본)</li>
             <li>한글(hwp·hwpx) · 워드 · 엑셀 · 파워포인트</li>
@@ -1649,7 +1650,7 @@
           </ul>
         </div>
         <div class="card">
-          <h4>🔊 음성·영상은 자동 전사 후 원본 삭제</h4>
+          <h4><span class="siren-icon-wrap" data-icon="volume-2"></span> 음성·영상은 자동 전사 후 원본 삭제</h4>
           <p style="font-size:13.5px;margin-bottom:0;">음성·영상을 올리면 AI가 <strong>말을 글자로 자동 전사</strong>한 뒤, <strong>원본 파일은 자동으로 삭제</strong>합니다. 텍스트만 남겨 분석하므로 저장공간을 아끼고, 민감 원본이 오래 남지 않습니다.</p>
         </div>
       </div>
@@ -1675,7 +1676,7 @@
       </ul>
 
       <div class="callout gold">
-        <div class="title">🔒 자료 격리 검색 (사건별 분리)</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="lock"></span> 자료 격리 검색 (사건별 분리)</div>
         각 사건의 자료는 <strong>그 사건 안에서만 검색</strong>되도록 따로 색인됩니다. 한 사건 자료가 다른 사건이나 일반 AI 비서·일반 검색에 섞여 나오지 않습니다.
       </div>
 
@@ -1684,7 +1685,7 @@
       <p>자료가 쌓이면 AI가 가능한 인정 논리와 부족한 점을 정리해 줍니다. 일부는 자동으로, 일부는 운영자가 <strong>[생성] 버튼</strong>을 눌러 실행합니다.</p>
 
       <div class="callout">
-        <div class="title">⚙️ 무엇이 자동이고 무엇이 버튼인가</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="settings"></span> 무엇이 자동이고 무엇이 버튼인가</div>
         <ul style="margin:6px 0 0;font-size:13.5px;">
           <li><strong>자동</strong>: 자료 업로드 → 글자 추출 → <strong>전략 분석</strong>까지 자동으로 이어집니다.</li>
           <li><strong>[생성] 버튼</strong>: 골든타임 제언 · 인정 요건 대조 · 준비도 게이지는 운영자가 버튼을 눌러 만듭니다.</li>
@@ -1693,7 +1694,7 @@
 
       <div class="grid cols-2">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>🧭 전략 분석 (자동)</h4>
+          <h4><span class="siren-icon-wrap" data-icon="compass"></span> 전략 분석 (자동)</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>확보한 자료로 <strong>가능한 순직 인정 논리</strong>와 <strong>부족한 자료</strong>를 제시</li>
             <li><strong>모순 탐지</strong>: 자료 사이의 날짜·사실 충돌을 찾아냄</li>
@@ -1702,23 +1703,23 @@
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>⏱️ 골든타임 제언 (버튼)</h4>
+          <h4><span class="siren-icon-wrap" data-icon="timer"></span> 골든타임 제언 (버튼)</h4>
           <p style="font-size:13.5px;margin-bottom:0;">지금 <strong>먼저 확보해야 할 자료</strong>를 제언합니다. 사라지기 쉬운 온라인 자료(게시글·기사 등)를 우선으로 짚어 줍니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>⚖️ 인정 요건 대조 (버튼)</h4>
+          <h4><span class="siren-icon-wrap" data-icon="scale"></span> 인정 요건 대조 (버튼)</h4>
           <p style="font-size:13.5px;margin-bottom:0;">공무원재해보상법 등 <strong>법령 요건과 사건 자료를 매트릭스로 대조</strong>합니다. <strong>법령 요건 8종</strong>이 기본 제공되며, 요건 추가·수정은 슈퍼어드민이 합니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--warn);">
-          <h4>📊 준비도 게이지 (버튼)</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 준비도 게이지 (버튼)</h4>
           <p style="font-size:13.5px;margin-bottom:0;">보고서를 만들기 전에 <strong>지금 몇 % 준비됐고 무엇을 더 채우면 인정 가능성이 올라가는지</strong> 보여 줍니다. 규칙 기반 % + AI 첨언. <strong>"인정 확률이 아님"</strong> 라벨로 오해를 막습니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--siren);">
-          <h4>📅 기한 트래커</h4>
+          <h4><span class="siren-icon-wrap" data-icon="calendar"></span> 기한 트래커</h4>
           <p style="font-size:13.5px;margin-bottom:0;"><strong>D-day · 소멸시효 임박</strong>을 자동으로 알립니다. 저장용량이 임계에 가까워져도 알려 줍니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--ok);">
-          <h4>📌 부족 증거 액션</h4>
+          <h4><span class="siren-icon-wrap" data-icon="pin"></span> 부족 증거 액션</h4>
           <p style="font-size:13.5px;margin-bottom:0;">부족한 자료를 <strong>확보 액션으로 등록·추적</strong>합니다. 무엇을 더 모아야 하는지 빠뜨리지 않게 관리합니다.</p>
         </div>
       </div>
@@ -1726,24 +1727,24 @@
       <h4>한눈에 보고 깊게 찾기</h4>
       <div class="grid cols-3">
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">🗂️</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="folders"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">다중 사건 대시보드</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">진행 중인 사건들의 기한·준비도·상태를 한 화면에</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">🔎</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="search"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">코퍼스 검색</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">과거 사례·법령을 직접 의미로 검색</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">✍️</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="pencil"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">유족 동의 기록</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">민감정보 동의를 기록·보존(자산으로 축적)</p>
         </div>
       </div>
 
       <div class="callout">
-        <div class="title">✍️ 유족 동의 기록은 함부로 지우지 않습니다</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="pencil"></span> 유족 동의 기록은 함부로 지우지 않습니다</div>
         유족의 민감정보 동의는 <strong>기록·보존되어 자산으로 축적</strong>됩니다. 자동으로 파기하지 않으며, 필요할 때 <strong>수동으로만 파기</strong>합니다.
       </div>
 
@@ -1752,13 +1753,13 @@
       <p>분석이 끝나면 사건 자료를 바탕으로 <strong>유족급여신청서 초안</strong>을 만들 수 있습니다. AI가 목차를 제안하고 운영자가 섹션별로 본문을 채워 완성한 뒤, 전문가 검토를 거쳐 활용합니다.</p>
 
       <div class="callout danger">
-        <div class="title">⚠️ 모든 서면은 "전문가 검토용 초안"</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 모든 서면은 "전문가 검토용 초안"</div>
         AI가 만든 서면은 그대로 제출하면 안 됩니다. <strong>변호사·노무사 검토와 운영자 확인을 거친 뒤에만</strong> 유족·기관에 전달합니다. 순직 인정은 틀리면 유족에게 치명적이므로 검토 없이 그대로 내보내는 일은 절대 금지입니다.
       </div>
 
       <div class="grid cols-2">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>📝 목차 제안 · 섹션별 작성</h4>
+          <h4><span class="siren-icon-wrap" data-icon="file-pen"></span> 목차 제안 · 섹션별 작성</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>사건 자료를 바탕으로 AI가 <strong>신청서 목차를 먼저 제안</strong></li>
             <li>운영자가 <strong>섹션마다 본문을 생성·직접 편집·재생성</strong>하며 완성</li>
@@ -1766,21 +1767,21 @@
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>📤 PDF · Word · zip 내보내기</h4>
+          <h4><span class="siren-icon-wrap" data-icon="upload"></span> PDF · Word · zip 내보내기</h4>
           <p style="font-size:13.5px;margin-bottom:0;">완성한 서면을 <strong>PDF·Word</strong>로 내려받고, 여러 서면을 <strong>zip 한 묶음</strong>으로 한 번에 내보낼 수 있습니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--siren);">
-          <h4>👩‍⚖️ 전문가 검토 배정·승인</h4>
+          <h4><span class="siren-icon-wrap" data-icon="user"></span> 전문가 검토 배정·승인</h4>
           <p style="font-size:13.5px;margin-bottom:0;">완성 서면을 <strong>변호사·노무사에게 검토 배정</strong>하고, 검토 의견·승인 여부를 흐름으로 관리합니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>🔗 인과관계 논리맵</h4>
+          <h4><span class="siren-icon-wrap" data-icon="link"></span> 인과관계 논리맵</h4>
           <p style="font-size:13.5px;margin-bottom:0;"><strong>업무 요인 → 건강 악화 → 사망</strong>으로 이어지는 인과관계를 한눈에 보는 논리맵으로 정리합니다. 서면의 핵심 논리를 시각적으로 점검할 수 있습니다.</p>
         </div>
       </div>
 
       <div class="callout gold">
-        <div class="title">📚 종결 사건은 자동으로 학습됩니다</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="book"></span> 종결 사건은 자동으로 학습됩니다</div>
         한 사건이 <strong>종결</strong>되면 그 사건의 인정 패턴을 시스템이 <strong>자동으로 학습</strong>해, 이후 다른 사건을 지원할 때 참고 자산으로 활용합니다.
       </div>
 
@@ -1790,7 +1791,7 @@
 
       <div class="grid cols-2">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>🤖 AI 비서로 사건 조회</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bot"></span> AI 비서로 사건 조회</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li><strong>진행 중 사건 목록</strong>(상태·준비도·다음 기한)</li>
             <li><strong>특정 사건 종합 상태</strong> 한 번에 확인</li>
@@ -1799,21 +1800,21 @@
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--ok);">
-          <h4>💬 유족 전달용 쉬운 요약</h4>
+          <h4><span class="siren-icon-wrap" data-icon="message-circle"></span> 유족 전달용 쉬운 요약</h4>
           <p style="font-size:13.5px;margin-bottom:0;">사건 진행 상황을 <strong>전문용어 없이 쉬운 말</strong>로 정리하고 <strong>다음 할 일</strong>을 덧붙입니다. <strong>운영자가 만들어 유족에게 전달</strong>하며, 유족이 직접 로그인해 보는 화면은 아닙니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>📊 인정률 통계</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 인정률 통계</h4>
           <p style="font-size:13.5px;margin-bottom:0;">사건을 <strong>상태별·유형별</strong>로 분포와 추이를 보여 줍니다. 전체 지원 현황을 한눈에 파악할 수 있습니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--siren);">
-          <h4>📖 연구 발간</h4>
+          <h4><span class="siren-icon-wrap" data-icon="book-open"></span> 연구 발간</h4>
           <p style="font-size:13.5px;margin-bottom:0;"><strong>종합 가이드 · 최근 동향 보고서 · 익명 사례 연구</strong>를 발간물로 만듭니다. 협회 자체 조사 내용과 AI 정리 내용의 <strong>비율을 운영자가 설정</strong>하고, 개인 식별정보는 <strong>비식별화(익명화)</strong>합니다. <strong>초안 → 검수 → 발간</strong> 단계로 관리합니다.</p>
         </div>
       </div>
 
       <div class="callout">
-        <div class="title">🔐 발간물은 슈퍼어드민·관리자만 만들고, 운영자는 조회만</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 발간물은 슈퍼어드민·관리자만 만들고, 운영자는 조회만</div>
         연구 발간물의 <strong>생성·발간·삭제는 슈퍼어드민·관리자(admin)만</strong> 할 수 있습니다. <strong>운영자(operator)는 발간물 조회만</strong> 가능합니다. 외부로 내보내는 콘텐츠인 만큼 비식별화와 발간 권한을 분리해 관리합니다.
       </div>
 
@@ -1822,28 +1823,28 @@
       <p>현재 사건 자료 외에 <strong>외부에서 비슷한 과거 사례를 AI가 찾아오는 기능</strong>과, 사건 상세 화면 상단에서 <strong>지금 사건이 어디까지 진행됐는지 한눈에 보는 그룹 박스</strong>, 그리고 <strong>자료를 더 편하게 올리는 방법(드래그·폴더·zip)</strong>이 추가됐습니다.</p>
 
       <h4 id="dr-p5-ext">① 외부 자료 AI 수집·검토·정식 등록</h4>
-      <p>위치: 사건 상세 → <strong>🔍 외부 자료</strong> 탭. <span class="role admin">🛡️ 슈퍼어드민</span> <span class="role op">관리자(admin)</span> 기본 가능, 운영자(operator)는 통합 CMS 권한 정책에서 토글로 켤 수 있습니다.</p>
+      <p>위치: 사건 상세 → <strong><span class="siren-icon-wrap" data-icon="search"></span> 외부 자료</strong> 탭. <span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> <span class="role op">관리자(admin)</span> 기본 가능, 운영자(operator)는 통합 CMS 권한 정책에서 토글로 켤 수 있습니다.</p>
       <div class="grid cols-2">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>🤖 검색어로 AI가 자료를 찾아옴</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bot"></span> 검색어로 AI가 자료를 찾아옴</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
             <li>검색어를 입력하고 <strong>AI 웹검색(Gemini)</strong> 또는 <strong>네이버 검색</strong> 중 골라 실행</li>
             <li>30~60초 후 외부 자료가 수집되어 <strong>확인 대기</strong> 상태로 들어옴</li>
             <li>운영자가 자료 내용을 보고 <strong>[정식 사례로 등록]</strong> 또는 <strong>[제외]</strong> 선택</li>
-            <li>정식 등록 시 사건 목록에 새 사건이 <strong>EXT-YYYYMMDD-NNN</strong> 형식·<strong>과거 사례</strong>·<strong>🤖 AI 수집 배지</strong>로 자동 추가</li>
+            <li>정식 등록 시 사건 목록에 새 사건이 <strong>EXT-YYYYMMDD-NNN</strong> 형식·<strong>과거 사례</strong>·<strong><span class="siren-icon-wrap" data-icon="bot"></span> AI 수집 배지</strong>로 자동 추가</li>
             <li>이 사례는 이후 <strong>신청서 작성 AI가 참고 자산으로 활용</strong></li>
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
-          <h4>📅 2주마다 자동 수집</h4>
+          <h4><span class="siren-icon-wrap" data-icon="calendar"></span> 2주마다 자동 수집</h4>
           <p style="font-size:13.5px;margin-bottom:0;">운영자가 설정한 <strong>기본 검색어로 2주에 한 번 자동 수집</strong>됩니다. 사건 자료 부족이 만성화되는 것을 막아주는 자동화입니다. 검색 출처는 <strong>화이트리스트 도메인 19개</strong>(정부·법원·언론)로 한정해 신뢰도를 관리합니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--ok);">
-          <h4>📊 사이드바·통계·발간 합산 표기</h4>
+          <h4><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 사이드바·통계·발간 합산 표기</h4>
           <p style="font-size:13.5px;margin-bottom:0;">사건 목록과 통계에는 <strong>"사례 N건 (정식 X · AI 분석 Y)"</strong> 형태로 정식 등록 사례와 AI 수집 사례가 함께 표시됩니다.</p>
         </div>
         <div class="card" style="border-top:3px solid var(--warn);">
-          <h4>💰 비용 토글 분리</h4>
+          <h4><span class="siren-icon-wrap" data-icon="coins"></span> 비용 토글 분리</h4>
           <p style="font-size:13.5px;margin-bottom:0;">외부 자료 수집 AI 비용은 별도 토글 <strong><code>martyrdom_ai_external</code></strong>(통합 CMS 비용 관리 화면·<strong>기본 켜짐</strong>·월 cap <strong>$30</strong>)로 관리합니다. 본체 딥릴리프 AI 토글(<code>martyrdom_ai</code>)과는 따로 끌 수 있습니다.</p>
         </div>
       </div>
@@ -1854,7 +1855,7 @@
         <div class="card">
           <h4>표시 항목 4가지</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
-            <li><strong>사건 종류</strong> — 지원 대상 ↔ 과거 사례 (양방향 변경 가능)</li>
+            <li><strong>사건 종류</strong> — 지원 대상 <span class="siren-icon-wrap" data-icon="move-horizontal"></span> 과거 사례 (양방향 변경 가능)</li>
             <li><strong>협회 진행 상태</strong> — 접수·자료수집·분석·서면·종결</li>
             <li><strong>공단 심의 결과</strong> — 미확정·인정·불인정·재심</li>
             <li><strong>공단 행정 단계 Stepper</strong> — 신청 → 심의 → 결정 → 재심</li>
@@ -1863,14 +1864,14 @@
         <div class="card">
           <h4>똑똑한 자동 연동·되돌리기</h4>
           <ul style="font-size:13.5px;margin-bottom:0;">
-            <li>각 항목에 <strong>❓ 호버 툴팁</strong>으로 출처·정의를 안내</li>
+            <li>각 항목에 <strong><span class="siren-icon-wrap" data-icon="circle-help"></span> 호버 툴팁</strong>으로 출처·정의를 안내</li>
             <li>공단 심의 결과를 <strong>인정 / 불인정</strong>으로 저장하면 <strong>"협회 진행 상태도 종결로 바꿀까요?"</strong> 확인 다이얼로그가 뜸</li>
             <li>한 번 <strong>과거 사례</strong>로 옮긴 사건도 <strong>언제든 지원 대상으로 되돌릴 수 있음</strong>(재심 신청·운영자 실수 복구용)</li>
           </ul>
         </div>
       </div>
       <div class="callout">
-        <div class="title">💡 DB 변경 없는 UX 개선</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="lightbulb"></span> DB 변경 없는 UX 개선</div>
         이 그룹 박스는 기존에 흩어져 있던 사건 종류·상태·심의 결과 정보를 <strong>화면에서 모아 보여주는 UX 개선</strong>입니다. 새 컬럼이나 새 테이블은 추가되지 않았습니다.
       </div>
 
@@ -1878,17 +1879,17 @@
       <p>위치: 사건 상세 → <strong>자료</strong> 탭. 자료를 더 편하게 한 번에 올릴 수 있게 됐습니다.</p>
       <div class="grid cols-3">
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">🖱️</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="mouse-pointer"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">드래그앤드롭</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">윈도우 탐색기에서 파일·폴더를 끌어다 놓으면 자동 업로드</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">📁</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="folder"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">폴더 단위 업로드</h4>
-          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">[📁 폴더 선택] 버튼으로 폴더 통째 — 파일명에 폴더 경로 보존 (예: 학교A/2024/회의록.pdf)</p>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">[<span class="siren-icon-wrap" data-icon="folder"></span> 폴더 선택] 버튼으로 폴더 통째 — 파일명에 폴더 경로 보존 (예: 학교A/2024/회의록.pdf)</p>
         </div>
         <div class="card" style="text-align:center;padding:16px 12px;">
-          <div style="font-size:24px;">🗜️</div>
+          <div style="font-size:24px;"><span class="siren-icon-wrap" data-icon="archive"></span></div>
           <h4 style="margin-top:6px;font-size:13.5px;">zip 자동 해제</h4>
           <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">zip 파일을 올리면 안의 파일이 자동으로 풀려 각각 자료로 등록 (폴더 구조도 파일명에 보존)</p>
         </div>
@@ -1917,16 +1918,16 @@
       <table>
         <thead><tr><th width="260">작업</th><th>권한</th></tr></thead>
         <tbody>
-          <tr><td>딥릴리프 전체 사용(사건·자료·분석·서면)</td><td><span class="role op">🤝 운영자(간사)</span> 전용 — 유족에게 노출 안 됨</td></tr>
-          <tr><td>인정 요건 추가·수정·삭제</td><td><span class="role admin">🛡️ 슈퍼어드민</span> 전용</td></tr>
-          <tr><td>연구 발간물 생성·발간·삭제</td><td><span class="role admin">🛡️ 슈퍼어드민</span> · <span class="role admin">관리자(admin)</span> 전용</td></tr>
-          <tr><td>연구 발간물 조회</td><td><span class="role op">🤝 운영자(operator)</span>도 가능</td></tr>
-          <tr><td>외부 자료 AI 수집·검토·정식 등록(R43)</td><td><span class="role admin">🛡️ 슈퍼어드민</span> · <span class="role admin">관리자(admin)</span> 기본 / <span class="role op">🤝 운영자(operator)</span>는 권한 정책 토글 필요</td></tr>
+          <tr><td>딥릴리프 전체 사용(사건·자료·분석·서면)</td><td><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 운영자(간사)</span> 전용 — 유족에게 노출 안 됨</td></tr>
+          <tr><td>인정 요건 추가·수정·삭제</td><td><span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> 전용</td></tr>
+          <tr><td>연구 발간물 생성·발간·삭제</td><td><span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> · <span class="role admin">관리자(admin)</span> 전용</td></tr>
+          <tr><td>연구 발간물 조회</td><td><span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 운영자(operator)</span>도 가능</td></tr>
+          <tr><td>외부 자료 AI 수집·검토·정식 등록(R43)</td><td><span class="role admin"><span class="siren-icon-wrap" data-icon="shield"></span> 슈퍼어드민</span> · <span class="role admin">관리자(admin)</span> 기본 / <span class="role op"><span class="siren-icon-wrap" data-icon="handshake"></span> 운영자(operator)</span>는 권한 정책 토글 필요</td></tr>
         </tbody>
       </table>
 
       <div class="callout gold">
-        <div class="title">💰 AI 비용 토글 — 본체와 외부 자료가 분리</div>
+        <div class="title"><span class="siren-icon-wrap" data-icon="coins"></span> AI 비용 토글 — 본체와 외부 자료가 분리</div>
         딥릴리프의 AI 사용은 <strong>통합 CMS '비용 관리' 화면</strong>에서 켜고 끌 수 있습니다. 토글이 둘로 나뉘어 있습니다.
         <ul style="margin:8px 0 0;font-size:13.5px;">
           <li><code>martyrdom_ai</code> — 본체(전략·분석·서면 등 모든 AI 기능). <strong>기본 켜짐</strong></li>
@@ -1940,7 +1941,7 @@
       <table>
         <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
         <tbody>
-          <tr><td>딥릴리프는 어디서 들어가나요?</td><td>통합 CMS 좌측 사이드바 맨 위 단계의 <strong>🕊️ 딥릴리프</strong> 메뉴. 운영자·간사 전용입니다.</td></tr>
+          <tr><td>딥릴리프는 어디서 들어가나요?</td><td>통합 CMS 좌측 사이드바 맨 위 단계의 <strong><span class="siren-icon-wrap" data-icon="dove"></span> 딥릴리프</strong> 메뉴. 운영자·간사 전용입니다.</td></tr>
           <tr><td>한글·엑셀·음성도 올릴 수 있나요?</td><td>네. PDF·이미지·한글(hwp/hwpx)·워드·엑셀·파워포인트·평문·음성·영상까지 한 파일 300MB까지 올립니다. 음성·영상은 자동으로 글자 전사 후 원본을 삭제합니다.</td></tr>
           <tr><td>자료를 종류별로 직접 분류해야 하나요?</td><td>아니요. 올리기만 하면 AI가 8개 대분류 중 하나로 자동 정리하고 증거 강도(강·중·약)도 매깁니다.</td></tr>
           <tr><td>전략 분석은 자동인가요, 버튼인가요?</td><td>전략 분석은 자료 업로드·추출에 이어 <strong>자동</strong>으로 만들어집니다. 골든타임·인정 요건·준비도는 <strong>[생성] 버튼</strong>으로 만듭니다.</td></tr>
@@ -1953,12 +1954,12 @@
           <tr><td>AI 비서로 순직 사건을 조회할 수 있나요?</td><td>네. AI 비서에게 진행 중 사건 목록(상태·준비도·다음 기한), 특정 사건 종합 상태, 임박 기한(D-day)을 물어볼 수 있습니다. 단 AI 비서는 조회·안내만 하며, 전략·서면 생성은 딥릴리프 화면에서 합니다.</td></tr>
           <tr><td>유족에게 줄 쉬운 요약은 어떻게 만드나요?</td><td>딥릴리프 P4의 '쉬운 요약'으로 사건 진행 상황을 전문용어 없이 쉬운 말 + 다음 할 일로 정리합니다. 운영자가 만들어 유족에게 전달하며, 유족이 직접 로그인해 보는 화면은 아닙니다.</td></tr>
           <tr><td>연구 발간물은 누가 만들고 누가 보나요?</td><td>종합 가이드·최근 동향 보고서·익명 사례 연구의 생성·발간·삭제는 슈퍼어드민·관리자(admin)만 가능하고, 운영자(operator)는 조회만 할 수 있습니다. 협회 자체 조사와 AI 정리 비율을 운영자가 정하고 개인정보는 비식별화하며, 초안→검수→발간 단계로 관리합니다.</td></tr>
-          <tr><td>외부에서 AI가 찾아온 자료를 어떻게 정식 사례로 만드나요?(R43)</td><td>사건 상세 → 🔍 외부 자료 탭에서 검색어를 입력하고 AI 웹검색 또는 네이버 검색으로 자료를 모은 뒤, 운영자가 자료 내용을 확인해 [정식 사례로 등록] 또는 [제외]를 선택합니다. 정식 등록하면 사건 목록에 EXT-YYYYMMDD-NNN 형식의 과거 사례가 🤖 AI 수집 배지와 함께 자동 추가되고, 이후 신청서 작성 AI가 그 사례를 참고 자산으로 활용합니다.</td></tr>
+          <tr><td>외부에서 AI가 찾아온 자료를 어떻게 정식 사례로 만드나요?(R43)</td><td>사건 상세 → <span class="siren-icon-wrap" data-icon="search"></span> 외부 자료 탭에서 검색어를 입력하고 AI 웹검색 또는 네이버 검색으로 자료를 모은 뒤, 운영자가 자료 내용을 확인해 [정식 사례로 등록] 또는 [제외]를 선택합니다. 정식 등록하면 사건 목록에 EXT-YYYYMMDD-NNN 형식의 과거 사례가 <span class="siren-icon-wrap" data-icon="bot"></span> AI 수집 배지와 함께 자동 추가되고, 이후 신청서 작성 AI가 그 사례를 참고 자산으로 활용합니다.</td></tr>
           <tr><td>외부 자료는 자동으로도 모이나요?(R43)</td><td>네. 운영자가 설정한 기본 검색어로 2주에 한 번 자동 수집됩니다. 검색 출처는 정부·법원·언론 등 화이트리스트 도메인 19개로 한정해 신뢰도를 관리합니다. 자동 수집된 자료도 똑같이 [정식 사례로 등록] / [제외] 확인 단계를 거쳐야 사건 목록에 들어갑니다.</td></tr>
           <tr><td>외부 자료 AI 비용은 어떻게 관리되나요?(R43)</td><td>본체 딥릴리프 AI 토글(martyrdom_ai)과 분리되어 별도 토글 martyrdom_ai_external(통합 CMS 비용 관리 화면·기본 켜짐·월 cap $30)로 관리합니다. 외부 수집만 비용이 부담되면 이 토글만 끌 수 있습니다.</td></tr>
           <tr><td>한 번 과거 사례로 옮긴 사건을 다시 지원 대상으로 되돌릴 수 있나요?(R43)</td><td>네. 사건 진행 정보 그룹 박스의 사건 종류 항목에서 언제든 지원 대상으로 되돌릴 수 있습니다. 재심 신청이 들어왔을 때나 운영자가 실수로 옮긴 경우에 활용합니다. 양방향 변경이 항상 가능합니다.</td></tr>
           <tr><td>공단 심의 결과를 저장하면 어떻게 되나요?(R43)</td><td>사건 진행 정보 그룹 박스에서 공단 심의 결과를 인정 또는 불인정으로 저장하면 "협회 진행 상태도 종결로 바꿀까요?"라는 확인 다이얼로그가 뜹니다. 운영자가 한 번 더 확인한 뒤 종결로 함께 바꿀 수 있도록 도와주는 자동 연동입니다.</td></tr>
-          <tr><td>여러 파일이나 폴더를 한 번에 올릴 수 있나요?(R43)</td><td>네. 윈도우 탐색기에서 파일·폴더를 드래그앤드롭으로 끌어다 놓거나, [📁 폴더 선택] 버튼으로 폴더 통째 업로드할 수 있습니다. zip 파일을 올리면 안의 파일이 자동으로 풀려 각각 자료로 등록됩니다. 폴더 구조는 파일명에 보존됩니다(예: 학교A/2024/회의록.pdf). 한도는 zip 1개당 100개 · 합산 500MB입니다.</td></tr>
+          <tr><td>여러 파일이나 폴더를 한 번에 올릴 수 있나요?(R43)</td><td>네. 윈도우 탐색기에서 파일·폴더를 드래그앤드롭으로 끌어다 놓거나, [<span class="siren-icon-wrap" data-icon="folder"></span> 폴더 선택] 버튼으로 폴더 통째 업로드할 수 있습니다. zip 파일을 올리면 안의 파일이 자동으로 풀려 각각 자료로 등록됩니다. 폴더 구조는 파일명에 보존됩니다(예: 학교A/2024/회의록.pdf). 한도는 zip 1개당 100개 · 합산 500MB입니다.</td></tr>
         </tbody>
       </table>
     </section>

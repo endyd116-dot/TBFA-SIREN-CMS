@@ -190,13 +190,13 @@
       Array.prototype.forEach.call(typesWrap.querySelectorAll('.mem-offer-type'), function (el) {
         el.classList.toggle('sel', el === card);
       });
-      btn.textContent = (_offerType === 'flower' ? '🏵️ 헌화하기' : '🕯️ 헌화하기');
+      btn.textContent = (_offerType === 'flower' ? '헌화하기' : '헌화하기');
     });
 
     btn.addEventListener('click', function () {
       var nick = (document.getElementById('memOfferNick').value || '').trim();
       btn.disabled = true;
-      var emoji = _offerType === 'flower' ? '🏵️' : '🕯️';
+      var emoji = _offerType === 'flower' ? '' : '';
       floatOffering(emoji);
 
       api('/api/memorial-offering', {
@@ -239,15 +239,15 @@
     a.href = '/memorial-teacher.html?id=' + encodeURIComponent(t.id);
     var photo = t.photoUrl
       ? '<img src="' + esc(t.photoUrl) + '" alt="' + esc(t.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
-      : '<div class="silhouette">👤</div>';
+      : '<div class="silhouette"></div>';
     a.innerHTML =
       '<div class="mem-card-photo">' + photo + '</div>' +
       '<div class="mem-card-body">' +
         '<h3 class="mem-card-name">' + esc(t.name) + '</h3>' +
         '<p class="mem-card-region">' + esc(t.schoolRegion || '') + '</p>' +
         '<p class="mem-card-tribute">' + esc(t.tributeLine || '') + '</p>' +
-        '<div class="mem-card-meta"><span>🕯️ ' + (Number(t.candleCount) || 0) + '</span>' +
-        '<span>💬 ' + (Number(t.messageCount) || 0) + '</span></div>' +
+        '<div class="mem-card-meta"><span>' + (Number(t.candleCount) || 0) + '</span>' +
+        '<span>' + (Number(t.messageCount) || 0) + '</span></div>' +
       '</div>';
     return a;
   }
@@ -283,7 +283,7 @@
       '<div class="mem-msg-body">' + esc(m.content) + '</div>' +
       '<div class="mem-msg-actions">' +
         '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">♡ <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
-        '<button type="button" class="act-report">🚩 신고</button>' +
+        '<button type="button" class="act-report">신고</button>' +
       '</div>';
     wrap.querySelector('.act-like').addEventListener('click', function () { likeMsg(m.id, wrap); });
     wrap.querySelector('.act-report').addEventListener('click', function () { reportMsg(m.id); });

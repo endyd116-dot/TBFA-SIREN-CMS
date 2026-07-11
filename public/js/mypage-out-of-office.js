@@ -75,12 +75,12 @@
     const hasReservation = !!(start && end);
 
     card.innerHTML = `
-      <h3 class="serif">📅 내 부재 일정</h3>
+      <h3 class="serif">내 부재 일정</h3>
       <p class="sub">부재 기간을 미리 등록하면, 부재 중에 들어오는 새 카드는 백업 담당자에게 자동 인계됩니다.</p>
 
       <div class="mp-ooo-status" style="padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:${active ? '#fef3c7' : '#f0fdf4'};margin-bottom:14px">
         <strong style="font-size:14px;color:${active ? '#92400e' : '#15803d'}">
-          현재 상태: ${active ? '⚠️ 부재 중' : '✅ 근무 중'}
+          현재 상태: ${active ? '부재 중' : '근무 중'}
         </strong>
         ${hasReservation ? `<div style="font-size:12.5px;color:var(--text-3);margin-top:6px">
           예약: ${escapeHtml(start)} ~ ${escapeHtml(end)} ${note ? '· ' + escapeHtml(note) : ''}
@@ -191,28 +191,28 @@
     const currentView = state && state.defaultWbsView ? state.defaultWbsView : 'board';
 
     card.innerHTML = `
-      <h3 class="serif">📋 WBS 기본 보기 모드</h3>
+      <h3 class="serif">WBS 기본 보기 모드</h3>
       <p class="sub">WBS 업무 보드 페이지를 처음 열 때 보여줄 보기 방식을 설정하세요.</p>
 
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:2px solid ${currentView==='board'?'#3b82f6':'#e2e8f0'};border-radius:8px;background:${currentView==='board'?'#eff6ff':'#fff'}">
           <input type="radio" name="mpWbsView" value="board" ${currentView==='board'?'checked':''} style="accent-color:#3b82f6">
           <span>
-            <strong style="font-size:13.5px">📋 보드 (기본)</strong>
+            <strong style="font-size:13.5px">보드 (기본)</strong>
             <span style="display:block;font-size:12px;color:#64748b">5컬럼 칸반 형식</span>
           </span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:2px solid ${currentView==='list'?'#3b82f6':'#e2e8f0'};border-radius:8px;background:${currentView==='list'?'#eff6ff':'#fff'}">
           <input type="radio" name="mpWbsView" value="list" ${currentView==='list'?'checked':''} style="accent-color:#3b82f6">
           <span>
-            <strong style="font-size:13.5px">📃 리스트</strong>
+            <strong style="font-size:13.5px">리스트</strong>
             <span style="display:block;font-size:12px;color:#64748b">표 형식 목록</span>
           </span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:2px solid ${currentView==='calendar'?'#3b82f6':'#e2e8f0'};border-radius:8px;background:${currentView==='calendar'?'#eff6ff':'#fff'}">
           <input type="radio" name="mpWbsView" value="calendar" ${currentView==='calendar'?'checked':''} style="accent-color:#3b82f6">
           <span>
-            <strong style="font-size:13.5px">📅 캘린더</strong>
+            <strong style="font-size:13.5px">캘린더</strong>
             <span style="display:block;font-size:12px;color:#64748b">마감일 기준 월별 달력</span>
           </span>
         </label>

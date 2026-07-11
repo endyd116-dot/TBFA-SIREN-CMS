@@ -66,7 +66,7 @@
     if (el) el.style.display = 'none';
   }
 
-  const MODE_LABEL = { OFFICE: '🏢 사무실', REMOTE: '🏠 재택', FIELD: '🚗 외근', HYBRID: '🔀 혼합', BUSINESS_TRIP: '✈️ 출장', FLEXIBLE: '⏱ 탄력' };
+  const MODE_LABEL = { OFFICE: '사무실', REMOTE: '재택', FIELD: '외근', HYBRID: '혼합', BUSINESS_TRIP: '출장', FLEXIBLE: '탄력' };
   const STATUS_LABEL = { NORMAL: '정상', LATE: '지각', EARLY_LEAVE: '조퇴', ABSENT: '결근', LEAVE: '휴가', REMOTE: '재택', FIELD: '외근', HOLIDAY: '공휴일' };
   const STATUS_CLASS = { NORMAL: 'normal', LATE: 'late', EARLY_LEAVE: 'early', ABSENT: 'absent', LEAVE: 'leave', REMOTE: 'remote', FIELD: 'field', HOLIDAY: 'holiday' };
 
@@ -106,7 +106,7 @@
       if (show && !firstVisible) firstVisible = btn;
     });
     // 헤더 타이틀 + 돌아가기 버튼
-    setText('awmTitle', g === 'config' ? '⚙ 근태 설정' : '🟢 근태 현황');
+    setText('awmTitle', g === 'config' ? '근태 설정' : '근태 현황');
     const backBtn = document.getElementById('awmBackToOps');
     if (backBtn) backBtn.style.display = (g === 'config') ? '' : 'none';
     // 현재 활성 탭이 숨겨졌으면 첫 노출 탭으로 전환 (click → 패널 활성화 + lazy init)
@@ -1019,7 +1019,7 @@
   };
 
   /* ═══════════════════════════════════
-     탭 신규: 근무형태 변경 결재 (G1 — 직원 신청↔어드민 결재 연결)
+     탭 신규: 근무형태 변경 결재 (G1 — 직원 신청어드민 결재 연결)
      결재 API는 이미 구현됨. 승인 시 att_schedule_overrides 단발 재정의 자동 반영.
   ═══════════════════════════════════ */
   async function initWorkmodeChangesTab() {
@@ -1469,11 +1469,11 @@
         const inBtn = (ciLat != null && ciLng != null)
           ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
               name: memberName + ' — ' + ln.date, type:'in', lat:ciLat, lng:ciLng, workplaceId:wpId, workMode:wm,
-            }))})" style="padding:2px 6px;font-size:11px" title="출근 위치">📍출</button>` : '';
+            }))})" style="padding:2px 6px;font-size:11px" title="출근 위치">출</button>` : '';
         const outBtn = (coLat != null && coLng != null)
           ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
               name: memberName + ' — ' + ln.date, type:'out', lat:coLat, lng:coLng, workplaceId:wpId, workMode:wm,
-            }))})" style="padding:2px 6px;font-size:11px;margin-left:3px" title="퇴근 위치">📍퇴</button>` : '';
+            }))})" style="padding:2px 6px;font-size:11px;margin-left:3px" title="퇴근 위치">퇴</button>` : '';
         mapCells = (inBtn + outBtn) || '—';
       }
       const leaveTxt = ln.leaves.length
@@ -1482,8 +1482,8 @@
       /* R39 Stage 7 A-2: 어드민 수정 버튼 / 슈퍼어드민 생성·삭제 (기록 유무로 분기) */
       const recId = r && r.id;
       const editBtn = recId
-        ? `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmOpenRecordEdit(${recId})" title="어드민 직접 수정">✏️</button>` +
-          `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px;color:#dc2626" onclick="awmDeleteRecord(${recId})" title="기록 삭제">🗑</button>`
+        ? `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmOpenRecordEdit(${recId})" title="어드민 직접 수정"></button>` +
+          `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px;color:#dc2626" onclick="awmDeleteRecord(${recId})" title="기록 삭제"></button>`
         : `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmCreateRecordForDate('${ln.date}')" title="기록 생성">＋</button>`;
       return '<tr' + (isWeekend ? ' style="background:#fafbfc"' : '') + '>' +
         '<td style="font-variant-numeric:tabular-nums">' + ln.date + '</td>' +
@@ -1673,7 +1673,7 @@
       body: { recordId: _recEditCurrent.id, message: message || '' },
     });
     if (!res.ok) { toast('알림 발송 실패: ' + (res.data?.error || res.data?.detail || '')); return; }
-    toast('📨 직원에게 확인 요청 알림을 보냈습니다');
+    toast('직원에게 확인 요청 알림을 보냈습니다');
   }
 
   /* ───────────────────────────────────────────────
@@ -1836,12 +1836,12 @@
       const checkInBtn = r.checkInTime
         ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
             name, type:'in', lat:r.checkInLat, lng:r.checkInLng, workplaceId:r.workplaceId, workMode:r.workMode,
-          }))})" style="padding:3px 8px;font-size:11px" title="출근 위치 보기">📍 출근</button>`
+          }))})" style="padding:3px 8px;font-size:11px" title="출근 위치 보기">출근</button>`
         : '—';
       const checkOutBtn = r.checkOutTime
         ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
             name, type:'out', lat:r.checkOutLat, lng:r.checkOutLng, workplaceId:r.workplaceId, workMode:r.workMode,
-          }))})" style="padding:3px 8px;font-size:11px" title="퇴근 위치 보기">📍 퇴근</button>`
+          }))})" style="padding:3px 8px;font-size:11px" title="퇴근 위치 보기">퇴근</button>`
         : '—';
       html += `<tr>
         <td style="font-weight:600"><a href="javascript:void(0)" onclick="awmGoToMemberRecords('${String(r.memberUid)}')" style="color:#c2410c;cursor:pointer;text-decoration:none" title="이 직원의 출퇴근 기록 보기">${escHtml(name)}</a></td>
@@ -1999,7 +1999,7 @@
       const statusBadge = r.status === 'SUBMITTED'
         ? '<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600">제출완료</span>'
         : '<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600">임시저장</span>';
-      const star = r.isStarred ? '⭐' : '☆';
+      const star = r.isStarred ? '' : '☆';
       const score = r.qualityScore != null ? r.qualityScore : '—';
       return '<tr>'
         + '<td style="font-family:Inter;font-size:13px">' + escHtml(r.date || '—') + '</td>'

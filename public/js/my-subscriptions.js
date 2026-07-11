@@ -45,7 +45,7 @@
   /* ── 구독 게시글 목록 ── */
   async function loadSubscribedPosts() {
     const list = document.getElementById('subPostsList');
-    list.innerHTML = '<div class="sub-empty"><div class="icon">⏳</div>불러오는 중...</div>';
+    list.innerHTML = '<div class="sub-empty"><div class="icon"></div>불러오는 중...</div>';
 
     try {
       const params = new URLSearchParams({ page: _postsPage, limit: PAGE_SIZE });
@@ -54,10 +54,10 @@
 
       if (!res.ok || !json.ok) {
         if (res.status === 401) {
-          list.innerHTML = '<div class="sub-empty"><div class="icon">🔒</div>로그인이 필요합니다</div>';
+          list.innerHTML = '<div class="sub-empty"><div class="icon"></div>로그인이 필요합니다</div>';
           return;
         }
-        list.innerHTML = '<div class="sub-empty"><div class="icon">⚠️</div>목록을 불러오지 못했습니다</div>';
+        list.innerHTML = '<div class="sub-empty"><div class="icon"></div>목록을 불러오지 못했습니다</div>';
         return;
       }
 
@@ -68,9 +68,9 @@
       if (!rows.length) {
         list.innerHTML = `
           <div class="sub-empty">
-            <div class="icon">📭</div>
+            <div class="icon"></div>
             구독 중인 게시글이 없습니다.<br>
-            <small style="margin-top:8px;display:block">게시글을 볼 때 🔕 구독하기 버튼을 눌러 새 댓글 알림을 받으세요</small>
+            <small style="margin-top:8px;display:block">게시글을 볼 때 구독하기 버튼을 눌러 새 댓글 알림을 받으세요</small>
           </div>`;
         document.getElementById('subPostsPagination').style.display = 'none';
         return;
@@ -82,7 +82,7 @@
           ? `<span class="sub-unread-badge">+${row.unreadCount}</span>` : '';
         html += `
           <div class="sub-item">
-            <div class="sub-item-icon">📄</div>
+            <div class="sub-item-icon"></div>
             <div class="sub-item-body">
               <div class="sub-item-title">
                 <a href="/board-view.html?id=${escapeHtml(row.postId)}">${escapeHtml(row.postTitle)}</a>
@@ -93,7 +93,7 @@
                 · 댓글 ${escapeHtml(String(row.commentCount || 0))}개
               </div>
             </div>
-            <button class="sub-unsub-btn" onclick="unsubscribePost(${row.postId}, this)">🔕 해제</button>
+            <button class="sub-unsub-btn" onclick="unsubscribePost(${row.postId}, this)">해제</button>
           </div>
         `;
       });
@@ -105,7 +105,7 @@
       });
     } catch (e) {
       console.error('[subscriptions]', e);
-      list.innerHTML = '<div class="sub-empty"><div class="icon">⚠️</div>네트워크 오류</div>';
+      list.innerHTML = '<div class="sub-empty"><div class="icon"></div>네트워크 오류</div>';
     }
   }
 
@@ -136,7 +136,7 @@
   /* ── 알림 목록 ── */
   async function loadNotifications() {
     const list = document.getElementById('subNotifList');
-    list.innerHTML = '<div class="sub-empty"><div class="icon">⏳</div>불러오는 중...</div>';
+    list.innerHTML = '<div class="sub-empty"><div class="icon"></div>불러오는 중...</div>';
 
     try {
       const params = new URLSearchParams({ page: _notifPage, limit: PAGE_SIZE });
@@ -145,10 +145,10 @@
 
       if (!res.ok || !json.ok) {
         if (res.status === 401) {
-          list.innerHTML = '<div class="sub-empty"><div class="icon">🔒</div>로그인이 필요합니다</div>';
+          list.innerHTML = '<div class="sub-empty"><div class="icon"></div>로그인이 필요합니다</div>';
           return;
         }
-        list.innerHTML = '<div class="sub-empty"><div class="icon">⚠️</div>알림을 불러오지 못했습니다</div>';
+        list.innerHTML = '<div class="sub-empty"><div class="icon"></div>알림을 불러오지 못했습니다</div>';
         return;
       }
 
@@ -157,7 +157,7 @@
       const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
       if (!rows.length) {
-        list.innerHTML = '<div class="sub-empty"><div class="icon">🔔</div>새 알림이 없습니다</div>';
+        list.innerHTML = '<div class="sub-empty"><div class="icon"></div>새 알림이 없습니다</div>';
         document.getElementById('subNotifPagination').style.display = 'none';
         return;
       }
@@ -165,7 +165,7 @@
       let html = '';
       rows.forEach((n) => {
         const srcType = n.sourceType || n.type || '';
-        const icon = srcType === 'post' ? '📣' : '💬';
+        const icon = srcType === 'post' ? '' : '';
         const actorName = n.mentionerName || n.actorName || '누군가';
         const linkHtml = n.sourceId
           ? `<a href="/board-view.html?id=${escapeHtml(String(n.sourceId))}">${escapeHtml(n.postTitle || '게시글')}</a>`
@@ -197,7 +197,7 @@
       });
     } catch (e) {
       console.error('[notifications]', e);
-      list.innerHTML = '<div class="sub-empty"><div class="icon">⚠️</div>네트워크 오류</div>';
+      list.innerHTML = '<div class="sub-empty"><div class="icon"></div>네트워크 오류</div>';
     }
   }
 

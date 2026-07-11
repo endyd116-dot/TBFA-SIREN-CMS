@@ -243,7 +243,7 @@
       return;
     }
     state.isDirty = false;
-    $('seoSaveStatus').textContent = '✅ 초안 저장됨';
+    $('seoSaveStatus').textContent = '초안 저장됨';
     $('seoEditorBadge').style.display = 'inline-block';
     $('seoEditorBadge').textContent   = '초안 있음';
 
@@ -271,7 +271,7 @@
       return;
     }
     state.isDirty = false;
-    var msg = '✅ 발행 완료';
+    var msg = '발행 완료';
     if (res.data.buildTriggered) msg += ' (빌드 트리거됨)';
     $('seoSaveStatus').textContent = msg;
     $('seoEditorBadge').style.display = 'none';
@@ -380,7 +380,7 @@
       $('seoOrgStatus').textContent = '저장 실패';
       return;
     }
-    $('seoOrgStatus').textContent = '✅ 저장됨';
+    $('seoOrgStatus').textContent = '저장됨';
     toast('단체 정보 저장 완료', 'success');
   }
 
@@ -422,7 +422,7 @@
       $('seoDefStatus').textContent = '저장 실패';
       return;
     }
-    $('seoDefStatus').textContent = '✅ 저장됨';
+    $('seoDefStatus').textContent = '저장됨';
     toast('기본값 저장 완료', 'success');
   }
 

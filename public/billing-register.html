@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>정기 후원 카드 등록 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -214,7 +215,7 @@
 
       <!-- 메인 화면 -->
       <div id="brMain" class="br-card">
-        <div class="br-icon">💳</div>
+        <div class="br-icon"><span class="siren-icon-wrap" data-icon="credit-card"></span></div>
         <h1 class="br-title">정기 후원 카드 등록</h1>
         <p class="br-subtitle">
           카드 정보를 1회만 등록하시면<br />
@@ -225,7 +226,7 @@
 
         <!-- 후원 정보 요약 -->
         <div class="br-summary" id="brSummary" style="display:none">
-          <div class="br-summary-title">📋 후원 정보</div>
+          <div class="br-summary-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 후원 정보</div>
           <div class="br-summary-row">
             <span class="br-summary-label">후원 유형</span>
             <span class="br-summary-value">정기 후원 (월 자동)</span>
@@ -245,7 +246,7 @@
         </div>
 
         <div class="br-info-box">
-          <h4>💡 카드 등록 안내</h4>
+          <h4><span class="siren-icon-wrap" data-icon="lightbulb"></span> 카드 등록 안내</h4>
           <ul>
             <li>카드사의 안전한 결제창에서 카드 정보를 입력합니다</li>
             <li>등록 후 <strong>오늘 즉시 첫 결제가 진행됩니다</strong></li>
@@ -255,7 +256,7 @@
         </div>
 
         <div class="br-warn-box">
-          🔒 <strong>보안 안내</strong><br />
+          <span class="siren-icon-wrap" data-icon="lock"></span> <strong>보안 안내</strong><br />
           • 카드 정보는 인증된 결제대행사가 직접 처리하며, 협회는 카드 번호를 보관하지 않습니다<br />
           • PCI-DSS 인증된 보안 결제 시스템을 사용합니다<br />
           • 결제 결과는 즉시 이메일로 안내됩니다
@@ -263,7 +264,7 @@
 
         <div class="br-actions">
           <a href="/index.html" class="ghost">← 취소</a>
-          <button type="button" class="primary" id="brStartBtn">💳 카드 등록하기</button>
+          <button type="button" class="primary" id="brStartBtn"><span class="siren-icon-wrap" data-icon="credit-card"></span> 카드 등록하기</button>
         </div>
       </div>
 
@@ -279,7 +280,7 @@
 
       <!-- 만료/잘못된 접근 화면 -->
       <div id="brExpired" class="br-card br-expired" style="display:none">
-        <div class="icon">⏰</div>
+        <div class="icon"><span class="siren-icon-wrap" data-icon="alarm-clock"></span></div>
         <h1 class="br-title">접근 정보가 만료되었습니다</h1>
         <p class="br-subtitle">
           이 페이지는 후원 모달에서만 접근할 수 있으며,<br />
@@ -288,7 +289,7 @@
         </p>
         <div class="br-actions" style="justify-content:center">
           <a href="/index.html" class="primary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">
-            🏠 홈으로 이동
+            <span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동
           </a>
         </div>
       </div>
@@ -298,8 +299,8 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
-  <script src="/js/auth.js?v=16"></script>
+  <script src="/js/common.js?v=3-navicon"></script>
+  <script src="/js/auth.js?v=17"></script>
   <script>
   (function () {
     'use strict';

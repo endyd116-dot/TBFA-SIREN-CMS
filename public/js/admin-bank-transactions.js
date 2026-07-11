@@ -136,12 +136,12 @@
     container.innerHTML = `
       <div class="panel">
         <div class="p-head">
-          <div class="p-title">🏦 지출 자동 추출 시스템</div>
+          <div class="p-title">지출 자동 추출 시스템</div>
           <div class="p-actions">
             <button class="btn-sm btn-sm-ghost" id="btTabTxn" type="button">거래 목록</button>
             <button class="btn-sm btn-sm-ghost" id="btTabCp" type="button">거래처 마스터</button>
             <button class="btn-sm btn-sm-ghost" id="btTabAcct" type="button">계정과목 관리</button>
-            <button class="btn-sm btn-sm-ghost" id="btSettingsBtn" type="button">⚙ 설정</button>
+            <button class="btn-sm btn-sm-ghost" id="btSettingsBtn" type="button">설정</button>
           </div>
         </div>
 
@@ -149,7 +149,7 @@
         <div id="btViewTxn">
           <!-- 업로드 영역 -->
           <div id="btUploadZone" style="border:2px dashed var(--border,#d4d8e0);border-radius:12px;padding:24px;text-align:center;background:#fafbfc;margin-bottom:16px;cursor:pointer;transition:.2s">
-            <div style="font-size:28px;margin-bottom:6px">📤</div>
+            <div style="font-size:28px;margin-bottom:6px"></div>
             <div style="font-weight:600;margin-bottom:4px">IBK 기업은행 거래내역 엑셀을 끌어다 놓거나 클릭해서 업로드</div>
             <div style="font-size:12px;color:var(--text-3,#94a0b3)">.xlsx · .csv 지원 — 업로드 시 자동 파싱 + 입출금 대사 실행</div>
             <input type="file" id="btFileInput" accept=".xlsx,.xls,.csv" style="display:none">
@@ -177,12 +177,12 @@
               <option value="ignored">무시</option>
             </select>
             <button class="btn-sm btn-sm-primary" id="btReloadBtn" type="button">조회</button>
-            <button class="btn-sm btn-sm-ghost" id="btReconcileBtn" type="button" style="margin-left:auto">🔄 대사 재실행</button>
+            <button class="btn-sm btn-sm-ghost" id="btReconcileBtn" type="button" style="margin-left:auto">대사 재실행</button>
           </div>
 
           <!-- 업로드 이력 (접이식) -->
           <details style="margin-bottom:12px">
-            <summary style="cursor:pointer;font-size:13px;color:var(--text-2,#5b6577);font-weight:600">📋 업로드 이력</summary>
+            <summary style="cursor:pointer;font-size:13px;color:var(--text-2,#5b6577);font-weight:600">업로드 이력</summary>
             <div id="btImportList" style="margin-top:8px"></div>
           </details>
 
@@ -478,7 +478,7 @@
         statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:${bg};color:${color};font-size:13px">${html}</div>`;
       }
     };
-    setStatus('#e0f2fe', '#0369a1', `📤 "${escapeHtml(file.name)}" 파싱 중…`);
+    setStatus('#e0f2fe', '#0369a1', `"${escapeHtml(file.name)}" 파싱 중…`);
 
     /* 1) 클라이언트 엑셀 파싱 */
     let parsed;
@@ -489,7 +489,7 @@
       return;
     }
 
-    setStatus('#e0f2fe', '#0369a1', `📤 ${parsed.rows.length}건 파싱 완료 — 서버 적재·대사 중…`);
+    setStatus('#e0f2fe', '#0369a1', `${parsed.rows.length}건 파싱 완료 — 서버 적재·대사 중…`);
 
     /* 2) 정규화 거래 배열 JSON POST — B admin-bank-import 명세:
        { filename, bankName?, periodFrom?, periodTo?, rows:[...] } */
@@ -517,7 +517,7 @@
     let reconcileMsg = '';
     if (inserted > 0) {
       setStatus('#e0f2fe', '#0369a1',
-        `📤 신규 ${inserted}건 적재 완료 — 입출금 대사 실행 중…`);
+        `신규 ${inserted}건 적재 완료 — 입출금 대사 실행 중…`);
       /* threshold 미전달 시 서버 기본 0.75 적용. importId로 이번 업로드분만 대사 */
       const recRes = await api('POST', '/api/admin-bank-reconcile',
         d.importId ? { importId: d.importId } : {});
@@ -525,12 +525,12 @@
         const rd = unwrap(recRes);
         reconcileMsg = rd.message ? ' · ' + rd.message : ' · 대사 완료';
       } else {
-        reconcileMsg = ' · 대사 실행 실패 — "🔄 대사 재실행"으로 다시 시도하세요';
+        reconcileMsg = ' · 대사 실행 실패 — "대사 재실행"으로 다시 시도하세요';
       }
     }
 
     setStatus('#dcfce7', '#15803d',
-      `✅ 업로드 완료 — 신규 ${inserted}건 적재`
+      `업로드 완료 — 신규 ${inserted}건 적재`
       + (skipped ? `, 중복 ${skipped}건 제외` : '')
       + (invalid ? `, 무효 ${invalid}건 제외` : '')
       + reconcileMsg);
@@ -548,14 +548,14 @@
     if (btn) { btn.disabled = true; btn.textContent = '대사 실행 중…'; }
     /* threshold 미전달 시 서버 기본 0.75 적용 */
     const res = await api('POST', '/api/admin-bank-reconcile', {});
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 대사 재실행'; }
+    if (btn) { btn.disabled = false; btn.textContent = '대사 재실행'; }
     if (!res.ok) { alert('대사 실행 실패: ' + (res.data?.error || res.error || '')); return; }
     const d = unwrap(res);
     if (d.message) {
       const statusEl = document.getElementById('btUploadStatus');
       if (statusEl) {
         statusEl.style.display = '';
-        statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:#dcfce7;color:#15803d;font-size:13px">🔄 ${escapeHtml(d.message)}</div>`;
+        statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:#dcfce7;color:#15803d;font-size:13px">${escapeHtml(d.message)}</div>`;
       }
     }
     loadSummary();
@@ -676,7 +676,7 @@
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
         <button class="btn-sm btn-sm-primary" type="button" id="btBatchVoucherBtn"
           style="background:#7c3aed" ${batchTarget.length ? '' : 'disabled'}>
-          ✅ 선택 일괄 전표 확정 (<span id="btBatchSelCount">0</span>)
+          선택 일괄 전표 확정 (<span id="btBatchSelCount">0</span>)
         </button>
         <span style="font-size:11.5px;color:var(--text-3,#94a0b3)">
           미처리 출금 거래 중 추정 계정과목이 있는 건만 일괄 확정됩니다. 추정값 없는 건은 단건 '확인'으로 처리하세요.

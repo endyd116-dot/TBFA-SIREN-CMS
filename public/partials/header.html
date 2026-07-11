@@ -13,7 +13,7 @@
       <a href="/mypage.html">마이페이지</a>
       <a href="#" id="topbarAdminMode" class="d-none"
          style="background:#7a1f2b;color:#fff;padding:4px 10px;border-radius:4px;font-weight:600;margin:0 4px">
-        🛡 관리자 모드
+        <span class="siren-icon-wrap" data-icon="shield"></span> 관리자 모드
       </a>
       <!-- ★ M-3: 알림 벨 -->
       <div id="siren-notification-bell" style="margin: 0 8px;"></div>
@@ -30,6 +30,7 @@
      MAIN HEADER
      ============================================================ -->
 <header class="site-header">
+  <script src="/js/icons.js?v=1"></script>
   <div class="container header-row">
 
     <a href="/index.html" class="brand" aria-label="교사유가족협의회 홈">
@@ -62,18 +63,18 @@
       <!-- ★ 사이렌 메뉴 (3대 관리 + 신청내역) -->
       <li data-page="siren" class="gnb-siren">
         <a href="/incidents.html">
-          <span class="siren-icon" aria-hidden="true">🚨</span>
+          <span class="siren-icon" aria-hidden="true"><span class="siren-icon-wrap" data-icon="siren"></span></span>
           사이렌
         </a>
         <ul class="dropdown">
-          <li><a href="/incidents.html">🔍 사건 제보</a></li>
-          <li><a href="/report-harassment.html">⚠️ 악성민원 신고</a></li>
-          <li><a href="/legal-support.html">⚖️ 법률 지원</a></li>
-          <li><a href="/board.html">💬 자유게시판</a></li>
+          <li><a href="/incidents.html"><span class="siren-icon-wrap" data-icon="search"></span> 사건 제보</a></li>
+          <li><a href="/report-harassment.html"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 악성민원 신고</a></li>
+          <li><a href="/legal-support.html"><span class="siren-icon-wrap" data-icon="scale"></span> 법률 지원</a></li>
+          <li><a href="/board.html"><span class="siren-icon-wrap" data-icon="message-circle"></span> 자유게시판</a></li>
           <li class="dropdown-divider"></li>
-          <li><a href="/mypage.html#support">📋 신청 내역 확인</a></li>
-          <li><a href="/my-reports.html">🚨 내 신고 현황</a></li>
-          <li><a href="/my-subscriptions.html">🔔 구독 관리</a></li>
+          <li><a href="/mypage.html#support"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 신청 내역 확인</a></li>
+          <li><a href="/my-reports.html"><span class="siren-icon-wrap" data-icon="siren"></span> 내 신고 현황</a></li>
+          <li><a href="/my-subscriptions.html"><span class="siren-icon-wrap" data-icon="bell"></span> 구독 관리</a></li>
         </ul>
       </li>
 
@@ -83,16 +84,16 @@
           <li><a href="/news.html#notice">공지사항</a></li>
           <li><a href="/news.html#media">언론보도 / 갤러리</a></li>
           <li><a href="/news.html#faq">자주 묻는 질문</a></li>
-          <li><a href="/resources.html">📚 자료실</a></li>
-          <li><a href="/board.html">💬 자유게시판</a></li>
+          <li><a href="/resources.html"><span class="siren-icon-wrap" data-icon="book"></span> 자료실</a></li>
+          <li><a href="/board.html"><span class="siren-icon-wrap" data-icon="message-circle"></span> 자유게시판</a></li>
         </ul>
       </li>
 
       <li data-page="memorial">
         <a href="/memorial.html">추모관</a>
         <ul class="dropdown">
-          <li><a href="/memorial.html">🕯️ 온라인 추모관</a></li>
-          <li><a href="/family-stories.html">🕊️ 유가족 이야기</a></li>
+          <li><a href="/memorial.html"><span class="siren-icon-wrap" data-icon="candle"></span> 온라인 추모관</a></li>
+          <li><a href="/family-stories.html"><span class="siren-icon-wrap" data-icon="dove"></span> 유가족 이야기</a></li>
         </ul>
       </li>
 
@@ -100,7 +101,7 @@
         <a href="#" data-action="open-modal" data-target="donateModal">후원 안내</a>
         <ul class="dropdown">
           <li><a href="#" data-action="open-modal" data-target="donateModal">정기 / 일시 후원</a></li>
-          <li><a href="/campaigns.html">📢 캠페인</a></li>
+          <li><a href="/campaigns.html"><span class="siren-icon-wrap" data-icon="megaphone"></span> 캠페인</a></li>
           <li><a href="/mypage.html">기부금 영수증</a></li>
         </ul>
       </li>

@@ -161,9 +161,9 @@
         /* 실패/취소 시 [재시도] 버튼, 일부 실패 시 [실패만 재발송] 버튼 */
         let actionBtn = "";
         if (status === "failed" || status === "cancelled") {
-          actionBtn = `<button class="btn btn-sm" data-act="restart" data-id="${r.id}" title="작업 전체를 다시 시작 (대기열로 되돌림)">🔄 재시도</button>`;
+          actionBtn = `<button class="btn btn-sm" data-act="restart" data-id="${r.id}" title="작업 전체를 다시 시작 (대기열로 되돌림)">재시도</button>`;
         } else if (status === "completed" && failureCnt > 0) {
-          actionBtn = `<button class="btn btn-sm" data-act="retry-failed" data-id="${r.id}" title="실패 수신자만 다시 발송">🔄 실패만 재발송</button>`;
+          actionBtn = `<button class="btn btn-sm" data-act="retry-failed" data-id="${r.id}" title="실패 수신자만 다시 발송">실패만 재발송</button>`;
         }
         return `
           <tr data-id="${r.id}">
@@ -230,14 +230,14 @@
             if (!res.ok) {
               const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
               showToast("재시도 실패: " + detail, "error");
-              actBtn.disabled = false; actBtn.textContent = "🔄 재시도";
+              actBtn.disabled = false; actBtn.textContent = "재시도";
               return;
             }
             showToast(res.data?.message || "재시도 대기열에 등록되었습니다 (1분 내 자동 시작)");
             setTimeout(() => load(), 800);
           } catch (err) {
             showToast("재시도 실패: " + (err.message || err), "error");
-            actBtn.disabled = false; actBtn.textContent = "🔄 재시도";
+            actBtn.disabled = false; actBtn.textContent = "재시도";
           }
         } else if (act === "retry-failed") {
           if (!confirm("실패한 수신자에게만 다시 발송하시겠습니까?")) return;
@@ -247,14 +247,14 @@
             if (!res.ok) {
               const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
               showToast("재시도 실패: " + detail, "error");
-              actBtn.disabled = false; actBtn.textContent = "🔄 실패만 재발송";
+              actBtn.disabled = false; actBtn.textContent = "실패만 재발송";
               return;
             }
             showToast("재시도 요청 완료");
             setTimeout(() => load(), 800);
           } catch (err) {
             showToast("재시도 실패: " + (err.message || err), "error");
-            actBtn.disabled = false; actBtn.textContent = "🔄 실패만 재발송";
+            actBtn.disabled = false; actBtn.textContent = "실패만 재발송";
           }
         }
         return;

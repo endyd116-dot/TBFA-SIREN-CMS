@@ -62,8 +62,8 @@
     section.style.marginBottom = '14px';
     section.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
-        '<button class="btn-sm btn-sm-primary" id="btnAiRecommend" type="button">🤖 AI 추천받기</button>' +
-        '<span id="aiRecommendSpinner" style="display:none;font-size:12px;color:var(--text-3)">⏳ AI가 최적 전문가를 분석 중입니다 (3~5초)...</span>' +
+        '<button class="btn-sm btn-sm-primary" id="btnAiRecommend" type="button">AI 추천받기</button>' +
+        '<span id="aiRecommendSpinner" style="display:none;font-size:12px;color:var(--text-3)">AI가 최적 전문가를 분석 중입니다 (3~5초)...</span>' +
       '</div>' +
       '<div id="aiRecommendPanel" style="display:none">' +
         '<div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px">AI 추천 순위</div>' +
@@ -143,7 +143,7 @@
       success = true;
     }
 
-    if (btn)     { btn.disabled = false; btn.textContent = '🤖 AI 추천받기'; }
+    if (btn)     { btn.disabled = false; btn.textContent = 'AI 추천받기'; }
     if (spinner) spinner.style.display = 'none';
 
     if (!success || !recs.length) {

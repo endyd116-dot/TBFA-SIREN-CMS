@@ -5,7 +5,7 @@
   "use strict";
 
   const CHANNEL_LABEL = { email: "이메일", sms: "SMS", kakao: "카카오톡", inapp: "앱 알림" };
-  const CHANNEL_ICONS = { email: "📧", sms: "📱", kakao: "💬", inapp: "🔔" };
+  const CHANNEL_ICONS = { email: "", sms: "", kakao: "", inapp: "" };
 
   let templates = [];
   /* ★ 2026-05-17: 발송 작업용 이미지 상태 — 템플릿 로드 시 templateImages로 초기화.
@@ -256,8 +256,8 @@
     const titleEl = card.querySelector('.card-title');
     if (titleEl) {
       const hint = hasSms && !hasEmail
-        ? '🖼️ 이미지 첨부 <span class="badge-tip" style="background:#fff7ed;color:#9a3412">SMS → MMS 자동 전환 (단가 2~3배, 첫 이미지만)</span>'
-        : '🖼️ 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>';
+        ? '이미지 첨부 <span class="badge-tip" style="background:#fff7ed;color:#9a3412">SMS → MMS 자동 전환 (단가 2~3배, 첫 이미지만)</span>'
+        : '이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>';
       titleEl.innerHTML = hint;
     }
     /* 발송 미리보기 카드 — 채널 1개 이상 선택 시 표시 */
@@ -407,7 +407,7 @@
       const plainBody = body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
       inappEl.innerHTML = `
         <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);max-width:400px">
-          <div style="font-size:1.5rem;line-height:1">🔔</div>
+          <div style="font-size:1.5rem;line-height:1"></div>
           <div style="flex:1;min-width:0">
             ${subject ? `<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:3px">${escapeHtml(subject)}</div>` : ''}
             <div style="font-size:13px;color:#475569;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${escapeHtml(plainBody)}</div>
@@ -833,7 +833,7 @@
           showToast(`${file.name} — 20MB 이하만 첨부 가능`, 'error');
           continue;
         }
-        listEl.innerHTML += `<div data-file="uploading">⏳ ${escapeHtml(file.name)} 업로드 중...</div>`;
+        listEl.innerHTML += `<div data-file="uploading">${escapeHtml(file.name)} 업로드 중...</div>`;
         try {
           if (!window.SirenEditor || typeof window.SirenEditor.uploadFile !== 'function') {
             throw new Error('업로드 모듈 미설치');
@@ -843,10 +843,10 @@
           window._sendJobAttachmentIds.push(Number(result.id));
           /* 마지막 uploading 줄을 성공으로 교체 */
           const last = listEl.querySelector('[data-file="uploading"]');
-          if (last) last.outerHTML = `✅ ${escapeHtml(file.name)} (${(file.size/1024).toFixed(1)}KB) <button type="button" class="btn-mini" onclick="window._removeAttachment(${result.id}, this)" style="font-size:0.72rem;margin-left:4px;padding:1px 6px">×</button><br>`;
+          if (last) last.outerHTML = `${escapeHtml(file.name)} (${(file.size/1024).toFixed(1)}KB) <button type="button" class="btn-mini" onclick="window._removeAttachment(${result.id}, this)" style="font-size:0.72rem;margin-left:4px;padding:1px 6px">×</button><br>`;
         } catch (err) {
           const last = listEl.querySelector('[data-file="uploading"]');
-          if (last) last.outerHTML = `❌ ${escapeHtml(file.name)} 업로드 실패: ${escapeHtml(err.message || '')}<br>`;
+          if (last) last.outerHTML = `${escapeHtml(file.name)} 업로드 실패: ${escapeHtml(err.message || '')}<br>`;
         }
       }
       fileInput.value = '';
@@ -860,7 +860,7 @@
   }
 
   /* ── 파일함 모달 ── */
-  const FILE_ICON = { image: '🖼️', pdf: '📄', video: '🎬', audio: '🎵', zip: '🗜️', word: '📝', excel: '📊', ppt: '📋' };
+  const FILE_ICON = { image: '', pdf: '', video: '', audio: '', zip: '', word: '', excel: '', ppt: '' };
   function fileIcon(name) {
     const ext = String(name || '').split('.').pop().toLowerCase();
     if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) return FILE_ICON.image;
@@ -871,7 +871,7 @@
     if (['doc','docx'].includes(ext)) return FILE_ICON.word;
     if (['xls','xlsx','csv'].includes(ext)) return FILE_ICON.excel;
     if (['ppt','pptx'].includes(ext)) return FILE_ICON.ppt;
-    return '📎';
+    return '';
   }
   function fmtSize(bytes) {
     if (!bytes) return '-';
@@ -915,7 +915,7 @@
             <div style="font-size:0.875rem;font-weight:500;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.name || f.fileName || '파일')}</div>
             <div style="font-size:0.75rem;color:#94a3b8">${fmtSize(f.size || f.fileSize)} · ${fmtDate(f.createdAt || f.uploadedAt)}</div>
           </div>
-          <div style="font-size:1.1rem;color:${sel ? '#1e40af' : '#d1d5db'}">${sel ? '✅' : '○'}</div>
+          <div style="font-size:1.1rem;color:${sel ? '#1e40af' : '#d1d5db'}">${sel ? '' : '○'}</div>
         </div>
       `;
     }).join('');
@@ -974,7 +974,7 @@
         window._sendJobAttachmentIds.push(id);
         if (listEl) {
           const div = document.createElement('div');
-          div.innerHTML = `✅ [파일함] ${escapeHtml(f.name || f.fileName || '파일')} <button type="button" class="btn-mini" style="font-size:0.72rem;margin-left:4px;padding:1px 6px" onclick="window._removeAttachment(${id}, this)">×</button><br>`;
+          div.innerHTML = `[파일함] ${escapeHtml(f.name || f.fileName || '파일')} <button type="button" class="btn-mini" style="font-size:0.72rem;margin-left:4px;padding:1px 6px" onclick="window._removeAttachment(${id}, this)">×</button><br>`;
           listEl.appendChild(div.firstChild);
         }
       });

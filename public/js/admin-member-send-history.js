@@ -78,7 +78,7 @@
     if (m && m.name) {
       $("memberInfo").style.display = "flex";
       $("memberInfo").innerHTML = `
-        <span style="font-size:1.5rem">👤</span>
+        <span style="font-size:1.5rem"></span>
         <div>
           <strong>${escapeHtml(m.name)}</strong> (#${memberId})
           ${m.email ? `<span style="color:#64748b;margin-left:8px">${escapeHtml(m.email)}</span>` : ""}
@@ -131,8 +131,8 @@
     }
     tbody.innerHTML = state.rows.map(r => {
       const badgeClass = r.status === "sent" ? "badge-sent" : r.status === "failed" ? "badge-failed" : "badge-pending";
-      const opened  = r.openCount  > 0 ? `<span class="track-icon" title="열람 ${r.openCount}회">✅</span>` : `<span style="color:#cbd5e1">—</span>`;
-      const clicked = r.clickCount > 0 ? `<span class="track-icon" title="클릭 ${r.clickCount}회">✅</span>` : `<span style="color:#cbd5e1">—</span>`;
+      const opened  = r.openCount  > 0 ? `<span class="track-icon" title="열람 ${r.openCount}회"></span>` : `<span style="color:#cbd5e1">—</span>`;
+      const clicked = r.clickCount > 0 ? `<span class="track-icon" title="클릭 ${r.clickCount}회"></span>` : `<span style="color:#cbd5e1">—</span>`;
       return `
         <tr onclick="openBodyModal(${r.id})">
           <td>${escapeHtml(r.id)}</td>

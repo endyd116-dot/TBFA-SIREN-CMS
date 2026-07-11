@@ -563,7 +563,7 @@
       const bg = n.level === '관' ? 'background:#fdf2f4;' : n.level === '항' ? 'background:#fffbeb;' : '';
       const wt = n.level === '관' ? 'font-weight:700;' : n.level === '항' ? 'font-weight:600;' : '';
       let html = `<tr style="${bg}${over ? 'background:#fef2f2;' : ''}">
-        <td style="padding-left:${pad}px;${wt}"><span style="font-size:10px;color:var(--text-3)">${n.level}</span> ${escapeHtml(n.name)}${over ? ' <span style="color:var(--danger);font-size:11px;font-weight:700">⚠️ 초과</span>' : ''}</td>
+        <td style="padding-left:${pad}px;${wt}"><span style="font-size:10px;color:var(--text-3)">${n.level}</span> ${escapeHtml(n.name)}${over ? ' <span style="color:var(--danger);font-size:11px;font-weight:700">초과</span>' : ''}</td>
         <td class="num">${fmtKRW(planned)}</td>
         <td class="num">${fmtKRW(executed)}</td>
         <td class="num" style="color:${remaining < 0 ? 'var(--danger)' : 'var(--success)'};${remaining < 0 ? 'font-weight:700' : ''}">${fmtKRW(remaining)}</td>
@@ -582,7 +582,7 @@
 
     bodyEl.innerHTML = `
       ${anyOver
-        ? '<div style="margin-bottom:16px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:var(--danger);font-size:13px;font-weight:600">⚠️ 집행이 편성을 초과한 항목이 있습니다.</div>'
+        ? '<div style="margin-bottom:16px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:var(--danger);font-size:13px;font-weight:600">집행이 편성을 초과한 항목이 있습니다.</div>'
         : ''}
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
         <div class="kpi"><div class="kpi-label">편성 합계</div><div class="kpi-value">${fmtKRW(totalPlanned)}</div></div>

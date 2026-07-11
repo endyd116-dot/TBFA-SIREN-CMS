@@ -61,7 +61,7 @@
     const day    = t.recurring_day ?? t.recurringDay;
     if (active) {
       const dayLabel = (day === 0 || day === '0') ? '말일' : `${day}일`;
-      return `🔁 ${name} (매월 ${dayLabel})`;
+      return `${name} (매월 ${dayLabel})`;
     }
     return name;
   }
@@ -228,7 +228,7 @@
           <option value="">템플릿 불러오기…</option>
           ${templates.map(t => `<option value="${t.id}">${templateOptionLabel(t)}</option>`).join('')}
         </select>
-        <button class="btn-sm btn-sm-ghost" id="vcPrintSelectedBtn" type="button">🖨 선택 일괄 인쇄</button>
+        <button class="btn-sm btn-sm-ghost" id="vcPrintSelectedBtn" type="button">선택 일괄 인쇄</button>
         <button class="btn-sm btn-sm-primary" id="vcAddBtn" type="button">+ 전표 작성</button>
       </div>
 
@@ -444,7 +444,7 @@
       banner.style.display = '';
       banner.innerHTML = `
         <div style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#15803d;font-size:13px">
-          ✅ ${escapeHtml(String(monthLabel))} 결산 정리 완료 — 미결 전표·미확인 통장 거래가 없습니다.
+          ${escapeHtml(String(monthLabel))} 결산 정리 완료 — 미결 전표·미확인 통장 거래가 없습니다.
         </div>`;
       return;
     }
@@ -461,7 +461,7 @@
     banner.style.display = '';
     banner.innerHTML = `
       <div style="padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:13px">
-        📋 <strong>${escapeHtml(String(monthLabel))} 결산 체크리스트</strong> — ${parts.join(' · ')}
+        <strong>${escapeHtml(String(monthLabel))} 결산 체크리스트</strong> — ${parts.join(' · ')}
         <span style="color:#a16207"> · 마감 전 정리해 주세요.</span>
       </div>`;
   }
@@ -496,7 +496,7 @@
     if (!a) return '';
     /* rate=null = 전월 동기 지출 0원이라 비율 계산 불가 (신규 발생) */
     const rateText = (a.rate == null) ? '신규' : `+${Math.round(a.rate)}%`;
-    return ` <span class="vc-anomaly-badge" title="전월 대비 급증 (전월 ${fmtKRW(a.prev)} → 이번 달 ${fmtKRW(a.current)})" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 ${rateText}</span>`;
+    return ` <span class="vc-anomaly-badge" title="전월 대비 급증 (전월 ${fmtKRW(a.prev)} → 이번 달 ${fmtKRW(a.current)})" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">급증 ${rateText}</span>`;
   }
 
   /* ── 전표 목록 조회 ── */
@@ -597,7 +597,7 @@
       btns.push(`<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_VOUCHER.submitVoucher(${id})" style="margin-left:4px">재제출</button>`);
     }
 
-    btns.push(`<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_VOUCHER.printVoucher(${id})" style="margin-left:4px" title="지출결의서 인쇄">🖨</button>`);
+    btns.push(`<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_VOUCHER.printVoucher(${id})" style="margin-left:4px" title="지출결의서 인쇄"></button>`);
 
     return btns.join('');
   }
@@ -675,7 +675,7 @@
       집행 ${fmtKRW(info.executed)} ·
       <strong>현재 가용 ${fmtKRW(info.available)}</strong>
       ${amount > 0
-        ? `<br>이 전표 제출 시 가용액: <strong>${fmtKRW(afterAvail)}</strong>${over ? ' ⚠️ 예산 초과 (제출·승인은 가능하나 검토 필요)' : ''}`
+        ? `<br>이 전표 제출 시 가용액: <strong>${fmtKRW(afterAvail)}</strong>${over ? ' 예산 초과 (제출·승인은 가능하나 검토 필요)' : ''}`
         : ''}`;
   }
 
@@ -946,7 +946,7 @@
       forms.push(`<div class="vc-form-page">${voucherFormHtml(v)}</div>`);
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '🖨 선택 일괄 인쇄'; }
+    if (btn) { btn.disabled = false; btn.textContent = '선택 일괄 인쇄'; }
 
     if (!forms.length) { alert('인쇄할 전표 정보를 불러오지 못했습니다.'); return; }
     doPrint(forms.join(''));

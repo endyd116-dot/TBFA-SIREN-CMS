@@ -32,15 +32,15 @@
   }
 
   function fileIcon(mime) {
-    if (!mime) return '📎';
-    if (mime.startsWith('image/')) return '🖼️';
-    if (mime === 'application/pdf') return '📕';
-    if (mime.includes('word')) return '📄';
-    if (mime.includes('excel') || mime.includes('spreadsheet')) return '📊';
-    if (mime.includes('hwp') || mime.includes('hancom')) return '📃';
-    if (mime.includes('zip')) return '🗜️';
-    if (mime.startsWith('text/')) return '📃';
-    return '📎';
+    if (!mime) return '';
+    if (mime.startsWith('image/')) return '';
+    if (mime === 'application/pdf') return '';
+    if (mime.includes('word')) return '';
+    if (mime.includes('excel') || mime.includes('spreadsheet')) return '';
+    if (mime.includes('hwp') || mime.includes('hancom')) return '';
+    if (mime.includes('zip')) return '';
+    if (mime.startsWith('text/')) return '';
+    return '';
   }
 
   function isImageType(mime) {
@@ -148,7 +148,7 @@
 
     root.innerHTML = `
       <div class="siren-attachment-dropzone" data-role="dropzone">
-        <button type="button" class="siren-attachment-pick" data-role="pick">📎 파일 선택</button>
+        <button type="button" class="siren-attachment-pick" data-role="pick">파일 선택</button>
         <span class="siren-attachment-hint">또는 이 영역에 드래그&amp;드롭하세요</span>
         <small class="siren-attachment-limit">최대 ${opts.maxFiles}개 / 이미지 ${fmtSize(opts.maxImageSize)} / 일반 ${fmtSize(opts.maxFileSize)}</small>
         <input type="file" multiple data-role="input" style="display:none" ${opts.accept ? `accept="${escapeHtml(opts.accept)}"` : ''}>
@@ -172,13 +172,13 @@
         if (item.status === 'uploading') {
           statusHtml = `<progress max="100" value="${item.progress || 0}"></progress>`;
         } else if (item.status === 'error') {
-          statusHtml = `<span class="siren-attachment-error">⚠ ${escapeHtml(item.error || '오류')}</span>`;
+          statusHtml = `<span class="siren-attachment-error">${escapeHtml(item.error || '오류')}</span>`;
         } else if (item.status === 'done') {
           statusHtml = `<span class="siren-attachment-done">✓ 완료</span>`;
         }
 
         const downloadBtn = (item.status === 'done' && item.id)
-          ? `<a class="siren-attachment-download" href="/api/blob-image?id=${item.id}&download=1" target="_blank" rel="noopener" title="다운로드">⬇</a>`
+          ? `<a class="siren-attachment-download" href="/api/blob-image?id=${item.id}&download=1" target="_blank" rel="noopener" title="다운로드"></a>`
           : '';
 
         const removeBtn = item.status === 'uploading'

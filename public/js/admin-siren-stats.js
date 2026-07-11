@@ -134,8 +134,8 @@
 
       /* 헤더 */
       '<div class="p-head no-print" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">',
-        '<div class="p-title">📊 신고 통계 대시보드</div>',
-        '<button id="statsPrintBtn" class="btn-sm" style="background:#1e3a5f;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">🖨️ PDF 출력</button>',
+        '<div class="p-title">신고 통계 대시보드</div>',
+        '<button id="statsPrintBtn" class="btn-sm" style="background:#1e3a5f;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">PDF 출력</button>',
       '</div>',
 
       /* 기간 필터 */
@@ -158,9 +158,9 @@
       /* 탭 */
       '<div class="no-print" style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:18px">',
         '<button data-stats-tab="all"        class="stats-tab active" style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">전체</button>',
-        '<button data-stats-tab="incidents"  class="stats-tab"        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">🔍 사건 제보</button>',
-        '<button data-stats-tab="harassment" class="stats-tab"        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">⚠️ 악성민원</button>',
-        '<button data-stats-tab="legal"      class="stats-tab"        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">⚖️ 법률지원</button>',
+        '<button data-stats-tab="incidents"  class="stats-tab"        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">사건 제보</button>',
+        '<button data-stats-tab="harassment" class="stats-tab"        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">악성민원</button>',
+        '<button data-stats-tab="legal"      class="stats-tab"        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-2px;color:#6b7280">법률지원</button>',
       '</div>',
 
       /* 차트 콘텐츠 */
@@ -277,10 +277,10 @@
     if (!el || !_state.data) return;
     var s = _state.data.summary;
     var cards = [
-      { label: '전체 신고',   count: s.total.count,      color: '#1e3a5f', icon: '📊' },
-      { label: '🔍 사건 제보', count: s.incidents.count,  color: '#3b82f6', icon: '' },
-      { label: '⚠️ 악성민원', count: s.harassment.count, color: '#f97316', icon: '' },
-      { label: '⚖️ 법률지원', count: s.legal.count,      color: '#8b5cf6', icon: '' },
+      { label: '전체 신고',   count: s.total.count,      color: '#1e3a5f', icon: '' },
+      { label: '사건 제보', count: s.incidents.count,  color: '#3b82f6', icon: '' },
+      { label: '악성민원', count: s.harassment.count, color: '#f97316', icon: '' },
+      { label: '법률지원', count: s.legal.count,      color: '#8b5cf6', icon: '' },
     ];
     el.innerHTML = cards.map(function (c) {
       return [
@@ -306,11 +306,11 @@
     if (tab === 'all') {
       renderAllTab(area);
     } else if (tab === 'incidents') {
-      renderTypeTab(area, 'incidents', '🔍 사건 제보', false);
+      renderTypeTab(area, 'incidents', '사건 제보', false);
     } else if (tab === 'harassment') {
-      renderTypeTab(area, 'harassment', '⚠️ 악성민원', false);
+      renderTypeTab(area, 'harassment', '악성민원', false);
     } else if (tab === 'legal') {
-      renderTypeTab(area, 'legal', '⚖️ 법률지원', true);
+      renderTypeTab(area, 'legal', '법률지원', true);
     }
   }
 

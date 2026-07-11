@@ -86,7 +86,7 @@ function renderTeacherTable() {
     var url = photoUrlOf(t);
     var thumb = url
       ? '<img src="' + esc(url) + '" alt="" onerror="this.style.display=\'none\'">'
-      : '<div class="no-thumb">👤</div>';
+      : '<div class="no-thumb"></div>';
     var pub = t.isPublic
       ? '<span class="status-pill on">공개</span>'
       : '<span class="status-pill off">비공개</span>';
@@ -153,8 +153,8 @@ function clearTeacherForm() {
 function setPhotoPreview(url) {
   var wrap = document.getElementById('photoPreviewWrap');
   wrap.innerHTML = url
-    ? '<img class="photo-preview" src="' + esc(url) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;photo-preview-empty&quot;>👤</div>\'">'
-    : '<div class="photo-preview-empty">👤</div>';
+    ? '<img class="photo-preview" src="' + esc(url) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;photo-preview-empty&quot;></div>\'">'
+    : '<div class="photo-preview-empty"></div>';
 }
 
 /* 영정 업로드 */
@@ -257,7 +257,7 @@ function switchModType(type) {
   });
   loadMod();
 }
-/* ★ R41 Q2-013: 신고순 ↔ 최신순(미검토) 전환 */
+/* ★ R41 Q2-013: 신고순 최신순(미검토) 전환 */
 function switchModSort(sort) {
   _modSort = sort;
   Array.prototype.forEach.call(document.querySelectorAll('.mod-filter .chip[data-sort]'), function (el) {

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>유가족 이야기 관리 | 어드민</title>
@@ -95,7 +96,7 @@ tr:last-child td { border-bottom:none; }
 <body>
 
 <div class="page-hd">
-  <h2>🕊️ 유가족 이야기</h2>
+  <h2><span class="siren-icon-wrap" data-icon="dove"></span> 유가족 이야기</h2>
   <button class="btn btn-primary" onclick="openAddForm()">+ 영상 추가</button>
 </div>
 
@@ -161,7 +162,7 @@ tr:last-child td { border-bottom:none; }
     <label>운영자 메모 (AI 초안 생성용)</label>
     <textarea id="fAdminNotes" rows="3" placeholder="영상의 배경, 출연자, 협의회와의 관계 등 AI가 본문을 쓸 때 참고할 맥락을 자유롭게 입력하세요."></textarea>
     <div class="ai-btn-row">
-      <button class="btn btn-ai btn-sm" id="btnAiDraft" onclick="requestAiDraft()">✨ AI 초안 생성</button>
+      <button class="btn btn-ai btn-sm" id="btnAiDraft" onclick="requestAiDraft()"><span class="siren-icon-wrap" data-icon="sparkles"></span> AI 초안 생성</button>
       <span class="ai-note" id="aiNote"></span>
     </div>
   </div>
@@ -206,6 +207,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-family-stories.js?v=1"></script>
+<script src="/js/admin-family-stories.js?v=2"></script>
 </body>
 </html>

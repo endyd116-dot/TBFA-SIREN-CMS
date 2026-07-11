@@ -7,16 +7,16 @@
 
   const FIELDS = [
     {
-      title: '🎗 진행 중인 캠페인 영역',
+      title: '진행 중인 캠페인 영역',
       keys: [
         { key: 'home.campaign.sectionVisible', label: '영역 표시', type: 'bool', hint: '꺼두면 캠페인 영역이 메인에서 사라집니다' },
-        { key: 'home.campaign.title',          label: '제목',     type: 'text', hint: '예: 🎗 진행 중인 캠페인' },
+        { key: 'home.campaign.title',          label: '제목',     type: 'text', hint: '예: 진행 중인 캠페인' },
         { key: 'home.campaign.subtitle',       label: '부제',     type: 'textarea', hint: '제목 아래 작은 설명문 (줄바꿈 가능)' },
         { key: 'home.campaign.maxItems',       label: '노출 개수', type: 'number', hint: '메인에 표시할 캠페인 카드 수 (기본 3)' },
       ],
     },
     {
-      title: '📰 공지사항 영역',
+      title: '공지사항 영역',
       keys: [
         { key: 'home.notice.sectionVisible', label: '영역 표시', type: 'bool' },
         { key: 'home.notice.title',          label: '제목',     type: 'text', hint: '예: 통합 공지사항' },
@@ -24,7 +24,7 @@
       ],
     },
     {
-      title: '❓ FAQ 영역',
+      title: 'FAQ 영역',
       keys: [
         { key: 'home.faq.sectionVisible', label: '영역 표시', type: 'bool' },
         { key: 'home.faq.title',          label: '제목',     type: 'text', hint: '예: 자주 묻는 질문' },
@@ -157,7 +157,7 @@
       </style>
 
       <div class="hs-wrap">
-        <h2 class="hs-section-title">📑 섹션 제목 편집</h2>
+        <h2 class="hs-section-title">섹션 제목 편집</h2>
         <p class="hs-section-desc">
           캠페인·공지·FAQ 영역의 제목·부제·표시여부·노출 개수를 편집합니다.<br />
           공지와 FAQ의 실제 내용은 다른 어드민 메뉴(공지/FAQ 관리)에서 작성합니다.
@@ -166,8 +166,8 @@
         ${groupsHtml}
 
         <div class="hs-save-bar">
-          <button type="button" class="hs-btn-mini" id="hsReloadBtn">🔄 처음부터 다시 불러오기</button>
-          <button type="button" class="hs-btn-save" id="hsSaveBtn">💾 변경사항 모두 임시저장</button>
+          <button type="button" class="hs-btn-mini" id="hsReloadBtn">처음부터 다시 불러오기</button>
+          <button type="button" class="hs-btn-save" id="hsSaveBtn">변경사항 모두 임시저장</button>
         </div>
       </div>
     `;
@@ -186,7 +186,7 @@
   function renderField(fld) {
     const setting = _settingsMap[fld.key];
     const value = getCurrentText(setting);
-    const draftBadge = setting?.hasDraft ? '<span class="hs-badge">📝 Draft</span>' : '';
+    const draftBadge = setting?.hasDraft ? '<span class="hs-badge">Draft</span>' : '';
     const hintHtml = fld.hint ? `<div class="hs-hint">${escapeHtml(fld.hint)}</div>` : '';
 
     let inputHtml;
@@ -248,7 +248,7 @@
     });
 
     if (updates.length === 0) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
       toast('변경된 항목이 없습니다');
       return;
     }
@@ -263,7 +263,7 @@
       else { failCount++; console.warn('[home-sections]', u.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
 
     if (failCount === 0) toast(`${okCount}건 임시저장 완료`);
     else toast(`${okCount}건 성공 / ${failCount}건 실패`);

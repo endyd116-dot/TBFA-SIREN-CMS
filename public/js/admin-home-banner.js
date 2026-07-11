@@ -114,7 +114,7 @@
     if (!_settingsMap[KEYS.linkedCampaignId]) {
       inner.innerHTML = `
         <div style="padding:32px;background:#fff5f5;border:1px solid #f5b8b8;border-radius:8px;color:#7a1f2b">
-          <strong>⚠️ 시드 키 누락</strong><br />
+          <strong>시드 키 누락</strong><br />
           <code>home.specialBanner.linkedCampaignId</code> 키가 없습니다.<br />
           <small>1회용 마이그레이션 <code>migrate-add-banner-campaign-key</code>를 먼저 실행해 주세요.</small>
         </div>
@@ -138,7 +138,7 @@
 
     const draftBadges = {};
     Object.keys(KEYS).forEach((k) => {
-      draftBadges[k] = _settingsMap[KEYS[k]]?.hasDraft ? '<span class="hb-badge">📝 Draft</span>' : '';
+      draftBadges[k] = _settingsMap[KEYS[k]]?.hasDraft ? '<span class="hb-badge">Draft</span>' : '';
     });
 
     /* 캠페인 옵션 */
@@ -225,7 +225,7 @@
       </style>
 
       <div class="hb-wrap">
-        <h2 class="hb-section-title">🎗 특별 캠페인 배너 편집 (하단)</h2>
+        <h2 class="hb-section-title">특별 캠페인 배너 편집 (하단)</h2>
         <p class="hb-section-desc">
           메인 페이지 하단에 표시되는 큰 배너입니다. 두 가지 모드 중 선택:<br />
           <strong>직접 입력</strong> — 모든 텍스트/금액/CTA를 어드민이 직접 편집<br />
@@ -234,7 +234,7 @@
 
         <!-- 영역 표시 토글 -->
         <div class="hb-card">
-          <div class="hb-card-title">👁 영역 전체 표시 ${draftBadges.visible}</div>
+          <div class="hb-card-title">영역 전체 표시 ${draftBadges.visible}</div>
           <div class="hb-checkbox-row">
             <input type="checkbox" id="hbVisible" ${visible ? 'checked' : ''} style="width:18px;height:18px">
             <label for="hbVisible" style="font-size:13px;cursor:pointer">메인 페이지에 특별 배너 표시</label>
@@ -243,10 +243,10 @@
 
         <!-- 모드 탭 -->
         <div class="hb-card">
-          <div class="hb-card-title">📌 운영 모드 ${draftBadges.linkedCampaignId}</div>
+          <div class="hb-card-title">운영 모드 ${draftBadges.linkedCampaignId}</div>
           <div class="hb-mode-tabs" id="hbModeTabs">
-            <div class="hb-mode-tab ${!isLinked ? 'active' : ''}" data-mode="direct">✏️ 직접 입력</div>
-            <div class="hb-mode-tab ${isLinked ? 'active' : ''}" data-mode="linked">🔗 캠페인 연결</div>
+            <div class="hb-mode-tab ${!isLinked ? 'active' : ''}" data-mode="direct">직접 입력</div>
+            <div class="hb-mode-tab ${isLinked ? 'active' : ''}" data-mode="linked">캠페인 연결</div>
           </div>
 
           <!-- 모드 1: 직접 입력 -->
@@ -283,7 +283,7 @@
           <!-- 모드 2: 캠페인 연결 -->
           <div class="hb-mode-body ${isLinked ? 'active' : ''}" data-mode-body="linked">
             <div class="hb-locked-hint">
-              💡 캠페인 연결 모드 — 선택한 캠페인의 제목·모금액·목표가 자동 반영됩니다.<br />
+              캠페인 연결 모드 — 선택한 캠페인의 제목·모금액·목표가 자동 반영됩니다.<br />
               직접 편집은 비활성화되며, 태그/본문은 직접 입력 값이 그대로 사용됩니다.
             </div>
             <div class="hb-field">
@@ -292,7 +292,7 @@
                 <option value="">— 캠페인을 선택하세요 —</option>
                 ${campaignOptions}
               </select>
-              ${_campaignList.length === 0 ? '<div class="hb-hint" style="color:#c5293a">⚠️ 캠페인 목록이 비어있습니다. 어드민 → 캠페인 관리에서 먼저 캠페인을 만들어 주세요.</div>' : ''}
+              ${_campaignList.length === 0 ? '<div class="hb-hint" style="color:#c5293a">캠페인 목록이 비어있습니다. 어드민 → 캠페인 관리에서 먼저 캠페인을 만들어 주세요.</div>' : ''}
             </div>
 
             <div class="hb-field">
@@ -309,7 +309,7 @@
 
         <!-- CTA 버튼 -->
         <div class="hb-card">
-          <div class="hb-card-title">🔘 CTA 버튼 2개 ${draftBadges.cta}</div>
+          <div class="hb-card-title">CTA 버튼 2개 ${draftBadges.cta}</div>
 
           <div class="hb-field">
             <label class="hb-field-label">메인 버튼 (Primary)</label>
@@ -337,8 +337,8 @@
         </div>
 
         <div class="hb-save-bar">
-          <button type="button" class="hb-btn-mini" id="hbReloadBtn">🔄 처음부터 다시 불러오기</button>
-          <button type="button" class="hb-btn-save" id="hbSaveBtn">💾 변경사항 모두 임시저장</button>
+          <button type="button" class="hb-btn-mini" id="hbReloadBtn">처음부터 다시 불러오기</button>
+          <button type="button" class="hb-btn-save" id="hbSaveBtn">변경사항 모두 임시저장</button>
         </div>
       </div>
     `;
@@ -453,7 +453,7 @@
     }
 
     if (updates.length === 0) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
       toast('변경된 항목이 없습니다');
       return;
     }
@@ -468,7 +468,7 @@
       else { failCount++; console.warn('[home-banner]', u.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
 
     if (failCount === 0) toast(`${okCount}건 임시저장 완료`);
     else toast(`${okCount}건 성공 / ${failCount}건 실패`);

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>트리거 편집 | SIREN 어드민</title>
@@ -137,7 +138,7 @@ body {
 
   <!-- 기본 정보 -->
   <div class="card">
-    <div class="card-title">📋 기본 정보</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 기본 정보</div>
     <div class="field">
       <label>이름 <span style="color:#ef4444">*</span></label>
       <input type="text" id="fName" maxlength="100" placeholder="이탈 위험 회원 재참여" />
@@ -150,36 +151,36 @@ body {
 
   <!-- 트리거 종류 -->
   <div class="card">
-    <div class="card-title">🎯 트리거 종류</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="target"></span> 트리거 종류</div>
     <div class="type-grid" id="typeGrid">
       <label class="type-option" data-type="churn_risk">
         <input type="radio" name="triggerType" value="churn_risk" />
-        <span class="type-icon">⚠️</span>
+        <span class="type-icon"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></span>
         <span>이탈 위험</span>
       </label>
       <label class="type-option" data-type="campaign_slump">
         <input type="radio" name="triggerType" value="campaign_slump" />
-        <span class="type-icon">📉</span>
+        <span class="type-icon"><span class="siren-icon-wrap" data-icon="trending-down"></span></span>
         <span>캠페인 부진</span>
       </label>
       <label class="type-option" data-type="welcome">
         <input type="radio" name="triggerType" value="welcome" />
-        <span class="type-icon">🎉</span>
+        <span class="type-icon"><span class="siren-icon-wrap" data-icon="party-popper"></span></span>
         <span>신규 환영</span>
       </label>
       <label class="type-option" data-type="anniversary">
         <input type="radio" name="triggerType" value="anniversary" />
-        <span class="type-icon">🎗️</span>
+        <span class="type-icon"><span class="siren-icon-wrap" data-icon="ribbon"></span></span>
         <span>후원 기념</span>
       </label>
       <label class="type-option" data-type="birthday">
         <input type="radio" name="triggerType" value="birthday" />
-        <span class="type-icon">🎂</span>
+        <span class="type-icon"><span class="siren-icon-wrap" data-icon="cake"></span></span>
         <span>생일</span>
       </label>
       <label class="type-option" data-type="custom_filter">
         <input type="radio" name="triggerType" value="custom_filter" />
-        <span class="type-icon">🔧</span>
+        <span class="type-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
         <span>운영자 정의</span>
       </label>
     </div>
@@ -252,7 +253,7 @@ body {
 
   <!-- 발송 매핑 -->
   <div class="card">
-    <div class="card-title">📨 발송 매핑</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="mail"></span> 발송 매핑</div>
 
     <div class="field">
       <label>채널 <span style="color:#ef4444">*</span></label>
@@ -283,7 +284,7 @@ body {
 
   <!-- 실행 정책 -->
   <div class="card">
-    <div class="card-title">⚙️ 실행 정책</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="settings"></span> 실행 정책</div>
     <div class="field">
       <label>쿨다운 (일)</label>
       <input type="number" id="fCooldown" min="1" max="365" value="30" style="width:100px" />
@@ -298,7 +299,7 @@ body {
 
   <!-- 미리보기 -->
   <div class="card">
-    <div class="card-title">👁️ 미리보기</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="eye"></span> 미리보기</div>
     <button class="btn btn-secondary" onclick="runPreflight()" id="btnPreflight">현재 조건으로 후보 확인</button>
     <div id="previewArea" style="margin-top:12px"></div>
   </div>

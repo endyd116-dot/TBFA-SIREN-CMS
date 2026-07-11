@@ -44,19 +44,19 @@
   /* ============ 그룹 정의 (UI 표시용) ============ */
   const STAT_GROUPS = [
     {
-      title: '💰 후원 통계',
+      title: '후원 통계',
       keys: [
         { key: 'donations.totalAmount', label: '누적 후원금 (원)', type: 'number', hint: '단위는 원. 1,283,000,000 처럼 숫자만 입력' },
       ],
     },
     {
-      title: '📊 월별 후원금 추이 (활동 보고서 차트용)',
+      title: '월별 후원금 추이 (활동 보고서 차트용)',
       keys: [
         { key: 'donations.monthlyTrend', label: '월별 추이 JSON', type: 'json', hint: '예: [{"month":"1월","amount":84200000}, ...]' },
       ],
     },
     {
-      title: '🤝 활동 통계',
+      title: '활동 통계',
       keys: [
         { key: 'support.totalCount', label: '유가족 지원 건수', type: 'number' },
         { key: 'members.regularDonors', label: '정기 후원 회원 수', type: 'number' },
@@ -64,7 +64,7 @@
       ],
     },
     {
-      title: '🥧 집행 비율 (도넛 차트, %)',
+      title: '집행 비율 (도넛 차트, %)',
       keys: [
         { key: 'distribution.directSupport', label: '직접 지원 (%)', type: 'number', hint: '4개 항목 합이 100이 되어야 정확한 차트' },
         { key: 'distribution.memorial', label: '추모 사업 (%)', type: 'number' },
@@ -73,7 +73,7 @@
       ],
     },
     {
-      title: '🏆 인증',
+      title: '인증',
       keys: [
         { key: 'transparency.grade', label: '투명성 등급', type: 'text', hint: '예: A+' },
       ],
@@ -112,13 +112,13 @@
     const draftCount = (_stats?.list || []).filter((s) => s.hasDraft).length;
     const draftBanner = draftCount > 0
       ? '<div class="stats-draft-banner">' +
-        '<span>💾 임시 저장된 변경사항: <strong>' + draftCount + '건</strong></span>' +
+        '<span>임시 저장된 변경사항: <strong>' + draftCount + '건</strong></span>' +
         '<div style="display:flex;gap:8px">' +
-          '<button type="button" class="btn-publish" id="statsPublishBtn">🚀 최종 배포 (운영 적용)</button>' +
-          '<button type="button" class="btn-discard-all" id="statsDiscardAllBtn">↩️ 모든 변경사항 폐기</button>' +
+          '<button type="button" class="btn-publish" id="statsPublishBtn">최종 배포 (운영 적용)</button>' +
+          '<button type="button" class="btn-discard-all" id="statsDiscardAllBtn">모든 변경사항 폐기</button>' +
         '</div>' +
         '</div>'
-      : '<div class="stats-no-draft">✅ 임시 저장된 변경사항이 없습니다 (운영 사이트와 동기화됨)</div>';
+      : '<div class="stats-no-draft">임시 저장된 변경사항이 없습니다 (운영 사이트와 동기화됨)</div>';
 
     let groupsHtml = '';
     for (const group of STAT_GROUPS) {
@@ -139,7 +139,7 @@
           : currentValue;
 
         const draftBadge = setting.hasDraft
-          ? '<span class="stats-draft-badge">📝 임시저장됨</span>'
+          ? '<span class="stats-draft-badge">임시저장됨</span>'
           : '';
 
         const inputHtml = fld.type === 'json'
@@ -155,7 +155,7 @@
           (fld.hint ? '<div class="stats-row-hint">' + escapeHtml(fld.hint) + '</div>' : '') +
           (setting.hasDraft
             ? '<div class="stats-row-actions">' +
-              '<button type="button" class="btn-mini btn-discard" data-stats-discard="' + setting.id + '">↩️ 이 항목 변경 폐기</button>' +
+              '<button type="button" class="btn-mini btn-discard" data-stats-discard="' + setting.id + '">이 항목 변경 폐기</button>' +
               '<span style="font-size:11px;color:var(--text-3);margin-left:auto">현재 운영 값: <code>' + escapeHtml(currentValue.slice(0, 60)) + (currentValue.length > 60 ? '...' : '') + '</code></span>' +
             '</div>'
             : '') +
@@ -170,14 +170,14 @@
 
     container.innerHTML =
       '<div class="stats-edit-header">' +
-        '<h3 style="margin:0;font-family:Noto Serif KR,serif">📊 통계 편집</h3>' +
+        '<h3 style="margin:0;font-family:Noto Serif KR,serif">통계 편집</h3>' +
         '<p class="stats-edit-desc">활동 보고서 페이지와 메인 페이지의 통계 수치를 직접 편집할 수 있습니다.<br />변경 후 저장하면 임시 저장(Draft) 상태가 되며, "최종 배포" 버튼을 눌러야 운영에 반영됩니다.</p>' +
       '</div>' +
       draftBanner +
       groupsHtml +
       '<div class="stats-save-bar">' +
-        '<button type="button" class="btn-save-all" id="statsSaveAllBtn">💾 변경된 항목 모두 임시 저장</button>' +
-        '<button type="button" class="btn-reload" id="statsReloadBtn">🔄 처음부터 다시 불러오기</button>' +
+        '<button type="button" class="btn-save-all" id="statsSaveAllBtn">변경된 항목 모두 임시 저장</button>' +
+        '<button type="button" class="btn-reload" id="statsReloadBtn">처음부터 다시 불러오기</button>' +
       '</div>';
   }
 
@@ -241,7 +241,7 @@
       else { failCount++; console.warn('[stats-edit] save failed:', c.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경된 항목 모두 임시 저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경된 항목 모두 임시 저장'; }
 
     if (failCount === 0) {
       toast(`${okCount}건 임시 저장됨 (배포 전까지 운영 미반영)`);
@@ -272,7 +272,7 @@
       body: { action: 'publish', scope: 'stats' },
     });
 
-    if (btn) { btn.disabled = false; btn.textContent = '🚀 최종 배포 (운영 적용)'; }
+    if (btn) { btn.disabled = false; btn.textContent = '최종 배포 (운영 적용)'; }
 
     if (res.ok) {
       toast(res.data?.message || `${res.data?.data?.affectedCount || 0}건 배포 완료`);

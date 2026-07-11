@@ -1,6 +1,6 @@
 /* ============================================================
    SIREN AI 에이전트 위젯
-   - 우하단 플로팅 🤖 버튼 (admin·operator만)
+   - 우하단 플로팅 버튼 (admin·operator만)
    - 클릭 시 우측 슬라이드 패널 (400px)
    - 전체화면 페이지(/admin-ai-assistant.html)에서는 자동 비활성
    ============================================================ */
@@ -222,7 +222,7 @@
     var fab = document.createElement('button');
     fab.className = 'aiw-fab';
     fab.title = 'SIREN AI 비서 (베타)';
-    fab.innerHTML = '🤖';
+    fab.innerHTML = '';
     document.body.appendChild(fab);
 
     var panel = document.createElement('div');
@@ -230,7 +230,7 @@
     panel.innerHTML = `
       <div class="aiw-head">
         <div>
-          <strong>🤖 SIREN AI 비서</strong>
+          <strong>SIREN AI 비서</strong>
           <span class="aiw-title-sub">베타 — 콘텐츠·관리</span>
         </div>
         <div>
@@ -241,15 +241,15 @@
       <div class="aiw-msgs"></div>
       <div class="aiw-attach-list"></div>
       <div class="aiw-quick-bar">
-        <button class="aiw-quick-chip" data-prompt="회원 유형별 통계 알려줘">📊 회원 통계</button>
-        <button class="aiw-quick-chip" data-prompt="이번달 후원 현황 요약해줘">💰 이번달 후원</button>
-        <button class="aiw-quick-chip" data-prompt="최근 SIREN 신고 5건 보여줘">🚨 최근 신고</button>
-        <button class="aiw-quick-chip" data-prompt="오늘 KPI 요약해줘">📋 오늘 KPI</button>
-        <button class="aiw-quick-chip" data-prompt="최근 알림 10건 보여줘">🔔 최근 알림</button>
-        <button class="aiw-quick-chip" data-prompt="진행 중 작업 목록 보여줘">⚠️ 미처리 작업</button>
+        <button class="aiw-quick-chip" data-prompt="회원 유형별 통계 알려줘">회원 통계</button>
+        <button class="aiw-quick-chip" data-prompt="이번달 후원 현황 요약해줘">이번달 후원</button>
+        <button class="aiw-quick-chip" data-prompt="최근 SIREN 신고 5건 보여줘">최근 신고</button>
+        <button class="aiw-quick-chip" data-prompt="오늘 KPI 요약해줘">오늘 KPI</button>
+        <button class="aiw-quick-chip" data-prompt="최근 알림 10건 보여줘">최근 알림</button>
+        <button class="aiw-quick-chip" data-prompt="진행 중 작업 목록 보여줘">미처리 작업</button>
       </div>
       <div class="aiw-input-bar">
-        <button class="aiw-attach-btn" title="파일 첨부 (PDF·이미지, 최대 5MB)">📎</button>
+        <button class="aiw-attach-btn" title="파일 첨부 (PDF·이미지, 최대 5MB)"></button>
         <input type="file" class="aiw-file-input" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden>
         <textarea class="aiw-input" placeholder="명령을 입력하세요…  (Enter로 전송, Shift+Enter 줄바꿈)" rows="1"></textarea>
         <button class="aiw-send">보내기</button>
@@ -410,16 +410,16 @@
       <div class="aiw-empty">
         무엇을 도와드릴까요?
         <button class="aiw-suggest" data-prompt="현재 메인 페이지 콘텐츠 목록 보여줘">
-          📄 메인 페이지 콘텐츠 목록 보여줘
+          메인 페이지 콘텐츠 목록 보여줘
         </button>
         <button class="aiw-suggest" data-prompt="공지사항 새로 작성하고 싶어">
-          📢 공지사항 작성하기
+          공지사항 작성하기
         </button>
         <button class="aiw-suggest" data-prompt="새 캠페인 등록하고 싶어">
-          🎯 캠페인 등록하기
+          캠페인 등록하기
         </button>
         <button class="aiw-suggest" data-prompt="헤더 메뉴 구조 보여줘">
-          📋 헤더 메뉴 구조 조회
+          헤더 메뉴 구조 조회
         </button>
       </div>
     `;
@@ -442,7 +442,7 @@
     if (empty) empty.remove();
     var m = document.createElement('div');
     m.className = 'aiw-msg ai ' + (isRedirect ? 'redirect' : 'off-topic');
-    var label = isRedirect ? '📋 업무로 돌아가요' : '💬 업무 범위 외 답변';
+    var label = isRedirect ? '업무로 돌아가요' : '업무 범위 외 답변';
     m.innerHTML = '<div class="aiw-topic-label">' + label + '</div><div class="aiw-bubble"></div>';
     m.querySelector('.aiw-bubble').innerHTML = renderMarkdown(text);
     msgs.appendChild(m);
@@ -475,7 +475,7 @@
     var msgs = document.querySelector('.aiw-msgs');
     var box = document.createElement('div');
     box.className = 'aiw-tools';
-    box.innerHTML = '🔧 사용한 도구: ' + toolCalls.map(function (t) {
+    box.innerHTML = '사용한 도구: ' + toolCalls.map(function (t) {
       var err = !t.result.ok && t.result.error ? ': ' + escapeHtml(String(t.result.error).slice(0, 120)) : '';
       return '<b>' + escapeHtml(t.name) + '</b>(' + (t.result.ok ? 'ok' : 'error' + err) + ')';
     }).join(', ');
@@ -489,8 +489,8 @@
     var box = document.createElement('div');
     box.className = 'aiw-plan-bar';
     box.innerHTML = '<span style="flex:1">↑ 위 계획대로 진행하시겠습니까?</span>' +
-      '<button class="ok">▶ 진행</button>' +
-      '<button class="edit">✏️ 수정 요청</button>';
+      '<button class="ok">진행</button>' +
+      '<button class="edit">수정 요청</button>';
     msgs.appendChild(box);
     msgs.scrollTop = msgs.scrollHeight;
     box.querySelector('.ok').addEventListener('click', function () {
@@ -513,11 +513,11 @@
     var box = document.createElement('div');
     box.className = 'aiw-pending';
     box.innerHTML = `
-      <h5>⚠️ 작업 승인이 필요합니다</h5>
+      <h5>작업 승인이 필요합니다</h5>
       <div>도구: <b>${escapeHtml(p.toolName)}</b></div>
       <pre>${escapeHtml(JSON.stringify(p.preview, null, 2))}</pre>
       <div class="aiw-pending-actions">
-        <button class="aiw-approve">✅ 승인하고 실행</button>
+        <button class="aiw-approve">승인하고 실행</button>
         <button class="aiw-reject">취소</button>
       </div>
     `;
@@ -554,7 +554,7 @@
         /* 사전 검증 거부(429 등) — JSON 응답으로 처리 */
         var errJson = await res.json().catch(function () { return {}; });
         bubble.remove();
-        appendMsg('ai', '❌ ' + (errJson.error || 'HTTP ' + res.status) + (errJson.detail ? '\n' + errJson.detail : ''));
+        appendMsg('ai', '' + (errJson.error || 'HTTP ' + res.status) + (errJson.detail ? '\n' + errJson.detail : ''));
         return true;  /* 처리 완료 — JSON fallback 안 함 */
       }
       var ct = res.headers.get('content-type') || '';
@@ -589,7 +589,7 @@
           } else if (ev.event === 'tool_start') {
             var hint = document.createElement('div');
             hint.className = 'aiw-tools';
-            hint.textContent = '🔧 ' + ev.data.name + ' 호출 중...';
+            hint.textContent = '' + ev.data.name + ' 호출 중...';
             hint.dataset.toolName = ev.data.name;
             bubble.parentNode.parentNode.appendChild(hint);
             scrollMsgs();
@@ -598,7 +598,7 @@
             if (hints.length > 0) {
               var last = hints[hints.length - 1];
               var errMsg = !ev.data.ok && ev.data.error ? ' — ' + String(ev.data.error).slice(0, 120) : '';
-              last.textContent = '🔧 ' + ev.data.name + (ev.data.ok ? ' ✓' : ' ✗') + (ev.data._cached ? ' (캐시)' : '') + errMsg;
+              last.textContent = '' + ev.data.name + (ev.data.ok ? ' ✓' : ' ✗') + (ev.data._cached ? ' (캐시)' : '') + errMsg;
             }
           } else if (ev.event === 'approval') {
             appendPendingApproval(ev.data);
@@ -613,7 +613,7 @@
               pii.className = 'aiw-tools';
               pii.style.background = '#fef3c7';
               pii.style.borderLeftColor = '#f59e0b';
-              pii.textContent = '🔒 개인정보 ' + ev.data.piiRedacted + '건 자동 마스킹';
+              pii.textContent = '개인정보 ' + ev.data.piiRedacted + '건 자동 마스킹';
               bubble.parentNode.parentNode.appendChild(pii);
             }
             if (ev.data.costWarning) {
@@ -625,7 +625,7 @@
             }
             scrollMsgs();
           } else if (ev.event === 'error') {
-            bubbleEl.innerHTML = '❌ ' + escapeHtml(ev.data.message || '오류');
+            bubbleEl.innerHTML = '' + escapeHtml(ev.data.message || '오류');
           }
         }
       }
@@ -636,7 +636,7 @@
       }
       if (!sawDone && !accumulated) {
         bubble.remove();
-        appendMsg('ai', '⚠️ 응답 끊김 (재시도 권장)');
+        appendMsg('ai', '응답 끊김 (재시도 권장)');
       }
       return true;
     } catch (e) {
@@ -675,7 +675,7 @@
     /* 사용자 메시지에 첨부 파일 표기 */
     var userDisplay = text || '(파일 분석 요청)';
     if (pendingFiles.length > 0) {
-      userDisplay += '\n📎 ' + pendingFiles.map(function (f) { return f.name; }).join(', ');
+      userDisplay += '\n' + pendingFiles.map(function (f) { return f.name; }).join(', ');
     }
     appendMsg('user', userDisplay);
 
@@ -699,14 +699,14 @@
       if (streamOk) { sendBtn.disabled = false; input.focus(); return; }
     }
 
-    var thinking = appendMsg('ai', '🤔 생각 중…');
+    var thinking = appendMsg('ai', '생각 중…');
 
     /* === F-2: 단계 상태 시각화 — 시간 흐름에 따라 메시지 자동 갱신 === */
     var stages = [
-      { delay: 2000,  text: '🔍 정보 조회 중…' },
-      { delay: 5000,  text: '📊 결과 정리 중…' },
-      { delay: 10000, text: '⏳ 거의 끝났습니다…' },
-      { delay: 18000, text: '⌛ 조금만 더 기다려주세요…' },
+      { delay: 2000,  text: '정보 조회 중…' },
+      { delay: 5000,  text: '결과 정리 중…' },
+      { delay: 10000, text: '거의 끝났습니다…' },
+      { delay: 18000, text: '조금만 더 기다려주세요…' },
     ];
     var stageTimers = stages.map(function (st) {
       return setTimeout(function () {
@@ -746,7 +746,7 @@
     } catch (err) {
       clearStages();
       thinking.remove();
-      appendMsg('ai', '❌ 오류: ' + (err.message || err));
+      appendMsg('ai', '오류: ' + (err.message || err));
     } finally {
       sendBtn.disabled = false;
       input.focus();
@@ -757,7 +757,7 @@
   async function sendApprovedTool(toolName, argsApproved) {
     var sendBtn = document.querySelector('.aiw-send');
     sendBtn.disabled = true;
-    var thinking = appendMsg('ai', '⚙️ 적용 중…');
+    var thinking = appendMsg('ai', '적용 중…');
     try {
       var res = await fetch('/api/admin-ai-agent', {
         method: 'POST', credentials: 'include',
@@ -780,7 +780,7 @@
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
     } catch (err) {
       thinking.remove();
-      appendMsg('ai', '❌ 오류: ' + (err.message || err));
+      appendMsg('ai', '오류: ' + (err.message || err));
     } finally {
       sendBtn.disabled = false;
     }

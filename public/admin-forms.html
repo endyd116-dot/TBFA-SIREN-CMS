@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>응답폼·신청폼 관리 | SIREN 어드민</title>
@@ -78,7 +79,7 @@
   <a href="/admin.html" class="back-link" onclick="window.location.href='/admin.html';return false;">← 어드민으로</a>
   <div class="head-bar">
     <div>
-      <h1>📋 응답폼·신청폼 관리</h1>
+      <h1><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 응답폼·신청폼 관리</h1>
       <p class="desc">행사 신청·설문·이벤트 폼을 코드 없이 만들고 응답을 받아보세요.</p>
     </div>
     <button class="btn-primary" onclick="openModal()">+ 새 폼 만들기</button>
@@ -135,16 +136,16 @@
     <div class="tab-panel" data-panel="fields">
       <div class="add-field-bar">
         <span style="font-size:0.82rem;color:#475569;font-weight:600;margin-right:6px;align-self:center">+ 필드 추가:</span>
-        <button onclick="addField('text')">📝 텍스트</button>
-        <button onclick="addField('textarea')">📄 긴 텍스트</button>
-        <button onclick="addField('email')">📧 이메일</button>
-        <button onclick="addField('tel')">📱 전화</button>
-        <button onclick="addField('number')">🔢 숫자</button>
-        <button onclick="addField('date')">📅 날짜</button>
-        <button onclick="addField('select')">⬇️ 드롭다운</button>
-        <button onclick="addField('radio')">⚪ 단일 선택</button>
-        <button onclick="addField('checkbox')">☑️ 다중 선택</button>
-        <button onclick="addField('file')">📎 파일 업로드</button>
+        <button onclick="addField('text')"><span class="siren-icon-wrap" data-icon="file-pen"></span> 텍스트</button>
+        <button onclick="addField('textarea')"><span class="siren-icon-wrap" data-icon="file-text"></span> 긴 텍스트</button>
+        <button onclick="addField('email')"><span class="siren-icon-wrap" data-icon="mail"></span> 이메일</button>
+        <button onclick="addField('tel')"><span class="siren-icon-wrap" data-icon="smartphone"></span> 전화</button>
+        <button onclick="addField('number')"><span class="siren-icon-wrap" data-icon="hash"></span> 숫자</button>
+        <button onclick="addField('date')"><span class="siren-icon-wrap" data-icon="calendar"></span> 날짜</button>
+        <button onclick="addField('select')"><span class="siren-icon-wrap" data-icon="arrow-down"></span> 드롭다운</button>
+        <button onclick="addField('radio')"><span class="siren-icon-wrap" data-icon="circle"></span> 단일 선택</button>
+        <button onclick="addField('checkbox')"><span class="siren-icon-wrap" data-icon="check"></span> 다중 선택</button>
+        <button onclick="addField('file')"><span class="siren-icon-wrap" data-icon="paperclip"></span> 파일 업로드</button>
       </div>
       <div id="fieldsList"></div>
     </div>
@@ -194,7 +195,7 @@
 
     <div class="actions">
       <div class="actions-left">
-        <button class="btn-danger" id="deleteBtn" style="display:none" onclick="deleteForm()">🗑️ 삭제</button>
+        <button class="btn-danger" id="deleteBtn" style="display:none" onclick="deleteForm()"><span class="siren-icon-wrap" data-icon="trash"></span> 삭제</button>
       </div>
       <div class="actions-right">
         <button class="btn-secondary" onclick="closeModal()">취소</button>
@@ -234,7 +235,7 @@ function render() {
   tbody.innerHTML = _forms.map(f => {
     const status = !f.isActive ? `<span class="status-chip inactive">비활성</span>` :
       (f.isPublished ? `<span class="status-chip published">발행됨</span>` : `<span class="status-chip draft">초안</span>`);
-    const access = { public: '🌐 공개', members_only: '🔒 회원만', limited: '🔗 제한' }[f.accessLevel] || f.accessLevel;
+    const access = { public: '공개', members_only: '회원만', limited: '제한' }[f.accessLevel] || f.accessLevel;
     const resp = f.maxResponses ? `${f.responseCount}/${f.maxResponses}` : f.responseCount;
     return `<tr>
       <td><b>${esc(f.title)}</b><br/><span style="font-size:0.75rem;color:#94a3b8">/${esc(f.slug)}</span></td>
@@ -290,7 +291,7 @@ async function openModal(id) {
 
     if (f.isPublished) {
       const url = `https://tbfa.co.kr/form.html?slug=${f.slug}`;
-      document.getElementById("publicUrlBox").innerHTML = `🌐 공개 URL: <a href="${url}" target="_blank">${url}</a>`;
+      document.getElementById("publicUrlBox").innerHTML = `공개 URL: <a href="${url}" target="_blank">${url}</a>`;
       document.getElementById("publicUrlBox").style.display = '';
     }
   }

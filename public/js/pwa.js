@@ -111,7 +111,7 @@
     e.preventDefault();
     deferredPrompt = e;
     if (isStandalone() || recentlyDismissed()) return;
-    buildBanner('앱으로 설치하기', '홈 화면에 추가하면 더 빠르게 이용할 수 있어요.', '📲 설치', function () {
+    buildBanner('앱으로 설치하기', '홈 화면에 추가하면 더 빠르게 이용할 수 있어요.', '설치', function () {
       removeBanner();
       deferredPrompt.prompt();
       deferredPrompt.userChoice.finally(function () { deferredPrompt = null; });
@@ -130,7 +130,7 @@
       // 안드로이드 배너와 충돌 없게 약간 지연
       setTimeout(function () {
         if (document.getElementById('siren-pwa-banner')) return;
-        buildBanner('앱처럼 홈 화면에 추가', '화면 맨 아래 <b>공유 버튼</b>을 누르고 <b>"홈 화면에 추가"</b>를 선택하세요 ⬇', null, null, 'top');
+        buildBanner('앱처럼 홈 화면에 추가', '화면 맨 아래 <b>공유 버튼</b>을 누르고 <b>"홈 화면에 추가"</b>를 선택하세요 ', null, null, 'top');
       }, 1500);
     }
   });

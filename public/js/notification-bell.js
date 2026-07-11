@@ -12,13 +12,13 @@
 
   const POLL_INTERVAL = 30 * 1000; // 30초
   const ICON_BY_CATEGORY = {
-    support: '📋',
-    donation: '💝',
-    chat: '💬',
-    audit: '🛡️',
-    system: '⚙️',
-    billing: '💳',
-    member: '👤',
+    support: '',
+    donation: '',
+    chat: '',
+    audit: '',
+    system: '',
+    billing: '',
+    member: '',
   };
 
   function escapeHtml(s) {
@@ -60,7 +60,7 @@
       this.root.innerHTML = `
         <div class="siren-bell">
           <button type="button" class="siren-bell-btn" aria-label="알림" data-role="btn">
-            🔔
+            
             <span class="siren-bell-badge" data-role="badge" style="display:none">0</span>
           </button>
           <div class="siren-bell-dropdown" data-role="dropdown">
@@ -173,7 +173,7 @@
         return;
       }
       this.listEl.innerHTML = this.list.map((n) => {
-        const icon = ICON_BY_CATEGORY[n.category] || '🔔';
+        const icon = ICON_BY_CATEGORY[n.category] || '';
         const cls = [
           'siren-bell-item',
           n.isRead ? '' : 'unread',
@@ -221,7 +221,7 @@
       const link = n.link ? escapeHtml(n.link) : '';
       toast.innerHTML = `
         <button class="close" type="button">×</button>
-        <h4>🚨 ${escapeHtml(n.title)}</h4>
+        <h4>${escapeHtml(n.title)}</h4>
         ${n.message ? `<p>${escapeHtml(n.message)}</p>` : ''}
         <div class="actions">
           ${link ? `<a class="primary" href="${link}">바로 확인</a>` : ''}

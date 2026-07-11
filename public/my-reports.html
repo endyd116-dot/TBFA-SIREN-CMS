@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>내 신고 현황 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -225,7 +226,7 @@
   <main>
     <section class="page-hero">
       <div class="container">
-        <h1>🚨 내 신고 현황</h1>
+        <h1><span class="siren-icon-wrap" data-icon="siren"></span> 내 신고 현황</h1>
         <p>접수된 신고의 처리 단계를 실시간으로 확인하세요</p>
       </div>
     </section>
@@ -239,13 +240,13 @@
         <div class="reports-wrap">
 
           <div class="report-tabs">
-            <button class="report-tab active" data-tab="incident">🔍 사건 제보</button>
-            <button class="report-tab" data-tab="harassment">⚠️ 악성민원</button>
-            <button class="report-tab" data-tab="legal">⚖️ 법률지원</button>
+            <button class="report-tab active" data-tab="incident"><span class="siren-icon-wrap" data-icon="search"></span> 사건 제보</button>
+            <button class="report-tab" data-tab="harassment"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 악성민원</button>
+            <button class="report-tab" data-tab="legal"><span class="siren-icon-wrap" data-icon="scale"></span> 법률지원</button>
           </div>
 
           <div id="reportsList">
-            <div class="report-empty"><div class="icon">⏳</div>불러오는 중...</div>
+            <div class="report-empty"><div class="icon"><span class="siren-icon-wrap" data-icon="hourglass"></span></div>불러오는 중...</div>
           </div>
 
           <div id="reportsPagination" style="display:none;margin-top:16px"></div>
@@ -259,8 +260,8 @@
   <div id="footer-slot"></div>
 
   <script src="/js/lib-kst.js?v=1"></script>
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/my-reports.js?v=6"></script>
+  <script src="/js/common.js?v=3-navicon"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/my-reports.js?v=7"></script>
 </body>
 </html>

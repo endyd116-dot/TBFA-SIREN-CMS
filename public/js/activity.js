@@ -19,9 +19,9 @@
       String(d.getDate()).padStart(2, '0');
   }
   function categoryLabel(c) {
-    return c === 'report' ? '📋 활동보고서' :
-           c === 'photo'  ? '📷 사진' :
-           c === 'news'   ? '📰 뉴스' : c;
+    return c === 'report' ? '활동보고서' :
+           c === 'photo'  ? '사진' :
+           c === 'news'   ? '뉴스' : c;
   }
 
   /* ============ 목록 페이지 ============ */
@@ -33,7 +33,7 @@
 
     album.innerHTML = `
       <div class="act-empty">
-        <div class="icon">⏳</div>
+        <div class="icon"></div>
         <div class="title">불러오는 중...</div>
       </div>`;
 
@@ -50,7 +50,7 @@
       if (!res.ok || !json.ok) {
         album.innerHTML = `
           <div class="act-empty">
-            <div class="icon">⚠️</div>
+            <div class="icon"></div>
             <div class="title">불러오기 실패</div>
             <div class="desc">${escapeHtml(json.error || '잠시 후 다시 시도해 주세요')}</div>
           </div>`;
@@ -68,7 +68,7 @@
       if (list.length === 0) {
         album.innerHTML = `
           <div class="act-empty">
-            <div class="icon">📭</div>
+            <div class="icon"></div>
             <div class="title">조회된 활동이 없습니다</div>
             <div class="desc">필터를 변경하거나 다른 연도/분류로 확인해 보세요.</div>
           </div>`;
@@ -81,9 +81,9 @@
           <div class="act-card-thumb">
             ${p.thumbnailUrl
               ? `<img src="${escapeHtml(p.thumbnailUrl)}" alt="${escapeHtml(p.title)}">`
-              : `<span class="placeholder">📊</span>`}
+              : `<span class="placeholder"></span>`}
             <span class="cat-mark">${escapeHtml(categoryLabel(p.category))}</span>
-            ${p.isPinned ? '<span class="pin-mark">📌 고정</span>' : ''}
+            ${p.isPinned ? '<span class="pin-mark">고정</span>' : ''}
           </div>
           <div class="act-card-body">
             <div class="act-card-meta">${p.year}${p.month ? '.' + String(p.month).padStart(2, '0') : ''}</div>
@@ -91,7 +91,7 @@
             <p class="act-card-summary">${escapeHtml(p.summary || '')}</p>
             <div class="act-card-bottom">
               <span>${fmtDate(p.publishedAt)}</span>
-              <span>👁 ${(p.views || 0).toLocaleString()}</span>
+              <span>${(p.views || 0).toLocaleString()}</span>
             </div>
           </div>
         </a>
@@ -102,7 +102,7 @@
       console.error('[activity list]', e);
       album.innerHTML = `
         <div class="act-empty">
-          <div class="icon">⚠️</div>
+          <div class="icon"></div>
           <div class="title">네트워크 오류</div>
         </div>`;
     }
@@ -201,7 +201,7 @@
       const json = await res.json();
 
       if (!res.ok || !json.ok || !json.data?.post) {
-        document.getElementById('actDetailTitle').textContent = '⚠️ 게시글을 찾을 수 없습니다';
+        document.getElementById('actDetailTitle').textContent = '게시글을 찾을 수 없습니다';
         bodyEl.innerHTML = `
           <div style="text-align:center;padding:40px">
             <a href="/activities.html" class="btn btn-primary">목록으로 돌아가기</a>
@@ -219,19 +219,19 @@
         <span class="eyebrow">${escapeHtml(categoryLabel(p.category))} · ${yearMonth}</span>
         <h1>${escapeHtml(p.title)}</h1>
         <div class="meta">
-          <span>📅 ${fmtDate(p.publishedAt)}</span>
-          <span>👁 ${(p.views || 0).toLocaleString()}</span>
+          <span>${fmtDate(p.publishedAt)}</span>
+          <span>${(p.views || 0).toLocaleString()}</span>
         </div>
       `;
 
       /* 본문 + 첨부 */
       let attachmentsHtml = '';
       if (p.attachments && p.attachments.length) {
-        attachmentsHtml = '<div class="act-detail-attachments"><h4>📎 첨부 파일</h4><ul>' +
+        attachmentsHtml = '<div class="act-detail-attachments"><h4>첨부 파일</h4><ul>' +
           p.attachments.map((a) => `
             <li>
               <a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener">
-                📄 ${escapeHtml(a.originalName)}
+                ${escapeHtml(a.originalName)}
               </a>
             </li>
           `).join('') +

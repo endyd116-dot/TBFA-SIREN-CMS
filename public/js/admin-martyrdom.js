@@ -693,7 +693,7 @@ function renderCaseList(cases) {
     const active = c.id === currentCaseId ? " active" : "";
     const outcome = c.outcome ? `<span class="badge outcome-${c.outcome}">${OUTCOME_LABELS[c.outcome] || c.outcome}</span>` : "";
     // R43: AI 수집 출처 사건 시각 구분(목록 카드 우상단)
-    const aiBadge = c.promotedFromExternalId ? `<span class="badge badge-ai-promoted" title="외부 자료 검토를 거쳐 정식 사례로 승급된 사건">🤖 AI 수집</span>` : "";
+    const aiBadge = c.promotedFromExternalId ? `<span class="badge badge-ai-promoted" title="외부 자료 검토를 거쳐 정식 사례로 승급된 사건">AI 수집</span>` : "";
     return `<div class="case-item${active}" onclick="selectCase(${c.id})">
       <div class="case-item-title">${escapeHtml(c.title)}${outcome}${aiBadge}</div>
       <div class="case-item-meta">
@@ -805,7 +805,7 @@ function renderDetail(d) {
   const ddayStr = c.nextDeadlineAt ? `<span class="dday-badge">${dday(c.nextDeadlineAt)}</span>` : "";
   // R43: AI 수집 출처 사건(promotedFromExternal 표시) 배지
   const aiPromotedBadge = c.promotedFromExternalId
-    ? `<span class="badge badge-ai-promoted" title="외부 자료 검토를 거쳐 정식 사례로 승급된 사건">🤖 AI 수집 출처</span>`
+    ? `<span class="badge badge-ai-promoted" title="외부 자료 검토를 거쳐 정식 사례로 승급된 사건">AI 수집 출처</span>`
     : "";
   pane.innerHTML = `
 <div class="detail-header">
@@ -813,18 +813,18 @@ function renderDetail(d) {
     <span class="case-no">${escapeHtml(c.caseNo)}</span>
     <span class="case-title">${escapeHtml(c.title)}</span>
     ${aiPromotedBadge}
-    <button class="btn-sm btn-secondary" onclick="openEditCaseModal()" style="margin-left:auto">✏️ 수정</button>
-    <button class="btn-sm btn-warn" onclick="deleteCase()">🗑 삭제</button>
+    <button class="btn-sm btn-secondary" onclick="openEditCaseModal()" style="margin-left:auto">수정</button>
+    <button class="btn-sm btn-warn" onclick="deleteCase()">삭제</button>
   </div>
 
   <!-- R43 §3.1: 사건 진행 정보 그룹 박스 (헤더 직하·운영자 한눈에 진행 상황 파악) -->
   <section class="case-progress-box" id="caseProgressBox">
     <header>
-      <h3>📊 사건 진행 정보</h3>
+      <h3>사건 진행 정보</h3>
       <p class="hint">우리 협회가 관리하는 진행 상태(왼쪽)와 공무원연금공단의 심의 결과(오른쪽)는 따로 관리됩니다. 공단의 행정 단계는 아래 진행 막대를 클릭해 갱신할 수 있습니다.</p>
     </header>
     <div class="field" style="margin-bottom:10px">
-      <label>사건 종류 <span class="tip" title="'지원 대상'은 협회가 현재 지원 중인 사건, '과거 사례'는 학습용으로 보관하는 사건입니다. 언제든지 서로 변경할 수 있습니다 (예: 재심 신청, 운영자 실수 복구).">❓</span></label>
+      <label>사건 종류 <span class="tip" title="'지원 대상'은 협회가 현재 지원 중인 사건, '과거 사례'는 학습용으로 보관하는 사건입니다. 언제든지 서로 변경할 수 있습니다 (예: 재심 신청, 운영자 실수 복구)."></span></label>
       <select id="caseKindEdit" onchange="onCaseKindChange(this.value)">
         <option value="active"${c.caseKind==="active"?" selected":""}>지원 대상 (협회가 지원 중)</option>
         <option value="reference"${c.caseKind==="reference"?" selected":""}>과거 사례 (학습용으로 보관)</option>
@@ -832,13 +832,13 @@ function renderDetail(d) {
     </div>
     <div class="progress-grid">
       <div class="field">
-        <label>협회 진행 상태 <span class="tip" title="우리 협회가 이 사건을 어디까지 지원했는지 — 운영자가 직접 갱신합니다.">❓</span></label>
+        <label>협회 진행 상태 <span class="tip" title="우리 협회가 이 사건을 어디까지 지원했는지 — 운영자가 직접 갱신합니다."></span></label>
         <select id="caseStatus" onchange="patchCase('status',this.value)">
           ${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${c.status===v?" selected":""}>${l}</option>`).join("")}
         </select>
       </div>
       <div class="field">
-        <label>공단 심의 결과 <span class="tip" title="공무원연금공단·인사혁신처 심의위원회가 내린 최종 결정 결과입니다.">❓</span></label>
+        <label>공단 심의 결과 <span class="tip" title="공무원연금공단·인사혁신처 심의위원회가 내린 최종 결정 결과입니다."></span></label>
         <select id="caseOutcome" onchange="onCaseOutcomeChange(this.value)">
           <option value="">아직 결정 전</option>
           <option value="approved"${c.outcome==="approved"?" selected":""}>인정</option>
@@ -847,7 +847,7 @@ function renderDetail(d) {
       </div>
     </div>
     <div class="stepper-block">
-      <label>공단 행정 단계 <span class="tip" title="공무원연금공단·심의위원회의 행정 절차 중 현재 어느 단계인지 표시합니다. 단계를 클릭하면 갱신됩니다.">❓</span></label>
+      <label>공단 행정 단계 <span class="tip" title="공무원연금공단·심의위원회의 행정 절차 중 현재 어느 단계인지 표시합니다. 단계를 클릭하면 갱신됩니다."></span></label>
       <ol class="stepper" id="caseStepper">
         ${STAGE_ORDER.map(s => `<li data-stage="${s}" class="${c.procedureStage===s?"active":""}" onclick="patchStepperStage('${s}')">${STAGE_LABELS[s]}</li>`).join("")}
       </ol>
@@ -862,7 +862,7 @@ function renderDetail(d) {
     <button class="btn-sm btn-secondary" onclick="openDeadlineModal()">기한 편집</button>
   </div>
   <div class="detail-procedure-row" style="border-top:none;padding-top:4px">
-    <span class="consent-info">🔏 유족 동의:
+    <span class="consent-info">유족 동의:
       ${c.consentObtainedAt ? `<strong style="color:#15803d">기록됨 (${fmtDate(c.consentObtainedAt)})</strong>` : `<span style="color:#b45309">미기록</span>`}
       ${c.consentNote ? ` · <span style="color:#64748b">${escapeHtml(String(c.consentNote).slice(0,40))}</span>` : ""}
     </span>
@@ -875,9 +875,9 @@ function renderDetail(d) {
   <button class="tab-btn"        id="tab-analysis"     onclick="switchTab('tab-analysis')">③ 분석</button>
   <button class="tab-btn"        id="tab-draft"        onclick="switchTab('tab-draft')">④ 서면</button>
   <button class="tab-btn"        id="tab-deadlines"    onclick="switchTab('tab-deadlines')">⑤ 기한</button>
-  <button class="tab-btn"        id="tab-stats"        onclick="switchTab('tab-stats')">📊 통계</button>
-  <button class="tab-btn"        id="tab-publications" onclick="switchTab('tab-publications')">📚 발간</button>
-  ${canExternalReview ? `<button class="tab-btn" id="tab-external" onclick="switchTab('tab-external')">🔍 외부 자료</button>` : ""}
+  <button class="tab-btn"        id="tab-stats"        onclick="switchTab('tab-stats')">통계</button>
+  <button class="tab-btn"        id="tab-publications" onclick="switchTab('tab-publications')">발간</button>
+  ${canExternalReview ? `<button class="tab-btn" id="tab-external" onclick="switchTab('tab-external')">외부 자료</button>` : ""}
 </div>
 <div id="tab-content">
   ${renderTabGolden()}
@@ -904,7 +904,7 @@ function switchTab(tabId) {
   if (btn) btn.classList.add("active");
   const panel = document.getElementById(tabId + "-panel");
   if (panel) panel.style.display = "";
-  // P4 지연 로드 (사건 전환·전역↔사건 이동 시 패널이 새로 그려지므로 캐시가 있어도 재렌더)
+  // P4 지연 로드 (사건 전환·전역사건 이동 시 패널이 새로 그려지므로 캐시가 있어도 재렌더)
   if (tabId === "tab-stats") {
     if (statsData) { destroyStatsCharts(); renderStatsBody(statsData); }
     else loadStats();
@@ -919,7 +919,7 @@ function emptyHint(title, desc) {
 }
 function genBanner() {
   /* 정량 % 일치율 금지·검토용 라벨(§P2.0 #10) */
-  return `<div class="alert-banner expert-warning" style="margin-bottom:14px">⚠️ AI 생성 — 운영자 검토용입니다. 인정 확률·정량 수치가 아니며, 변호사·노무사 확인이 필요합니다.</div>`;
+  return `<div class="alert-banner expert-warning" style="margin-bottom:14px">AI 생성 — 운영자 검토용입니다. 인정 확률·정량 수치가 아니며, 변호사·노무사 확인이 필요합니다.</div>`;
 }
 // 산출물 검토 바: [검토 완료]/[폐기] + 메모 (output-review)
 function outputReviewBar(type) {
@@ -929,16 +929,16 @@ function outputReviewBar(type) {
   const note = o.reviewNote ? ` <span class="rb-note">— ${escapeHtml(o.reviewNote)}</span>` : "";
   let state, btns;
   if (o.status === "reviewed") {
-    state = `<span class="rb-state ok">✅ 검토 완료</span>`;
+    state = `<span class="rb-state ok">검토 완료</span>`;
     btns  = `<button class="btn-sm btn-warn" onclick="reviewOutput('${type}','discarded')">폐기</button>`;
   } else if (o.status === "discarded") {
-    state = `<span class="rb-state bad">🗑 폐기됨 (참고용)</span>`;
+    state = `<span class="rb-state bad">폐기됨 (참고용)</span>`;
     btns  = `<button class="btn-sm" onclick="reviewOutput('${type}','reviewed')">검토 완료</button>`;
   } else {
     state = `<span class="rb-state">초안 — 검토 대기</span>`;
     btns  = `<button class="btn-sm" onclick="reviewOutput('${type}','reviewed')">검토 완료</button> <button class="btn-sm btn-warn" onclick="reviewOutput('${type}','discarded')">폐기</button>`;
   }
-  return `<div class="review-bar"><span>📋 ${label} ${state}${note}</span><span class="rb-btns">${btns}</span></div>`;
+  return `<div class="review-bar"><span>${label} ${state}${note}</span><span class="rb-btns">${btns}</span></div>`;
 }
 async function reviewOutput(type, status) {
   const o = outputCache[type];
@@ -1005,14 +1005,14 @@ function renderTabGolden() {
   return `<div class="tab-panel" id="tab-golden-panel" style="display:none">
   <div class="section-head">
     <div>
-      <h3>⏱️ 골든타임 — 휘발성 자료 우선 확보</h3>
+      <h3>골든타임 — 휘발성 자료 우선 확보</h3>
       <p class="section-sub">계정 잠금·삭제 전에 사라지는 자료(온라인·메신저·CCTV 등)를 우선순위로 안내합니다. <span class="vol-online">●</span> 빨강=휘발성 높음(즉시 확보), <span class="vol-offline">●</span> 회색=비교적 안정.</p>
     </div>
-    <button class="btn" onclick="generateGolden()" id="goldenGenBtn">🔔 AI 맞춤 제언${items.length ? " 다시 생성" : " 생성"}</button>
+    <button class="btn" onclick="generateGolden()" id="goldenGenBtn">AI 맞춤 제언${items.length ? " 다시 생성" : " 생성"}</button>
   </div>
   ${outputReviewBar("golden")}
   <div id="goldenBody">
-    ${items.length ? renderGoldenItems(sorted) : emptyHint("아직 제언이 없습니다", "[🔔 AI 맞춤 제언 생성]을 누르면 이 사건 정황에 맞춰 우선 확보할 자료를 휘발성 순으로 안내합니다.")}
+    ${items.length ? renderGoldenItems(sorted) : emptyHint("아직 제언이 없습니다", "[AI 맞춤 제언 생성]을 누르면 이 사건 정황에 맞춰 우선 확보할 자료를 휘발성 순으로 안내합니다.")}
   </div>
 </div>`;
 }
@@ -1024,7 +1024,7 @@ function renderGoldenItems(items) {
       <div class="g-main">
         <div class="g-label">${escapeHtml(it.label)} <span class="vol-badge ${online ? "vol-online" : "vol-offline"}">${online ? "휘발성 높음" : "안정"}</span></div>
         ${it.guidance ? `<div class="g-guide">${escapeHtml(it.guidance)}</div>` : ""}
-        ${it.caseFit ? `<div class="g-fit">📌 맞춤 사유: ${escapeHtml(it.caseFit)}</div>` : ""}
+        ${it.caseFit ? `<div class="g-fit">맞춤 사유: ${escapeHtml(it.caseFit)}</div>` : ""}
       </div>
     </div>`;
   }).join("")}</div>`;
@@ -1052,11 +1052,11 @@ function renderTabDocs(d) {
 
   return `<div class="tab-panel" id="tab-docs-panel" style="display:none">
   <!-- 진행 표시 -->
-  ${pendingCount > 0 ? `<div class="progress-banner">⏳ ${pendingCount}건 처리 중 — 자동으로 갱신됩니다</div>` : ""}
-  ${failedCount  > 0 ? `<div class="error-banner">❌ ${failedCount}건 추출 실패 — 아래 행에서 재시도하거나 텍스트를 직접 입력해주세요</div>` : ""}
+  ${pendingCount > 0 ? `<div class="progress-banner">${pendingCount}건 처리 중 — 자동으로 갱신됩니다</div>` : ""}
+  ${failedCount  > 0 ? `<div class="error-banner">${failedCount}건 추출 실패 — 아래 행에서 재시도하거나 텍스트를 직접 입력해주세요</div>` : ""}
   ${docs.length > 0 ? `<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     ${notDoneCount > 0 ? `<button class="btn-sm btn-warn" onclick="batchRetryDocs()">⟳ 미완료 ${notDoneCount}건 전체 재시도</button>` : ""}
-    <button class="btn-sm btn-danger" onclick="deleteAllDocs()">🗑 전체 삭제 (${docs.length}건 · 처음부터)</button>
+    <button class="btn-sm btn-danger" onclick="deleteAllDocs()">전체 삭제 (${docs.length}건 · 처음부터)</button>
     <small style="color:#94a3b8">완료 자료도 행에서 [재처리]·[삭제] 가능</small>
   </div>` : ""}
 
@@ -1066,18 +1066,18 @@ function renderTabDocs(d) {
        ondragleave="onUploadDragLeave(event)"
        ondrop="onUploadDrop(event)">
     <div class="upload-inner">
-      <span class="upload-icon">⬆</span>
+      <span class="upload-icon"></span>
       <div class="upload-text">
         <strong>여기에 자료를 놓아주세요</strong>
         <small>또는 아래 버튼으로 선택<br>PDF·이미지·워드·엑셀·한글·음성·영상 등 모두 가능 · AI가 자동 분류합니다</small>
       </div>
       <div class="upload-buttons">
-        <label class="btn-sm" for="fileInput">📄 파일 선택</label>
+        <label class="btn-sm" for="fileInput">파일 선택</label>
         <input id="fileInput" type="file" multiple style="display:none" onchange="handleFileSelect(event)">
-        <label class="btn-sm" for="folderInput">📁 폴더 선택</label>
+        <label class="btn-sm" for="folderInput">폴더 선택</label>
         <input id="folderInput" type="file" multiple webkitdirectory directory style="display:none" onchange="handleFileSelect(event)">
       </div>
-      <small class="upload-zip-hint">💡 zip 파일을 올리면 압축이 자동으로 풀려서 안에 있는 자료가 각각 등록됩니다 (최대 100개·합산 500MB).</small>
+      <small class="upload-zip-hint">zip 파일을 올리면 압축이 자동으로 풀려서 안에 있는 자료가 각각 등록됩니다 (최대 100개·합산 500MB).</small>
     </div>
   </div>
 
@@ -1104,7 +1104,7 @@ function renderTabDocs(d) {
   <div class="extraction-section">
     <div class="extraction-header">
       <h3>사건 구조 자동 추출 결과</h3>
-      <button class="btn-sm btn-secondary" onclick="reanalyze()">🔄 재추출</button>
+      <button class="btn-sm btn-secondary" onclick="reanalyze()">재추출</button>
     </div>
     ${extraction ? renderExtraction(extraction) : '<div class="no-extraction">자료를 업로드하면 자동으로 사건 구조를 추출합니다</div>'}
   </div>
@@ -1144,7 +1144,7 @@ function renderDocRow(doc) {
   /* ★ 2026-05-26: 실패/문제 자료는 요약칸에 실제 사유(extractError)를 빨강으로 노출 —
      기존엔 '-'만 보여 왜 실패했는지(엑셀 미지원·AI 한도·타임아웃 등) 알 수 없었음. */
   const summaryCell = (doc.extractError && doc.extractStatus !== "done")
-    ? `<span style="color:#c5293a;font-size:11.5px" title="${escapeHtml(doc.extractError)}">⚠ ${escapeHtml(String(doc.extractError).slice(0, 80))}</span>`
+    ? `<span style="color:#c5293a;font-size:11.5px" title="${escapeHtml(doc.extractError)}">${escapeHtml(String(doc.extractError).slice(0, 80))}</span>`
     : escapeHtml(doc.docSummary || "-");
 
   return `<tr id="doc-row-${doc.id}">
@@ -1183,7 +1183,7 @@ function renderExtraction(ex) {
       <div class="evidence-list have">${have.map(e => `<span class="ev-tag ev-have">${escapeHtml(e)}</span>`).join("")}</div>
     </div>
     ${missing.length ? `<div class="ex-card ex-missing">
-      <div class="ex-label">⚠️ 부족 증거 (다음 확보 대상)</div>
+      <div class="ex-label">부족 증거 (다음 확보 대상)</div>
       <div class="evidence-list missing">${missing.map(e => `<span class="ev-tag ev-missing">${escapeHtml(e)}</span>`).join("")}</div>
     </div>` : ""}
     ${ex.keyIssues?.length ? `<div class="ex-card">
@@ -1212,7 +1212,7 @@ function renderTabAnalysis() {
 
   <!-- 전략 분석 (③+⑨+⑩+⑪) -->
   <div class="section-head">
-    <div><h3>🔍 전략 분석</h3>
+    <div><h3>전략 분석</h3>
       <p class="section-sub">인정 가능 논리·부족 자료·쟁점·모순·타임라인·예상 반론을 통합 분석합니다. (자료 업로드 시 자동 생성)</p></div>
     <button class="btn" onclick="generateStrategy()" id="strategyGenBtn">전략 분석 ${strat && strat.id ? "다시 생성" : "생성"}</button>
   </div>
@@ -1223,7 +1223,7 @@ function renderTabAnalysis() {
 
   <!-- 요건 매트릭스 ② -->
   <div class="section-head" style="margin-top:26px">
-    <div><h4>📋 인정 요건 대조</h4>
+    <div><h4>인정 요건 대조</h4>
       <p class="section-sub">표준 인정 요건별로 충족/부분충족/미흡을 대조합니다.</p></div>
     <button class="btn-sm" onclick="checkCriteria()" id="criteriaGenBtn">요건 대조 ${crit && crit.id ? "다시" : ""}</button>
   </div>
@@ -1234,7 +1234,7 @@ function renderTabAnalysis() {
 
   <!-- 부족 증거 확보 액션 ③ -->
   <div class="section-head" style="margin-top:26px">
-    <div><h4>🎯 부족 증거 확보 액션</h4>
+    <div><h4>부족 증거 확보 액션</h4>
       <p class="section-sub">부족 자료를 확보 작업으로 추적합니다. 상태 배지를 눌러 할 일→진행 중→완료로 전환.</p></div>
     <button class="btn-sm" onclick="openActionModal()">+ 액션 추가</button>
   </div>
@@ -1255,25 +1255,25 @@ function renderStrategy(cj) {
   const rag       = cj.ragSources    || [];
   const out = [];
 
-  if (logics.length) out.push(`<div class="an-block"><div class="an-h">⚖️ 인정 가능 논리</div>
+  if (logics.length) out.push(`<div class="an-block"><div class="an-h">인정 가능 논리</div>
     ${logics.map(l => `<div class="logic-card">
       <div class="lc-top"><span class="strength ${STRENGTH_CLASS[l.strength] || "str-mid"}">${escapeHtml(l.strength || "-")}</span> <strong>${escapeHtml(l.title)}</strong></div>
       ${l.reasoning ? `<div class="lc-reason">${escapeHtml(l.reasoning)}</div>` : ""}</div>`).join("")}</div>`);
 
-  if (missing.length) out.push(`<div class="an-block"><div class="an-h">⚠️ 부족 자료 — 확보 액션으로</div>
+  if (missing.length) out.push(`<div class="an-block"><div class="an-h">부족 자료 — 확보 액션으로</div>
     <div class="missing-list">${missing.map(m => `<div class="missing-row"><span class="ev-tag ev-missing">${escapeHtml(m)}</span>
       <button class="btn-sm" onclick="addActionFromEvidence('${jsStr(m)}')">+ 액션 추가</button></div>`).join("")}</div></div>`);
 
-  if (issues.length) out.push(`<div class="an-block"><div class="an-h">🎯 핵심 쟁점</div>
+  if (issues.length) out.push(`<div class="an-block"><div class="an-h">핵심 쟁점</div>
     <div>${issues.map(i => `<span class="tag">${escapeHtml(i)}</span>`).join(" ")}</div></div>`);
 
   if (chain.length) out.push(renderCausalMap(chain, missing));
 
-  if (similar.length) out.push(`<div class="an-block"><div class="an-h">📚 유사 사례 비교</div>
+  if (similar.length) out.push(`<div class="an-block"><div class="an-h">유사 사례 비교</div>
     ${similar.map(s => `<div class="sim-card"><span class="badge outcome-${s.outcome}">${OUTCOME_LABELS[s.outcome] || s.outcome || "-"}</span> <strong>${escapeHtml(s.ref)}</strong>
-      ${s.match ? `<div class="sim-line">✔ 일치: ${escapeHtml(s.match)}</div>` : ""}${s.diff ? `<div class="sim-line">✖ 차이: ${escapeHtml(s.diff)}</div>` : ""}</div>`).join("")}</div>`);
+      ${s.match ? `<div class="sim-line">일치: ${escapeHtml(s.match)}</div>` : ""}${s.diff ? `<div class="sim-line">차이: ${escapeHtml(s.diff)}</div>` : ""}</div>`).join("")}</div>`);
 
-  if (conflicts.length) out.push(`<div class="an-block"><div class="an-h">🚨 모순·불일치 탐지</div>
+  if (conflicts.length) out.push(`<div class="an-block"><div class="an-h">모순·불일치 탐지</div>
     ${conflicts.map(cf => {
       const fatal = cf.severity === "치명";
       return `<div class="conflict-card ${fatal ? "cf-fatal" : "cf-warn"}"><span class="sev-badge ${fatal ? "sev-fatal" : "sev-warn"}">${escapeHtml(cf.severity || "주의")}</span>
@@ -1281,14 +1281,14 @@ function renderStrategy(cj) {
         ${(cf.sources || []).length ? `<div class="cf-src">출처: ${cf.sources.map(s => `<span class="tag">${escapeHtml(s)}</span>`).join(" ")}</div>` : ""}</div>`;
     }).join("")}</div>`);
 
-  if (timeline.length) out.push(`<div class="an-block"><div class="an-h">🗓 마스터 타임라인 <span class="an-sub">(회색=자료 공백)</span></div>
+  if (timeline.length) out.push(`<div class="an-block"><div class="an-h">마스터 타임라인 <span class="an-sub">(회색=자료 공백)</span></div>
     <div class="timeline">${timeline.map(t => `<div class="tl-row ${t.gap ? "tl-gap" : ""}">
       <div class="tl-date">${escapeHtml(t.date || "")}</div><div class="tl-dot"></div>
       <div class="tl-body"><span class="tl-event">${escapeHtml(t.event)}</span>${t.source ? ` <span class="tl-src">(${escapeHtml(t.source)})</span>` : (t.gap ? ` <span class="tl-src">자료 필요</span>` : "")}</div>
     </div>`).join("")}</div></div>`);
 
-  if (counter.length) out.push(`<div class="an-block"><div class="an-h">🛡 예상 반론 & 대비 논리</div>
-    ${counter.map(c => `<div class="counter-card"><div class="cc-arg">❓ ${escapeHtml(c.argument)}</div>
+  if (counter.length) out.push(`<div class="an-block"><div class="an-h">예상 반론 & 대비 논리</div>
+    ${counter.map(c => `<div class="counter-card"><div class="cc-arg">${escapeHtml(c.argument)}</div>
       <div class="cc-reb">↳ 대비: ${escapeHtml(c.rebuttal)}</div>${c.basis ? `<div class="cc-basis">근거: ${escapeHtml(c.basis)}</div>` : ""}</div>`).join("")}</div>`);
 
   if (rag.length) out.push(renderRagSources(rag));
@@ -1297,7 +1297,7 @@ function renderStrategy(cj) {
 }
 
 function renderRagSources(rag) {
-  return `<details class="rag-box"><summary>📎 근거 자료 ${rag.length}건 펼치기 (인용·환각 방지)</summary>
+  return `<details class="rag-box"><summary>근거 자료 ${rag.length}건 펼치기 (인용·환각 방지)</summary>
     <div class="rag-list">${rag.map(r => `<div class="rag-item">
       <div class="rag-title">${escapeHtml(r.title || r.sourceRef || "근거")}</div>
       ${r.sourceRef ? `<div class="rag-ref">${escapeHtml(r.sourceRef)}</div>` : ""}
@@ -1330,7 +1330,7 @@ function renderCausalMap(chain, missing) {
       <div class="${ncls}">${escapeHtml(effect)}</div>
     </div>`;
   }).join("");
-  return `<div class="an-block"><div class="an-h">🔗 인과관계 논리맵 <span class="an-sub">(초록=근거 있음 · 빨강=근거 부족)</span></div>
+  return `<div class="an-block"><div class="an-h">인과관계 논리맵 <span class="an-sub">(초록=근거 있음 · 빨강=근거 부족)</span></div>
     <div class="causal-map">${rows}</div></div>`;
 }
 
@@ -1437,7 +1437,7 @@ function renderTabDraft() {
   const r = outputCache.readiness;
   return `<div class="tab-panel" id="tab-draft-panel" style="display:none">
   <div class="section-head">
-    <div><h3>📊 보고서 준비도</h3>
+    <div><h3>보고서 준비도</h3>
       <p class="section-sub">최종 서면 생성 전, 지금 얼마나 채워졌고 무엇을 보완하면 강해지는지 가늠합니다.</p></div>
     <button class="btn" onclick="computeReadiness()" id="readinessBtn">준비도 ${r && r.id ? "다시 계산" : "계산"}</button>
   </div>
@@ -1463,11 +1463,11 @@ function renderDraftSection() {
   const weakGaps = gaps.slice(0, 3).map(g => escapeHtml(g.label)).join(" · ");
 
   return `<div class="section-head" style="margin-top:26px">
-    <div><h4>📄 유족급여신청서 초안</h4>
+    <div><h4>유족급여신청서 초안</h4>
       <p class="section-sub">인정 받은 과거 사례를 형식 모델로, 목차를 확정한 뒤 섹션별로 본문을 생성합니다.</p></div>
   </div>
-  <div class="alert-banner expert-warning">⚠️ 전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
-  ${weak ? `<div class="weak-banner">⚠️ 준비도 ${readyScore}% — 아직 약한 보고서입니다. ${weakGaps ? `<strong>${weakGaps}</strong> 보완을 권장`: "부족 자료 보완을 권장"}합니다. 그래도 초안 생성은 가능합니다.</div>` : ""}
+  <div class="alert-banner expert-warning">전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
+  ${weak ? `<div class="weak-banner">준비도 ${readyScore}% — 아직 약한 보고서입니다. ${weakGaps ? `<strong>${weakGaps}</strong> 보완을 권장`: "부족 자료 보완을 권장"}합니다. 그래도 초안 생성은 가능합니다.</div>` : ""}
 
   <!-- 1단계 목차 -->
   <div class="draft-stage">
@@ -1495,10 +1495,10 @@ function renderDraftSection() {
   <div class="draft-stage">
     <div class="ds-head"><span class="ds-step">3단계</span> 합본 · 검토 · 내보내기</div>
     <div class="export-btns">
-      <button class="btn-sm btn-secondary" onclick="previewAssembled()" ${hasSections ? "" : "disabled"}>🔎 합본 미리보기</button>
-      <button class="btn-sm" onclick="exportDraft('pdf')"  ${hasSections ? "" : "disabled"}>📄 PDF</button>
-      <button class="btn-sm" onclick="exportDraft('docx')" ${hasSections ? "" : "disabled"}>📝 Word</button>
-      <button class="btn-sm btn-secondary" onclick="exportPackage()">📦 사건 패키지 zip</button>
+      <button class="btn-sm btn-secondary" onclick="previewAssembled()" ${hasSections ? "" : "disabled"}>합본 미리보기</button>
+      <button class="btn-sm" onclick="exportDraft('pdf')"  ${hasSections ? "" : "disabled"}>PDF</button>
+      <button class="btn-sm" onclick="exportDraft('docx')" ${hasSections ? "" : "disabled"}>Word</button>
+      <button class="btn-sm btn-secondary" onclick="exportPackage()">사건 패키지 zip</button>
     </div>
     ${renderReviewBlock()}
   </div>`;
@@ -1574,7 +1574,7 @@ function renderReviewBlock() {
     </div>`;
   }).join("");
   return `<div class="review-assign">
-    <div class="rva-head">🧑‍⚖️ 전문가 검토
+    <div class="rva-head">전문가 검토
       ${dr && dr.status === "reviewed" ? `<span class="rv-badge rv-approved">검토 완료</span>` : ""}
     </div>
     <div class="rva-row">
@@ -1609,13 +1609,13 @@ function renderFamilySummaryCard(fs) {
   return `<div class="family-summary-card">
     <div class="fsc-status">
       <span class="rv-badge ${fs.status === "reviewed" ? "rv-approved" : "rv-pending"}">${fs.status === "reviewed" ? "검토 완료" : "초안"}</span>
-      <span class="fsc-hint">⚠️ 운영자가 내용을 확인 후 전달하세요</span>
+      <span class="fsc-hint">운영자가 내용을 확인 후 전달하세요</span>
     </div>
     <div class="fsc-content">${escapeHtml(fs.contentText)}</div>
     ${steps.length ? `<div class="fsc-steps"><strong>다음 할 일:</strong><ul>${steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul></div>` : ""}
     <div class="fsc-actions">
-      <button class="btn-sm btn-secondary" onclick="copyFamilySummary()">📋 복사</button>
-      <button class="btn-sm btn-secondary" onclick="exportFamilySummaryPdf()">📄 PDF 저장</button>
+      <button class="btn-sm btn-secondary" onclick="copyFamilySummary()">복사</button>
+      <button class="btn-sm btn-secondary" onclick="exportFamilySummaryPdf()">PDF 저장</button>
     </div>
   </div>`;
 }
@@ -1645,10 +1645,10 @@ function renderReadiness(cj) {
       </div>
     </div>
     <div class="rd-label">${escapeHtml(cj.label || "보고서 준비도 — 인정 확률 아님·내부 가늠용")}</div>
-    ${gaps.length ? `<div class="rd-gaps"><div class="an-h">➕ 채우면 올라가는 항목</div>
+    ${gaps.length ? `<div class="rd-gaps"><div class="an-h">채우면 올라가는 항목</div>
       ${gaps.map(g => `<div class="gap-row"><span class="gap-plus">+${g.plus}%</span> <span class="gap-label">${escapeHtml(g.label)}</span>
         <button class="btn-sm" onclick="addActionFromEvidence('${jsStr(g.label)}')">+ 액션</button></div>`).join("")}</div>` : ""}
-    ${cj.aiNote ? `<div class="rd-note"><strong>💬 AI 첨언</strong><div>${escapeHtml(cj.aiNote)}</div></div>` : ""}
+    ${cj.aiNote ? `<div class="rd-note"><strong>AI 첨언</strong><div>${escapeHtml(cj.aiNote)}</div></div>` : ""}
   </div>`;
 }
 async function computeReadiness() {
@@ -1748,7 +1748,7 @@ async function genDraftBody() {
     const res = await apiDraftGenerate(currentCaseId);   // sectionKey 없음 → 전 섹션 큐
     if (!res.ok) { toast(res.error || "본문 생성 실패", "error"); if (btn) btn.disabled = false; return; }
     const t = res.total || total || 0;
-    openBulkProgress("📝 본문 생성", t || 1);
+    openBulkProgress("본문 생성", t || 1);
     pollDraftSections(t);
   } catch (e) {
     if (e.message !== "auth") toast("생성 오류", "error");
@@ -1830,10 +1830,10 @@ function previewAssembled() {
   let el = document.getElementById("assembledOverlay");
   if (!el) { el = document.createElement("div"); el.id = "assembledOverlay"; el.className = "modal-overlay"; document.body.appendChild(el); }
   el.innerHTML = `<div class="modal-box ap-box">
-    <div class="ap-title">📄 합본 미리보기 <button class="btn-xs" onclick="closeAssembled()">닫기</button></div>
-    <div class="ap-warn">⚠️ 전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
+    <div class="ap-title">합본 미리보기 <button class="btn-xs" onclick="closeAssembled()">닫기</button></div>
+    <div class="ap-warn">전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
     <div class="ap-scroll">${inner}</div>
-    <div class="ap-foot"><button class="btn-sm" onclick="exportDraft('pdf')">📄 PDF</button> <button class="btn-sm" onclick="exportDraft('docx')">📝 Word</button></div>
+    <div class="ap-foot"><button class="btn-sm" onclick="exportDraft('pdf')">PDF</button> <button class="btn-sm" onclick="exportDraft('docx')">Word</button></div>
   </div>`;
   el.style.display = "flex";
 }
@@ -1912,7 +1912,7 @@ async function decideReview(reviewId, status) {
 function renderTabDeadlines() {
   return `<div class="tab-panel" id="tab-deadlines-panel" style="display:none">
   <div class="section-head">
-    <div><h3>🗓 절차·기한 관리</h3>
+    <div><h3>절차·기한 관리</h3>
       <p class="section-sub">소멸시효·자료 제출·심의 등 기한을 D-day로 추적합니다.</p></div>
     <button class="btn" onclick="openDeadlineItemModal()">+ 기한 추가</button>
   </div>
@@ -1923,7 +1923,7 @@ function renderTabDeadlines() {
 function renderTabStats() {
   return `<div class="tab-panel" id="tab-stats-panel" style="display:none">
   <div class="section-head">
-    <div><h3>📊 인정률·성과 통계</h3>
+    <div><h3>인정률·성과 통계</h3>
       <p class="section-sub">전체 사건의 인정률·유형별·월별 추이를 집계합니다.</p></div>
     <button class="btn" onclick="loadStats(true)">새로고침</button>
   </div>
@@ -1935,10 +1935,10 @@ function renderTabStats() {
 function renderTabPublications() {
   return `<div class="tab-panel" id="tab-publications-panel" style="display:none">
   <div class="section-head">
-    <div><h3>📚 연구 발간</h3>
+    <div><h3>연구 발간</h3>
       <p class="section-sub">축적된 사건·통계·인정 패턴을 종합해 외부 발간용 연구 자료를 생성합니다.</p></div>
   </div>
-  <div class="alert-banner expert-warning">⚠️ 외부 발간 전 운영자(책임자) 검수·승인 필수. 실명·식별정보 자동 경량 마스킹 적용.</div>
+  <div class="alert-banner expert-warning">외부 발간 전 운영자(책임자) 검수·승인 필수. 실명·식별정보 자동 경량 마스킹 적용.</div>
 
   <!-- 새 발간물 생성 (발간 쓰기 권한자) — 권한 정책 반영(loadPublications에서 표시 토글) -->
   <div class="draft-stage" id="pubCreateStage" style="display:${isAdmin ? '' : 'none'}">
@@ -1979,7 +1979,7 @@ function renderTabPublications() {
       </div>
     </div>
   </div>
-  <div class="empty-hint" id="pubReadonlyHint" style="display:${isAdmin ? 'none' : ''}"><div class="eh-desc">📖 조회 전용입니다. 발간물 생성·검수·발간·삭제는 발간 권한이 필요합니다. 아래 목록과 미리보기는 열람·PDF/HTML 내보내기가 가능합니다.</div></div>
+  <div class="empty-hint" id="pubReadonlyHint" style="display:${isAdmin ? 'none' : ''}"><div class="eh-desc">조회 전용입니다. 발간물 생성·검수·발간·삭제는 발간 권한이 필요합니다. 아래 목록과 미리보기는 열람·PDF/HTML 내보내기가 가능합니다.</div></div>
 
   <!-- 발간물 목록 -->
   <div class="draft-stage">
@@ -2138,7 +2138,7 @@ async function deleteCase() {
     toast("사건을 삭제했습니다");
     currentCaseId = null; currentDetail = null;
     const pane = document.getElementById("detailPane");
-    if (pane) pane.innerHTML = '<div class="empty-detail"><div class="empty-icon">🕊️</div><div>왼쪽에서 사건을 선택하거나 새 사건을 등록하세요</div></div>';
+    if (pane) pane.innerHTML = '<div class="empty-detail"><div class="empty-icon"></div><div>왼쪽에서 사건을 선택하거나 새 사건을 등록하세요</div></div>';
     await loadCases();
   } catch (e) {
     toast("삭제 오류", "error");
@@ -2294,8 +2294,8 @@ async function processIncomingFiles(rawFiles) {
   }
 
   const startMsg = zipExtractedCount > 0
-    ? `📤 자료 업로드 (zip에서 ${zipExtractedCount}개 추출 포함)`
-    : "📤 자료 업로드";
+    ? `자료 업로드 (zip에서 ${zipExtractedCount}개 추출 포함)`
+    : "자료 업로드";
   openBulkProgress(startMsg, flat.length);
   let ok = 0, fail = 0, done = 0;
   for (let i = 0; i < flat.length; i++) {
@@ -2498,7 +2498,7 @@ async function deleteAllDocs() {
   if (!confirm(`이 사건의 자료 ${docs.length}건을 모두 삭제합니다.\n원본 파일·AI 색인까지 전부 제거되며 되돌릴 수 없습니다.\n계속할까요?`)) return;
 
   /* 파일별 진행 표시(서버 일괄 1콜은 진행이 안 보여 헷갈림 → 한 건씩 + 진행률·취소) */
-  openBulkProgress("🗑 자료 전체 삭제", docs.length, "danger");
+  openBulkProgress("자료 전체 삭제", docs.length, "danger");
   let ok = 0, done = 0;
   for (let i = 0; i < docs.length; i++) {
     if (_bulkCancel) break;
@@ -2565,7 +2565,7 @@ async function viewDoc(docId) {
     }
   } else if (isMedia) {
     const ko = doc.extractMethod === "gemini_audio" ? "음성" : "영상";
-    originalHtml = `<div style="color:#64748b;margin-bottom:4px;line-height:1.6">🎙 원본 ${ko}은 전사(텍스트 변환) 후 저장공간 절약을 위해 삭제되었습니다. 아래 전사 전문으로 분류·분석이 이루어집니다.</div>`;
+    originalHtml = `<div style="color:#64748b;margin-bottom:4px;line-height:1.6">원본 ${ko}은 전사(텍스트 변환) 후 저장공간 절약을 위해 삭제되었습니다. 아래 전사 전문으로 분류·분석이 이루어집니다.</div>`;
   } else {
     originalHtml = `<div style="color:#94a3b8;margin-bottom:4px">원본 미리보기가 없습니다 — 아래 추출 텍스트를 확인하세요.</div>`;
   }
@@ -2576,7 +2576,7 @@ async function viewDoc(docId) {
     ${originalHtml}
     <div style="margin-top:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-weight:600">📄 ${textLabel}</span>
+        <span style="font-weight:600">${textLabel}</span>
         <button class="btn-xs btn-secondary" onclick="copyDocText()" id="docTextCopyBtn" style="display:none">복사</button>
       </div>
       ${doc.docSummary ? `<div style="color:#475569;font-size:12px;margin-bottom:8px">한 줄 요약: ${escapeHtml(doc.docSummary)}</div>` : ""}
@@ -2775,10 +2775,10 @@ async function showDashboard() {
   pane.innerHTML = '<div class="list-loading">현황 불러오는 중…</div>';
   try {
     const d = await apiDashboard();
-    if (!d || !d.ok) { pane.innerHTML = '<div class="empty-detail"><div class="empty-icon">📊</div><div>현황을 불러오지 못했습니다</div></div>'; return; }
+    if (!d || !d.ok) { pane.innerHTML = '<div class="empty-detail"><div class="empty-icon"></div><div>현황을 불러오지 못했습니다</div></div>'; return; }
     renderDashboard(d, pane);
   } catch (e) {
-    if (e.message !== "auth") pane.innerHTML = '<div class="empty-detail"><div class="empty-icon">📊</div><div>현황을 불러오지 못했습니다</div></div>';
+    if (e.message !== "auth") pane.innerHTML = '<div class="empty-detail"><div class="empty-icon"></div><div>현황을 불러오지 못했습니다</div></div>';
   }
 }
 function renderDashboard(d, pane) {
@@ -2792,19 +2792,19 @@ function renderDashboard(d, pane) {
     return da - db;
   });
   pane.innerHTML = `<div class="dash-wrap">
-    <div class="dash-head"><h2>📊 순직 인정 지원 — 현황</h2>
+    <div class="dash-head"><h2>순직 인정 지원 — 현황</h2>
       <div class="dash-head-actions">
-        <button class="btn-sm" onclick="showGlobalStats()">📊 통계</button>
-        <button class="btn-sm" onclick="showGlobalPublications()">📚 발간</button>
+        <button class="btn-sm" onclick="showGlobalStats()">통계</button>
+        <button class="btn-sm" onclick="showGlobalPublications()">발간</button>
         <button class="btn-sm btn-secondary" onclick="showDashboard()">새로고침</button>
       </div></div>
     <div class="dash-cards">
       <div class="dash-kpi"><div class="kpi-num">${summary.activeCount != null ? summary.activeCount : cases.length}</div><div class="kpi-lbl">진행 사건</div></div>
       <div class="dash-kpi ${summary.urgentCount ? "kpi-warn" : ""}"><div class="kpi-num">${summary.urgentCount || 0}</div><div class="kpi-lbl">기한 임박</div></div>
       <div class="dash-kpi"><div class="kpi-num">${summary.avgReadiness != null ? summary.avgReadiness + "%" : "-"}</div><div class="kpi-lbl">평균 준비도</div></div>
-      <div class="dash-kpi ${overGb ? "kpi-danger" : ""}"><div class="kpi-num">${storage.usedGb != null ? storage.usedGb : "-"}<small>/${storage.limitGb || "-"}GB</small></div><div class="kpi-lbl">저장 용량${overGb ? " ⚠️" : ""}</div></div>
+      <div class="dash-kpi ${overGb ? "kpi-danger" : ""}"><div class="kpi-num">${storage.usedGb != null ? storage.usedGb : "-"}<small>/${storage.limitGb || "-"}GB</small></div><div class="kpi-lbl">저장 용량${overGb ? " " : ""}</div></div>
     </div>
-    ${overGb ? `<div class="error-banner">⚠️ 저장 용량이 임계치를 초과했습니다. 백업 후 오래된 자료를 정리하세요.</div>` : ""}
+    ${overGb ? `<div class="error-banner">저장 용량이 임계치를 초과했습니다. 백업 후 오래된 자료를 정리하세요.</div>` : ""}
     <table class="dash-table"><thead><tr><th>사건</th><th>상태</th><th>준비도</th><th>다음 기한</th><th>자료</th></tr></thead>
     <tbody>${sorted.map(c => {
       const cid = c.caseId != null ? c.caseId : c.id;
@@ -2834,7 +2834,7 @@ function showGlobalStats() {
   if (!pane) return;
   pane.innerHTML = `<div class="global-view">
     <div class="global-view-head">
-      <h2>📊 인정률·성과 통계 — 전체 사건</h2>
+      <h2>인정률·성과 통계 — 전체 사건</h2>
       <button class="btn-sm btn-secondary" onclick="showDashboard()">← 현황</button>
     </div>
     ${renderTabStats()}
@@ -2851,7 +2851,7 @@ function showGlobalPublications() {
   if (!pane) return;
   pane.innerHTML = `<div class="global-view">
     <div class="global-view-head">
-      <h2>📚 연구 발간 — 전체 사건 종합</h2>
+      <h2>연구 발간 — 전체 사건 종합</h2>
       <button class="btn-sm btn-secondary" onclick="showDashboard()">← 현황</button>
     </div>
     ${renderTabPublications()}
@@ -2914,7 +2914,7 @@ function renderCriteriaMasterList() {
   if (toolbar) {
     toolbar.innerHTML = canEdit
       ? `<button class="btn-sm" onclick="showCriteriaForm()">+ 요건 추가</button>
-         <button class="btn-sm btn-secondary" onclick="generateCriteria()">⚙️ 법령에서 후보 생성</button>`
+         <button class="btn-sm btn-secondary" onclick="generateCriteria()">법령에서 후보 생성</button>`
       : `<span class="cm-readonly">보기 전용 — 요건 편집은 슈퍼어드민만 가능합니다.</span>`;
   }
   const body = document.getElementById("criteriaMasterList");
@@ -3251,7 +3251,7 @@ function renderPubList() {
   const totalCases = (statsData && statsData.totals && statsData.totals.cases) || 0;
   const normalCases = Math.max(0, totalCases - aiApproved);
   const hybridNote = (totalCases || aiApproved)
-    ? `<div class="ext-hybrid-note" style="margin-bottom:10px">📚 발간 합산 대상 — 사례 <b>${totalCases}</b>건 <small>(정식 ${normalCases}·AI 분석 ${aiApproved})</small></div>`
+    ? `<div class="ext-hybrid-note" style="margin-bottom:10px">발간 합산 대상 — 사례 <b>${totalCases}</b>건 <small>(정식 ${normalCases}·AI 분석 ${aiApproved})</small></div>`
     : "";
   if (!pubList.length) { body.innerHTML = hybridNote + '<div class="empty-hint"><div class="eh-desc">발간물이 없습니다. 위 폼에서 생성하세요.</div></div>'; return; }
   body.innerHTML = hybridNote + pubList.map(p => {
@@ -3280,7 +3280,7 @@ async function showPublicationDetail(id) {
   sec.style.display = "";
   const p = d.publication;
   const reidCls = { low: "rv-approved", medium: "rv-changes", high: "rv-pending" }[p.reidRisk] || "rv-pending";
-  const reidLabel = { low: "재식별 위험 낮음", medium: "위험 보통", high: "⚠️ 위험 높음" }[p.reidRisk] || p.reidRisk;
+  const reidLabel = { low: "재식별 위험 낮음", medium: "위험 보통", high: "위험 높음" }[p.reidRisk] || p.reidRisk;
   body.innerHTML = `
     <div class="pub-detail-meta">
       <span class="rv-badge ${PUB_STATUS_CLS[p.status] || "rv-pending"}">${PUB_STATUS_LABELS[p.status] || p.status}</span>
@@ -3296,10 +3296,10 @@ function renderPubActions(p) {
   const canReview  = canPubWrite && p.status === "draft";      // 검수: 발간 쓰기 권한자
   const canPublish = canPubWrite && p.status === "reviewed";   // 발간 확정: 발간 쓰기 권한자
   return `<div class="pub-actions">
-    ${canReview  ? `<button class="btn-sm" onclick="reviewPublication(${p.id})">✅ 검수 완료</button>` : ""}
-    ${canPublish ? `<button class="btn-sm" onclick="publishPublication(${p.id})">📢 발간 확정</button>` : ""}
-    <button class="btn-sm btn-secondary" onclick="exportPublication(${p.id},'pdf')">📄 PDF</button>
-    <button class="btn-sm btn-secondary" onclick="exportPublication(${p.id},'html')">🌐 HTML</button>
+    ${canReview  ? `<button class="btn-sm" onclick="reviewPublication(${p.id})">검수 완료</button>` : ""}
+    ${canPublish ? `<button class="btn-sm" onclick="publishPublication(${p.id})">발간 확정</button>` : ""}
+    <button class="btn-sm btn-secondary" onclick="exportPublication(${p.id},'pdf')">PDF</button>
+    <button class="btn-sm btn-secondary" onclick="exportPublication(${p.id},'html')">HTML</button>
   </div>`;
 }
 async function reviewPublication(id) {
@@ -3382,7 +3382,7 @@ async function onCaseOutcomeChange(value) {
   }
 }
 
-// R43 §3.1: 사건 종류 변경 (지원 대상 ↔ 과거 사례 양방향 복원 가능·재심·운영자 실수 복구 대비)
+// R43 §3.1: 사건 종류 변경 (지원 대상 과거 사례 양방향 복원 가능·재심·운영자 실수 복구 대비)
 async function onCaseKindChange(value) {
   if (!currentDetail || !currentDetail.case) return;
   const prev = currentDetail.case.caseKind || "active";
@@ -3432,9 +3432,9 @@ async function patchStepperStage(stage) {
 function renderTabExternal() {
   return `<div class="tab-panel" id="tab-external-panel" style="display:none">
   <div class="section-head">
-    <div><h3>🔍 외부 자료 (AI 수집)</h3>
+    <div><h3>외부 자료 (AI 수집)</h3>
       <p class="section-sub">AI가 외부에서 찾아온 자료를 확인해서 협회 정식 사례로 등록하거나, 관련 없는 자료는 제외할 수 있습니다. 정식 등록되기 전에는 신청서 작성 AI가 이 자료를 참고하지 않습니다.</p></div>
-    <button class="btn-sm btn-secondary" onclick="loadExternalTab(true)">🔄 새로고침</button>
+    <button class="btn-sm btn-secondary" onclick="loadExternalTab(true)">새로고침</button>
   </div>
 
   <!-- 새 검색 트리거 -->
@@ -3442,13 +3442,13 @@ function renderTabExternal() {
     <input id="extQueryInput" type="text" placeholder="예: 교사 순직 인정 판례" onkeydown="if(event.key==='Enter') runExternalSearch()">
     <label class="ext-engine"><input type="checkbox" id="extEngineGemini" checked> AI 웹검색</label>
     <label class="ext-engine"><input type="checkbox" id="extEngineNaver" checked> 네이버</label>
-    <button class="btn" onclick="runExternalSearch()">🤖 AI 수집 시작</button>
+    <button class="btn" onclick="runExternalSearch()">AI 수집 시작</button>
     <span class="ext-stats" id="extStatsText"></span>
   </div>
 
   <!-- AD-026: 격주 자동 수집 설정 (백엔드 admin-martyrdom-external-settings + cron-martyrdom-external). 검색어가 비면 자동 수집이 동작하지 않음 -->
   <details class="ext-settings" id="extSettingsBox" style="margin:0 0 14px;padding:8px 12px;border:1px solid #e8e6e3;border-radius:8px;background:#faf9f7">
-    <summary style="cursor:pointer;font-weight:600;font-size:13px">⚙️ 자동 수집 설정 (격주 자동 검색에 사용)</summary>
+    <summary style="cursor:pointer;font-weight:600;font-size:13px">자동 수집 설정 (격주 자동 검색에 사용)</summary>
     <div style="margin-top:10px">
       <label style="display:block;font-size:12px;color:#525252;margin-bottom:4px">기본 검색어 <span style="color:#888">(한 줄에 하나·최대 50개)</span> — 비어 있으면 격주 자동 수집이 한 건도 실행되지 않습니다</label>
       <textarea id="extDefaultQueries" rows="4" style="width:100%;padding:8px 10px;border:1px solid #d6d3ce;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box" placeholder="예: 교사 순직 인정 판례&#10;교권 침해 사망"></textarea>
@@ -3516,7 +3516,7 @@ async function loadExternalTab(force) {
   } catch (e) {
     if (e.message !== "auth") toast("외부 자료 목록을 불러오지 못했습니다", "error");
     const body = document.getElementById("extListBody");
-    if (body) body.innerHTML = `<div class="empty-hint"><div class="eh-desc">자료 목록을 불러오지 못했습니다. 잠시 후 [🔄 새로고침]을 눌러주세요.</div></div>`;
+    if (body) body.innerHTML = `<div class="empty-hint"><div class="eh-desc">자료 목록을 불러오지 못했습니다. 잠시 후 [새로고침]을 눌러주세요.</div></div>`;
   }
 }
 
@@ -3531,7 +3531,7 @@ function renderExternalList() {
   const body = document.getElementById("extListBody");
   if (!body) return;
   if (!extList.length) {
-    body.innerHTML = `<div class="empty-hint"><div class="eh-desc">수집된 외부 자료가 없습니다. 위쪽 [🤖 AI 수집 시작]으로 새 자료를 찾아보세요.</div></div>`;
+    body.innerHTML = `<div class="empty-hint"><div class="eh-desc">수집된 외부 자료가 없습니다. 위쪽 [AI 수집 시작]으로 새 자료를 찾아보세요.</div></div>`;
     return;
   }
   const pending  = extList.filter(x => x.status === "pending" || x.status === "reviewing");
@@ -3555,9 +3555,9 @@ function renderExternalList() {
         </div>`).join("")}
     </div>` : "";
   body.innerHTML =
-    section("⏳ 확인 대기", pending, "pending") +
-    section("✅ 정식 등록됨", approved, "approved") +
-    section("❌ 제외됨", rejected, "rejected");
+    section("확인 대기", pending, "pending") +
+    section("정식 등록됨", approved, "approved") +
+    section("제외됨", rejected, "rejected");
 }
 
 async function loadExternalDetail(id) {
@@ -3591,7 +3591,7 @@ function renderExternalDetail(it) {
         ${isPending ? `<span class="badge badge-pending">확인 대기</span>` : `<span class="badge ext-status-${it.status}">${statusLabel}</span>`}
       </div>
       <div class="ext-detail-source">
-        ${it.sourceUrl ? `<a href="${escapeHtml(it.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(it.sourceDomain || it.sourceUrl)} ↗</a>` : ""}
+        ${it.sourceUrl ? `<a href="${escapeHtml(it.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(it.sourceDomain || it.sourceUrl)} </a>` : ""}
         ${it.publishedAt ? ` · <span class="ext-date">${fmtDate(it.publishedAt)}</span>` : ""}
       </div>
     </div>
@@ -3602,9 +3602,9 @@ function renderExternalDetail(it) {
       ${it.rejectionReason ? `<div class="ext-reject-reason"><strong>제외 사유</strong>: ${escapeHtml(it.rejectionReason)}</div>` : ""}
     </div>
     <div class="ext-detail-actions">
-      ${isPending ? `<button class="btn" onclick="approveExternal(${it.id})">✅ 정식 사례로 등록</button>` : ""}
-      ${isPending ? `<button class="btn-sm btn-warn" onclick="rejectExternal(${it.id})">❌ 제외</button>` : ""}
-      ${isRejected ? `<button class="btn-sm btn-danger" onclick="deleteExternal(${it.id})">🗑 영구 삭제</button>` : ""}
+      ${isPending ? `<button class="btn" onclick="approveExternal(${it.id})">정식 사례로 등록</button>` : ""}
+      ${isPending ? `<button class="btn-sm btn-warn" onclick="rejectExternal(${it.id})">제외</button>` : ""}
+      ${isRejected ? `<button class="btn-sm btn-danger" onclick="deleteExternal(${it.id})">영구 삭제</button>` : ""}
     </div>`;
 }
 
@@ -3654,7 +3654,7 @@ async function runExternalSearch() {
   try {
     const d = await apiExternalSearch(q, engines);
     if (!d.ok) { toast(d.error || "AI 수집을 시작하지 못했습니다", "error"); return; }
-    toast("AI가 외부 자료를 찾기 시작했습니다. 약 30~60초 후 [🔄 새로고침]을 눌러주세요. (이미 수집된 자료는 자동 제외됩니다)");
+    toast("AI가 외부 자료를 찾기 시작했습니다. 약 30~60초 후 [새로고침]을 눌러주세요. (이미 수집된 자료는 자동 제외됩니다)");
     // 2초 후 목록 새로고침 (background 결과 일부 도착 가정)
     setTimeout(() => loadExternalTab(true), 2000);
   } catch (e) { if (e.message !== "auth") toast("수집 처리 중 오류가 발생했습니다", "error"); }

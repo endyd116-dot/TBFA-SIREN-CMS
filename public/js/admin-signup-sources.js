@@ -51,7 +51,7 @@
 
     tbody.innerHTML = list.map((s) => {
       const isProtected = PROTECTED_CODES.includes(s.code);
-      const protectedMark = isProtected ? '<span style="color:#c47a00;font-size:10.5px;margin-left:4px" title="시스템 기본">🔒</span>' : '';
+      const protectedMark = isProtected ? '<span style="color:#c47a00;font-size:10.5px;margin-left:4px" title="시스템 기본"></span>' : '';
       const activeIcon = s.isActive
         ? '<span class="cm-inline-active on" data-ss-toggle="' + s.id + '" data-current="true" title="클릭하여 비활성화">●</span>'
         : '<span class="cm-inline-active off" data-ss-toggle="' + s.id + '" data-current="false" title="클릭하여 활성화">○</span>';
@@ -60,8 +60,8 @@
 
       const deleteDisabled = isProtected || memberCount > 0;
       const deleteBtn = deleteDisabled
-        ? `<button class="delete" disabled title="${isProtected ? '시스템 기본 항목은 삭제 불가' : '사용 중인 회원이 있어 삭제 불가'}">🗑 삭제</button>`
-        : `<button class="delete" data-ss-action="delete" data-ss-id="${s.id}" data-ss-label="${escapeHtml(s.label)}">🗑 삭제</button>`;
+        ? `<button class="delete" disabled title="${isProtected ? '시스템 기본 항목은 삭제 불가' : '사용 중인 회원이 있어 삭제 불가'}">삭제</button>`
+        : `<button class="delete" data-ss-action="delete" data-ss-id="${s.id}" data-ss-label="${escapeHtml(s.label)}">삭제</button>`;
 
       return `<tr>
         <td style="text-align:center;font-family:Inter;font-size:12px">${s.sortOrder || 0}</td>
@@ -74,7 +74,7 @@
         <td style="text-align:right;${memberCountStyle}">${memberCount.toLocaleString()}명</td>
         <td style="text-align:center">${activeIcon}</td>
         <td><div class="cm-row-actions">
-          <button class="edit" data-ss-action="edit" data-ss-id="${s.id}">✏️ 수정</button>
+          <button class="edit" data-ss-action="edit" data-ss-id="${s.id}">수정</button>
           ${deleteBtn}
         </div></td>
       </tr>`;
@@ -95,7 +95,7 @@
     const codeProtectedMsg = document.getElementById('ssCodeProtected');
 
     if (!id) {
-      if (titleEl) titleEl.textContent = '🚪 새 가입 경로 추가';
+      if (titleEl) titleEl.textContent = '새 가입 경로 추가';
       if (idEl) idEl.value = '';
       if (codeEl) { codeEl.value = ''; codeEl.readOnly = false; codeEl.style.background = ''; }
       if (labelEl) labelEl.value = '';
@@ -108,7 +108,7 @@
       return;
     }
 
-    if (titleEl) titleEl.textContent = '✏️ 가입 경로 수정';
+    if (titleEl) titleEl.textContent = '가입 경로 수정';
     modal.classList.add('show');
 
     const res = await api('/api/admin/signup-sources?includeInactive=1');

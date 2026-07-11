@@ -248,7 +248,7 @@
     if (!sec) return;
 
     sec.innerHTML = `<div style="padding:8px 0 16px">
-      <div class="p-title">🔒 보안·감사 로그</div>
+      <div class="p-title">보안·감사 로그</div>
       <p style="font-size:13px;color:var(--text-3);margin-bottom:16px">
         관리자 활동과 보안 이벤트를 모니터링합니다.
       </p>

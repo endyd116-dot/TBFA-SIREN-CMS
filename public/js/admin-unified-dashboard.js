@@ -78,7 +78,7 @@
   function renderShell(c) {
     c.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">' +
-        '<h2 style="font-size:20px;font-weight:700;margin:0">📈 통합 분석 대시보드</h2>' +
+        '<h2 style="font-size:20px;font-weight:700;margin:0">통합 분석 대시보드</h2>' +
         '<div style="display:flex;gap:6px" id="ud-period-btns">' +
           '<button class="btn-sm ud-period-btn active" data-period="30d" type="button">30일</button>' +
           '<button class="btn-sm ud-period-btn" data-period="90d" type="button">90일</button>' +
@@ -95,30 +95,30 @@
       /* 차트 영역 */
       '<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:28px">' +
         '<div class="panel" style="padding:20px">' +
-          '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📆 후원 월별 추이</div>' +
+          '<div style="font-size:15px;font-weight:600;margin-bottom:14px">후원 월별 추이</div>' +
           '<canvas id="ud-chart-trend" height="200"></canvas>' +
         '</div>' +
         '<div class="panel" style="padding:20px">' +
-          '<div style="font-size:15px;font-weight:600;margin-bottom:14px">🚨 사이렌 처리 현황</div>' +
+          '<div style="font-size:15px;font-weight:600;margin-bottom:14px">사이렌 처리 현황</div>' +
           '<canvas id="ud-chart-siren" height="200"></canvas>' +
         '</div>' +
       '</div>' +
 
       /* ★ 2026-05-16 #3: SIREN 주별 신고 추이 라인 차트 (임원 회의·사업 보고용) */
       '<div class="panel" style="padding:20px;margin-bottom:28px">' +
-        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📈 SIREN 주별 신고 추이 (최근 12주)</div>' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">SIREN 주별 신고 추이 (최근 12주)</div>' +
         '<canvas id="ud-chart-siren-weekly" height="120"></canvas>' +
       '</div>' +
 
       /* 코호트 테이블 */
       '<div class="panel" style="padding:20px;margin-bottom:28px">' +
-        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">🔬 코호트 분석</div>' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">코호트 분석</div>' +
         '<div id="ud-cohort" style="color:var(--text-3,#6b7280);font-size:13px">불러오는 중...</div>' +
       '</div>' +
 
       /* 이탈 위험 회원 목록 */
       '<div class="panel" style="padding:20px">' +
-        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">⚠️ 이탈 위험 회원</div>' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">이탈 위험 회원</div>' +
         '<div id="ud-churn" style="color:var(--text-3,#6b7280);font-size:13px">불러오는 중...</div>' +
       '</div>';
   }
@@ -149,12 +149,12 @@
     /* ★ 2026-05-16 #3: SIREN KPI 2종 추가 — 신규 신고 + 처리율 */
     var siren = d.siren || {};
     var cards = [
-      { label: '월간 후원 수입', value: fmtAmount(donation.totalAmount), icon: '💰', color: '#10b981' },
-      { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '🙋', color: '#3b82f6' },
-      { label: '정기 유지율', value: fmtPct(donation.regularRetentionRate), icon: '🔄', color: '#8b5cf6' },
-      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '👤', color: '#f59e0b' },
-      { label: 'SIREN 신규 신고', value: fmtNum(siren.totalNew) + '건', icon: '🚨', color: '#ef4444' },
-      { label: 'SIREN 처리율', value: fmtPct(siren.resolvedRate), icon: '✅', color: '#0ea5e9' }
+      { label: '월간 후원 수입', value: fmtAmount(donation.totalAmount), icon: '', color: '#10b981' },
+      { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '', color: '#3b82f6' },
+      { label: '정기 유지율', value: fmtPct(donation.regularRetentionRate), icon: '', color: '#8b5cf6' },
+      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '', color: '#f59e0b' },
+      { label: 'SIREN 신규 신고', value: fmtNum(siren.totalNew) + '건', icon: '', color: '#ef4444' },
+      { label: 'SIREN 처리율', value: fmtPct(siren.resolvedRate), icon: '', color: '#0ea5e9' }
     ];
     el.innerHTML = cards.map(function (c) {
       return '<div style="background:#fff;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:20px;text-align:center">' +
@@ -241,7 +241,7 @@
     var trend = siren.weeklyTrend || [];
     if (!trend.length) {
       var parent = canvas.parentElement;
-      if (parent) parent.innerHTML = '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📈 SIREN 주별 신고 추이</div><p style="color:#9ca3af;font-size:13px;padding:20px 0;text-align:center">최근 12주간 신고 내역이 없습니다.</p>';
+      if (parent) parent.innerHTML = '<div style="font-size:15px;font-weight:600;margin-bottom:14px">SIREN 주별 신고 추이</div><p style="color:#9ca3af;font-size:13px;padding:20px 0;text-align:center">최근 12주간 신고 내역이 없습니다.</p>';
       return;
     }
     var labels = trend.map(function (t) { return t.week; });

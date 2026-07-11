@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>캠페인 | 교사유가족협의회</title>
 <meta name="description" content="교사유가족협의회의 모금·후원 캠페인 — 함께 변화를 만들어 갑니다.">
 <meta property="og:title" content="캠페인 | 교사유가족협의회">
@@ -75,7 +76,7 @@
 <div id="header-slot"></div>
 
 <main class="cmp-list-page">
-  <h1>🎗 진행 중인 캠페인</h1>
+  <h1><span class="siren-icon-wrap" data-icon="ribbon"></span> 진행 중인 캠페인</h1>
   <p class="cmp-list-sub">
     여러분의 따뜻한 마음이 모여 큰 변화를 만듭니다.<br />
     교사 유가족과 동료 교사들의 회복을 함께 지원해주세요.
@@ -83,9 +84,9 @@
 
   <div class="cmp-filter">
     <button class="on" data-filter="">전체</button>
-    <button data-filter="fundraising">💰 모금</button>
-    <button data-filter="memorial">🎗 추모</button>
-    <button data-filter="awareness">📣 인식 개선</button>
+    <button data-filter="fundraising"><span class="siren-icon-wrap" data-icon="coins"></span> 모금</button>
+    <button data-filter="memorial"><span class="siren-icon-wrap" data-icon="ribbon"></span> 추모</button>
+    <button data-filter="awareness"><span class="siren-icon-wrap" data-icon="megaphone"></span> 인식 개선</button>
   </div>
 
   <div class="cmp-grid" id="cmpGrid">
@@ -96,14 +97,14 @@
 <div id="footer-slot"></div>
 <div id="modals-slot"></div>
 
-<script src="/js/common.js?v=20260707-footer"></script>
-<script src="/js/auth.js?v=16"></script>
+<script src="/js/common.js?v=3-navicon"></script>
+<script src="/js/auth.js?v=17"></script>
 <script src="/js/donate.js?v=r45"></script>
 <script>
 (function(){
   let _filter = '';
 
-  const TYPE_LABEL = { fundraising: '💰 모금', memorial: '🎗 추모', awareness: '📣 인식' };
+  const TYPE_LABEL = { fundraising: '모금', memorial: '추모', awareness: '인식' };
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -142,13 +143,13 @@
                <span>${pct}% / ₩${goal.toLocaleString()}</span>
              </div>`
           : `<div class="cmp-card-meta">
-               <span>👥 ${c.donorCount || 0}명 후원</span>
+               <span>${c.donorCount || 0}명 후원</span>
                ${c.remainingDays !== null ? `<span>D-${c.remainingDays}</span>` : ''}
              </div>`;
 
         return `<a href="/campaign.html?slug=${encodeURIComponent(c.slug)}" class="cmp-card">
           <div class="cmp-card-thumb" style="${thumb}">
-            ${c.isPinned ? '<span class="cmp-card-pin">📌 추천</span>' : ''}
+            ${c.isPinned ? '<span class="cmp-card-pin">추천</span>' : ''}
             <span class="cmp-card-type">${TYPE_LABEL[c.type] || c.type}</span>
           </div>
           <div class="cmp-card-body">

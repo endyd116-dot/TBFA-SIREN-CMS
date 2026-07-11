@@ -167,8 +167,8 @@
   function renderPagination(page, totalPages) {
     const div = document.getElementById("nlPagination");
     if (!totalPages || totalPages <= 1) { div.innerHTML = ""; return; }
-    const prev = page > 1 ? `<button class="btn" data-pg="${page - 1}">◀ 이전</button>` : "";
-    const next = page < totalPages ? `<button class="btn" data-pg="${page + 1}">다음 ▶</button>` : "";
+    const prev = page > 1 ? `<button class="btn" data-pg="${page - 1}">이전</button>` : "";
+    const next = page < totalPages ? `<button class="btn" data-pg="${page + 1}">다음 </button>` : "";
     div.innerHTML = `${prev} <span style="margin:0 12px;">${page} / ${totalPages}</span> ${next}`;
     div.querySelectorAll("button[data-pg]").forEach(btn =>
       btn.addEventListener("click", () => { currentPage = Number(btn.dataset.pg); load(); })

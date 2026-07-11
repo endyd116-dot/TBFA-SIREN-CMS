@@ -172,7 +172,7 @@
   /* ── 재집계 ── */
   async function recalc(force) {
     const y = $('selYear').value, m = $('selMonth').value;
-    if (force && !confirm(y + '년 ' + m + '월 명세서를 강제 재집계합니다.\n⚠ 승인·발송·지급완료는 물론 수동으로 직접 수정한 금액·조정 라인까지 모두 자동 계산값으로 덮어씁니다. 계속할까요?')) return;
+    if (force && !confirm(y + '년 ' + m + '월 명세서를 강제 재집계합니다.\n승인·발송·지급완료는 물론 수동으로 직접 수정한 금액·조정 라인까지 모두 자동 계산값으로 덮어씁니다. 계속할까요?')) return;
     if (!force && !confirm(y + '년 ' + m + '월 명세서를 자동 재집계합니다.\n(DRAFT 상태만 갱신 · REVIEWED 이상·수동수정 건은 보존)')) return;
 
     $('btnRecalc').disabled = true; $('btnRecalcForce').disabled = true;
@@ -203,13 +203,13 @@
   async function analyzePayroll() {
     const y = $('selYear').value, m = $('selMonth').value;
     const btn = $('btnAnalyze');
-    if (btn) { btn.disabled = true; btn.textContent = '🤖 분석 중...'; }
+    if (btn) { btn.disabled = true; btn.textContent = '분석 중...'; }
     try {
       const res = await api('/api/admin-payroll?action=analyze&year=' + y + '&month=' + m, { method: 'POST' });
       if (!res.ok) { toast('AI 분석 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err'); return; }
       renderAnalysis(res.data?.data || res.data || {});
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 분석'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'AI 분석'; }
     }
   }
 
@@ -223,13 +223,13 @@
 
     const an = Array.isArray(d.anomalies) ? d.anomalies : [];
     $('aiAnomalies').innerHTML = an.length
-      ? '<div style="margin-top:14px;font-weight:700;color:#b91c1c">⚠ 이상치 ' + an.length + '건</div>'
+      ? '<div style="margin-top:14px;font-weight:700;color:#b91c1c">이상치 ' + an.length + '건</div>'
         + an.map(a => '<div style="padding:6px 0;border-bottom:1px dashed #eee;font-size:13px">· <strong>' + esc(a.name) + '</strong> <span style="color:#b91c1c">[' + esc(a.type) + ']</span> ' + esc(a.detail) + '</div>').join('')
       : '<div style="margin-top:14px;color:#16a34a;font-size:13px">✓ 이상치 없음</div>';
 
     const ck = Array.isArray(d.checklist) ? d.checklist : [];
     $('aiChecklist').innerHTML = ck.length
-      ? '<div style="margin-top:14px;font-weight:700;color:#b45309">📋 점검 ' + ck.length + '건</div>'
+      ? '<div style="margin-top:14px;font-weight:700;color:#b45309">점검 ' + ck.length + '건</div>'
         + ck.map(c => '<div style="padding:6px 0;border-bottom:1px dashed #eee;font-size:13px">· <strong>' + esc(c.type) + '</strong>: ' + esc(c.detail) + '</div>').join('')
       : '<div style="margin-top:14px;color:#16a34a;font-size:13px">✓ 점검 항목 없음</div>';
   }
@@ -474,7 +474,7 @@
     const actions = $('modalActions');
     const acts = [];
     if (editable) {
-      acts.push('<button class="btn btn-primary btn-sm" onclick="saveSlipEdit()">💾 저장</button>');
+      acts.push('<button class="btn btn-primary btn-sm" onclick="saveSlipEdit()">저장</button>');
     }
     acts.push('<a class="btn btn-light btn-sm" href="/api/admin-payroll-pdf?id=' + slip.id + '" target="_blank" rel="noopener">PDF</a>');
     if (slip.status === 'DRAFT') {

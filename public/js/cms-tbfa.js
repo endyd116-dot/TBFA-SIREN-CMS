@@ -165,15 +165,15 @@
 
   /* ============ 가입경로/후원 상태 라벨 (5종 enum + null — §6.2) ============ */
   const SIGNUP_SOURCE_LABEL = {
-    siren:   { icon: '🌐', text: '싸이렌', cls: 'cms-b-info' },
-    hyosung: { icon: '🏦', text: '효성',   cls: 'cms-b-warn' },
-    manual:  { icon: '✍️', text: '수기',   cls: 'cms-b-mute' },
-    event:   { icon: '🎪', text: '이벤트', cls: 'cms-b-success' },
-    etc:     { icon: '📦', text: '기타',   cls: 'cms-b-mute' },
+    siren:   { icon: '', text: '싸이렌', cls: 'cms-b-info' },
+    hyosung: { icon: '', text: '효성',   cls: 'cms-b-warn' },
+    manual:  { icon: '', text: '수기',   cls: 'cms-b-mute' },
+    event:   { icon: '', text: '이벤트', cls: 'cms-b-success' },
+    etc:     { icon: '', text: '기타',   cls: 'cms-b-mute' },
   };
   const DONOR_TYPE_LABEL = {
-    regular:  { icon: '🔁', text: '정기',   cls: 'cms-b-success' },
-    prospect: { icon: '💡', text: '잠재',   cls: 'cms-b-warn' },
+    regular:  { icon: '', text: '정기',   cls: 'cms-b-success' },
+    prospect: { icon: '', text: '잠재',   cls: 'cms-b-warn' },
     none:     { icon: '—',  text: '비후원', cls: 'cms-b-mute' },
   };
 
@@ -256,58 +256,58 @@
         const titles = {
           dashboard: '대시보드',
           members: '통합 일반 회원',
-          'donor-regular': '🔁 정기 후원자 관리',
-          'donor-prospect': '💡 예비 후원자 관리',
-          'donor-potential': '🌱 잠재 후원자 관리',
-          'nurture': '💌 후원자 너처링',
-          'notify-send': '📨 알림 발송',
-          'send-jobs': '📤 발송 작업',
-          'send-template': '📝 발송 템플릿',
-          'recipient-groups': '👥 수신자 그룹',
-          'auto-trigger': '🤖 AI 자동 발송',
-          'system-notification': '🔔 시스템 자동 발송',
-          'forms-builder': '📋 응답폼·신청폼 관리',
-          'send-analytics': '📊 발송 분석',
-          memorial: '🕊️ 온라인 추모관 관리',
-          'family-stories': '📖 유가족 이야기 관리',
-          'notification-logs': '📋 알림 발송 로그',
-          'kakao-templates': '💬 카카오 알림톡 템플릿',
+          'donor-regular': '정기 후원자 관리',
+          'donor-prospect': '예비 후원자 관리',
+          'donor-potential': '잠재 후원자 관리',
+          'nurture': '후원자 너처링',
+          'notify-send': '알림 발송',
+          'send-jobs': '발송 작업',
+          'send-template': '발송 템플릿',
+          'recipient-groups': '수신자 그룹',
+          'auto-trigger': 'AI 자동 발송',
+          'system-notification': '시스템 자동 발송',
+          'forms-builder': '응답폼·신청폼 관리',
+          'send-analytics': '발송 분석',
+          memorial: '온라인 추모관 관리',
+          'family-stories': '유가족 이야기 관리',
+          'notification-logs': '알림 발송 로그',
+          'kakao-templates': '카카오 알림톡 템플릿',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
           tags: '태그 관리',
           export: '데이터 추출',
           'receipt-settings': '영수증 설정',
           hyosung: '효성 CMS+ 관리',
-          'toss-billing': '💳 KICC 빌링 (자동 청구)',
-          'donations': '📒 후원 결제 내역',
-          'finance-income': '📊 손익 현황',
-          'other-revenues': '💼 후원 외 매출',
-          'expenses': '💸 지출 관리',
-          'finance-budget': '📋 예산 관리',
-          'budget-accounts': '🗂 예산과목 체계(관·항·목)',
-          'approval-inbox': '🧾 지출 결재함',
-          'approval-resolutions': '📑 지출결의서',
-          'approval-lines': '🛡️ 결재라인·위임 설정',
-          'bank-transactions': '🏦 지출 자동 추출 시스템',
-          'finance-report': '📊 재무 보고서',
-          'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
-          'donation-dashboard': '🔍 종합 검증 대시보드',
-          'ai-chat':    '🤖 AI 비서 — 대화 시작',
-          'ai-history': '📜 AI 비서 — 대화 이력',
-          'ai-cost':    '💰 AI 비서 — 비용 관리',
-          'ai-logs':    '📊 AI 비서 — 도구 사용 로그',
-          'ai-config':  '⚙️ AI 비서 — 설정·도구 관리',
-          'comment-reports': '🚩 신고 관리',
-          'role-policy': '🛡️ 권한정책관리',
-          'gamification': '🎮 게이미피케이션',
-          'popups': '📢 팝업 관리',
-          'payroll': '💰 급여관리',
-          'milestone-review':   '🏆 성과관리 설정',
-          'att-ops':    '🟢 근태 현황',
-          'att-config': '⚙️ 근태 설정',
-          'att-door':   '🚪 출입문 제어',
-          'org-news':   '📰 여론·뉴스 분석',
-          'martyrdom':  '🕊️ 딥릴리프 (순직 인정 지원)',
+          'toss-billing': 'KICC 빌링 (자동 청구)',
+          'donations': '후원 결제 내역',
+          'finance-income': '손익 현황',
+          'other-revenues': '후원 외 매출',
+          'expenses': '지출 관리',
+          'finance-budget': '예산 관리',
+          'budget-accounts': '예산과목 체계(관·항·목)',
+          'approval-inbox': '지출 결재함',
+          'approval-resolutions': '지출결의서',
+          'approval-lines': '결재라인·위임 설정',
+          'bank-transactions': '지출 자동 추출 시스템',
+          'finance-report': '재무 보고서',
+          'csv-import': 'CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
+          'donation-dashboard': '종합 검증 대시보드',
+          'ai-chat':    'AI 비서 — 대화 시작',
+          'ai-history': 'AI 비서 — 대화 이력',
+          'ai-cost':    'AI 비서 — 비용 관리',
+          'ai-logs':    'AI 비서 — 도구 사용 로그',
+          'ai-config':  'AI 비서 — 설정·도구 관리',
+          'comment-reports': '신고 관리',
+          'role-policy': '권한정책관리',
+          'gamification': '게이미피케이션',
+          'popups': '팝업 관리',
+          'payroll': '급여관리',
+          'milestone-review':   '성과관리 설정',
+          'att-ops':    '근태 현황',
+          'att-config': '근태 설정',
+          'att-door':   '출입문 제어',
+          'org-news':   '여론·뉴스 분석',
+          'martyrdom':  '딥릴리프 (순직 인정 지원)',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -585,7 +585,7 @@
     window._chart1 = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['🌐 싸이렌', '🏦 효성', '🤝 기타(수기·이벤트·기타)'],
+        labels: ['싸이렌', '효성', '기타(수기·이벤트·기타)'],
         datasets: [{
           data,
           backgroundColor: ['#1a5ec4', '#c47a00', '#8a8a8a'],
@@ -640,7 +640,7 @@
 
     tbody.innerHTML = allMembers.map(m => {
       const status = m.status === 'suspended'
-        ? '<span class="cms-badge cms-b-danger" title="차단됨">🚫 차단</span>'
+        ? '<span class="cms-badge cms-b-danger" title="차단됨">차단</span>'
         : (m.status === 'withdrawn'
             ? '<span class="cms-badge cms-b-mute">탈퇴</span>'
             : '<span class="cms-badge cms-b-success">활성</span>');
@@ -836,7 +836,7 @@
     if (!hy) {
       content.innerHTML = `
         <div style="text-align:center;padding:36px;color:#888">
-          <div style="font-size:36px;margin-bottom:12px">🏦</div>
+          <div style="font-size:36px;margin-bottom:12px"></div>
           이 회원의 효성 CMS+ 계약 정보가 없습니다.<br>
           <span style="font-size:11.5px;color:#aaa;margin-top:6px;display:block">효성 CSV 업로드 후 매칭되면 여기에 표시됩니다.</span>
         </div>`;
@@ -903,8 +903,8 @@
       return;
     }
 
-    const channelLabel = { toss: '💳 KICC', hyosung: '🏦 효성', ibk: '🏛 IBK', manual: '✍️ 수기' };
-    const kindLabel    = { regular: '🔁 정기', onetime: '💡 일시' };
+    const channelLabel = { toss: 'KICC', hyosung: '효성', ibk: 'IBK', manual: '수기' };
+    const kindLabel    = { regular: '정기', onetime: '일시' };
 
     body.innerHTML = resp.data.map(d => `
       <tr>
@@ -997,7 +997,7 @@
         createdAt: new Date().toISOString().slice(0, 10),
       };
       allMembers.unshift(newMember);
-      toast(`${data.name}님이 등록되었습니다 ✅`);
+      toast(`${data.name}님이 등록되었습니다 `);
       form.reset();
       renderDashboard();
     });
@@ -1084,7 +1084,7 @@
           createdAt: row[4] || new Date().toISOString().slice(0, 10),
         });
       }
-      toast(`${count}명이 일괄 등록되었습니다 ✅`);
+      toast(`${count}명이 일괄 등록되었습니다 `);
       importedData = null;
       document.getElementById('importPreview').style.display = 'none';
       input.value = '';
@@ -1122,7 +1122,7 @@
     if (!tbody) return;
 
     if (pending.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#888">이관할 후원자가 없습니다 ✨</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#888">이관할 후원자가 없습니다 </td></tr>`;
       return;
     }
 
@@ -1183,7 +1183,7 @@
         }
       });
       
-      toast(`${selectedTransferIds.size}명이 TBFA 회원으로 이관되었습니다 ✅`);
+      toast(`${selectedTransferIds.size}명이 TBFA 회원으로 이관되었습니다 `);
       selectedTransferIds.clear();
       renderTransfer();
       renderDashboard();
@@ -1198,7 +1198,7 @@
     if (!grid) return;
     grid.innerHTML = `
       <div style="grid-column:1/-1;background:#fff7e6;border:1px dashed #f0c785;border-radius:8px;padding:24px;text-align:center;color:#c47a00;font-size:13px;line-height:1.7">
-        🏷️ 회원 태그 시스템은 다음 마일스톤에서 활성화됩니다.<br>
+        회원 태그 시스템은 다음 마일스톤에서 활성화됩니다.<br>
         <span style="font-size:12px;color:#8a6500">통합 회원 명단의 가입경로/후원 상태 뱃지는 이미 적용되어 있습니다.</span>
       </div>
     `;
@@ -1590,7 +1590,7 @@
       const detected = detectCsvType(csv);
 
       if (!detected) {
-        toast('⚠️ 효성 CMS+ 양식이 아닙니다. 헤더를 확인하세요.');
+        toast('효성 CMS+ 양식이 아닙니다. 헤더를 확인하세요.');
         return;
       }
 
@@ -1606,10 +1606,10 @@
       const lines = csv.split('\n').filter(l => l.trim()).length;
       const rowCount = Math.max(0, lines - 1);
 
-      const typeLabel = detected === 'contracts' ? '📋 계약정보' : '📅 청구/수납 내역';
+      const typeLabel = detected === 'contracts' ? '계약정보' : '청구/수납 내역';
       if (infoEl) {
         infoEl.style.display = 'block';
-        infoEl.innerHTML = `✅ <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)<br />` +
+        infoEl.innerHTML = `<strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)<br />` +
           `자동 감지된 양식: <strong>${typeLabel}</strong> · 데이터 ${rowCount}행 추출됨<br />` +
           `<span style="color:#888;font-size:11px">아래 "미리보기" 버튼으로 검증을 진행하세요</span>`;
       }
@@ -1618,7 +1618,7 @@
       if (resetBtn) resetBtn.disabled = false;
       if (resultEl) resultEl.style.display = 'none';
 
-      toast('파일 추출 완료 ✅');
+      toast('파일 추출 완료 ');
     } catch (err) {
       console.error('[file extract]', err);
       toast('파일 분석 실패: ' + (err.message || err));
@@ -1681,7 +1681,7 @@
     const r = res.data.data;
     hyUploadParsedPreview = { csvText, type };
 
-    let html = '<h4 style="margin-bottom:12px">🔍 미리보기 결과</h4>';
+    let html = '<h4 style="margin-bottom:12px">미리보기 결과</h4>';
     if (type === 'contracts') {
       html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">' +
         '<div style="padding:10px;background:#e8f5ed;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (r.linked || 0) + '</strong><div style="font-size:11px">매칭됨</div></div>' +
@@ -1689,7 +1689,7 @@
         '<div style="padding:10px;background:#fde7ea;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (r.conflicts?.length || 0) + '</strong><div style="font-size:11px">중복매칭</div></div>' +
         '</div>';
       if (r.conflicts && r.conflicts.length > 0) {
-        html += '<div style="background:#fde7ea;padding:10px;border-radius:6px;margin-bottom:10px;font-size:12px">⚠️ 전화번호가 여러 회원에게 매칭되는 경우: ' +
+        html += '<div style="background:#fde7ea;padding:10px;border-radius:6px;margin-bottom:10px;font-size:12px">전화번호가 여러 회원에게 매칭되는 경우: ' +
           r.conflicts.map(c => c.memberNo + '번(' + c.phone + ')').join(', ') + '</div>';
       }
     } else {
@@ -1703,17 +1703,17 @@
     }
 
     if (r.parseErrors && r.parseErrors.length > 0) {
-      html += '<div style="background:#fff4e0;padding:10px;border-radius:6px;font-size:11.5px;color:#c47a00">⚠️ 파싱 에러 ' + r.parseErrors.length + '건</div>';
+      html += '<div style="background:#fff4e0;padding:10px;border-radius:6px;font-size:11.5px;color:#c47a00">파싱 에러 ' + r.parseErrors.length + '건</div>';
     }
 
-    html += '<div style="margin-top:12px;font-size:12px;color:#525252">✅ 검증 통과. 아래 "확정 Import" 버튼으로 실제 저장하세요.</div>';
+    html += '<div style="margin-top:12px;font-size:12px;color:#525252">검증 통과. 아래 "확정 Import" 버튼으로 실제 저장하세요.</div>';
 
     if (resultEl) {
       resultEl.innerHTML = html;
       resultEl.style.display = 'block';
     }
     if (confirmBtn) confirmBtn.disabled = false;
-    toast('미리보기 완료 ✅');
+    toast('미리보기 완료 ');
   }
 
   /**
@@ -1746,7 +1746,7 @@
     }
 
     const r = res.data.data;
-    let html = '<h4 style="margin-bottom:12px;color:#1a8b46">✅ Import 완료!</h4>';
+    let html = '<h4 style="margin-bottom:12px;color:#1a8b46">Import 완료!</h4>';
 
     if (type === 'contracts') {
       html += '<ul style="font-size:12.5px;line-height:1.8">' +
@@ -1759,7 +1759,7 @@
       html += '<ul style="font-size:12.5px;line-height:1.8">' +
         '<li>신규 생성: <strong>' + r.imported + '건</strong></li>' +
         '<li>업데이트: <strong>' + r.updated + '건</strong></li>' +
-        '<li>🎉 후원 자동 확정: <strong style="color:#1a8b46">' + r.autoConfirmed + '건</strong></li>' +
+        '<li>후원 자동 확정: <strong style="color:#1a8b46">' + r.autoConfirmed + '건</strong></li>' +
         '<li>중복 스킵: ' + r.skippedDuplicate + '건</li>' +
         '<li>매칭없음 스킵: ' + r.skippedNoLink + '건</li>' +
         '<li>완납아님 스킵: ' + r.skippedNotPaid + '건</li>' +
@@ -1767,7 +1767,7 @@
     }
 
     if (resultEl) resultEl.innerHTML = html;
-    toast('Import 완료! ✅');
+    toast('Import 완료! ');
     hyUploadParsedPreview = null;
     document.getElementById('hyUploadConfirm').disabled = true;
     /* 파일 입력 초기화 */
@@ -2052,8 +2052,8 @@
   /* ★ 2026-06-26: PG가 토스→KICC로 전환됨. 내부 채널 키는 레거시 'toss' 유지(백엔드 호환),
      화면 표시 라벨만 KICC로 정정. */
   const CHANNEL_LABEL = {
-    toss:    { icon: '💳', text: 'KICC', cls: 'cms-b-info' },
-    hyosung: { icon: '🏦', text: '효성', cls: 'cms-b-warn' },
+    toss:    { icon: '', text: 'KICC', cls: 'cms-b-info' },
+    hyosung: { icon: '', text: '효성', cls: 'cms-b-warn' },
   };
   function renderChannelBadges(channels) {
     if (!Array.isArray(channels) || channels.length === 0) {
@@ -2068,7 +2068,7 @@
       badges.push(
         `<span class="cms-badge cms-b-danger" style="background:#fde8e8;color:#c5293a;font-weight:600"` +
         ` title="효성·KICC 정기후원이 동시 활성입니다. 이중 청구 위험 — 한 채널을 해지하세요 (KICC: 빌링 관리 화면, 효성: 효성 CMS+).">` +
-        `⚠ 중복</span>`
+        `중복</span>`
       );
     }
     return badges.join(' ');
@@ -2271,8 +2271,8 @@
   }
 
   const SUBTYPE_LABEL = {
-    onetime:   { icon: '🎁', text: '일시',   cls: 'cms-b-info' },
-    cancelled: { icon: '⏸',  text: '중단',   cls: 'cms-b-danger' },
+    onetime:   { icon: '', text: '일시',   cls: 'cms-b-info' },
+    cancelled: { icon: '',  text: '중단',   cls: 'cms-b-danger' },
   };
   function renderProspectSubtypeBadge(d) {
     const meta = SUBTYPE_LABEL[d.subtype] || { icon: '—', text: d.subtype || '—', cls: 'cms-b-mute' };
@@ -2336,7 +2336,7 @@
         <td style="text-align:right;font-family:Inter;font-size:11.5px">${(d.totalDonationCount ?? 0).toLocaleString()}건</td>
         <td style="text-align:right;font-family:Inter;font-size:11.5px">₩${Number(d.totalDonationAmount || 0).toLocaleString()}</td>
         <td>
-          <button class="cms-btn-link" data-dp-action="email" data-id="${d.id}" title="재유치 (준비 중)">📨 이메일</button>
+          <button class="cms-btn-link" data-dp-action="email" data-id="${d.id}" title="재유치 (준비 중)">이메일</button>
         </td>
       </tr>
     `).join('');
@@ -2438,10 +2438,10 @@
     }
 
     const ALERT_META = {
-      unmatchedHyosungContract: { icon: '⚠️', label: '미매칭 효성 계약', cls: 'dd-alert-warn' },
-      unmatchedHyosungBilling:  { icon: '⚠️', label: '미매칭 효성 수납', cls: 'dd-alert-warn' },
-      donorTypeConflict:        { icon: '🔴', label: '후원 상태 충돌',    cls: 'dd-alert-danger' },
-      recentCancellation:       { icon: '📉', label: '최근 해지',         cls: 'dd-alert-info' },
+      unmatchedHyosungContract: { icon: '', label: '미매칭 효성 계약', cls: 'dd-alert-warn' },
+      unmatchedHyosungBilling:  { icon: '', label: '미매칭 효성 수납', cls: 'dd-alert-warn' },
+      donorTypeConflict:        { icon: '', label: '후원 상태 충돌',    cls: 'dd-alert-danger' },
+      recentCancellation:       { icon: '', label: '최근 해지',         cls: 'dd-alert-info' },
     };
     const alerts = resp.alerts || [];
     const alertTotal = alerts.reduce((sum, a) => sum + (a.count || 0), 0);
@@ -2456,7 +2456,7 @@
     }
     if (alertPanel) {
       if (alerts.length === 0 || alerts.every(a => a.count === 0)) {
-        alertPanel.innerHTML = '<div style="text-align:center;color:#1a8b46;padding:24px">✅ 검증 alert 없음 — 데이터 정합성 양호</div>';
+        alertPanel.innerHTML = '<div style="text-align:center;color:#1a8b46;padding:24px">검증 alert 없음 — 데이터 정합성 양호</div>';
       } else {
         alertPanel.innerHTML = alerts.filter(a => a.count > 0).map(a => {
           const meta = ALERT_META[a.type] || { icon: '•', label: a.type, cls: 'dd-alert-info' };
@@ -2464,7 +2464,7 @@
             `<li>${escapeHtml(s.description)}</li>`
           ).join('');
           const action = a.type === 'unmatchedHyosungContract'
-            ? '<div class="dd-alert-action">💡 효성 CMS+ 관리 탭에서 미매칭 계약을 확인하고, 수동 매칭하거나 신규 회원 자동 생성하세요.</div>'
+            ? '<div class="dd-alert-action">효성 CMS+ 관리 탭에서 미매칭 계약을 확인하고, 수동 매칭하거나 신규 회원 자동 생성하세요.</div>'
             : '';
           return `
             <div class="dd-alert-card ${meta.cls}">
@@ -2475,15 +2475,15 @@
               ${samples ? `<ul class="dd-alert-samples">${samples}</ul>` : ''}
               ${action}
             </div>`;
-        }).join('') || '<div style="text-align:center;color:#1a8b46;padding:24px">✅ 검증 alert 없음 — 데이터 정합성 양호</div>';
+        }).join('') || '<div style="text-align:center;color:#1a8b46;padding:24px">검증 alert 없음 — 데이터 정합성 양호</div>';
       }
     }
 
     const SOURCE_LABEL = {
-      hyosung_contracts: '📋 효성 계약정보',
-      hyosung_billings:  '📅 효성 수납내역',
-      ibk:               '🏛 IBK 거래',
-      toss:              '💳 KICC',
+      hyosung_contracts: '효성 계약정보',
+      hyosung_billings:  '효성 수납내역',
+      ibk:               'IBK 거래',
+      toss:              'KICC',
     };
     const imports = resp.recentCsvImports || [];
     if (csvHistory) {
@@ -2729,7 +2729,7 @@ async function loadTbKeys() {
         <td>${r.id}</td>
         <td><strong>${escapeHtml(r.memberName || '-')}</strong><br /><span style="color:#888;font-size:12px">${escapeHtml(r.memberEmail || '')}</span></td>
         <td>${escapeHtml(r.cardCompany || '-')}<br /><span style="color:#888;font-size:12px">${escapeHtml(r.cardNumberMasked || '')}</span></td>
-        <td>${expiryDisplay} <a href="#" onclick="tbEditExpiryMonth(${r.id}, '${r.cardExpiryMonth || ''}'); return false" style="font-size:11px;color:#1976d2">✏️</a></td>
+        <td>${expiryDisplay} <a href="#" onclick="tbEditExpiryMonth(${r.id}, '${r.cardExpiryMonth || ''}'); return false" style="font-size:11px;color:#1976d2"></a></td>
         <td>${r.billingDay || '-'}일</td>
         <td>${nextCharge}</td>
         <td style="text-align:right">${(r.amount || 0).toLocaleString()}원</td>
@@ -2848,7 +2848,7 @@ async function loadTbLogsStats() {
     const top = document.getElementById('tbLogsTopErrorsList');
     if (top) {
       if (!d.topErrors || d.topErrors.length === 0) {
-        top.innerHTML = '<span style="color:#2e7d32">최근 30일 실패 없음 ✅</span>';
+        top.innerHTML = '<span style="color:#2e7d32">최근 30일 실패 없음 </span>';
       } else {
         top.innerHTML = d.topErrors.map((e, i) =>
           `${i + 1}. <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px">${escapeHtml(e.code)}</code> — <strong>${e.count}건</strong>`
@@ -2884,7 +2884,7 @@ async function loadTbLogs() {
         ? '<span style="padding:2px 8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;font-size:12px">✓ 성공</span>'
         : r.status === 'failed'
           ? '<span style="padding:2px 8px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px">✗ 실패</span>'
-          : '<span style="padding:2px 8px;background:#fff3e0;color:#e65100;border-radius:4px;font-size:12px">⏳ 대기</span>';
+          : '<span style="padding:2px 8px;background:#fff3e0;color:#e65100;border-radius:4px;font-size:12px">대기</span>';
       const typeLabel = { scheduled: '정기', retry: '재시도', manual: '수동' }[r.attemptType] || r.attemptType;
       const errorCell = r.status === 'failed' && r.tossResponseCode
         ? `<code style="background:#ffebee;padding:2px 6px;border-radius:3px;font-size:11px">${escapeHtml(r.tossResponseCode)}</code><br /><span style="color:#888;font-size:11px">${escapeHtml((r.tossResponseMessage || '').slice(0, 50))}</span>`
@@ -2985,7 +2985,7 @@ async function loadTbSchedule() {
 
     if (expiringEl) {
       if (expiring.length === 0) {
-        expiringEl.innerHTML = '<span style="color:#2e7d32">30일 이내 만료 예정 카드 없음 ✅</span>';
+        expiringEl.innerHTML = '<span style="color:#2e7d32">30일 이내 만료 예정 카드 없음 </span>';
       } else {
         expiringEl.innerHTML = '<div style="max-height:400px;overflow-y:auto">' +
           expiring.map(r => {
@@ -3107,7 +3107,7 @@ async function renderPotentialDonor() {
 
   tbody.innerHTML = rows.map(function(d) {
     const linkedBadge = d.linkedMemberId
-      ? '<span class="cms-badge cms-b-success">🔗 M-' + String(d.linkedMemberId).padStart(5,'0') + ' ' + escapeHtml(d.linkedMemberName || '') + '</span>'
+      ? '<span class="cms-badge cms-b-success">M-' + String(d.linkedMemberId).padStart(5,'0') + ' ' + escapeHtml(d.linkedMemberName || '') + '</span>'
       : '<span class="cms-badge cms-b-mute">미연결</span>';
     const mapBtn = d.linkedMemberId
       ? '<button class="cms-btn-link" style="color:#888" onclick="pdUnmap(' + d.id + ')">연결해제</button>'
@@ -3254,7 +3254,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!f) { (window._cmsToast||alert)('파일을 선택해주세요'); return; }
 
     var btn = document.getElementById('pdAiBtnExtract');
-    btn.disabled = true; btn.textContent = '🤖 AI 분석 중…';
+    btn.disabled = true; btn.textContent = 'AI 분석 중…';
 
     var eventNameHint = document.getElementById('pdAiEventHint').value.trim();
     var entryPathHint = document.getElementById('pdAiEntryHint').value;
@@ -3290,7 +3290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(err) {
       (window._cmsToast||alert)('AI 분석 실패: '+(err.message||err));
     } finally {
-      btn.disabled = false; btn.textContent = '🤖 AI로 추출 시작';
+      btn.disabled = false; btn.textContent = 'AI로 추출 시작';
     }
   });
 
@@ -3386,7 +3386,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!f) { (window._cmsToast||alert)('파일을 선택해주세요'); return; }
 
     var btn = document.getElementById('dpAiBtnExtract');
-    btn.disabled = true; btn.textContent = '🤖 AI 분석 중…';
+    btn.disabled = true; btn.textContent = 'AI 분석 중…';
 
     var eventNameHint = document.getElementById('dpAiEventHint').value.trim();
     var entryPathHint = document.getElementById('dpAiEntryHint').value;
@@ -3421,7 +3421,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(err) {
       (window._cmsToast||alert)('AI 분석 실패: '+(err.message||err));
     } finally {
-      btn.disabled = false; btn.textContent = '🤖 AI로 추출 시작';
+      btn.disabled = false; btn.textContent = 'AI로 추출 시작';
     }
   });
 
@@ -4084,12 +4084,12 @@ async function _aiHistoryOpenDetail(id) {
 
     var esc = window._cmsEsc || function(s){ return String(s||''); };
     var msgHtml = msgs.map(function(m){
-      var who = m.role === 'user' ? '👤 사용자' : (m.role === 'model' ? '🤖 AI' : m.role);
+      var who = m.role === 'user' ? '사용자' : (m.role === 'model' ? 'AI' : m.role);
       var bg = m.role === 'user' ? '#eff6ff' : '#f8fafc';
       var text = (m.parts || []).filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join('\n');
       var fnCalls = (m.parts || []).filter(function(p){ return p.functionCall; });
       var fnHtml = fnCalls.map(function(p){
-        return '<div style="background:#fff8e1;padding:6px 10px;border-radius:4px;margin-top:4px;font-size:11px;font-family:monospace">🔧 '+esc(p.functionCall.name)+'('+esc(JSON.stringify(p.functionCall.args).slice(0,200))+')</div>';
+        return '<div style="background:#fff8e1;padding:6px 10px;border-radius:4px;margin-top:4px;font-size:11px;font-family:monospace">'+esc(p.functionCall.name)+'('+esc(JSON.stringify(p.functionCall.args).slice(0,200))+')</div>';
       }).join('');
       return '<div style="background:'+bg+';padding:10px 14px;border-radius:6px;margin-bottom:8px">'
         + '<div style="font-size:11px;color:#64748b;margin-bottom:4px">'+who+'</div>'
@@ -4098,7 +4098,7 @@ async function _aiHistoryOpenDetail(id) {
         + '</div>';
     }).join('');
 
-    var logsHtml = logs.length ? '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:12px;color:#64748b">🔍 도구 호출 로그 '+logs.length+'건</summary><div style="margin-top:8px">' +
+    var logsHtml = logs.length ? '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:12px;color:#64748b">도구 호출 로그 '+logs.length+'건</summary><div style="margin-top:8px">' +
       logs.map(function(l){
         var color = l.status === 'ok' ? '#16a34a' : '#c5293a';
         return '<div style="padding:6px 10px;border-left:3px solid '+color+';background:#fafafa;margin-bottom:4px;font-size:11.5px;font-family:monospace">'

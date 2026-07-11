@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>주요 활동 | 교사유가족협의회</title>
 <meta name="description" content="활동보고서 · 사진 · 활동뉴스">
 <meta property="og:title" content="주요 활동 | 교사유가족협의회">
@@ -43,7 +44,7 @@
   <main>
     <section class="page-hero">
       <div class="container">
-        <h1>📊 주요 활동</h1>
+        <h1><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 주요 활동</h1>
         <p>활동보고서 · 사진 · 활동뉴스</p>
       </div>
     </section>
@@ -64,16 +65,16 @@
             </select>
             <div class="act-cat-tabs" id="actCatTabs">
               <button type="button" class="act-cat-tab on" data-cat="">전체</button>
-              <button type="button" class="act-cat-tab" data-cat="report">📋 활동보고서</button>
-              <button type="button" class="act-cat-tab" data-cat="photo">📷 사진</button>
-              <button type="button" class="act-cat-tab" data-cat="news">📰 뉴스</button>
+              <button type="button" class="act-cat-tab" data-cat="report"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 활동보고서</button>
+              <button type="button" class="act-cat-tab" data-cat="photo"><span class="siren-icon-wrap" data-icon="camera"></span> 사진</button>
+              <button type="button" class="act-cat-tab" data-cat="news"><span class="siren-icon-wrap" data-icon="newspaper"></span> 뉴스</button>
             </div>
           </div>
 
           <!-- 앨범 -->
           <div id="actAlbum">
             <div class="act-empty">
-              <div class="icon">⏳</div>
+              <div class="icon"><span class="siren-icon-wrap" data-icon="hourglass"></span></div>
               <div class="title">불러오는 중...</div>
             </div>
           </div>
@@ -89,8 +90,8 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=20260707-footer"></script>
-  <script src="/js/auth.js?v=16"></script>
+  <script src="/js/common.js?v=3-navicon"></script>
+  <script src="/js/auth.js?v=17"></script>
   <script src="/js/activity.js?v=m11"></script>
 </body>
 </html>

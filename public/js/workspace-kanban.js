@@ -158,7 +158,7 @@
 
   /* ─── 리스트 뷰 ─── */
   const STATUS_LABEL_KAN = { todo: '대기', doing: '진행중', blocked: '보류', done: '완료', archived: '보관' };
-  const PRIORITY_LABEL_KAN = { urgent: '🔴 긴급', high: '🟠 높음', medium: '🟡 중간', normal: '⚪ 보통', low: '🟢 낮음' };
+  const PRIORITY_LABEL_KAN = { urgent: '긴급', high: '높음', medium: '중간', normal: '보통', low: '낮음' };
 
   function renderListView() {
     const container = $('#wkListView');
@@ -349,7 +349,7 @@
           parts.push(due[filter.dueWithin] || filter.dueWithin);
         }
         if (filter.textQuery) parts.push(`키워드: ${filter.textQuery}`);
-        banner.innerHTML = `<span>🤖 ${parts.length ? parts.join(' + ') + '으로 해석' : '검색 결과'} (${items.length}건)</span>
+        banner.innerHTML = `<span>${parts.length ? parts.join(' + ') + '으로 해석' : '검색 결과'} (${items.length}건)</span>
           <button onclick="document.getElementById('wkAiFilterBanner').style.display='none';window.wkClearAiFilter()">✕</button>`;
         banner.style.display = 'flex';
       }
@@ -434,10 +434,10 @@
   ${isSub ? '<div class="wk-card-sub-label">서브태스크</div>' : ''}
   <h3 class="wk-card-title">${escapeHtml(t.title || '제목 없음')}</h3>
   <div class="wk-card-meta">
-    ${dueText ? `<span class="wk-card-due ${dueClass}">📅 ${escapeHtml(dueText)}</span>` : ''}
-    ${totalCheck > 0 ? `<span class="wk-card-checklist">✅ ${doneCount}/${totalCheck}</span>` : ''}
-    ${(t.subtaskCount > 0) ? `<span class="wk-card-subtask">📋 ${t.subtaskDoneCount || 0}/${t.subtaskCount}</span>` : ''}
-    ${t.assignedBy ? `<span title="지시받은 작업">📥</span>` : ''}
+    ${dueText ? `<span class="wk-card-due ${dueClass}">${escapeHtml(dueText)}</span>` : ''}
+    ${totalCheck > 0 ? `<span class="wk-card-checklist">${doneCount}/${totalCheck}</span>` : ''}
+    ${(t.subtaskCount > 0) ? `<span class="wk-card-subtask">${t.subtaskDoneCount || 0}/${t.subtaskCount}</span>` : ''}
+    ${t.assignedBy ? `<span title="지시받은 작업"></span>` : ''}
   </div>
   ${progress > 0 ? `<div class="wk-card-progress"><div class="wk-card-progress-bar" style="width:${progress}%"></div></div>` : ''}
   ${tags.length ? `<div class="wk-card-tags">${tags.slice(0, 4).map(x => `<span class="wk-card-tag">${escapeHtml(x)}</span>`).join('')}</div>` : ''}
@@ -667,7 +667,7 @@
 
     if (pending) {
       const mineReq = pending.requestedBy === me.id;
-      let html = '<div style="font-weight:600;margin-bottom:6px">📅 마감일 변경 요청 (대기 중)</div>'
+      let html = '<div style="font-weight:600;margin-bottom:6px">마감일 변경 요청 (대기 중)</div>'
         + '<div style="font-size:13px;color:#4b5563;line-height:1.6">현재: ' + fmt(pending.currentDue)
         + '<br>요청: <strong>' + fmt(pending.newDue) + '</strong><br>사유: ' + esc(pending.reason) + '</div>';
       if (isApprover && !mineReq) {
@@ -685,7 +685,7 @@
       const rj = $('#wkDueReject'); if (rj) rj.onclick = function () { reviewDue(pending.id, 'reject'); };
       const cn = $('#wkDueCancel'); if (cn) cn.onclick = function () { reviewDue(pending.id, 'cancel'); };
     } else if (isPerformer) {
-      box.innerHTML = '<div style="font-weight:600;margin-bottom:6px">📅 마감일 변경 요청</div>'
+      box.innerHTML = '<div style="font-weight:600;margin-bottom:6px">마감일 변경 요청</div>'
         + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
         + '<input type="datetime-local" id="wkDueNewDate" class="wk-input" style="min-width:180px">'
         + '<input type="text" id="wkDueReason" class="wk-input" placeholder="변경 사유" style="flex:1;min-width:160px">'
@@ -965,7 +965,7 @@
     }
     const subN = Array.isArray(tmpl.defaultSubtasks) ? tmpl.defaultSubtasks.length : 0;
     const tagN = Array.isArray(tmpl.defaultTags) ? tmpl.defaultTags.length : 0;
-    $('#wkNewTemplateHint').textContent = `✅ 적용됨 — 제목·설명·우선순위 미리보기 채움. 체크리스트 ${subN}개, 태그 ${tagN}개는 생성 후 자동 적용됩니다.`;
+    $('#wkNewTemplateHint').textContent = `적용됨 — 제목·설명·우선순위 미리보기 채움. 체크리스트 ${subN}개, 태그 ${tagN}개는 생성 후 자동 적용됩니다.`;
     toast(`템플릿 "${tmpl.name}" 적용`, 'success');
   }
 
@@ -1233,7 +1233,7 @@
       const esc = s => String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
       const parts = [];
       grouped.forEach(g => {
-        parts.push('<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#374151;padding:4px 0;border-bottom:1px solid #f3f4f6;margin-bottom:4px">🏆 ' + esc(g.name) + ' (' + g.tasks.length + '건)</div>' +
+        parts.push('<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#374151;padding:4px 0;border-bottom:1px solid #f3f4f6;margin-bottom:4px">' + esc(g.name) + ' (' + g.tasks.length + '건)</div>' +
           g.tasks.map(t => '<div style="font-size:11.5px;color:#6b7280;padding:2px 8px">' + esc(t.title) + '</div>').join('') + '</div>');
       });
       if (unmatched.length) {
@@ -1453,25 +1453,25 @@
 
   /* ═══════════════════ 히스토리·타임라인 탭 (Step 7-C.4.a + Phase 21 R1) ═══════════════════ */
   const ACTION_LABELS = {
-    'task.create':              { icon: '📋', label: '작업 생성' },
-    'task.update':              { icon: '✏️', label: '작업 수정' },
-    'task.delete':              { icon: '🗑', label: '작업 삭제' },
-    'task.status':              { icon: '🔄', label: '상태 변경' },
-    'task.complete':            { icon: '✅', label: '작업 완료' },
+    'task.create':              { icon: '', label: '작업 생성' },
+    'task.update':              { icon: '', label: '작업 수정' },
+    'task.delete':              { icon: '', label: '작업 삭제' },
+    'task.status':              { icon: '', label: '상태 변경' },
+    'task.complete':            { icon: '', label: '작업 완료' },
     'task.reopen':              { icon: '↻', label: '재개' },
-    'task.assign':              { icon: '📥', label: '작업 지시' },
-    'task.unassign':            { icon: '↩', label: '지시 취소' },
-    'task.archive':             { icon: '📦', label: '보관' },
-    'task.unarchive':           { icon: '📂', label: '보관 해제' },
-    'task.hold':                { icon: '⏸', label: '보류 시작' },
-    'task.unhold':              { icon: '▶', label: '보류 해제' },
-    'task.checklist.add':       { icon: '➕', label: '체크리스트 추가' },
+    'task.assign':              { icon: '', label: '작업 지시' },
+    'task.unassign':            { icon: '', label: '지시 취소' },
+    'task.archive':             { icon: '', label: '보관' },
+    'task.unarchive':           { icon: '', label: '보관 해제' },
+    'task.hold':                { icon: '', label: '보류 시작' },
+    'task.unhold':              { icon: '', label: '보류 해제' },
+    'task.checklist.add':       { icon: '', label: '체크리스트 추가' },
     'task.checklist.toggle':    { icon: '✓', label: '체크리스트 토글' },
-    'task.attachment.add':      { icon: '📎', label: '파일 첨부' },
-    'task.attachment.remove':   { icon: '✂', label: '첨부 해제' },
-    'task.move':                { icon: '🔀', label: '컬럼 이동' },
-    'task.comment':             { icon: '💬', label: '댓글' },
-    'task.attachment':          { icon: '📎', label: '파일 첨부' },
+    'task.attachment.add':      { icon: '', label: '파일 첨부' },
+    'task.attachment.remove':   { icon: '', label: '첨부 해제' },
+    'task.move':                { icon: '', label: '컬럼 이동' },
+    'task.comment':             { icon: '', label: '댓글' },
+    'task.attachment':          { icon: '', label: '파일 첨부' },
   };
 
   const STATUS_LABEL_KR = {
@@ -1598,7 +1598,7 @@
       return m.subType;
     }
     if (item.actionType === 'task.attachment.add' && m.fileName) {
-      return `📄 ${escapeHtml(m.fileName)}`;
+      return `${escapeHtml(m.fileName)}`;
     }
     if (item.actionType === 'task.checklist.toggle') {
       return m.done ? '체크 ✓' : '체크 해제';
@@ -1723,8 +1723,8 @@
   </div>
   <div class="wk-comment-content">${content}</div>
   <div class="wk-comment-actions">
-    ${!isReply ? `<button data-comment-reply="${c.id}">↩ 답글</button>` : ''}
-    ${isMine ? `<button data-comment-delete="${c.id}">🗑 삭제</button>` : ''}
+    ${!isReply ? `<button data-comment-reply="${c.id}">답글</button>` : ''}
+    ${isMine ? `<button data-comment-delete="${c.id}">삭제</button>` : ''}
   </div>
 </li>`;
   }
@@ -1810,13 +1810,13 @@
       }
       list.innerHTML = items.map(it => `
 <li data-attach-id="${it.id}">
-  <span class="wk-file-icon">📄</span>
+  <span class="wk-file-icon"></span>
   <span class="wk-file-name">
     ${escapeHtml(it.fileName || ('파일 #' + it.fileId))}
     ${it.fileDeletedAt ? '<span class="wk-file-deleted"> (삭제됨)</span>' : ''}
   </span>
   <span class="wk-file-size">${escapeHtml(formatSize(it.fileSize))}</span>
-  ${it.fileDeletedAt ? '' : `<button class="wk-file-remove" data-file-download="${it.fileId}" title="다운로드" style="color:#2563eb">📥</button>`}
+  ${it.fileDeletedAt ? '' : `<button class="wk-file-remove" data-file-download="${it.fileId}" title="다운로드" style="color:#2563eb"></button>`}
   <button class="wk-file-remove" data-file-remove="${it.id}" title="연결 해제">✕</button>
 </li>`).join('');
       // [감사#93] 첨부 파일 다운로드 — 파일함과 동일하게 presigned URL 열기(카드 접근권자 허용은 서버에서 처리)
@@ -1887,7 +1887,7 @@
     if (!bc) return;
     bc.innerHTML = PICKER.path.map((p, i) => {
       const last = i === PICKER.path.length - 1;
-      return `${i > 0 ? '<span style="color:#cbd5e1">›</span>' : ''}<span data-crumb="${p.id}" style="cursor:${last ? 'default' : 'pointer'};font-weight:${last ? '700' : '500'};color:${last ? '#1e293b' : '#2563eb'}">${i === 0 ? '🏠 ' : ''}${escapeHtml(p.name)}</span>`;
+      return `${i > 0 ? '<span style="color:#cbd5e1">›</span>' : ''}<span data-crumb="${p.id}" style="cursor:${last ? 'default' : 'pointer'};font-weight:${last ? '700' : '500'};color:${last ? '#1e293b' : '#2563eb'}">${i === 0 ? '' : ''}${escapeHtml(p.name)}</span>`;
     }).join('');
     bc.querySelectorAll('[data-crumb]').forEach(el => {
       el.addEventListener('click', () => {
@@ -1924,8 +1924,8 @@
         const subs = PICKER.folders.filter(f => (f.parentId || 0) === PICKER.folderId);
         foldersHtml = subs.map(f => `
 <li style="cursor:pointer">
-  <span class="wk-file-icon">📁</span>
-  <span class="wk-file-name">${escapeHtml(f.name)}${f.isShared ? ' 🔗' : ''}</span>
+  <span class="wk-file-icon"></span>
+  <span class="wk-file-name">${escapeHtml(f.name)}${f.isShared ? ' ' : ''}</span>
   <span class="wk-file-size">폴더</span>
   <button class="wk-file-pick-btn" data-open-folder="${f.id}" type="button">열기 ›</button>
 </li>`).join('');
@@ -1941,7 +1941,7 @@
         const isAttached = attachedIds.has(f.id);
         return `
 <li>
-  <span class="wk-file-icon">📄</span>
+  <span class="wk-file-icon"></span>
   <span class="wk-file-name">${escapeHtml(f.name)}</span>
   <span class="wk-file-size">${escapeHtml(formatSize(f.sizeBytes))}</span>
   <button class="wk-file-pick-btn ${isAttached ? 'is-attached' : ''}" data-pick-file="${f.id}" ${isAttached ? 'disabled' : ''}>
@@ -2040,19 +2040,19 @@
     const reviewBlock = r.reviewStatus === 'pending'
       ? (canReview && !isMine
           ? `<div class="wk-report-actions">
-              <button class="wk-btn-secondary" data-report-review="${r.id}" data-status="approved">✅ 승인</button>
-              <button class="wk-btn-danger" data-report-review="${r.id}" data-status="rejected">❌ 반려</button>
+              <button class="wk-btn-secondary" data-report-review="${r.id}" data-status="approved">승인</button>
+              <button class="wk-btn-danger" data-report-review="${r.id}" data-status="rejected">반려</button>
             </div>`
           : `<div class="wk-report-meta">검토 대기 중</div>`)
       : `<div class="wk-report-review${r.reviewStatus === 'approved' ? ' is-approved' : ' is-rejected'}">
-          ${r.reviewStatus === 'approved' ? '✅ 승인됨' : '❌ 반려됨'} · ${escapeHtml(formatTime(r.reviewedAt))}
+          ${r.reviewStatus === 'approved' ? '승인됨' : '반려됨'} · ${escapeHtml(formatTime(r.reviewedAt))}
           ${r.reviewReason ? `<div style="margin-top:4px">${escapeHtml(r.reviewReason)}</div>` : ''}
         </div>`;
 
     return `
 <li class="wk-report-item" data-report-id="${r.id}">
   <div class="wk-report-header">
-    <span class="wk-report-type-badge wk-report-type-${escapeHtml(r.type)}">${r.type === 'completion' ? '✅ 완료 보고' : '🔄 중간 보고'}</span>
+    <span class="wk-report-type-badge wk-report-type-${escapeHtml(r.type)}">${r.type === 'completion' ? '완료 보고' : '중간 보고'}</span>
     <span class="wk-comment-author">${escapeHtml(r.authorName || ('회원 #' + r.memberId))}</span>
     <span class="wk-comment-time">${escapeHtml(formatTime(r.createdAt))}</span>
     <span class="wk-report-status wk-report-status-${escapeHtml(r.reviewStatus)}">${
@@ -2062,7 +2062,7 @@
   ${r.title ? `<div class="wk-report-title">${escapeHtml(r.title)}</div>` : ''}
   <div class="wk-report-content">${escapeHtml(r.content || '')}</div>
   ${reviewBlock}
-  ${isMine && r.reviewStatus === 'pending' ? `<div class="wk-report-actions"><button class="wk-btn-danger" data-report-delete="${r.id}">🗑 삭제</button></div>` : ''}
+  ${isMine && r.reviewStatus === 'pending' ? `<div class="wk-report-actions"><button class="wk-btn-danger" data-report-delete="${r.id}">삭제</button></div>` : ''}
 </li>`;
   }
 
@@ -2154,7 +2154,7 @@
 
     btn.disabled = true;
     const origText = btn.textContent;
-    btn.textContent = '⏳ 처리 중...';
+    btn.textContent = '처리 중...';
 
     try {
       const res = await api(`/api/admin-task-ai-regenerate?id=${taskId}&type=${type}`, { method: 'POST', body: {} });

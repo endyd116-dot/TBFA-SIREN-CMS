@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8">
   <title>SIREN Attachment 테스트 (M-2)</title>
 <meta name="robots" content="noindex,nofollow">
@@ -12,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="SIREN" />
-  <script src="/js/pwa.js?v=2" defer></script>
+  <script src="/js/pwa.js?v=3" defer></script>
   <link rel="stylesheet" href="/css/attachment.css?v=m2">
   <style>
     body { font-family: 'Pretendard', -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f9fafb; }
@@ -26,20 +27,20 @@
   </style>
 </head>
 <body>
-  <h1>📎 SIREN Attachment 테스트 (M-2)</h1>
+  <h1><span class="siren-icon-wrap" data-icon="paperclip"></span> SIREN Attachment 테스트 (M-2)</h1>
 
   <div class="panel info">
-    <strong>🔍 검증 항목:</strong>
+    <strong><span class="siren-icon-wrap" data-icon="search"></span> 검증 항목:</strong>
     <ul>
-      <li>📁 파일 선택 버튼으로 다중 파일 첨부</li>
-      <li>🖱️ 드래그&드롭 영역에 파일 드래그</li>
-      <li>📊 업로드 진행률 표시 (큰 파일에서 잘 보임)</li>
-      <li>🖼️ 이미지는 썸네일, 그 외는 아이콘</li>
-      <li>❌ × 버튼으로 개별 삭제</li>
-      <li>⚠️ 10MB 초과 / 5개 초과 시 경고</li>
+      <li><span class="siren-icon-wrap" data-icon="folder"></span> 파일 선택 버튼으로 다중 파일 첨부</li>
+      <li><span class="siren-icon-wrap" data-icon="mouse-pointer"></span> 드래그&드롭 영역에 파일 드래그</li>
+      <li><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 업로드 진행률 표시 (큰 파일에서 잘 보임)</li>
+      <li><span class="siren-icon-wrap" data-icon="image"></span> 이미지는 썸네일, 그 외는 아이콘</li>
+      <li><span class="siren-icon-wrap" data-icon="x"></span> × 버튼으로 개별 삭제</li>
+      <li><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 10MB 초과 / 5개 초과 시 경고</li>
       <li>이미지 업로드 시 자동 압축 (콘솔 확인)</li>
     </ul>
-    <strong>⚠️ 주의:</strong> 로그인된 상태에서 테스트
+    <strong><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 주의:</strong> 로그인된 상태에서 테스트
   </div>
 
   <div class="panel">
@@ -54,8 +55,8 @@
     <pre id="output">결과가 여기에 표시됩니다.</pre>
   </div>
 
-  <script src="/js/editor.js?v=2026-05"></script>
-  <script src="/js/attachment.js?v=2026-05"></script>
+  <script src="/js/editor.js?v=2027-05"></script>
+  <script src="/js/attachment.js?v=2027-05"></script>
   <script>
     const att = SirenAttachment.create({
       el: document.getElementById('attach-zone'),

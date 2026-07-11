@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="SIREN" />
-  <script src="/js/pwa.js?v=2" defer></script>
+  <script src="/js/pwa.js?v=3" defer></script>
   <title>포인트 랭킹 — SIREN</title>
   <meta name="description" content="교사유가족협의회 SIREN 활동 포인트 랭킹.">
   <meta property="og:title" content="포인트 랭킹 — SIREN">
@@ -158,7 +159,7 @@
 </head>
 <body>
 
-<h2>🏆 포인트 랭킹</h2>
+<h2><span class="siren-icon-wrap" data-icon="trophy"></span> 포인트 랭킹</h2>
 <p class="page-desc">활동 포인트 상위 20명 현황입니다.</p>
 
 <div id="podiumWrap"></div>
@@ -199,7 +200,7 @@
     if (top3.length < 1) return;
     const order = [top3[1], top3[0], top3[2]].filter(Boolean);
     const classes = top3[1] ? ['podium-2', 'podium-1', 'podium-3'] : ['', 'podium-1', ''];
-    const medals = ['🥈', '🥇', '🥉'];
+    const medals = ['', '', ''];
     document.getElementById('podiumWrap').innerHTML = `
       <div class="podium">${order.map((item, i) => item ? `
         <div class="podium-item ${classes[i]}">
@@ -225,7 +226,7 @@
     const el = document.getElementById('rankingContent');
 
     if (!ranking.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏆</div><p>랭킹 데이터가 없습니다.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>랭킹 데이터가 없습니다.</p></div>';
       return;
     }
 
@@ -237,7 +238,7 @@
         <tr>
           <td><span class="rank-num ${rankClass(r.rank)}">${r.rank}</span></td>
           <td>${r.name}</td>
-          <td><span class="pts-badge">⭐ ${r.points.toLocaleString()}P</span></td>
+          <td><span class="pts-badge">${r.points.toLocaleString()}P</span></td>
         </tr>`).join('')}
       </tbody>
     </table>`;

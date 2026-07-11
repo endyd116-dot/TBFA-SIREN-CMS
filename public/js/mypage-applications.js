@@ -1,6 +1,6 @@
 /* =========================================================
    SIREN — mypage-applications.js (★ Phase M-9 + v11 묶음 B-3 + B-11)
-   - 마이페이지 "📋 신청 내역" 통합 탭
+   - 마이페이지 "신청 내역" 통합 탭
    - 4개 서브탭: family / incident / harassment / legal
    - v11: family 탭에 상세/삭제/보완제출 기능 추가
    ========================================================= */
@@ -52,12 +52,12 @@
 
   function severityLabel(s, type) {
     if (type === 'legal' || type === 'family') {
-      const m = { urgent: '🚨 긴급', high: '⚠️ 높음', normal: '⚖️ 보통', low: '💡 낮음' };
+      const m = { urgent: '긴급', high: '높음', normal: '보통', low: '낮음' };
       return m[s] || s;
     }
     const m = {
-      critical: '🚨 CRITICAL', high: '⚠️ HIGH',
-      medium: '⚖️ MEDIUM', low: '💡 LOW',
+      critical: 'CRITICAL', high: 'HIGH',
+      medium: 'MEDIUM', low: 'LOW',
     };
     return m[s] || s;
   }
@@ -170,10 +170,10 @@
 
       if (!res.ok || !json.ok) {
         if (res.status === 401) {
-          pane.innerHTML = '<div class="app-empty"><div class="icon">🔒</div><div class="title">로그인이 필요합니다</div></div>';
+          pane.innerHTML = '<div class="app-empty"><div class="icon"></div><div class="title">로그인이 필요합니다</div></div>';
           return;
         }
-        pane.innerHTML = `<div class="app-empty"><div class="icon">⚠️</div><div class="title">불러오기 실패</div><div class="desc">${escapeHtml(json.error || '잠시 후 다시 시도해 주세요')}</div></div>`;
+        pane.innerHTML = `<div class="app-empty"><div class="icon"></div><div class="title">불러오기 실패</div><div class="desc">${escapeHtml(json.error || '잠시 후 다시 시도해 주세요')}</div></div>`;
         return;
       }
 
@@ -183,7 +183,7 @@
       renderTab(tabKey, list);
     } catch (e) {
       console.error('[applications.loadTab]', tabKey, e);
-      pane.innerHTML = `<div class="app-empty"><div class="icon">⚠️</div><div class="title">네트워크 오류</div></div>`;
+      pane.innerHTML = `<div class="app-empty"><div class="icon"></div><div class="title">네트워크 오류</div></div>`;
     }
   }
 
@@ -201,7 +201,7 @@
     if (!list || !list.length) {
       pane.innerHTML = `
         <div class="app-empty">
-          <div class="icon">📭</div>
+          <div class="icon"></div>
           <div class="title">${escapeHtml(cfg.label)} 신청 내역이 없습니다</div>
           <div class="desc">필요하실 때 언제든 신청하실 수 있습니다.</div>
           <a href="${escapeHtml(cfg.newPage)}" class="new-btn">+ 새 신청하기</a>
@@ -227,14 +227,14 @@
         ? `<span class="severity app-severity-${escapeHtml(severity)}">${escapeHtml(severityLabel(severity, tabKey))}</span>`
         : '';
       const catBadge = category
-        ? `<span>📂 ${escapeHtml(categoryLabel(category, tabKey))}</span>`
+        ? `<span>${escapeHtml(categoryLabel(category, tabKey))}</span>`
         : '';
       const responseFlag = hasResponse ? '<span style="color:var(--brand);font-weight:700">✓ 답변</span>' : '';
 
       let extraFlag = '';
       if (tabKey === 'incident' || tabKey === 'harassment' || tabKey === 'legal') {
-        if (sirenRequested) extraFlag = '<span style="color:var(--brand);font-weight:600">📌 정식 접수</span>';
-        else if (sirenDeclined) extraFlag = '<span style="color:var(--text-3)">📋 AI만 받음</span>';
+        if (sirenRequested) extraFlag = '<span style="color:var(--brand);font-weight:600">정식 접수</span>';
+        else if (sirenDeclined) extraFlag = '<span style="color:var(--text-3)">AI만 받음</span>';
       }
 
       const detailBtn = cfg.detailApi
@@ -246,19 +246,19 @@
 
       /* ★ v11 묶음 B-11: family + supplement 상태일 때 보완 제출 버튼 노출 */
       const supplementBtn = (tabKey === 'family' && status === 'supplement')
-        ? `<button type="button" class="btn-detail" data-act="supplement-open" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#c47a00;border-color:#c47a00">📤 보완 제출</button>`
+        ? `<button type="button" class="btn-detail" data-act="supplement-open" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#c47a00;border-color:#c47a00">보완 제출</button>`
         : '';
 
       /* ★ round8: family submitted 상태일 때 수정 버튼 (B 머지 전 mock 사용) */
       const editBtn = (tabKey === 'family' && status === 'submitted')
-        ? `<button type="button" class="btn-detail" data-act="edit" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#1a56db;border-color:#1a56db;color:#fff">✏️ 수정</button>`
+        ? `<button type="button" class="btn-detail" data-act="edit" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#1a56db;border-color:#1a56db;color:#fff">수정</button>`
         : '';
 
       /* 전문가 채팅방 버튼 — family(유가족지원) / legal(법률지원) 에서 배정 시 표시 */
       const chatRoomId = item.chatRoomId;
       const expertChatBtn = (tabKey === 'family' || tabKey === 'legal') && chatRoomId
         ? `<button type="button" class="btn-detail" data-act="open-expert-chat" data-room-id="${chatRoomId}"
-             style="background:var(--brand);border-color:var(--brand);color:#fff">💬 전문가 채팅</button>`
+             style="background:var(--brand);border-color:var(--brand);color:#fff">전문가 채팅</button>`
         : '';
 
       html += `
@@ -270,7 +270,7 @@
           <div class="app-card-title">${escapeHtml(title)}</div>
           ${summary ? `<div class="app-card-summary">${escapeHtml(summary)}</div>` : ''}
           <div class="app-card-meta">
-            <span>📅 ${fmtDate(item.createdAt)}</span>
+            <span>${fmtDate(item.createdAt)}</span>
             ${catBadge}
             ${sevBadge}
             ${extraFlag}
@@ -366,7 +366,7 @@
       <div style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)">
         <div style="font-family:'Inter';font-size:11.5px;color:var(--text-3);margin-bottom:4px">${escapeHtml(no)}</div>
         <h4 style="margin:0;font-size:17px;font-family:'Noto Serif KR',serif">${escapeHtml(title)}</h4>
-        <div style="font-size:12px;color:var(--text-3);margin-top:6px">📅 접수: ${createdAt}</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:6px">접수: ${createdAt}</div>
       </div>
     `;
 
@@ -376,7 +376,7 @@
       const isPlainText = !item.contentHtml;
       html += `
         <div class="adm-section">
-          <h4>📝 신청 내용</h4>
+          <h4>신청 내용</h4>
           <div class="body" ${isPlainText ? 'style="white-space:pre-wrap"' : ''}>${isPlainText ? escapeHtml(content) : content}</div>
         </div>
       `;
@@ -398,7 +398,7 @@
       if (blocks.length > 0) {
         html += `
           <div class="adm-section">
-            <h4>📋 신청 정보</h4>
+            <h4>신청 정보</h4>
             <div class="body" style="line-height:1.9">${blocks.join('')}</div>
           </div>
         `;
@@ -407,7 +407,7 @@
       if (item.supplementNote) {
         html += `
           <div class="adm-section" style="background:#fff8ec;border:1px solid #f0e3c4">
-            <h4 style="color:#8a6a00">⚠️ 운영자 보완 요청 사항</h4>
+            <h4 style="color:#8a6a00">운영자 보완 요청 사항</h4>
             <div class="body" style="white-space:pre-wrap">${escapeHtml(item.supplementNote)}</div>
           </div>
         `;
@@ -416,9 +416,9 @@
       if (item.status === 'supplement') {
         html += `
           <div style="text-align:center;padding:18px;background:linear-gradient(135deg,#fef3c7,#fff);border:2px solid #fbbf24;border-radius:8px;margin-top:14px">
-            <div style="font-size:14px;color:#8a6a00;font-weight:600;margin-bottom:10px">💡 위 보완 요청 사항을 반영한 자료를 제출해 주세요</div>
+            <div style="font-size:14px;color:#8a6a00;font-weight:600;margin-bottom:10px">위 보완 요청 사항을 반영한 자료를 제출해 주세요</div>
             <button type="button" data-act="supplement-open" data-id="${item.id}" data-no="${escapeHtml(no)}" style="background:var(--brand);color:#fff;border:none;padding:11px 28px;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">
-              📤 보완 자료 제출하기
+              보완 자료 제출하기
             </button>
             <div style="font-size:11.5px;color:var(--text-3);margin-top:8px">제출 후 운영자가 다시 검토합니다 (상태: 보완 요청 → 접수)</div>
           </div>
@@ -436,7 +436,7 @@
           : '';
         html += `
           <div class="adm-section">
-            <h4>🤖 AI 분석 결과 ${sevBadge}</h4>
+            <h4>AI 분석 결과 ${sevBadge}</h4>
             <div class="body" style="margin-bottom:8px"><strong>요약:</strong> ${escapeHtml(item.aiSummary)}</div>
             ${item.aiSuggestion ? `<div class="body"><strong>권장사항:</strong> ${escapeHtml(item.aiSuggestion)}</div>` : ''}
           </div>
@@ -444,19 +444,19 @@
 
         if (tabKey === 'legal') {
           if (item.aiRelatedLaws) {
-            html += `<div class="adm-section"><h4>📜 관련 법령</h4><div class="body">${escapeHtml(item.aiRelatedLaws)}</div></div>`;
+            html += `<div class="adm-section"><h4>관련 법령</h4><div class="body">${escapeHtml(item.aiRelatedLaws)}</div></div>`;
           }
           if (item.aiLegalOpinion) {
-            html += `<div class="adm-section"><h4>⚖️ 1차 법률 의견</h4><div class="body">${escapeHtml(item.aiLegalOpinion)}</div></div>`;
+            html += `<div class="adm-section"><h4>1차 법률 의견</h4><div class="body">${escapeHtml(item.aiLegalOpinion)}</div></div>`;
           }
           if (item.aiLawyerSpecialty) {
-            html += `<div class="adm-section"><h4>👨‍⚖️ 권장 변호사 전문분야</h4><div class="body">${escapeHtml(item.aiLawyerSpecialty)}</div></div>`;
+            html += `<div class="adm-section"><h4>권장 변호사 전문분야</h4><div class="body">${escapeHtml(item.aiLawyerSpecialty)}</div></div>`;
           }
         }
 
         if (tabKey === 'harassment') {
           if (item.aiImmediateAction) {
-            html += `<div class="adm-section"><h4>🚀 즉각적 대처</h4><div class="body">${escapeHtml(item.aiImmediateAction)}</div></div>`;
+            html += `<div class="adm-section"><h4>즉각적 대처</h4><div class="body">${escapeHtml(item.aiImmediateAction)}</div></div>`;
           }
         }
       }
@@ -464,19 +464,19 @@
 
     /* 첨부파일 */
     if (Array.isArray(item.attachments) && item.attachments.length) {
-      html += '<div class="adm-section"><h4>📎 첨부파일</h4><div class="body">';
+      html += '<div class="adm-section"><h4>첨부파일</h4><div class="body">';
       item.attachments.forEach((a) => {
         if (a && typeof a === 'object' && a.url) {
-          html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(a.originalName || '첨부파일')}</a></div>`;
+          html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">${escapeHtml(a.originalName || '첨부파일')}</a></div>`;
         } else if (typeof a === 'string') {
           const fileName = a.split('/').pop() || a;
           /* ★ US-023: 본인 신청 첨부는 support-download(소유자 허용·key 검증)로 직접 다운로드 가능.
              서버 권한·attachments 포함 검증을 이미 하므로 보안 추가비용 없이 끝단만 연결. */
           if (item.id) {
             const dlUrl = '/api/support/download?key=' + encodeURIComponent(a) + '&id=' + encodeURIComponent(item.id);
-            html += `<div style="margin-bottom:6px"><a href="${escapeHtml(dlUrl)}" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(fileName)}</a></div>`;
+            html += `<div style="margin-bottom:6px"><a href="${escapeHtml(dlUrl)}" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">${escapeHtml(fileName)}</a></div>`;
           } else {
-            html += `<div style="margin-bottom:6px;color:var(--text-2);font-size:12.5px">📎 ${escapeHtml(fileName)}</div>`;
+            html += `<div style="margin-bottom:6px;color:var(--text-2);font-size:12.5px">${escapeHtml(fileName)}</div>`;
           }
         }
       });
@@ -490,7 +490,7 @@
         : '';
       html += `
         <div class="adm-section admin-response">
-          <h4>💬 관리자 답변 ${respondedTime}</h4>
+          <h4>관리자 답변 ${respondedTime}</h4>
           <div class="body" style="white-space:pre-wrap">${escapeHtml(item.adminResponse)}</div>
         </div>
       `;
@@ -588,7 +588,7 @@
       <div style="background:#fff;border-radius:12px;max-width:560px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden">
         <div style="padding:16px 24px;background:linear-gradient(135deg,#3a0d14,#7a1f2b);color:#fff;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">📤 보완 자료 제출</div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">보완 자료 제출</div>
             <div style="font-size:11.5px;opacity:0.85;margin-top:2px">신청번호: ${escapeHtml(requestNo || '')}</div>
           </div>
           <button type="button" data-supp-close style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
@@ -597,7 +597,7 @@
           <input type="hidden" id="suppId" value="${id}">
 
           <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:#8a6a00;line-height:1.7">
-            💡 운영자가 요청한 보완 사항을 반영해서 제출해 주세요. 제출 후에는 상태가 <strong>"보완 요청"</strong>에서 <strong>"접수"</strong>로 변경되어 운영자가 다시 검토합니다.
+            운영자가 요청한 보완 사항을 반영해서 제출해 주세요. 제출 후에는 상태가 <strong>"보완 요청"</strong>에서 <strong>"접수"</strong>로 변경되어 운영자가 다시 검토합니다.
           </div>
 
           <div style="margin-bottom:14px">
@@ -610,7 +610,7 @@
 
           <div style="margin-bottom:16px">
             <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
-              📎 추가 첨부 파일 <span style="font-weight:400;color:var(--text-3);font-size:11px">(선택, 최대 5개 / 파일당 10MB)</span>
+              추가 첨부 파일 <span style="font-weight:400;color:var(--text-3);font-size:11px">(선택, 최대 5개 / 파일당 10MB)</span>
             </label>
             <input type="file" id="suppFiles" multiple accept="image/*,.pdf,.hwp,.doc,.docx,.xls,.xlsx" style="display:block;font-size:12.5px;font-family:inherit">
             <div id="suppFilesList" style="margin-top:10px;font-size:12px;color:var(--text-2)"></div>
@@ -618,7 +618,7 @@
 
           <div style="display:flex;gap:10px">
             <button type="button" data-supp-close style="flex:1;padding:11px 0;background:transparent;border:1px solid var(--line);color:var(--text-2);border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">취소</button>
-            <button type="button" id="suppSubmitBtn" style="flex:2;padding:11px 0;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">📤 제출하기</button>
+            <button type="button" id="suppSubmitBtn" style="flex:2;padding:11px 0;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">제출하기</button>
           </div>
         </div>
       </div>
@@ -672,19 +672,19 @@
 
       for (const file of files) {
         const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
-        appendFileRow(filesListEl, tmpId, file.name, '⏳ 업로드 중...');
+        appendFileRow(filesListEl, tmpId, file.name, '업로드 중...');
         _supplementUploadingCount++;
         try {
           const result = await window.SirenEditor.uploadFile(file, 'support-supplement');
           if (result && result.id) {
             _supplementAttachmentIds.push(String(result.id));
-            updateFileRow(filesListEl, tmpId, file.name, '✅ 업로드 완료', String(result.id));
+            updateFileRow(filesListEl, tmpId, file.name, '업로드 완료', String(result.id));
           } else {
-            updateFileRow(filesListEl, tmpId, file.name, '❌ 업로드 실패', null);
+            updateFileRow(filesListEl, tmpId, file.name, '업로드 실패', null);
           }
         } catch (err) {
           console.error('[supplement] upload error', err);
-          updateFileRow(filesListEl, tmpId, file.name, '❌ 업로드 실패', null);
+          updateFileRow(filesListEl, tmpId, file.name, '업로드 실패', null);
         } finally {
           _supplementUploadingCount--;
         }
@@ -711,7 +711,7 @@
     row.dataset.suppFile = tmpId;
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-soft);border-radius:5px;margin-bottom:4px;font-size:12px';
     row.innerHTML = `
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${escapeHtml(fileName)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(fileName)}</span>
       <span class="status" style="margin-left:10px;color:var(--text-3);flex-shrink:0">${escapeHtml(statusText)}</span>
       <button type="button" data-supp-remove="${tmpId}" style="margin-left:8px;background:transparent;border:none;color:#dc2626;cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">×</button>
     `;
@@ -856,7 +856,7 @@
       <div style="background:#fff;border-radius:12px;max-width:580px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden">
         <div style="padding:16px 24px;background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#fff;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">✏️ 유가족 지원 신청 수정</div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">유가족 지원 신청 수정</div>
             <div style="font-size:11.5px;opacity:0.85;margin-top:2px">접수 상태에서만 수정 가능합니다</div>
           </div>
           <button type="button" data-edit-close style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>

@@ -7,16 +7,16 @@
 
   /* ============ 카테고리 트리 정의 ============ */
   const TREE = [
-    { key: 'brand', label: '🎴 로고·파비콘·타이틀', leaf: true },
+    { key: 'brand', label: '로고·파비콘·타이틀', leaf: true },
     {
-      key: 'header', label: '🏠 헤더', expanded: true,
+      key: 'header', label: '헤더', expanded: true,
       children: [
         { key: 'header.brand', label: '로고/협회명/부제' },
         { key: 'header.menus', label: '메뉴 관리' },
       ],
     },
     {
-      key: 'home', label: '🌟 메인 (홈)', expanded: true,
+      key: 'home', label: '메인 (홈)', expanded: true,
       children: [
         { key: 'home.hero',          label: '히어로 배너 (슬라이드 + 텍스트)' },
         { key: 'home.quickMenu',     label: '퀵메뉴 (6개 박스)' },
@@ -25,10 +25,10 @@
         { key: 'home.effects',       label: '효과 / 애니메이션' },
       ],
     },
-    { key: 'stats', label: '📊 통계', leaf: true },
-    { key: 'notices_faq', label: '📰 공지/FAQ 표시', leaf: true },
+    { key: 'stats', label: '통계', leaf: true },
+    { key: 'notices_faq', label: '공지/FAQ 표시', leaf: true },
     {
-      key: 'footer', label: '📌 푸터', expanded: true,
+      key: 'footer', label: '푸터', expanded: true,
       children: [
         { key: 'footer.org', label: '회사 정보' },
         { key: 'footer.sns', label: '소셜 미디어 링크' },
@@ -36,21 +36,21 @@
         { key: 'footer.related_sites', label: '관련 사이트' },
       ],
     },
-    { key: 'siren_menu', label: '🚨 사이렌 메뉴', leaf: true },
+    { key: 'siren_menu', label: '사이렌 메뉴', leaf: true },
     {
-      key: 'mypage', label: '🎗 마이페이지', expanded: false,
+      key: 'mypage', label: '마이페이지', expanded: false,
       children: [
         { key: 'mypage.cancellationGuide', label: '정기 후원 해지 안내' },
       ],
     },
     {
-      key: 'static_pages', label: '📄 정적 페이지', expanded: false,
+      key: 'static_pages', label: '정적 페이지', expanded: false,
       children: [
         { key: 'page.terms', label: '이용약관' },
         { key: 'page.privacy', label: '개인정보처리방침' },
       ],
     },
-    { key: 'publish', label: '🚀 배포 관리', leaf: true },
+    { key: 'publish', label: '배포 관리', leaf: true },
   ];
 
   /* ============ 상태 ============ */
@@ -128,7 +128,7 @@
     ].filter(Boolean).join(' ');
 
     let html = `<div class="${cls}" data-node-key="${escapeHtml(node.key)}" data-has-children="${hasChildren ? '1' : '0'}">`;
-    html += hasChildren ? '<span class="sb-tree-toggle">▶</span>' : '<span class="sb-tree-toggle"></span>';
+    html += hasChildren ? '<span class="sb-tree-toggle"></span>' : '<span class="sb-tree-toggle"></span>';
     html += `<span class="sb-tree-node-label">${escapeHtml(node.label)}</span>`;
     html += '</div>';
 
@@ -291,28 +291,28 @@
     /* ★ 2026-05-11: 누락 영역 일괄 RENDERER 등록 — site_settings generic editor + nav-menus editor */
     'header.brand': function () {
       renderSettingsEditor({
-        title: '🏠 헤더 — 로고 / 협회명 / 부제',
+        title: '헤더 — 로고 / 협회명 / 부제',
         scope: 'header',
         intro: '메인 페이지 상단 헤더의 로고 이미지·기관명·부제 문구를 편집합니다. 변경 사항은 임시저장(Draft)되며, 우측 상단 "모든 변경사항 배포"를 눌러야 운영에 반영됩니다.',
       });
     },
     'header.menus': function () {
       renderNavMenusEditor({
-        title: '🧭 헤더 메뉴 관리',
+        title: '헤더 메뉴 관리',
         location: 'header',
         intro: '메인 페이지 상단 헤더의 네비게이션 메뉴를 관리합니다. 라벨·링크·정렬은 임시저장 후 배포, 활성/비활성·아이콘은 즉시 반영됩니다.',
       });
     },
     'notices_faq': function () {
       renderSettingsEditor({
-        title: '📰 공지 / FAQ 표시 설정',
+        title: '공지 / FAQ 표시 설정',
         scope: 'notices_faq',
         intro: '메인 페이지의 공지·FAQ 영역의 노출 개수·정렬·고정 여부 등을 설정합니다.',
       });
     },
     'footer.org': function () {
       renderSettingsEditor({
-        title: '📌 푸터 — 회사 정보',
+        title: '푸터 — 회사 정보',
         scope: 'footer',
         keyPrefix: 'org.',
         intro: '푸터에 노출되는 단체명·주소·대표자·고유번호·연락처 등을 편집합니다.',
@@ -320,7 +320,7 @@
     },
     'footer.sns': function () {
       renderSettingsEditor({
-        title: '📌 푸터 — 소셜 미디어 링크',
+        title: '푸터 — 소셜 미디어 링크',
         scope: 'footer',
         keyPrefix: 'sns.',
         intro: '푸터의 SNS(인스타그램·유튜브·페이스북 등) 링크를 편집합니다. 빈 값으로 두면 해당 아이콘이 숨겨집니다.',
@@ -328,42 +328,42 @@
     },
     'footer.menus': function () {
       renderNavMenusEditor({
-        title: '📌 푸터 메뉴 관리',
+        title: '푸터 메뉴 관리',
         location: 'footer',
         intro: '푸터의 메뉴(이용약관·개인정보처리방침 등) 링크를 관리합니다.',
       });
     },
     'siren_menu': function () {
       renderNavMenusEditor({
-        title: '🚨 사이렌 메뉴 관리',
+        title: '사이렌 메뉴 관리',
         location: 'siren',
-        intro: '메인 헤더의 "🚨 사이렌" 드롭다운 메뉴(사건 신고·악성민원·법률지원·자유게시판 등)를 관리합니다.',
+        intro: '메인 헤더의 "사이렌" 드롭다운 메뉴(사건 신고·악성민원·법률지원·자유게시판 등)를 관리합니다.',
       });
     },
     'page.terms': function () {
       renderPageContentEditor({
-        title: '📄 이용약관',
+        title: '이용약관',
         scope: 'page.terms',
         intro: '/terms.html 또는 푸터의 "이용약관" 링크에 노출되는 본문을 편집합니다. HTML 입력 가능.',
       });
     },
     'page.privacy': function () {
       renderPageContentEditor({
-        title: '📄 개인정보처리방침',
+        title: '개인정보처리방침',
         scope: 'page.privacy',
         intro: '/privacy.html 본문을 편집합니다. HTML 입력 가능.',
       });
     },
     'page.email_reject': function () {
       renderPageContentEditor({
-        title: '📄 이메일 무단수집 거부',
+        title: '이메일 무단수집 거부',
         scope: 'page.email_reject',
         intro: '이메일 무단수집 거부 안내 본문을 편집합니다.',
       });
     },
     'page.ethics': function () {
       renderPageContentEditor({
-        title: '📄 윤리경영',
+        title: '윤리경영',
         scope: 'page.ethics',
         intro: '윤리경영 안내 본문을 편집합니다.',
       });
@@ -427,7 +427,7 @@
     html +=
       '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0f0;padding-top:14px;margin-top:6px">' +
         '<button type="button" id="ssReloadBtn" style="padding:8px 14px;background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:13px;cursor:pointer">↻ 다시 불러오기</button>' +
-        '<button type="button" id="ssSaveAllBtn" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">💾 변경사항 임시저장</button>' +
+        '<button type="button" id="ssSaveAllBtn" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">변경사항 임시저장</button>' +
       '</div>' +
       '</form>';
     wrap.innerHTML = html;
@@ -441,7 +441,7 @@
     const type = r.valueType || 'text';
     const label = (r.description && String(r.description).trim()) || (r.scope + '.' + r.key);
     const draftBadge = r.hasDraft
-      ? '<span style="margin-left:6px;padding:2px 7px;background:#fef9f5;border:1px solid #f5d97a;border-radius:4px;font-size:11px;color:#7a5e00">📝 Draft</span>'
+      ? '<span style="margin-left:6px;padding:2px 7px;background:#fef9f5;border:1px solid #f5d97a;border-radius:4px;font-size:11px;color:#7a5e00">Draft</span>'
       : '';
     const keyHint = '<small style="color:#999;font-family:Inter;font-size:11px;margin-left:6px">[' + escapeHtml(r.scope + '.' + r.key) + ']</small>';
     const labelHtml = '<label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">' + escapeHtml(label) + draftBadge + keyHint + '</label>';
@@ -551,7 +551,7 @@
       }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 임시저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 임시저장'; }
 
     let msg = '';
     if (saved) msg += saved + '건 저장 (Draft) ';
@@ -652,7 +652,7 @@
         '</thead>' +
         '<tbody>' +
           items.map(function (m) {
-            const draftBadge = m.hasDraft ? '<span style="margin-left:4px;padding:1px 6px;background:#fef9f5;border:1px solid #f5d97a;border-radius:3px;font-size:10px;color:#7a5e00">📝</span>' : '';
+            const draftBadge = m.hasDraft ? '<span style="margin-left:4px;padding:1px 6px;background:#fef9f5;border:1px solid #f5d97a;border-radius:3px;font-size:10px;color:#7a5e00"></span>' : '';
             const label = (m.draftLabel != null ? m.draftLabel : (m.label || ''));
             const href = (m.draftHref != null ? m.draftHref : (m.href || ''));
             const sort = (m.draftSortOrder != null ? m.draftSortOrder : (m.sortOrder || 0));
@@ -662,14 +662,14 @@
               '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="text" class="nm-field" data-field="href" value="' + escapeHtml(href) + '" maxlength="500" style="width:100%;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
               '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center"><input type="checkbox" class="nm-meta" data-meta="isActive" ' + (m.isActive ? 'checked' : '') + '></td>' +
               '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center;white-space:nowrap">' +
-                '<button type="button" class="nm-save-btn" style="padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px">💾 저장</button>' +
-                '<button type="button" class="nm-del-btn" style="padding:4px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;cursor:pointer">🗑</button>' +
+                '<button type="button" class="nm-save-btn" style="padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px">저장</button>' +
+                '<button type="button" class="nm-del-btn" style="padding:4px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;cursor:pointer"></button>' +
               '</td>' +
             '</tr>';
           }).join('') +
         '</tbody>' +
       '</table>' +
-      '<div style="margin-top:8px;font-size:11.5px;color:#666">📝 라벨·링크·정렬은 임시저장(Draft) 후 배포가 필요합니다. 활성 체크박스는 즉시 반영됩니다.</div>';
+      '<div style="margin-top:8px;font-size:11.5px;color:#666">라벨·링크·정렬은 임시저장(Draft) 후 배포가 필요합니다. 활성 체크박스는 즉시 반영됩니다.</div>';
 
     /* 활성 체크박스: 즉시 반영 */
     wrap.querySelectorAll('.nm-meta[data-meta="isActive"]').forEach(function (cb) {
@@ -772,7 +772,7 @@
     const inner = $('#sbContentInner');
     inner.innerHTML =
       '<div class="sb-section">' +
-        '<h2 style="margin:0 0 8px">🔗 관련 사이트 관리</h2>' +
+        '<h2 style="margin:0 0 8px">관련 사이트 관리</h2>' +
         '<p style="color:var(--text-3,#6b7280);font-size:13px;margin:0 0 16px;line-height:1.55">' +
           '메인 페이지 상단 헤더의 "관련 사이트 바로가기" 드롭다운에 노출되는 사이트를 관리합니다. ' +
           '활성화된 항목만 사용자에게 표시되며, 변경사항은 즉시 반영됩니다 (Draft 시스템 미적용).' +
@@ -830,8 +830,8 @@
                 '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="text" class="rs-field" data-field="description" value="' + escapeHtml(s.description || '') + '" maxlength="300" style="width:100%;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
                 '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center"><input type="checkbox" class="rs-field" data-field="isActive" ' + (s.isActive ? 'checked' : '') + '></td>' +
                 '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center;white-space:nowrap">' +
-                  '<button type="button" class="rs-save-btn" style="padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px">💾 저장</button>' +
-                  '<button type="button" class="rs-del-btn" style="padding:4px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;cursor:pointer">🗑</button>' +
+                  '<button type="button" class="rs-save-btn" style="padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px">저장</button>' +
+                  '<button type="button" class="rs-del-btn" style="padding:4px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;cursor:pointer"></button>' +
                 '</td>' +
               '</tr>';
             }).join('') +
@@ -932,27 +932,27 @@
   /* ★ Step 6-B: home.* 노드용 placeholder는 시드 데이터 키 안내까지 표시 */
   const HOME_NODE_INFO = {
     'home.hero': {
-      icon: '🎬',
+      icon: '',
       desc: 'HERO 슬라이더 (3장) + eyebrow 라벨 + 본문 + 자동재생 속도',
       keys: ['home.hero.slides', 'home.hero.eyebrow', 'home.hero.lead', 'home.hero.autoplaySpeed', 'home.hero.autoplayEnabled'],
     },
     'home.quickMenu': {
-      icon: '🟦',
+      icon: '',
       desc: '메인 상단 6개 박스 (후원하기 / SIREN 그룹 3개 / 자유게시판 / 신청내역)',
       keys: ['home.quickMenu.items', 'home.quickMenu.sectionVisible'],
     },
     'home.sections': {
-      icon: '📑',
+      icon: '',
       desc: '캠페인 영역 / 공지사항 / FAQ 영역의 제목·부제·노출개수·표시여부',
       keys: ['home.campaign.*', 'home.notice.*', 'home.faq.*'],
     },
     'home.specialBanner': {
-      icon: '🎗',
+      icon: '',
       desc: '하단 "기억의 약속" 특별 캠페인 배너 (제목/본문/모금액/CTA)',
       keys: ['home.specialBanner.visible/tag/title/lead/goalAmount/raisedAmount/cta'],
     },
     'home.effects': {
-      icon: '✨',
+      icon: '',
       desc: '카운터 애니메이션 / 사이렌 펄스 / 진행률 게이지 속도 조정',
       keys: ['home.effects.counterDuration', 'home.effects.sirenPulseEnabled', 'home.effects.progressBarDuration'],
     },
@@ -971,7 +971,7 @@
           <p style="text-align:center;color:#86868b">${escapeHtml(info.desc)}</p>
           <div style="margin-top:24px;padding:16px 20px;background:#f5f5f7;border-radius:8px">
             <div style="font-size:12px;color:#7a1f2b;font-weight:600;margin-bottom:8px">
-              ✅ DB 시드 완료 — 다음 키들이 편집 가능 상태입니다
+              DB 시드 완료 — 다음 키들이 편집 가능 상태입니다
             </div>
             <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.9">
               ${keyList}
@@ -989,7 +989,7 @@
     /* 그 외 영역 — 기본 안내 */
     inner.innerHTML = `
       <div class="sb-placeholder">
-        <div class="sb-placeholder-icon">🚧</div>
+        <div class="sb-placeholder-icon"></div>
         <h3>${escapeHtml(label)}</h3>
         <p>이 영역의 편집 기능은 다음 단계에서 구현됩니다.</p>
         <small>※ 점진적으로 추가될 예정입니다.</small>
@@ -1012,7 +1012,7 @@
 
     inner.innerHTML = `
       <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
-        <h2 style="margin:0 0 24px;font-family:'Noto Serif KR',serif">🚀 배포 관리</h2>
+        <h2 style="margin:0 0 24px;font-family:'Noto Serif KR',serif">배포 관리</h2>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px">
           <div style="padding:20px;background:#fef9f5;border:1px solid #f5d97a;border-radius:8px;text-align:center">
             <div style="font-size:11px;color:#86868b;text-transform:uppercase;margin-bottom:6px">설정 임시저장</div>
@@ -1034,7 +1034,7 @@
         <button type="button" id="sbInlinePublishBtn"
           style="width:100%;padding:14px;background:linear-gradient(135deg,#7a1f2b,#a3303f);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer"
           ${total === 0 ? 'disabled' : ''}>
-          🚀 ${total > 0 ? `${total}건 모두 배포` : '배포할 변경사항 없음'}
+          ${total > 0 ? `${total}건 모두 배포` : '배포할 변경사항 없음'}
         </button>
       </div>
     `;
@@ -1093,7 +1093,7 @@
     });
     total += r2.data?.data?.affectedCount || 0;
 
-    if (btn) { btn.disabled = false; btn.textContent = '🚀 모든 변경사항 배포'; }
+    if (btn) { btn.disabled = false; btn.textContent = '모든 변경사항 배포'; }
 
     toast(`${total}건 배포 완료`);
     await refreshDraftCount();

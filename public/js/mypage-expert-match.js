@@ -9,23 +9,23 @@
   var _currentTab = 'active';
 
   var STATUS_LABEL = {
-    pending:   '⏳ 검토 대기',
-    matched:   '✅ 배정 완료',
-    active:    '💬 진행중',
-    closed:    '🔒 종료',
-    rejected:  '❌ 반려',
+    pending:   '검토 대기',
+    matched:   '배정 완료',
+    active:    '진행중',
+    closed:    '종료',
+    rejected:  '반려',
   };
 
   var MATCH_TYPE_LABEL = {
-    lawyer:    '⚖️ 변호사',
-    counselor: '💗 심리상담사',
+    lawyer:    '변호사',
+    counselor: '심리상담사',
   };
 
   var DOMAIN_LABEL = {
-    incident:  '🔍 사건 제보',
-    harassment:'⚠️ 악성민원',
-    legal:     '⚖️ 법률지원',
-    support:   '🤝 유족지원',
+    incident:  '사건 제보',
+    harassment:'악성민원',
+    legal:     '법률지원',
+    support:   '유족지원',
   };
 
   /* ─── 헬퍼 ─── */
@@ -70,7 +70,7 @@
     return '' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
         '<span style="display:inline-block;width:4px;height:24px;background:var(--brand);border-radius:2px"></span>' +
-        '<h3 class="serif" style="margin:0">⚖️ 전문가 상담 신청</h3>' +
+        '<h3 class="serif" style="margin:0">전문가 상담 신청</h3>' +
       '</div>' +
       '<p class="sub">변호사 또는 심리상담사와 1:1 상담을 신청하실 수 있습니다. 신청 후 운영자가 전문가를 배정하여 채팅방이 열립니다.</p>' +
 
@@ -81,18 +81,18 @@
               '<label>상담 유형 <span style="color:var(--danger)">*</span></label>' +
               '<select id="emMatchType" required>' +
                 '<option value="">선택하세요</option>' +
-                '<option value="lawyer">⚖️ 변호사 (법률 자문)</option>' +
-                '<option value="counselor">💗 심리상담사 (심리 상담)</option>' +
+                '<option value="lawyer">변호사 (법률 자문)</option>' +
+                '<option value="counselor">심리상담사 (심리 상담)</option>' +
               '</select>' +
             '</div>' +
             '<div class="fg">' +
               '<label>관련 영역 <span style="color:var(--danger)">*</span></label>' +
               '<select id="emSourceDomain" required>' +
                 '<option value="">선택하세요</option>' +
-                '<option value="incident">🔍 사건 제보</option>' +
-                '<option value="harassment">⚠️ 악성민원</option>' +
-                '<option value="legal">⚖️ 법률지원</option>' +
-                '<option value="support">🤝 유족지원</option>' +
+                '<option value="incident">사건 제보</option>' +
+                '<option value="harassment">악성민원</option>' +
+                '<option value="legal">법률지원</option>' +
+                '<option value="support">유족지원</option>' +
               '</select>' +
             '</div>' +
           '</div>' +
@@ -108,12 +108,12 @@
 
       '<div style="margin-top:28px">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
-          '<h4 style="margin:0;font-size:14px;font-weight:700">📋 내 상담 신청 내역</h4>' +
-          '<button id="btnEmRefresh" class="btn-sm btn-sm-ghost" type="button">🔄 새로고침</button>' +
+          '<h4 style="margin:0;font-size:14px;font-weight:700">내 상담 신청 내역</h4>' +
+          '<button id="btnEmRefresh" class="btn-sm btn-sm-ghost" type="button">새로고침</button>' +
         '</div>' +
         '<div class="app-subtabs" id="emSubtabs">' +
-          '<button class="app-subtab active" data-em-tab="active">💬 진행중</button>' +
-          '<button class="app-subtab" data-em-tab="closed">🔒 완료·종료</button>' +
+          '<button class="app-subtab active" data-em-tab="active">진행중</button>' +
+          '<button class="app-subtab" data-em-tab="closed">완료·종료</button>' +
         '</div>' +
         '<div id="expertMatchList"><div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">로딩 중...</div></div>' +
       '</div>';
@@ -133,12 +133,12 @@
 
     var chatBtn = canChat
       ? '<button class="btn-detail" data-em-open-chat="' + it.chatRoomId +
-        '" type="button" style="padding:7px 16px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">💬 채팅방 입장</button>'
+        '" type="button" style="padding:7px 16px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">채팅방 입장</button>'
       : '';
 
     var feedbackBtn = it.status === 'closed'
       ? '<button type="button" data-em-feedback="' + it.id +
-        '" style="padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">⭐ 후기 작성</button>'
+        '" style="padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">후기 작성</button>'
       : '';
 
     var expertInfo = it.expertName
@@ -174,7 +174,7 @@
     _currentTab = status || 'active';
     var list = document.getElementById('expertMatchList');
     if (!list) return;
-    list.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">⏳ 로딩 중...</div>';
+    list.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">로딩 중...</div>';
 
     /* 탭 활성 */
     document.querySelectorAll('#emSubtabs [data-em-tab]').forEach(function (btn) {
@@ -184,7 +184,7 @@
     var r = await api('/api/expert-match-list?status=' + encodeURIComponent(_currentTab));
     if (!r.ok) {
       list.innerHTML = '<div class="app-empty">' +
-        '<div class="icon">⚠️</div>' +
+        '<div class="icon"></div>' +
         '<div class="title">불러오기 실패</div>' +
         '<div class="desc">' + escapeHtml((r.data && r.data.error) || ('HTTP ' + r.status)) + '</div>' +
         '</div>';
@@ -200,7 +200,7 @@
       var msg = _currentTab === 'active'
         ? '진행 중인 전문가 상담이 없습니다.<br><small>위 신청 폼에서 새 상담을 요청해 보세요.</small>'
         : '완료·종료된 상담 내역이 없습니다.';
-      list.innerHTML = '<div class="app-empty"><div class="icon">📋</div><div class="title">내역 없음</div><div class="desc">' + msg + '</div></div>';
+      list.innerHTML = '<div class="app-empty"><div class="icon"></div><div class="title">내역 없음</div><div class="desc">' + msg + '</div></div>';
       return;
     }
     list.innerHTML = '<div class="app-list">' + items.map(renderMatchCard).join('') + '</div>';

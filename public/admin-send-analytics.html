@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>발송 분석 | SIREN 어드민</title>
@@ -109,7 +110,7 @@ body {
 </head>
 <body>
 
-<div class="page-wrap"><div class="page-title">📊 발송 분석 대시보드</div>
+<div class="page-wrap"><div class="page-title"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 발송 분석 대시보드</div>
   <div class="page-desc">발송 작업의 전송·열람·클릭 통계를 기간별로 확인합니다.</div>
 
   <div class="filter-bar">
@@ -155,7 +156,7 @@ body {
 
   <!-- 일별 추이 차트 -->
   <div class="card">
-    <div class="card-title">📈 일별 발송 추이</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="trending-up"></span> 일별 발송 추이</div>
     <div class="chart-wrap">
       <canvas id="trendChart"></canvas>
     </div>
@@ -165,7 +166,7 @@ body {
   <!-- 채널별 + Top 작업 -->
   <div class="two-col">
     <div class="card">
-      <div class="card-title">📡 채널별 통계</div>
+      <div class="card-title"><span class="siren-icon-wrap" data-icon="satellite-dish"></span> 채널별 통계</div>
       <table class="tbl" id="channelTable">
         <thead>
           <tr>
@@ -177,14 +178,14 @@ body {
     </div>
 
     <div class="card">
-      <div class="card-title">🏆 Top 발송 작업 (열람률 기준)</div>
+      <div class="card-title"><span class="siren-icon-wrap" data-icon="trophy"></span> Top 발송 작업 (열람률 기준)</div>
       <div id="topJobsList"><p class="empty">불러오는 중…</p></div>
     </div>
   </div>
 
   <!-- AI 트리거 효과 -->
   <div class="card">
-    <div class="card-title">🤖 AI 트리거 효과</div>
+    <div class="card-title"><span class="siren-icon-wrap" data-icon="bot"></span> AI 트리거 효과</div>
     <div id="triggerEffectList"><p class="empty">불러오는 중…</p></div>
   </div>
 </div>

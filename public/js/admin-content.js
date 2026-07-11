@@ -63,8 +63,8 @@
   }
 
   /* ============ 카테고리 라벨 ============ */
-  const ACT_CAT_LABEL = { report: '📋 활동보고서', photo: '📷 사진', news: '📰 활동뉴스' };
-  const MED_CAT_LABEL = { press: '📰 언론보도', photo: '📷 사진', event: '🎯 행사' };
+  const ACT_CAT_LABEL = { report: '활동보고서', photo: '사진', news: '활동뉴스' };
+  const MED_CAT_LABEL = { press: '언론보도', photo: '사진', event: '행사' };
 
   /* ============ 상태 ============ */
   let _currentTab = 'notices';
@@ -135,7 +135,7 @@
         <div class="preview">${escapeHtml(preview || '(본문 없음)')}</div>
         <div class="meta">
           <span>최종 수정: ${fmtDate(p.updatedAt)}</span>
-          <button type="button" class="edit-btn">✏️ 편집</button>
+          <button type="button" class="edit-btn">편집</button>
         </div>
       </div>`;
     }).join('');
@@ -208,7 +208,7 @@
         toast(res.data?.error || '저장 실패');
       }
     } finally {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💾 저장'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
     }
   }
 
@@ -244,7 +244,7 @@
 
     tbody.innerHTML = list.map((p) => {
       const yearMonth = p.month ? `${p.year}.${String(p.month).padStart(2, '0')}` : String(p.year);
-      const pinIcon = p.isPinned ? '<span style="color:var(--brand)">📌</span>' : '<span style="color:var(--text-3)">—</span>';
+      const pinIcon = p.isPinned ? '<span style="color:var(--brand)"></span>' : '<span style="color:var(--text-3)">—</span>';
       const pubIcon = p.isPublished
         ? '<span style="color:var(--success);font-size:13px">●</span>'
         : '<span style="color:var(--text-3);font-size:13px">○</span>';
@@ -257,8 +257,8 @@
         <td style="text-align:center">${pinIcon}</td>
         <td style="text-align:center">${pubIcon}</td>
         <td><div class="cm-row-actions">
-          <button class="edit" data-ap-action="edit" data-ap-id="${p.id}">✏️ 수정</button>
-          <button class="delete" data-ap-action="delete" data-ap-id="${p.id}" data-ap-title="${escapeHtml(p.title)}">🗑 삭제</button>
+          <button class="edit" data-ap-action="edit" data-ap-id="${p.id}">수정</button>
+          <button class="delete" data-ap-action="delete" data-ap-id="${p.id}" data-ap-title="${escapeHtml(p.title)}">삭제</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -283,7 +283,7 @@
 
       const list = _arData.list || [];
       if (list.length === 0) {
-        listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);text-align:center;padding:8px 0">아직 생성된 보고서가 없습니다. 상단 "🤖 AI 보고서 생성" 버튼으로 시작하세요.</div>';
+        listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);text-align:center;padding:8px 0">아직 생성된 보고서가 없습니다. 상단 "AI 보고서 생성" 버튼으로 시작하세요.</div>';
         return;
       }
 
@@ -308,8 +308,8 @@
         <div style="display:flex;flex-direction:column;gap:6px">
           ${list.map((p) => {
             const badge = p.isPublished
-              ? '<span style="background:#e8f5e9;color:#1a8b46;padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600">📢 발행</span>'
-              : '<span style="background:#f5f5f5;color:var(--text-3);padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600">📝 비공개</span>';
+              ? '<span style="background:#e8f5e9;color:#1a8b46;padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600">발행</span>'
+              : '<span style="background:#f5f5f5;color:var(--text-3);padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600">비공개</span>';
             return `
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 10px;background:#fff;border-radius:4px">
                 <div style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -366,7 +366,7 @@
     document.getElementById('apePinned').checked = false;
 
     const titleEl = document.getElementById('apeModalTitle');
-    if (titleEl) titleEl.textContent = id ? '✏️ 활동 게시글 수정' : '📊 활동 게시글 작성';
+    if (titleEl) titleEl.textContent = id ? '활동 게시글 수정' : '활동 게시글 작성';
 
     modal.classList.add('show');
 
@@ -500,7 +500,7 @@
         toast(res.data?.error || '저장 실패');
       }
     } finally {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💾 저장'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
     }
   }
 
@@ -551,8 +551,8 @@
         <td style="font-size:11.5px">${fmtDate(m.publishedAt)}</td>
         <td style="text-align:center">${pubIcon}</td>
         <td><div class="cm-row-actions">
-          <button class="edit" data-mp-action="edit" data-mp-id="${m.id}">✏️ 수정</button>
-          <button class="delete" data-mp-action="delete" data-mp-id="${m.id}" data-mp-title="${escapeHtml(m.title)}">🗑 삭제</button>
+          <button class="edit" data-mp-action="edit" data-mp-id="${m.id}">수정</button>
+          <button class="delete" data-mp-action="delete" data-mp-id="${m.id}" data-mp-title="${escapeHtml(m.title)}">삭제</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -571,7 +571,7 @@
     document.getElementById('mpePublishedAt').value = toIsoDate(new Date());
 
     const titleEl = document.getElementById('mpeModalTitle');
-    if (titleEl) titleEl.textContent = id ? '✏️ 게시글 수정' : '📰 언론보도/갤러리 작성';
+    if (titleEl) titleEl.textContent = id ? '게시글 수정' : '언론보도/갤러리 작성';
 
     modal.classList.add('show');
 
@@ -662,7 +662,7 @@
         toast(res.data?.error || '저장 실패');
       }
     } finally {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💾 저장'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
     }
   }
 

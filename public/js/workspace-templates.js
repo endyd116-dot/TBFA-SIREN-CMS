@@ -101,15 +101,15 @@
 <li class="wt-card wt-priority-${escapeHtml(t.priority || 'normal')}" data-tmpl-id="${t.id}">
   <div class="wt-card-header">
     ${t.isShared
-      ? '<span class="wt-card-shared-badge">🌐 공유</span>'
-      : '<span class="wt-card-private-badge">🔒 비공개</span>'}
+      ? '<span class="wt-card-shared-badge">공유</span>'
+      : '<span class="wt-card-private-badge">비공개</span>'}
     <span>${escapeHtml(t.authorName || '')}</span>
   </div>
   <h3 class="wt-card-title">${escapeHtml(t.name || '')}</h3>
   <p class="wt-card-desc">${escapeHtml((t.description || '').slice(0, 200) || '(설명 없음)')}</p>
   <div class="wt-card-meta">
-    ${subN > 0 ? `<span>✅ ${subN}항목</span>` : ''}
-    ${t.estimatedHours ? `<span>⏱ ${escapeHtml(String(t.estimatedHours))}h</span>` : ''}
+    ${subN > 0 ? `<span>${subN}항목</span>` : ''}
+    ${t.estimatedHours ? `<span>${escapeHtml(String(t.estimatedHours))}h</span>` : ''}
     ${tags.slice(0, 3).map(x => `<span class="wt-card-tag">${escapeHtml(x)}</span>`).join('')}
     ${tags.length > 3 ? `<span class="wt-card-tag">+${tags.length - 3}</span>` : ''}
     <span class="wt-card-usage">사용 ${t.usageCount || 0}회</span>

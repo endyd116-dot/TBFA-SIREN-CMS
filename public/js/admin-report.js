@@ -79,13 +79,13 @@
     destroyCharts();
     c.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">' +
-        '<h2 style="font-size:20px;font-weight:700;margin:0">📊 주간 보고서</h2>' +
+        '<h2 style="font-size:20px;font-weight:700;margin:0">주간 보고서</h2>' +
         '<button class="btn-sm btn-sm-primary" id="rptBtnGenerate" type="button">+ 보고서 생성</button>' +
       '</div>' +
 
       /* 대표 보고서 탭 (월간 / 분기 / 연간) */
       '<div class="panel" style="padding:20px;margin-bottom:24px">' +
-        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📋 대표 보고서</div>' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">대표 보고서</div>' +
         '<div style="display:flex;gap:8px;margin-bottom:16px" id="rptBoardTabs">' +
           '<button class="btn-sm rpt-board-tab active" data-board-type="monthly" type="button">월간</button>' +
           '<button class="btn-sm rpt-board-tab" data-board-type="quarterly" type="button">분기</button>' +
@@ -161,14 +161,14 @@
     var beneficiary = d.beneficiary || {};
 
     var cards = [
-      { label: typeLabel + ' 총 후원', value: fmtAmount(donation.totalAmount), icon: '💰' },
-      { label: '정기 후원', value: fmtAmount(donation.regularAmount), icon: '🔄' },
-      { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '🙋' },
-      { label: '활성 회원', value: fmtNum(member.totalActive) + '명', icon: '👥' },
-      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '📈' },
-      { label: '사이렌 처리', value: fmtNum(siren.resolvedCount) + '/' + fmtNum(siren.totalHandled) + '건', icon: '🚨' },
-      { label: '상담 지원', value: fmtNum(beneficiary.counselingCount) + '건', icon: '🤝' },
-      { label: '법률 지원', value: fmtNum(beneficiary.legalCount) + '건', icon: '⚖️' }
+      { label: typeLabel + ' 총 후원', value: fmtAmount(donation.totalAmount), icon: '' },
+      { label: '정기 후원', value: fmtAmount(donation.regularAmount), icon: '' },
+      { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '' },
+      { label: '활성 회원', value: fmtNum(member.totalActive) + '명', icon: '' },
+      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '' },
+      { label: '사이렌 처리', value: fmtNum(siren.resolvedCount) + '/' + fmtNum(siren.totalHandled) + '건', icon: '' },
+      { label: '상담 지원', value: fmtNum(beneficiary.counselingCount) + '건', icon: '' },
+      { label: '법률 지원', value: fmtNum(beneficiary.legalCount) + '건', icon: '' }
     ];
 
     el.innerHTML =
@@ -216,7 +216,7 @@
         ? '<span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-size:11px;white-space:nowrap">주간</span>'
         : '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:10px;font-size:11px;white-space:nowrap">수동</span>';
       var sentBadge = r.sentEmailAt
-        ? '<span style="color:#64748b;font-size:11px;white-space:nowrap">✉ ' + fmtDate(r.sentEmailAt) + '</span>'
+        ? '<span style="color:#64748b;font-size:11px;white-space:nowrap">' + fmtDate(r.sentEmailAt) + '</span>'
         : '<span style="color:#94a3b8;font-size:11px">미발송</span>';
       var firstLine = r.aiSummary ? String(r.aiSummary).split('\n')[0] : '';
       var preview = firstLine
@@ -310,7 +310,7 @@
       var lines = String(report.aiSummary).split('\n').filter(Boolean);
       summaryHtml =
         '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:24px">' +
-          '<h3 style="font-size:15px;font-weight:600;margin:0 0 10px">🤖 AI 요약</h3>' +
+          '<h3 style="font-size:15px;font-weight:600;margin:0 0 10px">AI 요약</h3>' +
           '<ol style="margin:0;padding-left:20px;line-height:2">' +
             lines.map(function (l) { return '<li>' + escapeHtml(l) + '</li>'; }).join('') +
           '</ol>' +
@@ -331,7 +331,7 @@
       }).join('');
       alertsHtml =
         '<div style="margin-bottom:24px">' +
-          '<h3 style="font-size:15px;font-weight:600;margin:0 0 10px">⚠️ 위험경보</h3>' +
+          '<h3 style="font-size:15px;font-weight:600;margin:0 0 10px">위험경보</h3>' +
           alertRows +
         '</div>';
     }
@@ -343,11 +343,11 @@
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">' +
         '<button class="btn-sm btn-sm-ghost" id="rptBackBtn" type="button">← 목록으로</button>' +
         '<h3 style="flex:1;font-size:17px;font-weight:700;margin:0">' +
-          '📊 ' + fmtDate(report.periodStart) + ' ~ ' + fmtDate(report.periodEnd) + ' 보고서' +
+          '' + fmtDate(report.periodStart) + ' ~ ' + fmtDate(report.periodEnd) + ' 보고서' +
           ' <span style="font-size:12px;color:var(--text-3);font-weight:400">(' + typeLabel + ')</span>' +
         '</h3>' +
-        '<button class="btn-sm btn-sm-ghost" id="rptBtnPrint" type="button">🖨️ 인쇄</button>' +
-        '<button class="btn-sm btn-sm-ghost" id="rptBtnEmail" type="button">📧 이메일 재발송</button>' +
+        '<button class="btn-sm btn-sm-ghost" id="rptBtnPrint" type="button">인쇄</button>' +
+        '<button class="btn-sm btn-sm-ghost" id="rptBtnEmail" type="button">이메일 재발송</button>' +
       '</div>' +
 
       '<div id="rptDetailBody">' +
@@ -359,7 +359,7 @@
 
           /* 1. 회원 현황 */
           '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px">' +
-            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#1e40af">👥 회원 현황</h4>' +
+            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#1e40af">회원 현황</h4>' +
             '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
               '<tr><td style="padding:4px 0;color:var(--text-3)">기간 내 신규 가입</td>' +
                   '<td style="text-align:right;font-weight:600">' + fmtNum(m.newThisPeriod) + '명</td></tr>' +
@@ -379,7 +379,7 @@
 
           /* 2. 후원 현황 */
           '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px">' +
-            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#15803d">💰 후원 현황</h4>' +
+            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#15803d">후원 현황</h4>' +
             '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
               '<tr><td style="padding:4px 0;color:var(--text-3)">기간 내 후원 건수</td>' +
                   '<td style="text-align:right;font-weight:600">' + fmtNum(d.count) + '건</td></tr>' +
@@ -400,7 +400,7 @@
 
           /* 3. SIREN 신고 */
           '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px">' +
-            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#dc2626">🚨 SIREN 신고</h4>' +
+            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#dc2626">SIREN 신고</h4>' +
             '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
               '<thead><tr style="color:var(--text-3);font-size:11px">' +
                 '<th style="text-align:left;padding:0 0 8px;font-weight:500">유형</th>' +
@@ -421,7 +421,7 @@
 
           /* 4. 전문가 매칭 + 유족지원 */
           '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px">' +
-            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#7c3aed">🤝 전문가 매칭</h4>' +
+            '<h4 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#7c3aed">전문가 매칭</h4>' +
             '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
               '<tr><td style="padding:4px 0;color:var(--text-3)">기간 내 신규</td>' +
                   '<td style="text-align:right;font-weight:600">' + fmtNum(em.newThisPeriod) + '건</td></tr>' +
@@ -434,7 +434,7 @@
               '<tr><td style="padding:4px 0;color:var(--text-3)">상담사 매칭</td>' +
                   '<td style="text-align:right">' + fmtNum(embt.counselor) + '건</td></tr>' +
             '</table>' +
-            '<h4 style="font-size:14px;font-weight:600;margin:16px 0 10px;color:#0891b2">❤️ 유족지원</h4>' +
+            '<h4 style="font-size:14px;font-weight:600;margin:16px 0 10px;color:#0891b2">유족지원</h4>' +
             '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
               '<tr><td style="padding:4px 0;color:var(--text-3)">기간 내 신청</td>' +
                   '<td style="text-align:right;font-weight:600">' + fmtNum(sup.newThisPeriod) + '건</td></tr>' +
@@ -533,7 +533,7 @@
       'display:flex;align-items:center;justify-content:center';
     overlay.innerHTML =
       '<div style="background:#fff;border-radius:12px;padding:28px;min-width:360px;max-width:440px;width:90%">' +
-        '<h3 style="font-size:17px;font-weight:700;margin:0 0 20px">📊 보고서 생성</h3>' +
+        '<h3 style="font-size:17px;font-weight:700;margin:0 0 20px">보고서 생성</h3>' +
         '<div style="margin-bottom:14px">' +
           '<label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:5px">시작일</label>' +
           '<input type="date" id="rptModalStart" value="' + toDateInput(start) + '"' +

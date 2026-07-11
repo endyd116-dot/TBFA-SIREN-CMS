@@ -380,7 +380,7 @@
 
     const isSiren = !!item.isSirenGroup;
     const cls = 'quick-item' + (isSiren ? ' siren-item' : '');
-    const sirenBadge = isSiren ? '<span class="siren-badge">🚨 SIREN</span>' : '';
+    const sirenBadge = isSiren ? '<span class="siren-badge">SIREN</span>' : '';
     const icon = escHtml(item.icon || '');
     const label = escHtml(item.label || '');
 
@@ -388,14 +388,14 @@
     if (item.opensModal) {
       return `<div class="${cls}" data-action="open-modal" data-target="${escHtml(item.opensModal)}" style="cursor:pointer">
         ${sirenBadge}
-        <span class="qi-arrow">↗</span>
+        <span class="qi-arrow"></span>
         <div class="qi-icon">${icon}</div>
         <div class="qi-label">${label}</div>
       </div>`;
     }
     return `<a class="${cls}" href="${escHtml(item.href || '#')}">
       ${sirenBadge}
-      <span class="qi-arrow">↗</span>
+      <span class="qi-arrow"></span>
       <div class="qi-icon">${icon}</div>
       <div class="qi-label">${label}</div>
     </a>`;

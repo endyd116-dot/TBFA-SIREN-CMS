@@ -146,13 +146,13 @@
       if (!el) return;
       if (i < step) {
         el.style.color = '#1a8b46';
-        el.innerHTML = `✅ ${labels[i]}`;
+        el.innerHTML = `${labels[i]}`;
       } else if (i === step) {
         el.style.color = 'var(--brand)';
-        el.innerHTML = `⏳ ${labels[i]}`;
+        el.innerHTML = `${labels[i]}`;
       } else {
         el.style.color = 'var(--text-3)';
-        el.innerHTML = `⏸ ${labels[i]}`;
+        el.innerHTML = `${labels[i]}`;
       }
     });
   }
@@ -224,7 +224,7 @@
     const totalData = (d.totalAmount || 0) + (d.donorCount || 0) + (m.newCount || 0) + (s.total || 0);
     if (totalData === 0) {
       const periodLabel = stats.period?.label || '선택한 기간';
-      toast(`⚠️ ${periodLabel}에 데이터가 없습니다. 데이터가 있는 기간을 선택해 주세요.`, 5000);
+      toast(`${periodLabel}에 데이터가 없습니다. 데이터가 있는 기간을 선택해 주세요.`, 5000);
     }
 
     statsEl.innerHTML = `
@@ -277,7 +277,7 @@
       editBtn.style.display = 'none';
     }
 
-    toast('AI 보고서가 생성되었습니다 ✨', 3000);
+    toast('AI 보고서가 생성되었습니다 ', 3000);
 
     /* 진행 시간 표시 */
     if (result.timing) {

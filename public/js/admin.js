@@ -10,33 +10,33 @@
   members: '회원 관리',
   'signup-sources': '가입 경로 관리',
   support: '유가족 지원 관리',
-  'siren-incidents': '🔍 사건 제보 관리',
-  'siren-harassment': '⚠️ 악성민원 신고 관리',
-  'siren-legal': '⚖️ 법률지원 상담 관리',
-  'siren-board': '💬 자유게시판 관리',
-  'siren-stats': '📊 신고 통계 대시보드',
+  'siren-incidents': '사건 제보 관리',
+  'siren-harassment': '악성민원 신고 관리',
+  'siren-legal': '법률지원 상담 관리',
+  'siren-board': '자유게시판 관리',
+  'siren-stats': '신고 통계 대시보드',
   chat: '문의 관리',   
   'activity-report': 'AI 활동보고서',
   'notification-logs': '알림 발송 로그',
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
-  'family-stories': '🕊️ 유가족 이야기',
-  'memorial-admin': '🕯️ 추모관 운영',
+  'family-stories': '유가족 이야기',
+  'memorial-admin': '추모관 운영',
 // public/js/admin.js — PAGE_TITLES 객체 안에 추가
   hyosung: '효성 CMS+ 관리',
-  campaigns: '📢 캠페인 관리',
+  campaigns: '캠페인 관리',
   audit: '감사 로그',
   settings: '시스템 설정',
-  eligibility: '🎓 자격 변경 심사',
-  'expert-match': '⚖️ 1:1 매칭 관리',
-  report: '📊 주간 보고서',
-  'security-audit': '🔒 보안·감사 로그',
-  'role-policy': '🛡️ 권한 정책',
-  'gamification': '🎮 게이미피케이션',
-  'popups': '📢 팝업 관리',
-  'curations': '🗂️ 큐레이션',
-  'seo': '🔍 SEO 메타',
+  eligibility: '자격 변경 심사',
+  'expert-match': '1:1 매칭 관리',
+  report: '주간 보고서',
+  'security-audit': '보안·감사 로그',
+  'role-policy': '권한 정책',
+  'gamification': '게이미피케이션',
+  'popups': '팝업 관리',
+  'curations': '큐레이션',
+  'seo': 'SEO 메타',
   };
 
   const SUPPORT_CAT_LABEL = {
@@ -65,10 +65,10 @@
 
   /* ★ M-12: 회원 분류 라벨 */
   const MEMBER_CATEGORY_LABEL = {
-    sponsor: '💝 후원회원',
-    regular: '👤 일반회원',
-    family: '🎗 유족회원',
-    etc: '🤝 기타회원',
+    sponsor: '후원회원',
+    regular: '일반회원',
+    family: '유족회원',
+    etc: '기타회원',
   };
   const MEMBER_SUBTYPE_LABEL = {
     regular_donation: '정기후원',
@@ -81,10 +81,10 @@
 
   /* ★ I-3: 채팅 카테고리 라벨 (회원 모달의 채팅 메모 목록용) */
   const CHAT_CAT_LABEL = {
-    support_donation: '💝 후원 문의',
-    support_homepage: '🌐 홈페이지',
-    support_signup: '📝 가입 절차',
-    support_other: '💬 기타',
+    support_donation: '후원 문의',
+    support_homepage: '홈페이지',
+    support_signup: '가입 절차',
+    support_other: '기타',
   };
 
   /* ★ I-4: 회원 정렬 — type 그룹 우선순위 (작은 값 먼저) */
@@ -125,15 +125,15 @@
 
   /* ★ M-15: 운영자 담당 카테고리 정의 */
 const OPERATOR_CATEGORIES = [
-  { code: 'incident',   label: '사건 제보',    emoji: '🔍' },
-  { code: 'harassment', label: '악성민원',     emoji: '📢' },
-  { code: 'legal',      label: '법률 상담',    emoji: '⚖️' },
-  { code: 'board',      label: '자유게시판',   emoji: '💬' },
-  { code: 'donation',   label: '후원',         emoji: '💰' },
-  { code: 'support',    label: '유가족 지원',  emoji: '🤝' },
+  { code: 'incident',   label: '사건 제보',    emoji: '' },
+  { code: 'harassment', label: '악성민원',     emoji: '' },
+  { code: 'legal',      label: '법률 상담',    emoji: '' },
+  { code: 'board',      label: '자유게시판',   emoji: '' },
+  { code: 'donation',   label: '후원',         emoji: '' },
+  { code: 'support',    label: '유가족 지원',  emoji: '' },
   /* ★ 2026-05: 콘텐츠 + 통계 편집 권한 추가 */
-  { code: 'content',    label: '콘텐츠 / 통계', emoji: '📝' },
-  { code: 'stats_management', label: '통계 전용', emoji: '📊' },
+  { code: 'content',    label: '콘텐츠 / 통계', emoji: '' },
+  { code: 'stats_management', label: '통계 전용', emoji: '' },
 ];
   const VALID_CAT_CODES = OPERATOR_CATEGORIES.map(c => c.code).concat(['all']);
 
@@ -141,7 +141,7 @@ const OPERATOR_CATEGORIES = [
    * 카테고리 코드 → 라벨/이모지 객체
    */
   function getCategoryMeta(code) {
-    if (code === 'all') return { code: 'all', label: '전체', emoji: '🌐' };
+    if (code === 'all') return { code: 'all', label: '전체', emoji: '' };
     return OPERATOR_CATEGORIES.find(c => c.code === code) || null;
   }
 
@@ -153,7 +153,7 @@ const OPERATOR_CATEGORIES = [
   function renderCategoryBadges(categories, role) {
     /* super_admin은 카테고리 무관하게 전체 수신 → '전체' 뱃지 */
     if (role === 'super_admin') {
-      return '<div class="op-cat-badges"><span class="op-cat-badge all">🌐 전체</span></div>';
+      return '<div class="op-cat-badges"><span class="op-cat-badge all">전체</span></div>';
     }
 
     const cats = Array.isArray(categories) ? categories : [];
@@ -161,7 +161,7 @@ const OPERATOR_CATEGORIES = [
       return '<div class="op-cat-badges"><span class="op-cat-badge empty">미할당</span></div>';
     }
     if (cats.includes('all')) {
-      return '<div class="op-cat-badges"><span class="op-cat-badge all">🌐 전체</span></div>';
+      return '<div class="op-cat-badges"><span class="op-cat-badge all">전체</span></div>';
     }
 
     const html = cats.map((code) => {
@@ -185,7 +185,7 @@ const OPERATOR_CATEGORIES = [
 
     /* 라벨 영역 보존 */
     const labelEl = box.querySelector('.cat-label');
-    const labelHtml = labelEl ? labelEl.outerHTML : '<span class="cat-label">📂 담당 카테고리</span>';
+    const labelHtml = labelEl ? labelEl.outerHTML : '<span class="cat-label">담당 카테고리</span>';
 
     const sel = Array.isArray(selected) ? selected : [];
     const hasAll = sel.includes('all');
@@ -200,7 +200,7 @@ const OPERATOR_CATEGORIES = [
     html += `
       <label class="op-cat-all-row">
         <input type="checkbox" data-cat-all ${allChecked ? 'checked' : ''} ${isSuper ? 'disabled' : ''}>
-        <span>🌐 전체 (모든 도메인 알림 수신)</span>
+        <span>전체 (모든 도메인 알림 수신)</span>
       </label>
     `;
 
@@ -383,7 +383,7 @@ const OPERATOR_CATEGORIES = [
 
   function statusBadgeHtml(status) {
     const map = {
-      submitted: '<span class="badge b-info">🆕 접수</span>',
+      submitted: '<span class="badge b-info">접수</span>',
       reviewing: '<span class="badge b-warn">검토중</span>',
       supplement: '<span class="badge b-danger">보완요청</span>',
       matched: '<span class="badge b-info">매칭완료</span>',
@@ -397,28 +397,28 @@ const OPERATOR_CATEGORIES = [
     function priorityMarkerHtml(priority, reason) {
     const safeReason = reason ? String(reason).replace(/"/g, '&quot;') : '';
     if (priority === 'urgent') {
-      return '<span title="긴급: ' + safeReason + '" style="color:#c5293a;font-weight:700">🔴</span>';
+      return '<span title="긴급: ' + safeReason + '" style="color:#c5293a;font-weight:700"></span>';
     }
     if (priority === 'low') {
-      return '<span title="낮음: ' + safeReason + '" style="color:#1a8b46">🟢</span>';
+      return '<span title="낮음: ' + safeReason + '" style="color:#1a8b46"></span>';
     }
     if (priority === 'normal') {
-      return '<span title="보통: ' + safeReason + '" style="color:#c47a00">🟡</span>';
+      return '<span title="보통: ' + safeReason + '" style="color:#c47a00"></span>';
     }
-    return '<span style="color:#bbb">⚪</span>';
+    return '<span style="color:#bbb"></span>';
   }
     function priorityCellLabel(priority, reason) {
     const safeReason = reason ? String(reason).replace(/"/g, '&quot;') : '';
     if (priority === 'urgent') {
-      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#c5293a;color:#fff;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:11px">🔴 긴급</span>';
+      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#c5293a;color:#fff;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:11px">긴급</span>';
     }
     if (priority === 'low') {
-      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#1a8b46;color:#fff;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:11px">🟢 낮음</span>';
+      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#1a8b46;color:#fff;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:11px">낮음</span>';
     }
     if (priority === 'normal') {
-      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#c47a00;color:#fff;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:11px">🟡 보통</span>';
+      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#c47a00;color:#fff;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:11px">보통</span>';
     }
-    return '<span style="color:#bbb;font-size:11.5px">⚪ —</span>';
+    return '<span style="color:#bbb;font-size:11.5px">—</span>';
   }
   /* ============ 신규 뱃지 ============ */
   function updateSupportBadge(count) {
@@ -1325,7 +1325,7 @@ const OPERATOR_CATEGORIES = [
 
     tbody.innerHTML = list.map((n) => {
       const catBadge = NOTICE_CATEGORY_BADGE[n.category] || n.category;
-      const pinnedMark = n.isPinned ? '<span class="cm-pinned-mark" title="상단 고정">📌</span>' : '<span style="color:var(--text-3)">—</span>';
+      const pinnedMark = n.isPinned ? '<span class="cm-pinned-mark" title="상단 고정"></span>' : '<span style="color:var(--text-3)">—</span>';
       const publishedIcon = n.isPublished
         ? '<span style="color:var(--success);font-size:13px">●</span>'
         : '<span style="color:var(--text-3);font-size:13px">○</span>';
@@ -1338,8 +1338,8 @@ const OPERATOR_CATEGORIES = [
         '<td style="text-align:center">' + publishedIcon + '</td>' +
         '<td style="text-align:right;font-family:Inter;font-size:11.5px">' + (n.views || 0).toLocaleString() + '</td>' +
         '<td><div class="cm-row-actions">' +
-          '<button class="edit" data-cm-action="edit-notice" data-id="' + n.id + '">✏️ 수정</button>' +
-          '<button class="delete" data-cm-action="delete-notice" data-id="' + n.id + '" data-title="' + escapeHtml(n.title) + '">🗑 삭제</button>' +
+          '<button class="edit" data-cm-action="edit-notice" data-id="' + n.id + '">수정</button>' +
+          '<button class="delete" data-cm-action="delete-notice" data-id="' + n.id + '" data-title="' + escapeHtml(n.title) + '">삭제</button>' +
         '</div></td>' +
         '</tr>';
     }).join('');
@@ -1384,8 +1384,8 @@ const OPERATOR_CATEGORIES = [
         '<td style="text-align:center">' + activeIcon + '</td>' +
         '<td style="text-align:center"><input type="number" class="cm-inline-order" value="' + (f.sortOrder || 0) + '" min="0" max="9999" data-cm-action="change-faq-order" data-id="' + f.id + '"></td>' +
         '<td><div class="cm-row-actions">' +
-          '<button class="edit" data-cm-action="edit-faq" data-id="' + f.id + '">✏️ 수정</button>' +
-          '<button class="delete" data-cm-action="delete-faq" data-id="' + f.id + '" data-title="' + escapeHtml(f.question) + '">🗑 삭제</button>' +
+          '<button class="edit" data-cm-action="edit-faq" data-id="' + f.id + '">수정</button>' +
+          '<button class="delete" data-cm-action="delete-faq" data-id="' + f.id + '" data-title="' + escapeHtml(f.question) + '">삭제</button>' +
         '</div></td>' +
         '</tr>';
     }).join('');
@@ -1408,7 +1408,7 @@ const OPERATOR_CATEGORIES = [
 
     /* 신규 작성 모드 */
     if (!id) {
-      if (titleEl) titleEl.textContent = '📢 새 공지 작성';
+      if (titleEl) titleEl.textContent = '새 공지 작성';
       if (idEl) idEl.value = '';
       if (catEl) catEl.value = 'general';
       if (thumbEl) thumbEl.value = '';
@@ -1423,7 +1423,7 @@ const OPERATOR_CATEGORIES = [
     }
 
     /* 수정 모드: 기존 데이터 로드 */
-    if (titleEl) titleEl.textContent = '✏️ 공지 수정';
+    if (titleEl) titleEl.textContent = '공지 수정';
     modal.classList.add('show');
 
     const res = await api('/api/admin/notices?id=' + id);
@@ -1457,7 +1457,7 @@ const OPERATOR_CATEGORIES = [
     const actEl = document.getElementById('faqEditActive');
 
     if (!id) {
-      if (titleEl) titleEl.textContent = '❓ 새 FAQ 작성';
+      if (titleEl) titleEl.textContent = '새 FAQ 작성';
       if (idEl) idEl.value = '';
       if (catEl) catEl.value = 'general';
       if (sortEl) sortEl.value = '0';
@@ -1469,7 +1469,7 @@ const OPERATOR_CATEGORIES = [
       return;
     }
 
-    if (titleEl) titleEl.textContent = '✏️ FAQ 수정';
+    if (titleEl) titleEl.textContent = 'FAQ 수정';
     modal.classList.add('show');
 
     const res = await api('/api/admin/faqs?id=' + id);
@@ -1590,11 +1590,11 @@ const OPERATOR_CATEGORIES = [
   let _hyCurrentList = [];
 
   const HY_STATUS_LABEL = {
-    pending: '🟡 대기',
-    completed: '✅ 활성',
-    cancelled: '🚫 해지',
-    failed: '❌ 실패',
-    refunded: '💸 환불',
+    pending: '대기',
+    completed: '활성',
+    cancelled: '해지',
+    failed: '실패',
+    refunded: '환불',
   };
 
   async function loadHyosung() {
@@ -1661,12 +1661,12 @@ const OPERATOR_CATEGORIES = [
       const anonMark = r.isAnonymous ? '<span class="hy-info-badge">익명</span>' : '';
 
       const actions = '<div class="hy-row-actions">' +
-        '<button type="button" class="detail" data-hy-action="detail" data-id="' + r.id + '">📝 상세</button>' +
+        '<button type="button" class="detail" data-hy-action="detail" data-id="' + r.id + '">상세</button>' +
         (r.status === 'pending'
-          ? '<button type="button" class="complete" data-hy-action="complete" data-id="' + r.id + '" data-name="' + escapeHtml(r.donorName || '') + '">✅ 완료</button>'
+          ? '<button type="button" class="complete" data-hy-action="complete" data-id="' + r.id + '" data-name="' + escapeHtml(r.donorName || '') + '">완료</button>'
           : '') +
         (r.status !== 'cancelled' && r.status !== 'failed'
-          ? '<button type="button" class="cancel" data-hy-action="cancel" data-id="' + r.id + '" data-name="' + escapeHtml(r.donorName || '') + '">🚫 해지</button>'
+          ? '<button type="button" class="cancel" data-hy-action="cancel" data-id="' + r.id + '" data-name="' + escapeHtml(r.donorName || '') + '">해지</button>'
           : '') +
         '</div>';
 
@@ -1675,7 +1675,7 @@ const OPERATOR_CATEGORIES = [
         ? '<span style="font-family:Inter;font-size:11px;background:#e7f7ec;color:#1a5e2c;padding:2px 7px;border-radius:8px;font-weight:600">#' + String(r.hyosungMemberNo).padStart(8, '0') + '</span>'
         : (r.status === 'pending'
           ? '<span style="font-size:11px;color:var(--text-3)">—</span>'
-          : '<span style="font-size:11px;color:#c47a00" title="효성 회원번호가 등록되지 않았습니다">⚠️ 미등록</span>');
+          : '<span style="font-size:11px;color:#c47a00" title="효성 회원번호가 등록되지 않았습니다">미등록</span>');
 
       return '<tr>' +
         '<td style="font-family:Inter;font-size:12px">' + donationNo + '</td>' +
@@ -1792,9 +1792,9 @@ const OPERATOR_CATEGORIES = [
       const level = m.churnRiskLevel || 'stable';
       const score = m.churnRiskScore || 0;
 
-      const levelLabel = level === 'critical' ? '🚨 CRITICAL' :
-                         level === 'warning' ? '⚠️ WARNING' :
-                         '✅ STABLE';
+      const levelLabel = level === 'critical' ? 'CRITICAL' :
+                         level === 'warning' ? 'WARNING' :
+                         'STABLE';
 
       const signalsHtml = (m.signalCodes || []).slice(0, 4).map((c) => {
         const label = CHURN_SIGNAL_LABEL[c] || c;
@@ -1802,7 +1802,7 @@ const OPERATOR_CATEGORIES = [
       }).join('');
 
       const aiSummaryHtml = m.aiSummary
-        ? `<div style="font-size:12px;color:var(--text-2);margin-top:6px;line-height:1.5">💬 ${escapeHtml(m.aiSummary)}</div>`
+        ? `<div style="font-size:12px;color:var(--text-2);margin-top:6px;line-height:1.5">${escapeHtml(m.aiSummary)}</div>`
         : '';
 
       const lastSent = m.lastReengageEmailAt;
@@ -1825,9 +1825,9 @@ const OPERATOR_CATEGORIES = [
         <td style="font-size:11px;color:var(--text-3)">${evaluatedText}</td>
         <td>
           <div class="churn-row-actions">
-            <button type="button" class="detail" data-churn-action="detail" data-id="${m.id}">📝 상세</button>
-            <button type="button" class="email" data-churn-action="reengage" data-id="${m.id}" data-name="${escapeHtml(m.name || '')}" ${recentlySent ? 'disabled title="7일 내 이미 발송됨"' : ''}>💌 메일 발송</button>
-            <button type="button" class="reeval" data-churn-action="reeval" data-id="${m.id}">🔄 재평가</button>
+            <button type="button" class="detail" data-churn-action="detail" data-id="${m.id}">상세</button>
+            <button type="button" class="email" data-churn-action="reengage" data-id="${m.id}" data-name="${escapeHtml(m.name || '')}" ${recentlySent ? 'disabled title="7일 내 이미 발송됨"' : ''}>메일 발송</button>
+            <button type="button" class="reeval" data-churn-action="reeval" data-id="${m.id}">재평가</button>
           </div>
         </td>
       </tr>`;
@@ -1854,9 +1854,9 @@ const OPERATOR_CATEGORIES = [
     const bk = d.billing;
     const recent = d.recentDonations || [];
 
-    const levelLabel = c.level === 'critical' ? '🚨 CRITICAL' :
-                       c.level === 'warning' ? '⚠️ WARNING' :
-                       '✅ STABLE';
+    const levelLabel = c.level === 'critical' ? 'CRITICAL' :
+                       c.level === 'warning' ? 'WARNING' :
+                       'STABLE';
 
     const signalsHtml = (c.signals || []).map((s) => `<li style="margin-bottom:4px">${escapeHtml(s.label)}</li>`).join('');
 
@@ -1870,7 +1870,7 @@ const OPERATOR_CATEGORIES = [
 
     const billingHtml = bk
       ? `<div class="srn-modal-info-grid">
-          <div>활성 여부</div><div>${bk.isActive ? '✅ 활성' : '🛑 비활성'}</div>
+          <div>활성 여부</div><div>${bk.isActive ? '활성' : '비활성'}</div>
           <div>월 금액</div><div><strong>₩${(bk.amount || 0).toLocaleString()}</strong></div>
           <div>카드</div><div>${escapeHtml(bk.cardCompany || '—')} ${escapeHtml(bk.cardNumberMasked || '')}</div>
           <div>연속 실패</div><div>${bk.consecutiveFailCount || 0}회 ${bk.lastFailureReason ? '<br /><span style="font-size:11px;color:var(--danger)">' + escapeHtml(bk.lastFailureReason) + '</span>' : ''}</div>
@@ -1891,7 +1891,7 @@ const OPERATOR_CATEGORIES = [
       </div>
 
       <div class="srn-modal-section">
-        <h5>🔍 감지된 신호 (${c.signals.length}개)</h5>
+        <h5>감지된 신호 (${c.signals.length}개)</h5>
         ${c.signals.length === 0
           ? '<div style="color:var(--text-3);font-size:12px">감지된 신호 없음</div>'
           : '<ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text-1)">' + signalsHtml + '</ul>'
@@ -1900,24 +1900,24 @@ const OPERATOR_CATEGORIES = [
 
       ${c.aiSummary ? `
         <div class="srn-modal-section srn-ai-block" style="margin-top:14px">
-          <div class="ai-title">💬 AI 종합 분석</div>
+          <div class="ai-title">AI 종합 분석</div>
           <div style="margin-bottom:8px"><strong>요약:</strong> ${escapeHtml(c.aiSummary)}</div>
           ${c.aiSuggestion ? `<div><strong>권장 조치:</strong> ${escapeHtml(c.aiSuggestion)}</div>` : ''}
         </div>
       ` : ''}
 
       <div class="srn-modal-section">
-        <h5>💳 정기 결제 정보</h5>
+        <h5>정기 결제 정보</h5>
         ${billingHtml}
       </div>
 
       <div class="srn-modal-section">
-        <h5>💝 최근 후원 내역</h5>
+        <h5>최근 후원 내역</h5>
         ${recentHtml}
       </div>
 
       <div class="srn-modal-section">
-        <h5>📊 동행 통계</h5>
+        <h5>동행 통계</h5>
         <div class="srn-modal-info-grid">
           <div>누적 후원</div><div><strong>₩${(m.totalDonationAmount || 0).toLocaleString()}</strong></div>
           <div>정기 후원 개월</div><div>${m.regularMonthsCount || 0}개월</div>
@@ -1930,9 +1930,9 @@ const OPERATOR_CATEGORIES = [
 
       <div class="srn-action-row">
         <button type="button" class="btn-save" data-churn-action="reengage" data-id="${m.id}" data-name="${escapeHtml(m.name)}" ${!d.reengageEmail.canSendNow ? 'disabled' : ''}>
-          💌 재참여 메일 발송 ${!d.reengageEmail.canSendNow ? '(7일 후 가능)' : ''}
+          재참여 메일 발송 ${!d.reengageEmail.canSendNow ? '(7일 후 가능)' : ''}
         </button>
-        <button type="button" class="btn-hide" data-churn-action="reeval" data-id="${m.id}">🔄 즉시 재평가</button>
+        <button type="button" class="btn-hide" data-churn-action="reeval" data-id="${m.id}">즉시 재평가</button>
       </div>
     `;
   }
@@ -1944,18 +1944,18 @@ const OPERATOR_CATEGORIES = [
 
     body.innerHTML = `
       <div style="background:var(--bg-soft);padding:12px 14px;border-radius:6px;margin-bottom:14px;font-size:13px">
-        💌 <strong>${escapeHtml(memberName)}</strong>님에게 재참여 유도 메일을 발송합니다.<br />
+        <strong>${escapeHtml(memberName)}</strong>님에게 재참여 유도 메일을 발송합니다.<br />
         <span style="font-size:11.5px;color:var(--text-3)">※ 7일 내 동일 회원에게 중복 발송은 자동 차단됩니다.</span>
       </div>
 
       <div style="margin-bottom:14px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:8px">
           <input type="radio" name="cre_source" value="ai" checked id="cre_src_ai">
-          <span><strong>🤖 AI가 메시지 자동 생성</strong> <span style="color:var(--text-3);font-size:11.5px">(추천 — 회원 상황에 맞는 따뜻한 메시지)</span></span>
+          <span><strong>AI가 메시지 자동 생성</strong> <span style="color:var(--text-3);font-size:11.5px">(추천 — 회원 상황에 맞는 따뜻한 메시지)</span></span>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
           <input type="radio" name="cre_source" value="custom" id="cre_src_custom">
-          <span><strong>✍️ 직접 작성</strong></span>
+          <span><strong>직접 작성</strong></span>
         </label>
       </div>
 
@@ -1966,7 +1966,7 @@ const OPERATOR_CATEGORIES = [
       </div>
 
       <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:#8a6a00;line-height:1.6">
-        ⚠️ <strong>발송 전 확인</strong><br />
+        <strong>발송 전 확인</strong><br />
         • 재참여 메일은 회원의 <code>agreeEmail</code> 동의 시에만 발송됩니다<br />
         • AI 생성 시 약 3~5초 소요 (Gemini API)<br />
         • 발송 후에는 7일간 같은 회원에게 재발송이 차단됩니다
@@ -1974,7 +1974,7 @@ const OPERATOR_CATEGORIES = [
 
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn-primary" style="flex:1" id="cre_send_btn" data-member-id="${memberId}" data-member-name="${escapeHtml(memberName)}">
-          💌 발송하기
+          발송하기
         </button>
         <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
       </div>
@@ -2001,7 +2001,7 @@ const OPERATOR_CATEGORIES = [
     const btn = document.getElementById('cre_send_btn');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = useAi ? '🤖 AI 메시지 생성 + 발송 중...' : '💌 발송 중...';
+      btn.textContent = useAi ? 'AI 메시지 생성 + 발송 중...' : '발송 중...';
     }
 
     const body = useAi
@@ -2012,14 +2012,14 @@ const OPERATOR_CATEGORIES = [
 
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '💌 발송하기';
+      btn.textContent = '발송하기';
     }
 
     if (res.ok) {
       const data = res.data?.data || {};
-      const sourceLabel = data.messageSource === 'ai' ? '🤖 AI 생성'
-                        : data.messageSource === 'custom' ? '✍️ 직접 작성'
-                        : '📋 폴백';
+      const sourceLabel = data.messageSource === 'ai' ? 'AI 생성'
+                        : data.messageSource === 'custom' ? '직접 작성'
+                        : '폴백';
       toast(`재참여 메일이 발송되었습니다 (${sourceLabel})`);
       document.getElementById('churnReengageModal')?.classList.remove('show');
       document.getElementById('churnDetailModal')?.classList.remove('show');
@@ -2178,14 +2178,14 @@ const OPERATOR_CATEGORIES = [
 
             /* ★ M-13: 2단계 — 매칭 실패 시 자동 회원 생성 옵션 */
             var createMembers = confirm(
-              '🆕 매칭 실패 행에 대해 회원을 자동 생성하시겠습니까?\n\n' +
-              '✅ [확인] = 자동 생성 ON (권장)\n' +
+              '매칭 실패 행에 대해 회원을 자동 생성하시겠습니까?\n\n' +
+              '[확인] = 자동 생성 ON (권장)\n' +
               '  • 효성 CMS+에만 있고 사이트에 회원이 없는 경우\n' +
               '  • 가상 이메일로 자동 회원 생성\n' +
               '    (hyosung-{회원번호}@auto.siren-org.kr)\n' +
               '  • 회원 분류: 후원회원 / 정기(효성)\n' +
               '  • 가입 경로: 효성 CMS+ 정기후원 등록\n\n' +
-              '❌ [취소] = 자동 생성 OFF\n' +
+              '[취소] = 자동 생성 OFF\n' +
               '  • 매칭 실패 행은 단순 "실패"로 기록만\n' +
               '  • 회원은 생성되지 않음'
             );
@@ -2211,24 +2211,24 @@ const OPERATOR_CATEGORIES = [
                 toast(data.message || '처리 완료');
 
                 /* ★ M-13: 결과 표시 강화 */
-                var resultMsg = '📥 효성 CSV 업로드 결과\n\n' +
+                var resultMsg = '효성 CSV 업로드 결과\n\n' +
                   '파일: ' + (d.fileName || file.name) + '\n' +
                   '전체 행: ' + (d.totalRows || 0) + '건\n' +
                   '─────────────────────\n' +
                   '✓ 매칭 성공: ' + (d.matched || 0) + '건\n' +
                   '✓ 후원 생성: ' + (d.created || 0) + '건\n' +
-                  '⏭ 스킵 (중복): ' + (d.skipped || 0) + '건\n' +
+                  '스킵 (중복): ' + (d.skipped || 0) + '건\n' +
                   '✗ 실패: ' + (d.failed || 0) + '건\n';
 
                 if (d.createMembersOption) {
                   resultMsg += '─────────────────────\n' +
-                    '🆕 신규 회원 생성: ' + (d.createdMembers || 0) + '명\n' +
-                    '🔄 기존 회원 재사용: ' + (d.reusedMembers || 0) + '명\n';
+                    '신규 회원 생성: ' + (d.createdMembers || 0) + '명\n' +
+                    '기존 회원 재사용: ' + (d.reusedMembers || 0) + '명\n';
                 }
 
                 /* 신규 생성된 회원 미리보기 (최대 10건) */
                 if (d.createdMembers > 0 && Array.isArray(d.newMembersList) && d.newMembersList.length > 0) {
-                  resultMsg += '\n📌 생성된 신규 회원 (최대 10건):\n';
+                  resultMsg += '\n생성된 신규 회원 (최대 10건):\n';
                   var newCount = 0;
                   d.newMembersList.forEach(function (m) {
                     if (!m.duplicate && newCount < 10) {
@@ -2238,19 +2238,19 @@ const OPERATOR_CATEGORIES = [
                       newCount++;
                     }
                   });
-                  resultMsg += '\n💡 신규 회원은 임시 비밀번호 미발급 상태입니다.\n' +
+                  resultMsg += '\n신규 회원은 임시 비밀번호 미발급 상태입니다.\n' +
                     '   회원 관리 메뉴에서 비번 발급을 진행해 주세요.';
                 }
 
                 /* 실패 건 상세 */
                 if (d.failed > 0 && Array.isArray(d.failures) && d.failures.length > 0) {
-                  resultMsg += '\n\n⚠️ 실패 건 (최대 10건):\n';
+                  resultMsg += '\n\n실패 건 (최대 10건):\n';
                   d.failures.slice(0, 10).forEach(function (f) {
                     resultMsg += '  - 효성#' + f.hyosungMemberNo +
                       ' (' + (f.donorName || '') + '): ' + f.reason + '\n';
                   });
                 } else if (d.failed === 0) {
-                  resultMsg += '\n✅ 모든 건이 정상 처리되었습니다';
+                  resultMsg += '\n모든 건이 정상 처리되었습니다';
                 }
 
                 alert(resultMsg);
@@ -2299,10 +2299,10 @@ const OPERATOR_CATEGORIES = [
 
     const statusCard = '<div class="hy-status-card ' + statusClass + '">' +
       '<div class="icon">' +
-      (d.status === 'pending' ? '🟡' :
-       d.status === 'completed' ? '✅' :
-       d.status === 'cancelled' ? '🚫' :
-       d.status === 'failed' ? '❌' : '💸') +
+      (d.status === 'pending' ? '' :
+       d.status === 'completed' ? '' :
+       d.status === 'cancelled' ? '' :
+       d.status === 'failed' ? '' : '') +
       '</div>' +
       '<div class="text">' +
         '<strong>' + statusLabel + '</strong>' +
@@ -2325,34 +2325,34 @@ const OPERATOR_CATEGORIES = [
     if (d.status === 'pending') {
       actionButtons = `
         <div class="hy-section">
-          <h5>✅ 효성 CMS+ 등록 완료 처리</h5>
+          <h5>효성 CMS+ 등록 완료 처리</h5>
           <div class="field-row">
             <textarea id="hyCompleteReason" placeholder="(선택) 효성 등록 상세 내역을 기록하세요. 예: 2026.5.3 효성 CMS+ 수동 등록 완료, 회원 ID M-15"></textarea>
-            <button type="button" class="small-btn success" data-hy-complete="${d.id}">✅ 등록 완료 처리 (감사 메일 발송)</button>
+            <button type="button" class="small-btn success" data-hy-complete="${d.id}">등록 완료 처리 (감사 메일 발송)</button>
             <div class="action-warn">※ 클릭 시 즉시 상태가 '활성'으로 변경되고 신청자에게 감사 메일이 발송됩니다.</div>
           </div>
         </div>
 
         <div class="hy-section">
-          <h5>🚫 신청 취소 처리</h5>
+          <h5>신청 취소 처리</h5>
           <div class="field-row">
             <textarea id="hyCancelReason" placeholder="취소 사유 (예: 회원 요청으로 취소, 연락처 오류 등)"></textarea>
-            <button type="button" class="small-btn danger" data-hy-cancel="${d.id}">🚫 취소 처리</button>
+            <button type="button" class="small-btn danger" data-hy-cancel="${d.id}">취소 처리</button>
           </div>
         </div>
 
         <div class="hy-section">
-          <h5>❌ 실패 처리 (등록 불가)</h5>
+          <h5>실패 처리 (등록 불가)</h5>
           <div class="field-row">
             <textarea id="hyFailReason" placeholder="실패 사유 (필수, 예: 계좌번호 오류로 효성 등록 불가)"></textarea>
-            <button type="button" class="small-btn ghost" data-hy-fail="${d.id}">❌ 실패 처리</button>
+            <button type="button" class="small-btn ghost" data-hy-fail="${d.id}">실패 처리</button>
           </div>
         </div>
       `;
         } else if (d.status === 'completed') {
       actionButtons = `
         <div class="hy-section">
-          <h5>🏦 효성 CMS+ 정보</h5>
+          <h5>효성 CMS+ 정보</h5>
           <div style="background:#e7f7ec;border:1px solid #a3d9b4;border-radius:8px;padding:14px 16px;margin-bottom:14px">
             <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px">
               <div>
@@ -2365,12 +2365,12 @@ const OPERATOR_CATEGORIES = [
               </div>
               ${d.hyosungBillNo ? '<div><span style="color:#1a5e2c;font-weight:600">최근 청구번호</span><br /><strong style="font-family:Inter,monospace;font-size:11px">' + escapeHtml(d.hyosungBillNo) + '</strong></div>' : ''}
             </div>
-            <button type="button" class="small-btn ghost" data-hy-edit-info="${d.id}" style="margin-top:10px;font-size:11.5px">✏️ 효성 정보 수정</button>
+            <button type="button" class="small-btn ghost" data-hy-edit-info="${d.id}" style="margin-top:10px;font-size:11.5px">효성 정보 수정</button>
           </div>
         </div>
 
         <div class="hy-section" id="hyEditInfoSection" style="display:none">
-          <h5>✏️ 효성 정보 수정</h5>
+          <h5>효성 정보 수정</h5>
           <div class="field-row">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
               <div>
@@ -2382,15 +2382,15 @@ const OPERATOR_CATEGORIES = [
                 <input type="text" id="hyEditContractNo" value="${escapeHtml(d.hyosungContractNo || '001')}" maxlength="20" style="width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:Inter,monospace">
               </div>
             </div>
-            <button type="button" class="small-btn" data-hy-save-info="${d.id}">💾 효성 정보 저장</button>
+            <button type="button" class="small-btn" data-hy-save-info="${d.id}">효성 정보 저장</button>
           </div>
         </div>
 
         <div class="hy-section">
-          <h5>🚫 해지 처리</h5>
+          <h5>해지 처리</h5>
           <div class="field-row">
             <textarea id="hyCancelReason" placeholder="해지 사유 (예: 회원 요청, 효성 CMS+ 측 해지 반영 등)"></textarea>
-            <button type="button" class="small-btn danger" data-hy-cancel="${d.id}">🚫 해지 처리</button>
+            <button type="button" class="small-btn danger" data-hy-cancel="${d.id}">해지 처리</button>
             <div class="action-warn">※ 효성 CMS+ 측에서 먼저 해지 처리 후 이 버튼을 눌러 주세요.</div>
           </div>
         </div>
@@ -2420,15 +2420,15 @@ const OPERATOR_CATEGORIES = [
       '</div>' +
 
       '<div class="hy-section">' +
-        '<h5>👤 회원 정보</h5>' +
+        '<h5>회원 정보</h5>' +
       '</div>' +
       memberInfoHtml +
 
       '<div class="hy-section">' +
-        '<h5>📝 관리자 메모 (히스토리 포함)</h5>' +
+        '<h5>관리자 메모 (히스토리 포함)</h5>' +
         '<div class="field-row">' +
           '<textarea id="hyMemoInput" placeholder="이 후원에 대한 메모...">' + safeMemo + '</textarea>' +
-          '<button type="button" class="small-btn" data-hy-memo="' + d.id + '">💾 메모 저장</button>' +
+          '<button type="button" class="small-btn" data-hy-memo="' + d.id + '">메모 저장</button>' +
         '</div>' +
       '</div>' +
 
@@ -3182,12 +3182,12 @@ const OPERATOR_CATEGORIES = [
       const priorityCellHtml = priorityCellLabel(s.priority, s.priorityReason);
 
       const expertAssignBtn = s.assignedExpertName
-        ? '<span style="font-size:11px;color:var(--success);display:block;margin-top:3px">✅ ' + escapeHtml(s.assignedExpertName) + '</span>'
+        ? '<span style="font-size:11px;color:var(--success);display:block;margin-top:3px">' + escapeHtml(s.assignedExpertName) + '</span>'
         : '<button class="btn-link" style="color:var(--brand);display:block;margin-top:3px" ' +
             'data-expert-direct-support ' +
             'data-source-id="' + s.id + '" ' +
             'data-user-id="' + s.memberId + '" ' +
-            'data-match-type="counselor">⚕️ 전문가 배정</button>';
+            'data-match-type="counselor">전문가 배정</button>';
 
       return '<tr' + rowAttr + '>' +
         '<td>' + priorityCellHtml + '</td>' +
@@ -3200,7 +3200,7 @@ const OPERATOR_CATEGORIES = [
         '<td>' + answererName + '</td>' +
         '<td style="font-family:Inter;font-size:12px">' + answeredAt + '</td>' +
         '<td>' +
-          '<button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button>' +
+          '<button class="btn-link" data-support-action="open" data-id="' + s.id + '">상세/답변</button>' +
           expertAssignBtn +
         '</td>' +
         '</tr>';
@@ -3346,9 +3346,9 @@ const OPERATOR_CATEGORIES = [
                      target="_blank" rel="noopener"
                      class="k3-attach-item"
                      title="다운로드: ${escapeHtml(String(k))}">
-                    <span class="file-icon">📎</span>
+                    <span class="file-icon"></span>
                     <span class="file-name">${escapeHtml(displayName)}</span>
-                    <span class="download-icon">⬇ 다운로드</span>
+                    <span class="download-icon">다운로드</span>
                   </a>`;
         }).join('');
         attachEl.innerHTML =
@@ -3362,7 +3362,7 @@ const OPERATOR_CATEGORIES = [
     const historyEl = document.getElementById('detail-answer-history');
     if (historyEl && r.adminNote) {
       historyEl.innerHTML =
-        '<span class="support-detail-label">📝 기존 답변 이력</span>' +
+        '<span class="support-detail-label">기존 답변 이력</span>' +
         '<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.7">' +
         '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px">' +
         '답변자: <strong>' + (answerer ? escapeHtml(answerer.name) : '—') + '</strong> · ' +
@@ -3395,8 +3395,8 @@ const OPERATOR_CATEGORIES = [
     if (!container) return;
 
     container.innerHTML =
-      '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
-      '<div style="text-align:center;padding:14px;color:var(--text-3);font-size:12.5px">⏳ 비슷한 사례 검색 중... (3-5초)</div>';
+      '<span class="support-detail-label">AI 유사 처리 사례</span>' +
+      '<div style="text-align:center;padding:14px;color:var(--text-3);font-size:12.5px">비슷한 사례 검색 중... (3-5초)</div>';
 
     try {
       const res = await api('/api/admin/ai/similar-cases', {
@@ -3406,7 +3406,7 @@ const OPERATOR_CATEGORIES = [
 
       if (!res.ok) {
         container.innerHTML =
-          '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+          '<span class="support-detail-label">AI 유사 처리 사례</span>' +
           '<div style="color:var(--danger);font-size:12.5px;padding:8px">검색 실패</div>';
         return;
       }
@@ -3415,7 +3415,7 @@ const OPERATOR_CATEGORIES = [
 
       if (cases.length === 0) {
         container.innerHTML =
-          '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+          '<span class="support-detail-label">AI 유사 처리 사례</span>' +
           '<div style="font-size:12.5px;color:var(--text-3);padding:10px;background:var(--bg-soft);border-radius:6px;text-align:center">' +
           '동일 카테고리에 완료된 유사 사례가 아직 없습니다' +
           '</div>';
@@ -3438,18 +3438,18 @@ const OPERATOR_CATEGORIES = [
           '</div>' +
           '<div style="font-size:13px;font-weight:600;margin-bottom:4px">' + escapeHtml(c.title) + '</div>' +
           '<div style="font-size:12px;color:var(--text-2);line-height:1.5;border-left:2px solid var(--brand);padding-left:8px">' +
-          '💡 ' + escapeHtml(c.summary) +
+          '' + escapeHtml(c.summary) +
           '</div>' +
           '</div>';
       }).join('');
 
       container.innerHTML =
-        '<span class="support-detail-label">🔍 AI 유사 처리 사례 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
+        '<span class="support-detail-label">AI 유사 처리 사례 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
         cardsHtml;
     } catch (err) {
       console.error('[loadSimilarCases]', err);
       container.innerHTML =
-        '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+        '<span class="support-detail-label">AI 유사 처리 사례</span>' +
         '<div style="color:var(--danger);font-size:12.5px;padding:8px">분석 호출 중 오류</div>';
     }
   }
@@ -3459,8 +3459,8 @@ const OPERATOR_CATEGORIES = [
     if (!container) return;
 
     container.innerHTML =
-      '<span class="support-detail-label">🤝 AI 추천 전문가</span>' +
-      '<div style="text-align:center;padding:14px;color:var(--text-3);font-size:12.5px">⏳ 매칭 분석 중... (3-5초)</div>';
+      '<span class="support-detail-label">AI 추천 전문가</span>' +
+      '<div style="text-align:center;padding:14px;color:var(--text-3);font-size:12.5px">매칭 분석 중... (3-5초)</div>';
 
     try {
       const res = await api('/api/admin/ai/expert-match', {
@@ -3470,7 +3470,7 @@ const OPERATOR_CATEGORIES = [
 
       if (!res.ok || !res.data?.data?.recommendations) {
         container.innerHTML =
-          '<span class="support-detail-label">🤝 AI 추천 전문가</span>' +
+          '<span class="support-detail-label">AI 추천 전문가</span>' +
           '<div style="color:var(--danger);font-size:12.5px;padding:8px">매칭 실패: ' + (res.data?.error || '알 수 없음') + '</div>';
         return;
       }
@@ -3504,16 +3504,16 @@ const OPERATOR_CATEGORIES = [
       }).join('');
 
       container.innerHTML =
-        '<span class="support-detail-label">🤝 AI 추천 전문가 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
+        '<span class="support-detail-label">AI 추천 전문가 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
         '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:11.5px;color:#9a3412;line-height:1.5">' +
-        '⚠️ AI가 제안하는 <strong>이상적 전문가 상(참고용)</strong>입니다. 실제 인물·매칭이 아닙니다. ' +
-        '사용자-전문가 연결·채팅 개설은 목록의 <strong>⚕️ 전문가 배정</strong>으로 진행하세요.' +
+        'AI가 제안하는 <strong>이상적 전문가 상(참고용)</strong>입니다. 실제 인물·매칭이 아닙니다. ' +
+        '사용자-전문가 연결·채팅 개설은 목록의 <strong>전문가 배정</strong>으로 진행하세요.' +
         '</div>' +
         cardsHtml;
     } catch (err) {
       console.error('[loadExpertMatch]', err);
       container.innerHTML =
-        '<span class="support-detail-label">🤝 AI 추천 전문가</span>' +
+        '<span class="support-detail-label">AI 추천 전문가</span>' +
         '<div style="color:var(--danger);font-size:12.5px;padding:8px">매칭 호출 중 오류 발생</div>';
     }
   }
@@ -3530,7 +3530,7 @@ const OPERATOR_CATEGORIES = [
     area.style.cssText = 'background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:10px';
     area.innerHTML = `
       <label style="display:block;margin-bottom:8px;font-size:12.5px;font-weight:700;color:var(--brand)">
-        🎯 AI에게 어떤 답변을 요청할지 적어주세요 <span style="color:var(--text-3);font-weight:400;font-size:11px">(선택)</span>
+        AI에게 어떤 답변을 요청할지 적어주세요 <span style="color:var(--text-3);font-weight:400;font-size:11px">(선택)</span>
       </label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <button type="button" class="support-instruction-preset" data-preset="최종 거절이니 이해시키도록 정중하게 답변해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">거절 안내</button>
@@ -3539,7 +3539,7 @@ const OPERATOR_CATEGORIES = [
         <button type="button" class="support-instruction-preset" data-preset="전문가 매칭이 완료됐으니 다음 단계를 안내해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">매칭 완료</button>
       </div>
       <textarea id="supportInstruction" maxlength="1000" rows="3" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예: 최종 거절이니 잘 이해시키도록 답변해줘"></textarea>
-      <div style="font-size:11px;color:var(--text-3);margin-top:4px">💡 요청사항을 입력하면 AI가 해당 방향으로 답변 초안을 생성합니다.</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:4px">요청사항을 입력하면 AI가 해당 방향으로 답변 초안을 생성합니다.</div>
     `;
     note.parentElement.insertBefore(area, note);
 
@@ -3550,7 +3550,7 @@ const OPERATOR_CATEGORIES = [
       btn.id = 'btnAiDraft';
       btn.className = 'btn-sm btn-sm-ghost';
       btn.style.cssText = 'margin-bottom:6px;font-size:12px;color:var(--brand);border:1px dashed var(--brand);padding:6px 12px;border-radius:5px;background:#fff;cursor:pointer';
-      btn.innerHTML = '✍️ AI 답변 초안 생성 (Gemini)';
+      btn.innerHTML = 'AI 답변 초안 생성 (Gemini)';
       note.parentElement.insertBefore(btn, note);
 
       btn.addEventListener('click', async () => {
@@ -3563,7 +3563,7 @@ const OPERATOR_CATEGORIES = [
 
         btn.disabled = true;
         const oldText = btn.innerHTML;
-        btn.innerHTML = '⏳ 생성 중... (3-5초)';
+        btn.innerHTML = '생성 중... (3-5초)';
 
         try {
           const res = await api('/api/admin/ai/reply-draft', {
@@ -3718,7 +3718,7 @@ const OPERATOR_CATEGORIES = [
           btn.classList.remove('assigned');
           btn.textContent = '✓ 이름 입력(참고용)';
         }, 2000);
-        toast('참고용 이름이 입력되었습니다. 실제 매칭·채팅은 "⚕️ 전문가 배정"을 사용하세요.');
+        toast('참고용 이름이 입력되었습니다. 실제 매칭·채팅은 "전문가 배정"을 사용하세요.');
       }
     });
   }
@@ -3781,7 +3781,7 @@ const OPERATOR_CATEGORIES = [
     const isLocked = lockedUntil && new Date(lockedUntil) > new Date();
     const lockedBlock = isLocked
       ? '<div class="mi-locked-box">' +
-          '<strong>🔒 계정이 잠겨 있습니다</strong><br />' +
+          '<strong>계정이 잠겨 있습니다</strong><br />' +
           '잠금 해제 시점: ' + formatDateTime(lockedUntil) +
           ' (5회 로그인 실패로 자동 잠금)' +
         '</div>'
@@ -3790,7 +3790,7 @@ const OPERATOR_CATEGORIES = [
     /* ★ K-7: 미인증 안내 박스 */
     const unverifiedBlock = !emailVerified
       ? '<div class="mi-unverified-box">' +
-          '<span style="font-size:18px">✉️</span>' +
+          '<span style="font-size:18px"></span>' +
           '<span style="flex:1">이메일 미인증 상태입니다</span>' +
           '<button type="button" class="mi-action-row button success" data-mi-k7="verify-email" data-mi-id="' + member.id + '" style="padding:5px 12px;font-size:11.5px;background:#e7f7ec;color:#1a5e2c;border:1px solid #a3d9b4;border-radius:5px;cursor:pointer;font-weight:600">✓ 강제 인증</button>' +
         '</div>'
@@ -3823,7 +3823,7 @@ const OPERATOR_CATEGORIES = [
       ? '<div style="background:#fdecec;border:1px solid #f5b5bb;border-radius:8px;padding:14px 16px;margin-bottom:16px">' +
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">' +
             '<div>' +
-              '<div style="font-weight:700;color:#a01e2c;font-size:14px;margin-bottom:4px">⛔ 채팅 블랙리스트</div>' +
+              '<div style="font-weight:700;color:#a01e2c;font-size:14px;margin-bottom:4px">채팅 블랙리스트</div>' +
               '<div style="font-size:12.5px;color:#a01e2c;line-height:1.6">' +
                 '사유: <strong>' + escapeHtml(blacklist.reason) + '</strong>' +
               '</div>' +
@@ -3832,17 +3832,17 @@ const OPERATOR_CATEGORIES = [
                 ' · ' + formatDateTime(blacklist.blockedAt) +
               '</div>' +
             '</div>' +
-            '<button class="btn-sm btn-sm-ghost" data-mi-action="unblock" data-mi-member="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="font-size:11px;color:#1a8b46;border:1px solid #1a8b46;background:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;flex-shrink:0">🔓 블랙 해지</button>' +
+            '<button class="btn-sm btn-sm-ghost" data-mi-action="unblock" data-mi-member="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="font-size:11px;color:#1a8b46;border:1px solid #1a8b46;background:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;flex-shrink:0">블랙 해지</button>' +
           '</div>' +
         '</div>'
       : '';
 
     const chatMemoBlock = (chatMemos && chatMemos.length > 0)
       ? '<div style="margin-bottom:14px">' +
-          '<div class="support-detail-label">💬 채팅 관리자 메모 (' + chatMemos.length + '건)</div>' +
+          '<div class="support-detail-label">채팅 관리자 메모 (' + chatMemos.length + '건)</div>' +
           '<div class="mini-list">' +
             chatMemos.map((m) => {
-              const cat = CHAT_CAT_LABEL[m.category] || '💬 기타';
+              const cat = CHAT_CAT_LABEL[m.category] || '기타';
               const memoText = String(m.adminMemo || '').slice(0, 100);
               const isClosed = m.status !== 'active';
               return '<div class="mini-list-row" style="cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px" data-mi-action="goto-chat" data-mi-room="' + m.roomId + '">' +
@@ -3876,21 +3876,21 @@ const OPERATOR_CATEGORIES = [
       '<div>가입일</div><div>' + formatDate(member.createdAt) + '</div>' +
       '<div>최종 로그인</div><div>' + formatDateTime(member.lastLoginAt) + '</div>' +
       '<div>알림 동의</div><div>' +
-      (member.agreeEmail ? '✉️ ' : '') +
-      (member.agreeSms ? '📱 ' : '') +
-      (member.agreeMail ? '📬 ' : '') +
+      (member.agreeEmail ? '' : '') +
+      (member.agreeSms ? '' : '') +
+      (member.agreeMail ? '' : '') +
       (!member.agreeEmail && !member.agreeSms && !member.agreeMail ? '없음' : '') +
       '</div>' +
       '</div>' +
 
       '<div class="activity-stat-grid">' +
       '<div class="activity-stat">' +
-      '<div class="activity-stat-label">💰 누적 후원</div>' +
+      '<div class="activity-stat-label">누적 후원</div>' +
       '<div class="activity-stat-value">₩' + (donationSummary.totalAmount || 0).toLocaleString() + '</div>' +
       '<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">총 ' + (donationSummary.totalCount || 0) + '건</div>' +
       '</div>' +
       '<div class="activity-stat">' +
-      '<div class="activity-stat-label">🤝 지원 신청</div>' +
+      '<div class="activity-stat-label">지원 신청</div>' +
       '<div class="activity-stat-value">' + (supportSummary.total || 0) + '건</div>' +
       '<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">진행 ' + (supportSummary.inProgress || 0) + ' · 완료 ' + (supportSummary.completed || 0) + '</div>' +
       '</div>' +
@@ -3900,12 +3900,12 @@ const OPERATOR_CATEGORIES = [
 
       /* ★ K-7: 관리자 메모 입력 */
       '<div class="mi-section">' +
-        '<h5>📝 관리자 메모 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(회원에게 노출되지 않음)</span></h5>' +
+        '<h5>관리자 메모 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(회원에게 노출되지 않음)</span></h5>' +
         '<textarea id="miMemoInput" class="mi-memo-textarea" maxlength="2000" placeholder="이 회원에 대한 메모를 입력하세요...">' + safeMemo + '</textarea>' +
         '<div class="mi-action-row">' +
-          '<button type="button" class="primary" data-mi-k7="save-memo" data-mi-id="' + member.id + '">💾 메모 저장</button>' +
+          '<button type="button" class="primary" data-mi-k7="save-memo" data-mi-id="' + member.id + '">메모 저장</button>' +
           (isLocked
-            ? '<button type="button" class="warn" data-mi-k7="unlock" data-mi-id="' + member.id + '">🔓 잠금 해제</button>'
+            ? '<button type="button" class="warn" data-mi-k7="unlock" data-mi-id="' + member.id + '">잠금 해제</button>'
             : '') +
           (member.status === 'pending' && !isAdminType
             ? '<button type="button" class="success" data-mi-k7="approve" data-mi-id="' + member.id + '">✓ 승인 (정상으로 변경)</button>'
@@ -3915,7 +3915,7 @@ const OPERATOR_CATEGORIES = [
             ? '<button type="button" class="success" data-mi-blacklist="remove" data-mi-id="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="background:#16a34a;color:#fff;border-color:#16a34a">✓ 블랙 해제</button>'
             : '') +
           (!isAdminType && (member.status === 'active' || member.status === 'pending')
-            ? '<button type="button" class="warn" data-mi-blacklist="add" data-mi-id="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="background:#dc2626;color:#fff;border-color:#dc2626">🚫 블랙 처리</button>'
+            ? '<button type="button" class="warn" data-mi-blacklist="add" data-mi-id="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="background:#dc2626;color:#fff;border-color:#dc2626">블랙 처리</button>'
             : '') +
         '</div>' +
       '</div>' +
@@ -3935,16 +3935,16 @@ const OPERATOR_CATEGORIES = [
         '<a href="/admin-member-send-history.html?memberId=' + member.id + '" ' +
            'onclick="window.location.href=\'/admin-member-send-history.html?memberId=' + member.id + '\';return false;" ' +
            'style="display:inline-block;padding:7px 14px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;text-decoration:none;color:#1e293b;background:#fff">' +
-          '📬 이 회원에게 보낸 메시지 이력' +
+          '이 회원에게 보낸 메시지 이력' +
         '</a>' +
       '</div>' +
 
       /* 자격 직접 변경 */
       '<div class="mi-section" style="margin-top:16px">' +
-        '<h5>🎓 교원 자격 직접 변경 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(신청 없이 즉시 적용)</span></h5>' +
+        '<h5>교원 자격 직접 변경 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(신청 없이 즉시 적용)</span></h5>' +
         '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
           '<div style="font-size:13px;color:var(--text-2)">현재 자격: <strong>' + escapeHtml(member.eligibilityType || '미설정') + '</strong></div>' +
-          '<button type="button" style="padding:5px 12px;border:1px solid var(--brand);border-radius:6px;background:#fff;color:var(--brand);font-size:12px;cursor:pointer;font-weight:600" data-mi-elig="open" data-mi-id="' + member.id + '" data-mi-elig-cur="' + escapeHtml(member.eligibilityType || '') + '">✏️ 직접 변경</button>' +
+          '<button type="button" style="padding:5px 12px;border:1px solid var(--brand);border-radius:6px;background:#fff;color:var(--brand);font-size:12px;cursor:pointer;font-weight:600" data-mi-elig="open" data-mi-id="' + member.id + '" data-mi-elig-cur="' + escapeHtml(member.eligibilityType || '') + '">직접 변경</button>' +
         '</div>' +
         '<div id="miEligChangeForm_' + member.id + '" style="display:none;margin-top:12px;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">' +
           '<div style="margin-bottom:10px">' +
@@ -4006,7 +4006,7 @@ const OPERATOR_CATEGORIES = [
         } else {
           toast(res.data?.error || '해지 실패');
           unblockBtn.disabled = false;
-          unblockBtn.textContent = '🔓 블랙 해지';
+          unblockBtn.textContent = '블랙 해지';
         }
         return;
       }
@@ -4266,7 +4266,7 @@ const OPERATOR_CATEGORIES = [
     if (pwEl) pwEl.textContent = tempPassword;
     if (copyBtn) {
       copyBtn.classList.remove('copied');
-      copyBtn.textContent = '📋 복사하기';
+      copyBtn.textContent = '복사하기';
     }
 
     modal.classList.add('show');
@@ -4290,7 +4290,7 @@ const OPERATOR_CATEGORIES = [
         toast('임시 비밀번호가 클립보드에 복사되었습니다');
         setTimeout(() => {
           btn.classList.remove('copied');
-          btn.textContent = '📋 복사하기';
+          btn.textContent = '복사하기';
         }, 3000);
       } catch (err) {
         /* 클립보드 API 실패 시 fallback (선택 텍스트) */
@@ -4310,34 +4310,34 @@ const OPERATOR_CATEGORIES = [
   let _auditSearchTimer = null;
 
   const AUDIT_ACTION_LABEL = {
-    login_success: '🟢 로그인 성공',
-    login_failed: '🔴 로그인 실패',
-    login_locked: '🔒 로그인 잠금',
-    login_blocked: '🚫 로그인 차단',
-    signup_success: '✨ 회원가입',
-    signup_failed: '❌ 가입 실패',
-    password_reset_request: '🔑 비번 재설정 요청',
-    password_reset_success: '✅ 비번 재설정 완료',
-    password_reset_failed: '❌ 비번 재설정 실패',
-    email_verify_request: '✉️ 이메일 인증 요청',
-    email_verify_success: '✅ 이메일 인증 완료',
-    email_verify_failed: '❌ 이메일 인증 실패',
-    email_verify_already_done: 'ℹ️ 이미 인증됨',
-    withdraw_success: '👋 회원 탈퇴',
-    withdraw_blocked: '🚫 탈퇴 차단',
-    withdraw_failed: '❌ 탈퇴 실패',
-    donate_success: '💝 후원 완료',
-    support_create: '🤝 지원 신청',
-    support_status_change: '📝 지원 상태 변경',
-    support_inline_status: '🔄 지원 인라인 변경',
-    support_download_success: '📎 첨부 다운로드',
-    support_download_denied: '🚫 다운로드 차단',
-    support_download_failed: '❌ 다운로드 실패',
-    file_upload: '📤 파일 업로드',
-    admin_login_success: '👨‍💼 관리자 로그인',
-    admin_login_failed: '❌ 관리자 로그인 실패',
-    member_status_change: '🔧 회원 상태 변경',
-    receipt_issue_bulk: '📄 영수증 일괄 발행',
+    login_success: '로그인 성공',
+    login_failed: '로그인 실패',
+    login_locked: '로그인 잠금',
+    login_blocked: '로그인 차단',
+    signup_success: '회원가입',
+    signup_failed: '가입 실패',
+    password_reset_request: '비번 재설정 요청',
+    password_reset_success: '비번 재설정 완료',
+    password_reset_failed: '비번 재설정 실패',
+    email_verify_request: '이메일 인증 요청',
+    email_verify_success: '이메일 인증 완료',
+    email_verify_failed: '이메일 인증 실패',
+    email_verify_already_done: '이미 인증됨',
+    withdraw_success: '회원 탈퇴',
+    withdraw_blocked: '탈퇴 차단',
+    withdraw_failed: '탈퇴 실패',
+    donate_success: '후원 완료',
+    support_create: '지원 신청',
+    support_status_change: '지원 상태 변경',
+    support_inline_status: '지원 인라인 변경',
+    support_download_success: '첨부 다운로드',
+    support_download_denied: '다운로드 차단',
+    support_download_failed: '다운로드 실패',
+    file_upload: '파일 업로드',
+    admin_login_success: '관리자 로그인',
+    admin_login_failed: '관리자 로그인 실패',
+    member_status_change: '회원 상태 변경',
+    receipt_issue_bulk: '영수증 일괄 발행',
   };
 
   function getAuditActionLabel(action) {
@@ -4346,10 +4346,10 @@ const OPERATOR_CATEGORIES = [
 
   function getAuditTypeLabel(type) {
     const map = {
-      admin: '👨‍💼 관리자',
-      user: '👤 회원',
-      system: '⚙️ 시스템',
-      anonymous: '🌐 익명',
+      admin: '관리자',
+      user: '회원',
+      system: '시스템',
+      anonymous: '익명',
     };
     return map[type] || type || '—';
   }
@@ -4569,7 +4569,7 @@ const OPERATOR_CATEGORIES = [
     const actionLabel = getAuditActionLabel(log.action);
     const target = log.target ? escapeHtml(log.target) : '—';
     const ip = log.ipAddress ? escapeHtml(log.ipAddress) : '—';
-    const successText = log.success ? '✅ 성공' : '❌ 실패';
+    const successText = log.success ? '성공' : '실패';
     const userAgent = log.userAgent ? escapeHtml(log.userAgent) : '';
 
     /* detail: parsed JSON이 있으면 보기 좋게 포맷, 아니면 원본 문자열 */
@@ -4587,7 +4587,7 @@ const OPERATOR_CATEGORIES = [
     /* 에러 메시지 (실패한 경우) */
     const errorBlock = (!log.success && log.errorMessage)
       ? `<div style="margin-top:14px">
-          <div style="font-size:12.5px;font-weight:600;color:var(--danger);margin-bottom:6px">❌ 에러 메시지</div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--danger);margin-bottom:6px">에러 메시지</div>
           <div class="audit-detail-json" style="background:#3a1a1a;color:#ffc4c4">${escapeHtml(log.errorMessage)}</div>
         </div>`
       : '';
@@ -4595,7 +4595,7 @@ const OPERATOR_CATEGORIES = [
     /* User-Agent (있는 경우만) */
     const uaBlock = userAgent
       ? `<div style="margin-top:14px">
-          <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">🌐 User-Agent</div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">User-Agent</div>
           <div class="audit-ua-text">${userAgent}</div>
         </div>`
       : '';
@@ -4621,7 +4621,7 @@ const OPERATOR_CATEGORIES = [
       </div>
 
       <div style="margin-top:14px">
-        <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">📋 상세 데이터 (detail)</div>
+        <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">상세 데이터 (detail)</div>
         <div class="audit-detail-json">${detailHtml}</div>
       </div>
 
@@ -4672,7 +4672,7 @@ const OPERATOR_CATEGORIES = [
 
       const notifyToggle = `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
         <input type="checkbox" ${op.notifyOnSupport ? 'checked' : ''} data-op-toggle="notify" data-op-id="${op.id}">
-        ${op.notifyOnSupport ? '✅' : '⬜'}
+        ${op.notifyOnSupport ? '' : ''}
       </label>`;
       const statusBadge = op.operatorActive
         ? '<span class="badge b-success">활성</span>'
@@ -4681,9 +4681,9 @@ const OPERATOR_CATEGORIES = [
       /* ★ M-15: 편집 버튼 추가 */
       const actionBtns =
         `<div class="op-row-actions">` +
-        `<button type="button" class="edit" data-op-action="open-edit" data-op-id="${op.id}">✏️ 편집</button>` +
-        `<button type="button" class="warn" data-op-action="toggle-active" data-op-id="${op.id}" data-current="${op.operatorActive}">${op.operatorActive ? '⏸ 비활성' : '▶ 활성'}</button>` +
-        `<button type="button" class="danger" data-op-action="demote" data-op-id="${op.id}" data-name="${escapeHtml(op.name)}">🔻 강등</button>` +
+        `<button type="button" class="edit" data-op-action="open-edit" data-op-id="${op.id}">편집</button>` +
+        `<button type="button" class="warn" data-op-action="toggle-active" data-op-id="${op.id}" data-current="${op.operatorActive}">${op.operatorActive ? '비활성' : '활성'}</button>` +
+        `<button type="button" class="danger" data-op-action="demote" data-op-id="${op.id}" data-name="${escapeHtml(op.name)}">강등</button>` +
         `</div>`;
 
       return `<tr>
@@ -4713,7 +4713,7 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
-      results.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">⏳ 검색 중...</div>';
+      results.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">검색 중...</div>';
 
       _promoteSearchTimer = setTimeout(async () => {
         const res = await api('/api/admin/operators?candidates=1&q=' + encodeURIComponent(q));
@@ -5126,7 +5126,7 @@ const OPERATOR_CATEGORIES = [
       switchAdminPage(link.dataset.page, link);
     });
   }
-  /* ★ M-19-11 V2: 회원 관리 페이지 내 탭 (회원 목록 ↔ 회원 자격 관리) */
+  /* ★ M-19-11 V2: 회원 관리 페이지 내 탭 (회원 목록 회원 자격 관리) */
   function setupMemberTabs() {
     document.addEventListener('click', (e) => {
       const tab = e.target.closest('#memberSubTabs .ct-tab[data-mtab]');
@@ -5292,7 +5292,7 @@ const OPERATOR_CATEGORIES = [
         list.innerHTML = '<li style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;font-style:italic">검색 결과 없음</li>';
         return;
       }
-      const STATUS_LABEL = { active: '정상', pending: '대기', suspended: '🚫 블랙', withdrawn: '탈퇴' };
+      const STATUS_LABEL = { active: '정상', pending: '대기', suspended: '블랙', withdrawn: '탈퇴' };
       list.innerHTML = items.map(function (m) {
         const isAdmin = m.type === 'admin';
         const isBlack = m.status === 'suspended';
@@ -5579,7 +5579,7 @@ const OPERATOR_CATEGORIES = [
   async function exportMembersContractExcel(btn) {
     const origText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '⏳ 처리 중...';
+    btn.textContent = '처리 중...';
 
     try {
       // 회원 관리 화면 필터 수집

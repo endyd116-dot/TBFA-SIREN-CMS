@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>성과 관리 | 워크스페이스</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,34 +31,34 @@
   <div class="ws-sidebar-inner">
     <div class="quick-jump" data-quick-jump></div>
     <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
-      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-icon"><span class="siren-icon-wrap" data-icon="home"></span></span>
       <span class="ws-logo-text">허브</span>
     </a>
     <nav class="ws-sidebar-nav">
       <ul>
         <li class="ws-nav-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="true">
-            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
             <span class="ws-nav-text">워크스페이스</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul data-sidebar-submenu="workspace" aria-hidden="false">
-            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
-            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
-            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
-            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon">🎯</span><span class="ws-nav-text">로드맵</span></a></li>
-            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
-            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
-            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
-            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="calendar-days"></span></span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-roadmap.html" title="로드맵"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="target"></span></span><span class="ws-nav-text">로드맵</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="files"></span></span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="folder"></span></span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="trophy"></span></span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clock"></span></span><span class="ws-nav-text">근태관리</span></a></li>
           </ul>
         </li>
       </ul>
     </nav>
     <!-- 2026-06-03: 마이페이지·로그아웃 (워크스페이스 공통) -->
     <div class="ws-sidebar-user">
-      <a href="/mypage.html" title="마이페이지"><span class="ws-user-avatar">👤</span><span class="ws-nav-text">마이페이지</span></a>
-      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃"><span class="ws-nav-icon">🚪</span><span class="ws-nav-text">로그아웃</span></button>
+      <a href="/mypage.html" title="마이페이지"><span class="ws-user-avatar"><span class="siren-icon-wrap" data-icon="user"></span></span><span class="ws-nav-text">마이페이지</span></a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="door-open"></span></span><span class="ws-nav-text">로그아웃</span></button>
     </div>
   </div>
 </aside>
@@ -68,7 +69,7 @@
     <!-- 헤더 -->
     <div class="ms-header">
       <div>
-        <h2>🏆 성과 관리</h2>
+        <h2><span class="siren-icon-wrap" data-icon="trophy"></span> 성과 관리</h2>
         <div style="font-size:13px; color:#6b7280; margin-top:2px" id="msSubtitle">로딩 중...</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -95,11 +96,11 @@
 
     <!-- 탭 -->
     <div class="ms-tabs" id="msTabs">
-      <button class="ms-tab active" data-tab="overview">📊 내 현황</button>
-      <button class="ms-tab" data-tab="revenue-input">📥 매출 입력</button>
-      <button class="ms-tab admin-only" data-tab="revenue-verify" style="display:none">✅ 매출 검증</button>
-      <button class="ms-tab admin-only" data-tab="nonrevenue" style="display:none">🎯 비매출 성과</button>
-      <button class="ms-tab admin-only" data-tab="settlement" style="display:none">📋 분기 결산</button>
+      <button class="ms-tab active" data-tab="overview"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 내 현황</button>
+      <button class="ms-tab" data-tab="revenue-input"><span class="siren-icon-wrap" data-icon="inbox"></span> 매출 입력</button>
+      <button class="ms-tab admin-only" data-tab="revenue-verify" style="display:none"><span class="siren-icon-wrap" data-icon="circle-check"></span> 매출 검증</button>
+      <button class="ms-tab admin-only" data-tab="nonrevenue" style="display:none"><span class="siren-icon-wrap" data-icon="target"></span> 비매출 성과</button>
+      <button class="ms-tab admin-only" data-tab="settlement" style="display:none"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 분기 결산</button>
     </div>
 
     <!-- 탭 패널들 -->
@@ -109,7 +110,7 @@
     </div>
 
     <div id="tabRevenueInput" class="ms-tab-panel" style="display:none">
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">📥 매출 실적 입력</h3>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:16px"><span class="siren-icon-wrap" data-icon="inbox"></span> 매출 실적 입력</h3>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px">
         <div class="ms-form-grid">
           <div class="ms-form-group">
@@ -195,7 +196,7 @@
 
     <div id="tabRevenueVerify" class="ms-tab-panel" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h3 style="font-size:16px;font-weight:700;margin:0">✅ 매출 실적 검증</h3>
+        <h3 style="font-size:16px;font-weight:700;margin:0"><span class="siren-icon-wrap" data-icon="circle-check"></span> 매출 실적 검증</h3>
         <select id="rvStatusFilter" style="padding:6px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
           <option value="PENDING">검증 대기</option>
           <option value="VERIFIED">검증 완료</option>
@@ -206,7 +207,7 @@
     </div>
 
     <div id="tabNonRevenue" class="ms-tab-panel" style="display:none">
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">🎯 비매출 성과</h3>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="target"></span> 비매출 성과</h3>
       <p style="font-size:13px;color:#6b7280;margin-bottom:16px">분기당 최대 <strong>2개</strong>를 선택해 인센티브를 받습니다. 먼저 슈퍼어드민 검증 후 선택 가능합니다.</p>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <button class="ms-btn ms-btn-ghost ms-btn-sm" id="nrBtnSubmit">+ 성과 제출</button>
@@ -216,7 +217,7 @@
     </div>
 
     <div id="tabSettlement" class="ms-tab-panel" style="display:none">
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">📋 분기 결산</h3>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:16px"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 분기 결산</h3>
       <div id="settlementPanel"></div>
     </div>
 
@@ -263,10 +264,10 @@
 <div id="wsToast" style="position:fixed;bottom:24px;right:24px;z-index:99999"></div>
 
 <script src="/js/lib-kst.js?v=1"></script>
-<script src="/js/auth.js?v=16" defer></script>
+<script src="/js/auth.js?v=17" defer></script>
 <script src="/js/workspace-sidebar.js?v=7" defer></script>
 <script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
-<script src="/js/workspace-milestones.js?v=17-logout" defer></script>
+<script src="/js/workspace-milestones.js?v=18-logout" defer></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 </body>
 </html>

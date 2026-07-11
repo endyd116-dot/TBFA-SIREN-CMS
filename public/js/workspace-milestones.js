@@ -207,8 +207,8 @@
     let cls = 'gray', label = '';
     if (days < 0) { cls = 'gray'; label = '분기 종료'; }
     else if (days === 0) { cls = 'red'; label = '오늘 마감'; }
-    else if (days <= 7) { cls = 'red'; label = `🔴 D-${days} 마감 임박`; }
-    else { cls = 'orange'; label = `⏰ D-${days}`; }
+    else if (days <= 7) { cls = 'red'; label = `D-${days} 마감 임박`; }
+    else { cls = 'orange'; label = `D-${days}`; }
 
     const badge = document.createElement('span');
     badge.id = 'msCountdown';
@@ -299,7 +299,7 @@
 
     const progress = d.revenueProgress || [];
     if (!progress.length) {
-      content.innerHTML = '<div class="ms-empty" style="margin-bottom:16px"><div class="ms-empty-icon">📊</div>담당 매출연동 마일스톤이 없습니다.</div>';
+      content.innerHTML = '<div class="ms-empty" style="margin-bottom:16px"><div class="ms-empty-icon"></div>담당 매출연동 마일스톤이 없습니다.</div>';
     } else {
       content.innerHTML = '<h3 style="font-size:15px;font-weight:700;margin-bottom:12px">매출연동 마일스톤 진행률</h3>' +
       progress.map(p => `
@@ -330,19 +330,19 @@
     // ★ Phase 25: 보류 큐 + 보관함 + 카드 생성 섹션 삽입
     content.insertAdjacentHTML('beforeend', `
       <div style="margin-top:28px">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">🔍 성과 분류 보류 카드</h3>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">성과 분류 보류 카드</h3>
         <div id="p25PendingSection" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
           <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
         </div>
       </div>
       <div style="margin-top:24px">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">📁 보관함 (성과별)</h3>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">보관함 (성과별)</h3>
         <div id="p25DoneSection" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
           <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
         </div>
       </div>
       <div style="margin-top:24px">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">🏆 마일스톤 → WBS 카드 생성</h3>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">마일스톤 → WBS 카드 생성</h3>
         <div id="p25CardCreate" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
           <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
         </div>
@@ -351,7 +351,7 @@
       <div style="margin-top:24px">
         <button class="ms-btn ms-btn-ghost" id="btnAiCoaching"
           style="background:#f5f3ff;color:#5b21b6;border:1px solid #ede9fe;font-weight:600">
-          🤖 AI 코칭 받기
+          AI 코칭 받기
         </button>
         <div id="aiCoachingBox" style="display:none;margin-top:12px"></div>
       </div>`);
@@ -368,7 +368,7 @@
       const tip = document.createElement('div');
       tip.className = 'ms-locked-banner';
       tip.style.marginTop = '14px';
-      tip.innerHTML = `🔒 이 분기는 결산이 ${settle.status}되어 매출/비매출 추가가 마감됐습니다.`;
+      tip.innerHTML = `이 분기는 결산이 ${settle.status}되어 매출/비매출 추가가 마감됐습니다.`;
       content.appendChild(tip);
     }
   }
@@ -378,7 +378,7 @@
     if (!btn || !state.currentQuarterId) return;
     btn.disabled = true;
     const originalLabel = btn.textContent;
-    btn.textContent = '🤖 생성 중...';
+    btn.textContent = '생성 중...';
     try {
       const res = await api('/api/ms-ai-coaching', {
         method: 'POST', body: { quarterId: state.currentQuarterId },
@@ -392,7 +392,7 @@
         box.style.display = '';
         box.innerHTML = `
           <div class="ms-coaching-box">
-            <div class="ms-coaching-label">🤖 AI 코칭</div>
+            <div class="ms-coaching-label">AI 코칭</div>
             <div class="ms-coaching-text">${escHtml(res.coaching).replace(/\n/g,'<br>')}</div>
             <button class="ms-btn ms-btn-ghost ms-btn-sm" id="coachingRefresh" style="margin-top:8px">↻ 새로고침</button>
           </div>`;
@@ -402,7 +402,7 @@
       toast('AI 코칭을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = originalLabel || '🤖 AI 코칭 받기';
+      btn.textContent = originalLabel || 'AI 코칭 받기';
     }
   }
 
@@ -422,7 +422,7 @@
       const banner = document.createElement('div');
       banner.id = 'msLockBanner';
       banner.className = 'ms-locked-banner';
-      banner.innerHTML = '🔒 이 분기는 결산이 제출되어 실적 입력이 마감되었습니다. 수정이 필요하면 슈퍼어드민에게 문의하세요.';
+      banner.innerHTML = '이 분기는 결산이 제출되어 실적 입력이 마감되었습니다. 수정이 필요하면 슈퍼어드민에게 문의하세요.';
       tabRev.prepend(banner);
     }
   }
@@ -443,7 +443,7 @@
   function renderRevenueList() {
     const list = $('#riList');
     if (!list) return;
-    if (!state.revenueEntries.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon">📥</div>입력 내역이 없습니다.</div>'; return; }
+    if (!state.revenueEntries.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon"></div>입력 내역이 없습니다.</div>'; return; }
     list.innerHTML = `<table class="ms-table">
       <thead><tr><th>날짜</th><th>마일스톤</th><th>금액/수량</th><th>상태</th><th>비고</th></tr></thead>
       <tbody>${state.revenueEntries.map(e => `
@@ -493,7 +493,7 @@
       const listEl = $('#riEvidenceList');
       for (const file of files) {
         const itemId = 'ev_' + Math.random().toString(36).slice(2, 9);
-        const itemHtml = `<div id="${itemId}" style="margin-top:3px">⏳ ${escHtml(file.name)} 업로드 중...</div>`;
+        const itemHtml = `<div id="${itemId}" style="margin-top:3px">${escHtml(file.name)} 업로드 중...</div>`;
         listEl.insertAdjacentHTML('beforeend', itemHtml);
         try {
           const fd = new FormData();
@@ -507,10 +507,10 @@
           const mime = data.mimeType || data.data?.mimeType || file.type;
           riUploadedEvidence.push({ url, name, mime });
           const itemEl = document.getElementById(itemId);
-          if (itemEl) itemEl.innerHTML = `✅ ${escHtml(name)} <a href="${url}" target="_blank" style="color:#3b82f6">미리보기</a>`;
+          if (itemEl) itemEl.innerHTML = `${escHtml(name)} <a href="${url}" target="_blank" style="color:#3b82f6">미리보기</a>`;
         } catch (e) {
           const itemEl = document.getElementById(itemId);
-          if (itemEl) itemEl.innerHTML = `❌ ${escHtml(file.name)} 업로드 실패: ${escHtml((e).message)}`;
+          if (itemEl) itemEl.innerHTML = `${escHtml(file.name)} 업로드 실패: ${escHtml((e).message)}`;
         }
       }
       fileEl.value = '';
@@ -583,7 +583,7 @@
         </tr>`).join('');
       const inc = state.dashboard?.estimatedIncentive || {};
       panel.innerHTML = `
-        <div style="font-size:13.5px;font-weight:700;margin-bottom:8px">📊 인센티브 계산 근거</div>
+        <div style="font-size:13.5px;font-weight:700;margin-bottom:8px">인센티브 계산 근거</div>
         ${revRows ? `
           <div style="font-size:12.5px;font-weight:600;color:#1d4ed8;margin:8px 0 4px">매출연동</div>
           <table>
@@ -618,7 +618,7 @@
       badge.style.cssText = 'display:inline-block;margin-left:8px;padding:4px 10px;background:#ede9fe;color:#5b21b6;border-radius:12px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid #c4b5fd';
       milSel.parentElement?.appendChild(badge);
     }
-    badge.textContent = `🤖 추천: ${rec.name} (${Math.round(rec.confidence*100)}%)`;
+    badge.textContent = `추천: ${rec.name} (${Math.round(rec.confidence*100)}%)`;
     badge.title = '클릭하여 적용';
     badge.onclick = () => {
       milSel.value = String(rec.id);
@@ -682,7 +682,7 @@
   function renderVerifyList() {
     const list = $('#rvList');
     if (!list) return;
-    if (!state.pendingVerifications.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon">✅</div>검증할 항목이 없습니다.</div>'; return; }
+    if (!state.pendingVerifications.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon"></div>검증할 항목이 없습니다.</div>'; return; }
     list.innerHTML = `<table class="ms-table">
       <thead><tr><th>날짜</th><th>입력자</th><th>마일스톤</th><th>금액/수량</th><th>상태</th><th>액션</th></tr></thead>
       <tbody>${state.pendingVerifications.map(e => {
@@ -698,7 +698,7 @@
           : '';
         const actionBtn = e.status === 'PENDING' ? `
           ${isEventRange ? `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerifyEventRange(${e.id})" style="background:#ede9fe;color:#5b21b6;border:none">검증 + 금액 확정</button>` :
-            `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerify('revenue','verify',${e.id})">✅ 승인</button>`}
+            `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerify('revenue','verify',${e.id})">승인</button>`}
           <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="window.__msVerify('revenue','reject',${e.id})">반려</button>
         ` : '';
         /* ★ R29-MS-GAP1-C: 증빙 파일 표시 */
@@ -708,7 +708,7 @@
               const isImg = (f.mime || '').startsWith('image/');
               return isImg
                 ? `<a href="${escHtml(f.url)}" target="_blank" title="${escHtml(f.name||'증빙')}"><img src="${escHtml(f.url)}" alt="증빙" style="width:46px;height:46px;object-fit:cover;border:1px solid #e5e7eb;border-radius:4px"></a>`
-                : `<a href="${escHtml(f.url)}" target="_blank" style="display:inline-block;padding:3px 8px;background:#f3f4f6;border-radius:4px;font-size:11.5px;color:#374151">📄 ${escHtml(f.name||'파일')}</a>`;
+                : `<a href="${escHtml(f.url)}" target="_blank" style="display:inline-block;padding:3px 8px;background:#f3f4f6;border-radius:4px;font-size:11.5px;color:#374151">${escHtml(f.name||'파일')}</a>`;
             }).join('')}</div>`
           : '<div style="margin-top:4px;font-size:11px;color:#9ca3af">증빙 없음</div>';
         return `
@@ -787,7 +787,7 @@
     const list = $('#nrList');
     if (!list) return;
     const achs = state.nonRevAchs;
-    if (!achs.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon">🎯</div>제출한 비매출 성과가 없습니다.</div>'; return; }
+    if (!achs.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon"></div>제출한 비매출 성과가 없습니다.</div>'; return; }
 
     // 현재 선택된 IDs (initial)
     state.nrSelectedIds = achs.filter(a => a.isSelectedForQuarter).map(a => a.id);
@@ -1028,7 +1028,7 @@
       const parts = [];
       grouped.forEach(g => {
         parts.push(`<div style="margin-bottom:14px">
-          <div style="font-size:13.5px;font-weight:700;color:#111;margin-bottom:6px">🏆 ${escHtml(g.name)} <span style="font-size:11.5px;font-weight:400;color:#6b7280">${g.tasks.length}건</span></div>
+          <div style="font-size:13.5px;font-weight:700;color:#111;margin-bottom:6px">${escHtml(g.name)} <span style="font-size:11.5px;font-weight:400;color:#6b7280">${g.tasks.length}건</span></div>
           ${g.tasks.map(t => `<div style="font-size:12.5px;color:#374151;padding:3px 0 3px 14px;border-left:3px solid #e5e7eb">
             ${escHtml(t.title)} <span style="color:#9ca3af">${fmtDate(t.completedAt)}</span>
           </div>`).join('')}
@@ -1129,14 +1129,14 @@
     if (settle && settle.status === 'REJECTED') {
       statusBanner = `
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ 결산이 반려되었습니다</div>
+          <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">결산이 반려되었습니다</div>
           <div style="font-size:13px;color:#7f1d1d;line-height:1.5">사유: ${escHtml(settle.reviewNote || '(사유 미입력)')}</div>
           <div style="font-size:11.5px;color:#991b1b;margin-top:6px">아래에서 보완 후 재제출할 수 있습니다.</div>
         </div>`;
     } else if (settle && settle.status === 'HOLD') {
       statusBanner = `
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:#c2410c;margin-bottom:6px">⏸ 자료 보완이 요청되었습니다 (HOLD)</div>
+          <div style="font-size:13px;font-weight:700;color:#c2410c;margin-bottom:6px">자료 보완이 요청되었습니다 (HOLD)</div>
           <div style="font-size:13px;color:#7c2d12;line-height:1.5">요청 사유: ${escHtml(settle.holdReason || '(사유 미입력)')}</div>
           <div style="font-size:11.5px;color:#9a3412;margin-top:6px">자료 보완 후 재제출하면 검토 단계로 복귀됩니다.</div>
         </div>`;
@@ -1147,14 +1147,14 @@
         <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">자동 계산 미리보기</h3>
         <div id="calcPreview" style="color:#9ca3af;font-size:13px">아래 "계산" 버튼을 눌러 인센티브를 계산하세요.</div>
         <div style="margin-top:14px;display:flex;gap:8px">
-          <button class="ms-btn ms-btn-ghost" id="btnCalc">📊 계산하기</button>
+          <button class="ms-btn ms-btn-ghost" id="btnCalc">계산하기</button>
         </div>
       </div>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px">
         <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">자가평가 의견</h3>
         <div style="display:flex;align-items:flex-start;gap:8px">
           <textarea id="settleSelf" rows="4" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13.5px;box-sizing:border-box" placeholder="이번 분기 성과에 대한 의견을 작성하세요"></textarea>
-          <button class="ms-btn ms-btn-ghost" id="btnAiCoach" style="white-space:nowrap;padding:8px 14px;font-size:12.5px;border:1px solid #3b82f6;color:#3b82f6">💡 AI 코칭</button>
+          <button class="ms-btn ms-btn-ghost" id="btnAiCoach" style="white-space:nowrap;padding:8px 14px;font-size:12.5px;border:1px solid #3b82f6;color:#3b82f6">AI 코칭</button>
         </div>
         <div id="aiCoachResult" style="display:none;margin-top:10px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;color:#1e40af;line-height:1.6"></div>
         <div style="margin-top:12px">
@@ -1175,7 +1175,7 @@
           </div>
           <div style="margin-top:12px;font-size:20px;font-weight:800">예상 합계: ${fmt(calc.totalBonus)}</div>`;
       } catch (e) { toast('계산 실패: ' + (e).message, 'error'); }
-      finally { btn.disabled = false; btn.textContent = '📊 계산하기'; }
+      finally { btn.disabled = false; btn.textContent = '계산하기'; }
     });
 
     $('#btnAiCoach')?.addEventListener('click', async () => {
@@ -1189,9 +1189,9 @@
         const res = await api('/api/ai-milestone-insight', { method:'POST', body:{ type:'coach', selfEvalText } });
         const text = res.data?.text || res.text || '';
         resultEl.style.display = '';
-        resultEl.innerHTML = `<strong>💡 AI 코칭</strong><br>${escHtml(text).replace(/\n/g,'<br>')}`;
+        resultEl.innerHTML = `<strong>AI 코칭</strong><br>${escHtml(text).replace(/\n/g,'<br>')}`;
       } catch (e) { toast('AI 코칭 실패: ' + (e).message, 'error'); }
-      finally { btn.disabled = false; btn.textContent = '💡 AI 코칭'; }
+      finally { btn.disabled = false; btn.textContent = 'AI 코칭'; }
     });
 
     $('#btnSubmitSettle')?.addEventListener('click', async () => {

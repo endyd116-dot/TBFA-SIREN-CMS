@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>이메일 인증 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
@@ -110,7 +111,7 @@
 
       <!-- 성공 화면 -->
       <div id="evSuccess" class="ev-card ev-success-card" style="display:none">
-        <div class="ev-icon">✅</div>
+        <div class="ev-icon"><span class="siren-icon-wrap" data-icon="circle-check"></span></div>
         <h1 class="ev-title">이메일 인증 완료!</h1>
         <p class="ev-message" id="evSuccessMessage">
           이메일 인증이 정상적으로 완료되었습니다.<br />
@@ -146,7 +147,7 @@
 
       <!-- 실패/오류 화면 -->
       <div id="evError" class="ev-card ev-error-card" style="display:none">
-        <div class="ev-icon">❌</div>
+        <div class="ev-icon"><span class="siren-icon-wrap" data-icon="x"></span></div>
         <h1 class="ev-title">인증 링크가 유효하지 않습니다</h1>
         <p class="ev-message" id="evErrorMessage">
           링크가 만료되었거나 이미 사용되었거나 잘못된 링크일 수 있습니다.<br />
@@ -163,7 +164,7 @@
 
       <!-- 토큰 누락 화면 -->
       <div id="evNoToken" class="ev-card ev-error-card" style="display:none">
-        <div class="ev-icon">⚠️</div>
+        <div class="ev-icon"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></div>
         <h1 class="ev-title">잘못된 접근입니다</h1>
         <p class="ev-message">
           인증 토큰이 없습니다.<br />
@@ -179,7 +180,7 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
+  <script src="/js/common.js?v=3-navicon"></script>
   <script>
   (function () {
     'use strict';

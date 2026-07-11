@@ -63,7 +63,7 @@
 
     const res = await api({ url: '/api/admin-report-list-by-status?' + params });
     if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">⚠️ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
       return;
     }
 
@@ -95,7 +95,7 @@
           <td>${levelBadge}</td>
           <td>
             <button class="btn btn-sm" onclick="openReveal(${r.id}, '${escapeHtml(r.reportType)}', '${escapeHtml(r.title || '')}', ${r.anonLevel || 0})">
-              🔍 신원 식별
+              신원 식별
             </button>
           </td>
         </tr>
@@ -212,7 +212,7 @@
       window.SIREN && window.SIREN.toast('네트워크 오류');
     } finally {
       btn.disabled = false;
-      btn.textContent = '🔓 신원 확인';
+      btn.textContent = '신원 확인';
     }
   };
 
@@ -237,7 +237,7 @@
 
     el.innerHTML = `
       <div class="identity-result">
-        <div class="identity-label">🔓 ${_selectedLevel}단계 신원 정보 (감사 로그 기록됨)</div>
+        <div class="identity-label">${_selectedLevel}단계 신원 정보 (감사 로그 기록됨)</div>
         ${rows.map((r) => `
           <div class="identity-row">
             <span class="field">${escapeHtml(r.field)}</span>

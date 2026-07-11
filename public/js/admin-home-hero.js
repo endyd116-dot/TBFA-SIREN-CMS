@@ -104,7 +104,7 @@
     if (missingKeys.length > 0) {
       inner.innerHTML = `
         <div style="padding:32px;background:#fff5f5;border:1px solid #f5b8b8;border-radius:8px;color:#7a1f2b">
-          <strong>⚠️ 일부 시드 키가 없습니다</strong><br />
+          <strong>일부 시드 키가 없습니다</strong><br />
           누락: ${missingKeys.map(escapeHtml).join(', ')}<br />
           <small>시드 마이그레이션을 다시 실행하거나 관리자에게 문의하세요.</small>
         </div>
@@ -123,11 +123,11 @@
     const enabled = getCurrentText(_settingsMap[KEYS.autoplayEnabled]) === 'true';
 
     const draftBadges = {
-      slides: _settingsMap[KEYS.slides]?.hasDraft ? '<span class="hh-badge">📝 Draft</span>' : '',
-      eyebrow: _settingsMap[KEYS.eyebrow]?.hasDraft ? '<span class="hh-badge">📝 Draft</span>' : '',
-      lead: _settingsMap[KEYS.lead]?.hasDraft ? '<span class="hh-badge">📝 Draft</span>' : '',
-      speed: _settingsMap[KEYS.autoplaySpeed]?.hasDraft ? '<span class="hh-badge">📝 Draft</span>' : '',
-      enabled: _settingsMap[KEYS.autoplayEnabled]?.hasDraft ? '<span class="hh-badge">📝 Draft</span>' : '',
+      slides: _settingsMap[KEYS.slides]?.hasDraft ? '<span class="hh-badge">Draft</span>' : '',
+      eyebrow: _settingsMap[KEYS.eyebrow]?.hasDraft ? '<span class="hh-badge">Draft</span>' : '',
+      lead: _settingsMap[KEYS.lead]?.hasDraft ? '<span class="hh-badge">Draft</span>' : '',
+      speed: _settingsMap[KEYS.autoplaySpeed]?.hasDraft ? '<span class="hh-badge">Draft</span>' : '',
+      enabled: _settingsMap[KEYS.autoplayEnabled]?.hasDraft ? '<span class="hh-badge">Draft</span>' : '',
     };
 
     const slidesHtml = _slidesDraft.map((slide, idx) => renderSlideCard(slide, idx)).join('');
@@ -205,7 +205,7 @@
       </style>
 
       <div class="hh-wrap">
-        <h2 class="hh-section-title">🎬 히어로 배너 편집</h2>
+        <h2 class="hh-section-title">히어로 배너 편집</h2>
         <p class="hh-section-desc">
           메인 페이지 최상단 큰 영역의 슬라이더와 텍스트를 편집합니다.
           모든 변경사항은 임시저장(Draft)이며, 우측 상단 "배포" 버튼을 눌러야 운영에 반영됩니다.
@@ -214,7 +214,7 @@
         <!-- ===== 1. 일반 텍스트 영역 ===== -->
         <div class="hh-card">
           <div class="hh-card-header">
-            <span class="hh-card-title">📝 텍스트 영역</span>
+            <span class="hh-card-title">텍스트 영역</span>
           </div>
 
           <div class="hh-field">
@@ -237,20 +237,20 @@
         <!-- ===== 2. 슬라이드 카드 N장 ===== -->
         <div class="hh-card">
           <div class="hh-card-header">
-            <span class="hh-card-title">🎞 슬라이드 (${_slidesDraft.length}장) ${draftBadges.slides}</span>
+            <span class="hh-card-title">슬라이드 (${_slidesDraft.length}장) ${draftBadges.slides}</span>
           </div>
           <div id="hhSlidesContainer">
             ${slidesHtml}
           </div>
           <button type="button" class="hh-add-btn" id="hhAddSlideBtn">
-            ➕ 슬라이드 추가
+            슬라이드 추가
           </button>
         </div>
 
         <!-- ===== 3. 자동재생 ===== -->
         <div class="hh-card">
           <div class="hh-card-header">
-            <span class="hh-card-title">⏱ 자동재생 설정</span>
+            <span class="hh-card-title">자동재생 설정</span>
           </div>
 
           <div class="hh-grid-2">
@@ -277,8 +277,8 @@
 
         <!-- ===== 저장 바 (sticky) ===== -->
         <div class="hh-save-bar">
-          <button type="button" class="hh-btn-mini" id="hhReloadBtn">🔄 처음부터 다시 불러오기</button>
-          <button type="button" class="hh-btn-save" id="hhSaveBtn">💾 변경사항 모두 임시저장</button>
+          <button type="button" class="hh-btn-mini" id="hhReloadBtn">처음부터 다시 불러오기</button>
+          <button type="button" class="hh-btn-save" id="hhSaveBtn">변경사항 모두 임시저장</button>
         </div>
       </div>
     `;
@@ -304,8 +304,8 @@
           <div class="hh-card-actions">
             <button type="button" class="hh-btn-mini" data-slide-up="${idx}" ${idx === 0 ? 'disabled' : ''} title="위로">▲</button>
             <button type="button" class="hh-btn-mini" data-slide-down="${idx}" ${idx === total - 1 ? 'disabled' : ''} title="아래로">▼</button>
-            <button type="button" class="hh-btn-mini" data-slide-toggle="${idx}" title="활성/비활성">${isActive ? '👁' : '🚫'}</button>
-            <button type="button" class="hh-btn-mini hh-btn-danger" data-slide-delete="${idx}" title="삭제">🗑</button>
+            <button type="button" class="hh-btn-mini" data-slide-toggle="${idx}" title="활성/비활성">${isActive ? '' : ''}</button>
+            <button type="button" class="hh-btn-mini hh-btn-danger" data-slide-delete="${idx}" title="삭제"></button>
           </div>
         </div>
 
@@ -462,9 +462,9 @@
     /* 슬라이드 카드 영역의 헤더는 다른 카드 안에 있으니 별도 셀렉터 */
     const allTitles = document.querySelectorAll('.hh-card-title');
     allTitles.forEach((t) => {
-      if (t.textContent.indexOf('🎞') >= 0) {
-        const draftBadge = _settingsMap[KEYS.slides]?.hasDraft ? ' 📝' : '';
-        t.innerHTML = `🎞 슬라이드 (${_slidesDraft.length}장)${draftBadge}`;
+      if (t.textContent.indexOf('') >= 0) {
+        const draftBadge = _settingsMap[KEYS.slides]?.hasDraft ? ' ' : '';
+        t.innerHTML = `슬라이드 (${_slidesDraft.length}장)${draftBadge}`;
       }
     });
 
@@ -534,7 +534,7 @@
     }
 
     if (updates.length === 0) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+      if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
       toast('변경된 항목이 없습니다');
       return;
     }
@@ -551,7 +551,7 @@
       else { failCount++; console.warn('[home-hero] save failed:', u.key, res.data?.error); }
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 모두 임시저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = '변경사항 모두 임시저장'; }
 
     if (failCount === 0) {
       toast(`${okCount}건 임시저장 완료`);

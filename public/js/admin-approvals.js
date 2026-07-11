@@ -7,10 +7,10 @@
 
   /* ============ 상수 ============ */
   const SUBTYPE_META = {
-    family:    { label: '유가족',     icon: '🎗',   color: '#7a1f2b', bgSoft: '#fef9f5' },
-    teacher:   { label: '교원',       icon: '👨‍🏫', color: '#1a5ec4', bgSoft: '#f0f5fc' },
-    lawyer:    { label: '변호사',     icon: '⚖️',   color: '#5a4d8c', bgSoft: '#f8f7fc' },
-    counselor: { label: '심리상담사', icon: '💗',   color: '#c5293a', bgSoft: '#fdecec' },
+    family:    { label: '유가족',     icon: '',   color: '#7a1f2b', bgSoft: '#fef9f5' },
+    teacher:   { label: '교원',       icon: '', color: '#1a5ec4', bgSoft: '#f0f5fc' },
+    lawyer:    { label: '변호사',     icon: '',   color: '#5a4d8c', bgSoft: '#f8f7fc' },
+    counselor: { label: '심리상담사', icon: '',   color: '#c5293a', bgSoft: '#fdecec' },
   };
 
   let _currentList = [];
@@ -70,10 +70,10 @@
   }
 
   function getMimeIcon(mime) {
-    if (!mime) return '📄';
-    if (mime.includes('pdf')) return '📕';
-    if (mime.includes('image')) return '🖼️';
-    return '📄';
+    if (!mime) return '';
+    if (mime.includes('pdf')) return '';
+    if (mime.includes('image')) return '';
+    return '';
   }
 
   /* ============ 카운트/뱃지 갱신 ============ */
@@ -155,7 +155,7 @@
     /* 빈 목록 */
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:60px 20px;color:var(--text-3)">' +
-        '<div style="font-size:42px;margin-bottom:10px">✨</div>' +
+        '<div style="font-size:42px;margin-bottom:10px"></div>' +
         '<div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:4px">승인 대기 중인 회원이 없습니다</div>' +
         '<div style="font-size:12px">새로운 자격 신청이 들어오면 여기에 표시됩니다</div>' +
         '</td></tr>';
@@ -163,7 +163,7 @@
     }
 
     tbody.innerHTML = list.map((m) => {
-      const meta = SUBTYPE_META[m.subtypeKey] || { label: m.subtypeLabel || '기타', icon: '👤', color: '#525252' };
+      const meta = SUBTYPE_META[m.subtypeKey] || { label: m.subtypeLabel || '기타', icon: '', color: '#525252' };
       const typeBadge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:${meta.color};color:#fff;border-radius:11px;font-size:11px;font-weight:700">${meta.icon} ${escapeHtml(meta.label)}</span>`;
 
       const cert = m.certificate;
@@ -174,7 +174,7 @@
         : '<span style="color:var(--text-3);font-size:11px">없음</span>';
 
       const actions = `<div class="srn-row-actions">
-        <button type="button" class="detail" data-apv-action="open-detail" data-id="${m.id}" style="background:#fff;border:1px solid var(--brand);color:var(--brand);padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer">📋 상세</button>
+        <button type="button" class="detail" data-apv-action="open-detail" data-id="${m.id}" style="background:#fff;border:1px solid var(--brand);color:var(--brand);padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer">상세</button>
         <button type="button" data-apv-action="approve" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-subtype="${m.subtypeKey}"
           style="background:#1a8b46;color:#fff;border:none;padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer;font-weight:600">✓ 승인</button>
         <button type="button" data-apv-action="open-reject" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-subtype="${m.subtypeKey}"
@@ -190,7 +190,7 @@
         </td>
         <td style="font-family:Inter;font-size:12px">${escapeHtml(m.phone || '—')}</td>
         <td>${certCell}</td>
-        <td><span class="srn-status-pill submitted">⏳ 대기</span></td>
+        <td><span class="srn-status-pill submitted">대기</span></td>
         <td>${actions}</td>
       </tr>`;
     }).join('');
@@ -223,7 +223,7 @@
       return;
     }
 
-    const meta = SUBTYPE_META[m.subtypeKey] || { label: '기타', icon: '👤', color: '#525252', bgSoft: '#f5f4f2' };
+    const meta = SUBTYPE_META[m.subtypeKey] || { label: '기타', icon: '', color: '#525252', bgSoft: '#f5f4f2' };
     if (titleEl) titleEl.textContent = `${meta.icon} ${meta.label} 회원 자격 검토`;
 
     const cert = m.certificate;
@@ -241,17 +241,17 @@
           </div>
           <button type="button" data-apv-action="preview-cert" data-blob-id="${cert.blobId}"
             style="background:${meta.color};color:#fff;border:none;padding:9px 16px;font-size:12.5px;border-radius:5px;cursor:pointer;font-weight:600;width:100%">
-            🔍 증빙 파일 새 탭에서 열기
+            증빙 파일 새 탭에서 열기
           </button>
         </div>`
       : `<div style="background:#fdecec;border:1px solid #f5b5bb;border-radius:8px;padding:14px 16px;color:#a01e2c;font-size:13px">
-          ⚠️ <strong>증빙 파일이 첨부되지 않았습니다</strong><br />
+          <strong>증빙 파일이 첨부되지 않았습니다</strong><br />
           <span style="font-size:11.5px">회원에게 증빙 파일 재첨부를 요청한 후 승인을 결정하세요.</span>
         </div>`;
 
     const rejectedHistoryBlock = m.certificateRejectedReason
       ? `<div style="margin-top:14px;background:#fff8ec;border:1px solid #f0e3c4;border-radius:8px;padding:12px 14px">
-          <div style="font-size:12px;font-weight:700;color:#8a6a00;margin-bottom:6px">📜 이전 반려 사유</div>
+          <div style="font-size:12px;font-weight:700;color:#8a6a00;margin-bottom:6px">이전 반려 사유</div>
           <div style="font-size:12.5px;color:#6a5400;line-height:1.7;white-space:pre-wrap">${escapeHtml(m.certificateRejectedReason)}</div>
         </div>`
       : '';
@@ -276,20 +276,20 @@
         <div>회원 ID</div><div style="font-family:Inter;font-weight:600">M-${String(m.id).padStart(5, '0')}</div>
         <div>신청 일시</div><div>${formatDateTime(m.createdAt)}</div>
         <div>유형</div><div>${meta.icon} ${escapeHtml(meta.label)}</div>
-        <div>현재 상태</div><div><span class="srn-status-pill submitted">⏳ 승인 대기</span></div>
+        <div>현재 상태</div><div><span class="srn-status-pill submitted">승인 대기</span></div>
         ${m.memo ? '<div>가입 메모</div><div style="font-size:12.5px;color:var(--text-2);white-space:pre-wrap">' + escapeHtml(m.memo) + '</div>' : ''}
       </div>
 
       <!-- 증빙 파일 -->
       <div class="srn-modal-section">
-        <h5>📎 증빙 자료</h5>
+        <h5>증빙 자료</h5>
         ${certBlock}
         ${rejectedHistoryBlock}
       </div>
 
       <!-- 검토 가이드 -->
       <div class="srn-modal-section srn-ai-block">
-        <div class="ai-title">📋 검토 체크리스트</div>
+        <div class="ai-title">검토 체크리스트</div>
         <div style="font-size:12.5px;color:var(--text-2);line-height:1.85">
           ${m.subtypeKey === 'family' ? `
             ✓ 가족관계증명서 또는 사망진단서로 유가족 신원 확인<br />
@@ -369,7 +369,7 @@
     const modal = document.getElementById('approvalRejectModal');
     if (!modal) return;
 
-    const meta = SUBTYPE_META[subtypeKey] || { label: '회원', icon: '👤' };
+    const meta = SUBTYPE_META[subtypeKey] || { label: '회원', icon: '' };
 
     document.getElementById('apvRejectId').value = String(memberId);
     document.getElementById('apvRejectReason').value = '';

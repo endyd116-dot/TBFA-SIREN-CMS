@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <script>if(location.protocol==='http:'&&/tbfa\.co\.kr$/.test(location.hostname))location.replace('https://'+location.host+location.pathname+location.search+location.hash);</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <!-- 검색엔진 사이트 인증 (구글은 DNS TXT로 별도 인증됨) -->
 <meta name="naver-site-verification" content="915b7adb6c69428b640920db13d3a0098f3b8beb" />
 
@@ -146,42 +147,42 @@
 
         <!-- 1. 후원하기 -->
         <div class="quick-item" data-action="open-modal" data-target="donateModal" style="cursor:pointer">
-          <span class="qi-arrow">↗</span>
-          <div class="qi-icon">🤝</div>
+          <span class="qi-arrow"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></span>
+          <div class="qi-icon"><span class="siren-icon-wrap" data-icon="handshake"></span></div>
           <div class="qi-label">후원하기</div>
         </div>
 
         <!-- ★ 추모관 (R2) -->
         <a class="quick-item" href="/memorial.html">
-          <span class="qi-arrow">↗</span>
-          <div class="qi-icon">🕯️</div>
+          <span class="qi-arrow"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></span>
+          <div class="qi-icon"><span class="siren-icon-wrap" data-icon="candle"></span></div>
           <div class="qi-label">온라인 추모관</div>
         </a>
 
-        <!-- 2~4. 🚨 SIREN 그룹 (사건/악성/법률) -->
+        <!-- 2~4. SIREN 그룹 (사건/악성/법률) -->
         <a class="quick-item siren-item" href="/incidents.html">
-          <span class="siren-badge">🚨 SIREN</span>
-          <span class="qi-arrow">↗</span>
-          <div class="qi-icon">🔍</div>
+          <span class="siren-badge"><span class="siren-icon-wrap" data-icon="siren"></span> SIREN</span>
+          <span class="qi-arrow"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></span>
+          <div class="qi-icon"><span class="siren-icon-wrap" data-icon="search"></span></div>
           <div class="qi-label">사건 관련 제보</div>
         </a>
         <a class="quick-item siren-item" href="/report-harassment.html">
-          <span class="siren-badge">🚨 SIREN</span>
-          <span class="qi-arrow">↗</span>
-          <div class="qi-icon">⚠️</div>
+          <span class="siren-badge"><span class="siren-icon-wrap" data-icon="siren"></span> SIREN</span>
+          <span class="qi-arrow"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></span>
+          <div class="qi-icon"><span class="siren-icon-wrap" data-icon="alert-triangle"></span></div>
           <div class="qi-label">악성 민원 신고</div>
         </a>
         <a class="quick-item siren-item" href="/legal-support.html">
-          <span class="siren-badge">🚨 SIREN</span>
-          <span class="qi-arrow">↗</span>
-          <div class="qi-icon">⚖️</div>
+          <span class="siren-badge"><span class="siren-icon-wrap" data-icon="siren"></span> SIREN</span>
+          <span class="qi-arrow"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></span>
+          <div class="qi-icon"><span class="siren-icon-wrap" data-icon="scale"></span></div>
           <div class="qi-label">법률 지원 서비스</div>
         </a>
 
         <!-- 신청 내역 -->
         <a class="quick-item" href="/mypage.html#support">
-          <span class="qi-arrow">↗</span>
-          <div class="qi-icon">📋</div>
+          <span class="qi-arrow"><span class="siren-icon-wrap" data-icon="arrow-up-right"></span></span>
+          <div class="qi-icon"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></div>
           <div class="qi-label">신청 내역 조회</div>
         </a>
 
@@ -225,7 +226,7 @@
         <div class="sec-head" style="margin-bottom:28px">
           <div>
             <div class="sec-eyebrow">캠페인 (CAMPAIGN)</div>
-            <div class="sec-title">🎗 진행 중인 캠페인</div>
+            <div class="sec-title"><span class="siren-icon-wrap" data-icon="ribbon"></span> 진행 중인 캠페인</div>
           </div>
           <a href="/campaigns.html" class="sec-link">+ 모든 캠페인 보기</a>
         </div>
@@ -342,13 +343,13 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js"></script>
-  <script src="/js/auth.js?v=16"></script>
-  <script src="/js/news.js"></script>
-  <script src="/js/support.js"></script>
-  <script src="/js/home.js"></script>
+  <script src="/js/common.js?v=3-navicon"></script>
+  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/news.js?v=2"></script>
+  <script src="/js/support.js?v=2"></script>
+  <script src="/js/home.js?v=2"></script>
   <script src="/js/donate.js?v=r45"></script>
-  <script src="/js/home-campaigns.js?v=2026-05"></script>
+  <script src="/js/home-campaigns.js?v=2027-05"></script>
   <script src="/js/site-popup.js?v=20260517r1"></script>
 </body>
 </html>

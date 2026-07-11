@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script src="/js/icons.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- PWA(앱 설치) -->
@@ -10,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=2" defer></script>
+<script src="/js/pwa.js?v=3" defer></script>
 <title>함께워크_SI — NPO AI 플랫폼 패키지 제안서</title>
 <meta name="robots" content="noindex,nofollow">
 <style>
@@ -273,25 +274,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       <p class="sub" style="margin-bottom:28px">후원·회원·재정·근태·협업·AI까지 <strong style="color:#0f172a">공통 핵심 기능을 기본 제공</strong>합니다.<br>신고·추모관 등 <strong style="color:#2563eb">단체 성격에 맞는 전용 기능</strong>은 별도 맞춤 개발합니다.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">💳</span><span style="font-size:14px;font-weight:600;color:#0f172a">통합 후원·결제</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="credit-card"></span></span><span style="font-size:14px;font-weight:600;color:#0f172a">통합 후원·결제</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">👥</span><span style="font-size:14px;font-weight:600;color:#0f172a">회원·등급 CRM</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="users"></span></span><span style="font-size:14px;font-weight:600;color:#0f172a">회원·등급 CRM</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">📊</span><span style="font-size:14px;font-weight:600;color:#0f172a">재정·회계 자동화</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span style="font-size:14px;font-weight:600;color:#0f172a">재정·회계 자동화</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">🗓️</span><span style="font-size:14px;font-weight:600;color:#0f172a">성과·근태 관리</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="calendar-days"></span></span><span style="font-size:14px;font-weight:600;color:#0f172a">성과·근태 관리</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">📋</span><span style="font-size:14px;font-weight:600;color:#0f172a">워크스페이스 협업</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span><span style="font-size:14px;font-weight:600;color:#0f172a">워크스페이스 협업</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">🤖</span><span style="font-size:14px;font-weight:600;color:#0f172a">AI 에이전트 (AX)</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="bot"></span></span><span style="font-size:14px;font-weight:600;color:#0f172a">AI 에이전트 (AX)</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;grid-column:1 / -1">
-          <span style="font-size:20px">🎯</span><span style="font-size:14px;font-weight:700;color:#2563eb">NPO 맞춤 기능 — 신고·추모관·유족지원 등 단체별 전용 개발</span>
+          <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="target"></span></span><span style="font-size:14px;font-weight:700;color:#2563eb">NPO 맞춤 기능 — 신고·추모관·유족지원 등 단체별 전용 개발</span>
         </div>
       </div>
     </div>
@@ -315,7 +316,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         </div>
       </div>
       <div style="background:#eff6ff;border-radius:12px;padding:16px 20px;border:1px solid #bfdbfe">
-        <div style="font-size:13px;font-weight:700;color:#2563eb;margin-bottom:4px">🔒 보안 & 안정성</div>
+        <div style="font-size:13px;font-weight:700;color:#2563eb;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="lock"></span> 보안 & 안정성</div>
         <div style="font-size:14px;color:#1e40af">JWT 인증 · httpOnly 쿠키 · R2 암호화 저장 · 감사 로그 · 차단 미들웨어</div>
       </div>
     </div>
@@ -342,19 +343,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     </div>
     <div style="flex:1.2;display:flex;flex-direction:column;gap:13px">
       <div class="card" style="display:flex;gap:14px;align-items:flex-start;border-left:3px solid #7c3aed;border-radius:0 14px 14px 0">
-        <div style="width:38px;height:38px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">🔑</div>
+        <div style="width:38px;height:38px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="key"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">JWT + httpOnly 쿠키 인증</div><div style="font-size:13px;color:#64748b">브라우저에서 토큰 탈취 불가. 사용자·관리자 권한 완전 분리.</div></div>
       </div>
       <div class="card" style="display:flex;gap:14px;align-items:flex-start;border-left:3px solid #2563eb;border-radius:0 14px 14px 0">
-        <div style="width:38px;height:38px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">🛡️</div>
+        <div style="width:38px;height:38px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="shield"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">역할 기반 접근 권한 (RBAC)</div><div style="font-size:13px;color:#64748b">슈퍼관리자·운영자·담당자·일반회원 4계층. 각 계층이 볼 수 있는 정보를 API 레벨에서 제한.</div></div>
       </div>
       <div class="card" style="display:flex;gap:14px;align-items:flex-start;border-left:3px solid #10b981;border-radius:0 14px 14px 0">
-        <div style="width:38px;height:38px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">🚫</div>
+        <div style="width:38px;height:38px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="ban"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">차단 미들웨어</div><div style="font-size:13px;color:#64748b">문제 사용자 즉시 서비스 차단. 사유 기록. 모든 API 진입 전 자동 검증.</div></div>
       </div>
       <div class="card" style="display:flex;gap:14px;align-items:flex-start;border-left:3px solid #f59e0b;border-radius:0 14px 14px 0">
-        <div style="width:38px;height:38px;border-radius:10px;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">📋</div>
+        <div style="width:38px;height:38px;border-radius:10px;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">전체 감사 로그 1년 보관</div><div style="font-size:13px;color:#64748b">누가 무엇을 언제 변경했는지 추적. 이사회·외부 감사 요청 즉시 대응 가능.</div></div>
       </div>
     </div>
@@ -391,41 +392,41 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div style="padding:26px 36px 0">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
       <div class="card-dark" style="padding:18px">
-        <div style="font-size:26px;margin-bottom:8px">💳</div>
+        <div style="font-size:26px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="credit-card"></span></div>
         <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">통합 후원·결제</div>
         <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">정기·일시·CMS 자동청구·영수증 자동발급까지 후원 전 과정을 한 곳에서 처리합니다.</div>
       </div>
       <div class="card-dark" style="padding:18px">
-        <div style="font-size:26px;margin-bottom:8px">👥</div>
+        <div style="font-size:26px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="users"></span></div>
         <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">회원·등급 CRM</div>
         <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">가입·등급·이탈 예측·세그먼트 발송으로 후원자 현황을 데이터로 관리합니다.</div>
       </div>
       <div class="card-dark" style="padding:18px">
-        <div style="font-size:26px;margin-bottom:8px">📊</div>
+        <div style="font-size:26px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></div>
         <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">재정·회계 자동화</div>
         <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">AI 지출 분류·예산 대비 집행·투명 공시까지 회계 업무를 자동으로 처리합니다.</div>
       </div>
       <div class="card-dark" style="padding:18px">
-        <div style="font-size:26px;margin-bottom:8px">🗓️</div>
+        <div style="font-size:26px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="calendar-days"></span></div>
         <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">성과·근태 관리 <span style="font-size:10px;color:#34d399;font-weight:700;vertical-align:middle">NEW</span></div>
         <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">출퇴근·급여·성과 평가까지 직원 인사 운영을 한 시스템에서 처리합니다.</div>
       </div>
       <div class="card-dark" style="padding:18px">
-        <div style="font-size:26px;margin-bottom:8px">📋</div>
+        <div style="font-size:26px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></div>
         <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">워크스페이스 협업</div>
         <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">칸반·캘린더·파일함·문서·템플릿을 외부 협업툴 구독 없이 한 곳에서 사용합니다.</div>
       </div>
       <div class="card-dark" style="padding:18px">
-        <div style="font-size:26px;margin-bottom:8px">🤖</div>
+        <div style="font-size:26px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bot"></span></div>
         <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">AI 에이전트 (AX)</div>
         <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">자연어 명령으로 회원·후원·통계·발송을 실행하고, 협회가 쌓은 지식을 의미 검색(RAG)해 정확한 근거로 답변합니다.</div>
       </div>
     </div>
     <div style="margin-top:18px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.32);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:14px">
-      <span style="font-size:22px">🎯</span>
+      <span style="font-size:22px"><span class="siren-icon-wrap" data-icon="target"></span></span>
       <div style="font-size:13.5px;color:#cbd5e1;line-height:1.55">
         <strong style="color:#fff">공통 기능 외에도</strong> 단체 성격에 맞는 전용 기능을 별도로 맞춤 개발합니다.
-        <span style="color:#93c5fd;font-weight:600">싸이렌 사례: 🚨 신고 플랫폼 · 🕯️ 온라인 추모관 · 🤝 유족 지원 시스템</span>
+        <span style="color:#93c5fd;font-weight:600">싸이렌 사례: <span class="siren-icon-wrap" data-icon="siren"></span> 신고 플랫폼 · <span class="siren-icon-wrap" data-icon="candle"></span> 온라인 추모관 · <span class="siren-icon-wrap" data-icon="handshake"></span> 유족 지원 시스템</span>
       </div>
     </div>
   </div>
@@ -454,7 +455,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div style="display:flex;align-items:center;gap:12px">
       <span style="display:inline-flex;width:10px;height:10px;border-radius:50%;background:#ef4444"></span>
       <span style="font-weight:800;font-size:16px;color:#0f172a">SIREN 신고 플랫폼</span>
-      <span class="tag" style="background:#eff6ff;color:#2563eb">🎯 NPO 맞춤 개발 예시</span>
+      <span class="tag" style="background:#eff6ff;color:#2563eb"><span class="siren-icon-wrap" data-icon="target"></span> NPO 맞춤 개발 예시</span>
     </div>
     <div style="font-size:13px;color:#64748b">단체 성격에 맞춘 전용 기능 사례 — 사건·괴롭힘·법률 3종 익명 신고 · AI 우선순위 자동</div>
   </div>
@@ -564,11 +565,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
           <div style="font-size:15px;color:#fff;font-weight:600">"5월 신규 회원들한테 환영 메일 보내줘"</div>
         </div>
         <div style="background:#1e293b;border-radius:10px;padding:14px 18px;margin-bottom:12px;border-left:3px solid #fbbf24">
-          <div style="font-size:13px;color:#fbbf24;margin-bottom:4px">⚡ 실행 미리보기 (자동 생성)</div>
+          <div style="font-size:13px;color:#fbbf24;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="zap"></span> 실행 미리보기 (자동 생성)</div>
           <div style="font-size:13px;color:#e2e8f0;line-height:1.6">대상: 5월 신규 127명 · 템플릿 #3 · 즉시 발송<br>비용 예상: 127건 API 호출</div>
         </div>
         <div style="background:#1e293b;border-radius:10px;padding:14px 18px;border-left:3px solid #10b981">
-          <div style="font-size:13px;color:#10b981;margin-bottom:4px">✅ 승인 후 완료 (오후 2:15)</div>
+          <div style="font-size:13px;color:#10b981;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="circle-check"></span> 승인 후 완료 (오후 2:15)</div>
           <div style="font-size:13px;color:#e2e8f0">127명 전원 발송 · 실패 0건 · 업무 카드 자동 완료</div>
         </div>
         <div style="text-align:center;margin-top:16px">
@@ -630,7 +631,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         </div>
         <p style="font-size:14px;margin-bottom:16px">현재 작업이 완료되면 맥락에 따라 관련된 후속 작업을 자동으로 제안합니다.</p>
         <div style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:14px">
-          <div style="font-size:12px;color:#c4b5fd;margin-bottom:6px">💡 AI 다음 단계 제안 예시</div>
+          <div style="font-size:12px;color:#c4b5fd;margin-bottom:6px"><span class="siren-icon-wrap" data-icon="lightbulb"></span> AI 다음 단계 제안 예시</div>
           <div style="font-size:13px;color:#e2e8f0;line-height:1.7">환영 메일 발송 완료 → "신규 회원 카드를 워크스페이스에 등록할까요?"<br>"이번 달 가입 추이 브리핑을 확인해보시겠어요?"</div>
         </div>
       </div>
@@ -641,14 +642,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         </div>
         <p style="font-size:14px;margin-bottom:16px">"매주 월요일 오전 9시에 후원 현황 요약해줘" — 한 번 예약하면 설정한 일정에 따라 자동으로 반복 실행합니다.</p>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8">⏰ 일회성 / 반복 / cron 모두 지원</div>
-          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8">📋 예약 목록 조회 · 취소 · 수정 가능</div>
-          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8">🔔 실행 완료 시 알림 자동 발송</div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8"><span class="siren-icon-wrap" data-icon="alarm-clock"></span> 일회성 / 반복 / cron 모두 지원</div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 예약 목록 조회 · 취소 · 수정 가능</div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8"><span class="siren-icon-wrap" data-icon="bell"></span> 실행 완료 시 알림 자동 발송</div>
         </div>
       </div>
     </div>
     <div style="margin-top:24px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:14px">
-      <span style="font-size:22px">🔍</span>
+      <span style="font-size:22px"><span class="siren-icon-wrap" data-icon="search"></span></span>
       <div style="font-size:13.5px;color:#cbd5e1;line-height:1.55">
         <strong style="color:#fff">지식 의미 검색 (RAG)</strong> — 실행 자동화에 더해, 협회가 쌓아온 Q&amp;A·운영 메뉴얼을 의미 단위로 검색해 AI 비서 답변의 근거로 자동 제공합니다.
         <span style="color:#93c5fd;font-weight:600">자료가 바뀌면 재색인 한 번으로 최신 내용이 반영됩니다.</span>
@@ -826,7 +827,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
     </div>
     <div style="margin-top:28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 24px;display:flex;align-items:center;gap:16px">
-      <span style="font-size:24px">💡</span>
+      <span style="font-size:24px"><span class="siren-icon-wrap" data-icon="lightbulb"></span></span>
       <div style="font-size:14px;color:#475569"><strong style="color:#0f172a">기존 데이터 100% 이전 보장</strong> — Excel·구글 시트·기타 시스템의 회원·후원·지원 이력 전체를 SIREN으로 안전하게 이전합니다. 이전 과정 전체를 저희가 책임지고 진행합니다.</div>
     </div>
   </div>
@@ -852,7 +853,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         </div>
       </div>
       <div class="card" style="border-top:4px solid #2563eb;box-shadow:0 4px 20px rgba(37,99,235,.12)">
-        <div style="font-size:13px;font-weight:700;color:#2563eb;margin-bottom:8px">STANDARD ⭐</div>
+        <div style="font-size:13px;font-weight:700;color:#2563eb;margin-bottom:8px">STANDARD <span class="siren-icon-wrap" data-icon="star"></span></div>
         <div style="font-size:28px;font-weight:900;color:#0f172a;margin-bottom:4px">표준형</div>
         <div style="font-size:13px;color:#64748b;margin-bottom:16px">중소규모 / 가장 많이 선택</div>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -877,7 +878,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
     </div>
     <div style="margin-top:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 22px;display:flex;align-items:center;gap:14px">
-      <span style="font-size:22px">🛡️</span>
+      <span style="font-size:22px"><span class="siren-icon-wrap" data-icon="shield"></span></span>
       <div style="font-size:14px;color:#166534"><strong style="color:#0f172a">모든 패키지 공통: 납품 후 6개월 무상 하자보증</strong> — 운영 중 발생하는 버그·오류를 6개월간 무상으로 수정합니다.</div>
     </div>
   </div>
@@ -1009,7 +1010,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         <p style="font-size:13px;color:#64748b">서버 · 기능 업데이트 · 버그 수정 · 모니터링 포함</p>
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px">
-        <div style="font-size:13px;font-weight:700;color:#16a34a;margin-bottom:4px">💚 비영리단체 우대</div>
+        <div style="font-size:13px;font-weight:700;color:#16a34a;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="heart"></span> 비영리단체 우대</div>
         <div style="font-size:13px;color:#166534">교사유가족협의회 같은 공익 목적 단체에는 별도 협의로 지원 단가 적용 가능합니다.</div>
       </div>
     </div>
@@ -1027,23 +1028,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     </div>
     <div style="flex:1.2;display:flex;flex-direction:column;gap:14px">
       <div class="card" style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🔧</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="wrench"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:4px">정기 기능 업데이트</div><div style="font-size:14px;color:#64748b">매월 개선 사항을 자동으로 배포합니다. 별도 요청 없이 플랫폼을 최신 상태로 유지합니다.</div></div>
       </div>
       <div class="card" style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🐛</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="bug"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:4px">버그 수정 보장</div><div style="font-size:14px;color:#64748b">긴급 장애 발생 시 24시간 내에 대응합니다. 운영에 지장이 없도록 신속히 조치합니다.</div></div>
       </div>
       <div class="card" style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:10px;background:#fef9c3;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📊</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:#fef9c3;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:4px">월간 운영 리포트</div><div style="font-size:14px;color:#64748b">사용 현황 · 오류 로그 · AI 활용도 · 보안 점검 결과를 월 1회 제공합니다.</div></div>
       </div>
       <div class="card" style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎓</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="graduation-cap"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:4px">담당자 교육 지원</div><div style="font-size:14px;color:#64748b">담당자 교체 시 무상으로 재교육을 진행합니다. 매뉴얼과 영상 자료를 상시 제공합니다.</div></div>
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 20px;display:flex;gap:14px;align-items:center">
-        <div style="width:40px;height:40px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🛡️</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="shield"></span></div>
         <div><div style="font-weight:700;color:#0f172a;margin-bottom:4px">6개월 무상 하자보증</div><div style="font-size:14px;color:#64748b">납품 완료 후 6개월간 운영 중 발생하는 버그·오류를 무상으로 수정합니다.</div></div>
       </div>
     </div>
@@ -1102,15 +1103,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div style="flex:1.5;display:flex;flex-direction:column;gap:20px">
       <div class="tag tag-blue" style="align-self:flex-start;margin-bottom:4px">우리를 선택하는 이유</div>
       <div style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:44px;height:44px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎯</div>
+        <div style="width:44px;height:44px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="target"></span></div>
         <div><div style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:4px">NPO 특화 설계</div><div style="font-size:14px;color:#64748b">일반 기업용 솔루션을 NPO에 적용하는 방식이 아닙니다. 후원·유족지원부터 온라인 추모관·유가족 이야기까지, 비영리단체 운영 흐름을 처음부터 반영해 설계했습니다.</div></div>
       </div>
       <div style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:44px;height:44px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🚀</div>
+        <div style="width:44px;height:44px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="rocket"></span></div>
         <div><div style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:4px">실 운영 레퍼런스</div><div style="font-size:14px;color:#64748b">교사유가족협의회에서 현재 운영 중인 플랫폼입니다. 회원·정기 후원 처리·신고 대응·온라인 추모관이 이 시스템으로 실제 작동하고 있습니다.</div></div>
       </div>
       <div style="display:flex;gap:16px;align-items:flex-start">
-        <div style="width:44px;height:44px;border-radius:12px;background:#f5f3ff;border:1px solid #ddd6fe;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🤖</div>
+        <div style="width:44px;height:44px;border-radius:12px;background:#f5f3ff;border:1px solid #ddd6fe;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="bot"></span></div>
         <div><div style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:4px">AI 기본 내장</div><div style="font-size:14px;color:#64748b">AI는 추가 옵션이 아닌 기본 구성입니다. 120+ 도구·일일 브리핑·리스크 분석·지출 분류가 플랫폼에 통합되어 있습니다.</div></div>
       </div>
     </div>
@@ -1152,7 +1153,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         </div>
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 20px;display:flex;gap:12px;align-items:center">
-        <span style="font-size:22px">🔗</span>
+        <span style="font-size:22px"><span class="siren-icon-wrap" data-icon="link"></span></span>
         <div style="font-size:14px;color:#166534">라이브 데모: <strong>tbfa.co.kr</strong> — 실제 운영 화면을 직접 확인하실 수 있습니다.</div>
       </div>
     </div>
@@ -1168,7 +1169,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
       <div class="card" style="border-top:4px solid #2563eb;padding:28px">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-          <div style="width:52px;height:52px;border-radius:50%;background:#eff6ff;border:2px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-size:24px">👤</div>
+          <div style="width:52px;height:52px;border-radius:50%;background:#eff6ff;border:2px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-size:24px"><span class="siren-icon-wrap" data-icon="user"></span></div>
           <div>
             <div style="font-size:19px;font-weight:900;color:#0f172a">박두용</div>
             <div style="font-size:13px;color:#2563eb;font-weight:700">기획 · PM · 대표</div>
@@ -1190,7 +1191,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
       <div class="card" style="border-top:4px solid #7c3aed;padding:28px">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-          <div style="width:52px;height:52px;border-radius:50%;background:#f5f3ff;border:2px solid #ddd6fe;display:flex;align-items:center;justify-content:center;font-size:24px">👤</div>
+          <div style="width:52px;height:52px;border-radius:50%;background:#f5f3ff;border:2px solid #ddd6fe;display:flex;align-items:center;justify-content:center;font-size:24px"><span class="siren-icon-wrap" data-icon="user"></span></div>
           <div>
             <div style="font-size:19px;font-weight:900;color:#0f172a">장석주</div>
             <div style="font-size:13px;color:#7c3aed;font-weight:700">보안 · 플랫폼 풀스택</div>
@@ -1210,7 +1211,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
     </div>
     <div style="margin-top:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 22px;display:flex;align-items:center;gap:14px">
-      <span style="font-size:22px">🤝</span>
+      <span style="font-size:22px"><span class="siren-icon-wrap" data-icon="handshake"></span></span>
       <div style="font-size:14px;color:#475569"><strong style="color:#0f172a">NPO 현장 맞춤 기획과 보안·개발을 두 전문가가 직접 담당합니다.</strong> 외주 없이 직접 개발·유지보수합니다.</div>
     </div>
   </div>
@@ -1268,24 +1269,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <h1 style="font-size:46px;font-weight:900;line-height:1.15;color:#fff;margin-bottom:20px">도입 검토를<br>시작하겠습니다</h1>
   <p style="font-size:17px;color:rgba(255,255,255,.75);max-width:600px;line-height:1.65;margin-bottom:16px">첫 미팅에서 현행 업무 분석부터 진행합니다.<br>무료 진단 후 단체 상황에 맞는 제안서를 제공합니다.</p>
   <div style="display:flex;gap:16px;margin-bottom:28px;justify-content:center">
-    <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;color:#fff">✅ 교사유가족협의회에서 현재 실제 운영 중</div>
-    <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;color:#fff">🆓 2주 무료 POC(개념검증) 제공</div>
+    <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;color:#fff"><span class="siren-icon-wrap" data-icon="circle-check"></span> 교사유가족협의회에서 현재 실제 운영 중</div>
+    <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;color:#fff"><span class="siren-icon-wrap" data-icon="tag"></span> 2주 무료 POC(개념검증) 제공</div>
   </div>
   <div style="display:flex;gap:20px;margin-bottom:48px">
     <div style="background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:20px 32px;text-align:center">
-      <div style="font-size:28px;margin-bottom:6px">📋</div>
+      <div style="font-size:28px;margin-bottom:6px"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></div>
       <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px">Step 1</div>
       <div style="font-size:13px;color:rgba(255,255,255,.7)">무료 업무 진단 미팅</div>
     </div>
     <div style="color:rgba(255,255,255,.4);font-size:24px;align-self:center">→</div>
     <div style="background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:20px 32px;text-align:center">
-      <div style="font-size:28px;margin-bottom:6px">📊</div>
+      <div style="font-size:28px;margin-bottom:6px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></div>
       <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px">Step 2</div>
       <div style="font-size:13px;color:rgba(255,255,255,.7)">맞춤 제안서 & 견적</div>
     </div>
     <div style="color:rgba(255,255,255,.4);font-size:24px;align-self:center">→</div>
     <div style="background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:20px 32px;text-align:center">
-      <div style="font-size:28px;margin-bottom:6px">🚀</div>
+      <div style="font-size:28px;margin-bottom:6px"><span class="siren-icon-wrap" data-icon="rocket"></span></div>
       <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px">Step 3</div>
       <div style="font-size:13px;color:rgba(255,255,255,.7)">온보딩 시작</div>
     </div>
@@ -1328,7 +1329,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     <div style="background:#f8fafc;border-radius:12px;padding:16px 20px;border:1px solid #e2e8f0">
-      <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px">📄 자동 발급 서류</div>
+      <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="file-text"></span> 자동 발급 서류</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <span style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px">영수증 PDF</span>
         <span style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px">기부금 영수증</span>
@@ -1337,7 +1338,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
     </div>
     <div style="background:#f8fafc;border-radius:12px;padding:16px 20px;border:1px solid #e2e8f0">
-      <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px">📊 실시간 현황판</div>
+      <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 실시간 현황판</div>
       <div style="display:flex;gap:20px">
         <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#2563eb">247명</div><div style="font-size:11px;color:#64748b">정기 후원자</div></div>
         <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#059669">89.3%</div><div style="font-size:11px;color:#64748b">청구 성공률</div></div>
@@ -1358,22 +1359,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div class="card" style="padding:20px">
       <div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:10px">회원 등급 자동 재계산</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">👑</span><div><div style="font-size:13px;font-weight:700;color:#0f172a">명예 회원</div><div style="font-size:11px;color:#64748b">10년 이상 · 누적 500만원+</div></div></div>
-        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">⭐</span><div><div style="font-size:13px;font-weight:700;color:#0f172a">정회원 (Gold)</div><div style="font-size:11px;color:#64748b">5년 이상 · 누적 100만원+</div></div></div>
-        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">🌟</span><div><div style="font-size:13px;font-weight:700;color:#0f172a">일반 회원</div><div style="font-size:11px;color:#64748b">정기 후원 활성화</div></div></div>
-        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">🔔</span><div><div style="font-size:13px;font-weight:700;color:#64748b">관심 회원</div><div style="font-size:11px;color:#64748b">가입 후 미후원 — 독려 대상</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="crown"></span></span><div><div style="font-size:13px;font-weight:700;color:#0f172a">명예 회원</div><div style="font-size:11px;color:#64748b">10년 이상 · 누적 500만원+</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="star"></span></span><div><div style="font-size:13px;font-weight:700;color:#0f172a">정회원 (Gold)</div><div style="font-size:11px;color:#64748b">5년 이상 · 누적 100만원+</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="star"></span></span><div><div style="font-size:13px;font-weight:700;color:#0f172a">일반 회원</div><div style="font-size:11px;color:#64748b">정기 후원 활성화</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="bell"></span></span><div><div style="font-size:13px;font-weight:700;color:#64748b">관심 회원</div><div style="font-size:11px;color:#64748b">가입 후 미후원 — 독려 대상</div></div></div>
       </div>
       <div style="margin-top:12px;background:#eff6ff;border-radius:8px;padding:8px 12px;font-size:11px;color:#2563eb">매일 cron 자동 재계산 — 수동 갱신 불필요</div>
     </div>
     <div class="card" style="padding:20px">
       <div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:10px">통합 회원 화면</div>
       <div style="display:flex;flex-direction:column;gap:7px">
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💰</span><span style="font-size:13px;color:#0f172a">후원 이력 전체 · 납부 현황</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💬</span><span style="font-size:13px;color:#0f172a">상담·신고 이력 통합 조회</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📧</span><span style="font-size:13px;color:#0f172a">이메일·SMS 발송 이력</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">🔒</span><span style="font-size:13px;color:#0f172a">개인정보 동의 이력 + 블랙리스트</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📊</span><span style="font-size:13px;color:#0f172a">이탈 위험 점수 (AI 산출)</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📑</span><span style="font-size:13px;color:#0f172a">연말정산 영수증 재발급 원클릭</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="coins"></span></span><span style="font-size:13px;color:#0f172a">후원 이력 전체 · 납부 현황</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="message-circle"></span></span><span style="font-size:13px;color:#0f172a">상담·신고 이력 통합 조회</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="mail"></span></span><span style="font-size:13px;color:#0f172a">이메일·SMS 발송 이력</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="lock"></span></span><span style="font-size:13px;color:#0f172a">개인정보 동의 이력 + 블랙리스트</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span style="font-size:13px;color:#0f172a">이탈 위험 점수 (AI 산출)</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px"><span class="siren-icon-wrap" data-icon="files"></span></span><span style="font-size:13px;color:#0f172a">연말정산 영수증 재발급 원클릭</span></div>
       </div>
     </div>
   </div>
@@ -1401,15 +1402,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:8px">하루 다중 세션 지원</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border-radius:8px;padding:8px 12px">
-            <span style="font-size:15px">🟢</span>
+            <span style="font-size:15px"><span class="siren-icon-wrap" data-icon="circle-dot"></span></span>
             <div><div style="font-size:12px;font-weight:700;color:#0f172a">출근</div><div style="font-size:11px;color:#64748b">09:02 기록</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border-radius:8px;padding:8px 12px">
-            <span style="font-size:15px">🔴</span>
+            <span style="font-size:15px"><span class="siren-icon-wrap" data-icon="circle-dot"></span></span>
             <div><div style="font-size:12px;font-weight:700;color:#0f172a">퇴근</div><div style="font-size:11px;color:#64748b">13:15 기록</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border-radius:8px;padding:8px 12px">
-            <span style="font-size:15px">🟢</span>
+            <span style="font-size:15px"><span class="siren-icon-wrap" data-icon="circle-dot"></span></span>
             <div><div style="font-size:12px;font-weight:700;color:#0f172a">재출근</div><div style="font-size:11px;color:#64748b">14:30 기록</div></div>
           </div>
         </div>
@@ -1469,10 +1470,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div class="card-dark" style="border-top:2px solid #60a5fa"><div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px">법률 상담</div><div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">무료 법률 상담</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">전문 변호사 상담 예약. 상담 이력 관리. 소요 시간 추적. 후속 조치 알림.</div></div>
   </div>
   <div style="display:flex;gap:12px">
-    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔒</span><div><div style="font-size:12px;font-weight:700;color:#fff">익명 제출 지원</div><div style="font-size:11px;color:#64748b">신고자 보호 최우선. IP 비저장 옵션.</div></div></div>
-    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">📩</span><div><div style="font-size:12px;font-weight:700;color:#fff">자동 접수·알림</div><div style="font-size:11px;color:#64748b">접수 즉시 담당자에게 이메일 알림.</div></div></div>
-    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">📊</span><div><div style="font-size:12px;font-weight:700;color:#fff">관리자 대시보드</div><div style="font-size:11px;color:#64748b">신고 유형·처리 현황·소요 시간 통계.</div></div></div>
-    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:12px;font-weight:700;color:#fff">진행 현황 추적</div><div style="font-size:11px;color:#64748b">접수 → 배정 → 처리 → 완료 자동.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="lock"></span></span><div><div style="font-size:12px;font-weight:700;color:#fff">익명 제출 지원</div><div style="font-size:11px;color:#64748b">신고자 보호 최우선. IP 비저장 옵션.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="mail"></span></span><div><div style="font-size:12px;font-weight:700;color:#fff">자동 접수·알림</div><div style="font-size:11px;color:#64748b">접수 즉시 담당자에게 이메일 알림.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><div><div style="font-size:12px;font-weight:700;color:#fff">관리자 대시보드</div><div style="font-size:11px;color:#64748b">신고 유형·처리 현황·소요 시간 통계.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="bell"></span></span><div><div style="font-size:12px;font-weight:700;color:#fff">진행 현황 추적</div><div style="font-size:11px;color:#64748b">접수 → 배정 → 처리 → 완료 자동.</div></div></div>
   </div>
 </div>
 
@@ -1519,37 +1520,37 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <p style="font-size:13px;color:#94a3b8;margin-bottom:16px">모든 NPO에 추모관이 필요한 것은 아닙니다. 단체에 필요한 기능이 무엇이든 이와 같은 방식으로 맞춤 개발합니다.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
     <div class="card-dark" style="border-top:2px solid #60a5fa">
-      <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px">🕯️ 통합 추모 공간</div>
+      <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="candle"></span> 통합 추모 공간</div>
       <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:8px">개별 추모 페이지 + 헌화</div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">
-          <span style="font-size:16px">🕯️</span>
+          <span style="font-size:16px"><span class="siren-icon-wrap" data-icon="candle"></span></span>
           <div><div style="font-size:12px;font-weight:700;color:#fff">촛불 헌화</div><div style="font-size:11px;color:#64748b">방문자가 클릭으로 추모 참여</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">
-          <span style="font-size:16px">🌸</span>
+          <span style="font-size:16px"><span class="siren-icon-wrap" data-icon="flower"></span></span>
           <div><div style="font-size:12px;font-weight:700;color:#fff">국화 헌화</div><div style="font-size:11px;color:#64748b">종류 선택 후 메시지 남기기</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">
-          <span style="font-size:16px">📸</span>
+          <span style="font-size:16px"><span class="siren-icon-wrap" data-icon="camera"></span></span>
           <div><div style="font-size:12px;font-weight:700;color:#fff">개별 추모 페이지</div><div style="font-size:11px;color:#64748b">사진·영상·소개문 어드민 관리</div></div>
         </div>
       </div>
     </div>
     <div class="card-dark" style="border-top:2px solid #a78bfa">
-      <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px">📖 유가족 이야기</div>
+      <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="book-open"></span> 유가족 이야기</div>
       <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:8px">영상 + AI 상세페이지 → 후원 연결</div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">
-          <span style="font-size:16px">🎥</span>
+          <span style="font-size:16px"><span class="siren-icon-wrap" data-icon="video"></span></span>
           <div><div style="font-size:12px;font-weight:700;color:#fff">영상 스토리 업로드</div><div style="font-size:11px;color:#64748b">유가족 이야기를 영상으로 공유</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">
-          <span style="font-size:16px">🤖</span>
+          <span style="font-size:16px"><span class="siren-icon-wrap" data-icon="bot"></span></span>
           <div><div style="font-size:12px;font-weight:700;color:#fff">AI 자동 상세페이지 생성</div><div style="font-size:11px;color:#64748b">영상 내용 → AI가 소개문 자동 작성</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">
-          <span style="font-size:16px">💙</span>
+          <span style="font-size:16px"><span class="siren-icon-wrap" data-icon="heart"></span></span>
           <div><div style="font-size:12px;font-weight:700;color:#fff">후원 연결</div><div style="font-size:11px;color:#64748b">이야기 페이지에서 바로 후원 가능</div></div>
         </div>
       </div>
@@ -1557,11 +1558,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   </div>
   <div style="display:flex;gap:14px">
     <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:18px">🎯</span>
+      <span style="font-size:18px"><span class="siren-icon-wrap" data-icon="target"></span></span>
       <div><div style="font-size:12px;font-weight:700;color:#fff">SIREN만의 고정 기능이 아닙니다</div><div style="font-size:11px;color:#64748b">단체 성격에 맞는 전용 기능이라면 동일한 방식으로 맞춤 개발합니다.</div></div>
     </div>
     <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:18px">✅</span>
+      <span style="font-size:18px"><span class="siren-icon-wrap" data-icon="circle-check"></span></span>
       <div><div style="font-size:12px;font-weight:700;color:#fff">실 운영 중</div><div style="font-size:11px;color:#64748b">교사유가족협의회 tbfa.co.kr에서 실제 운영 화면을 확인하실 수 있습니다.</div></div>
     </div>
   </div>
@@ -1574,19 +1575,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <p style="font-size:13px;color:#93c5fd;margin-bottom:18px">후원금 사용 내역, AI 일일 브리핑, 연간 활동 보고서가 자동으로 생성됩니다. 이사회·후원자·외부 감사 모두 활용할 수 있습니다.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px">
     <div class="card-dark" style="border-top:2px solid #60a5fa">
-      <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px">🤖 AI 일일 브리핑</div>
+      <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bot"></span> AI 일일 브리핑</div>
       <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">매일 06:30 자동 생성</div>
       <div style="font-size:12px;color:#94a3b8;line-height:1.6">관리자별 맞춤 브리핑. 전일 후원 현황·신규 회원·처리 대기 업무·이탈 위험 회원을 요약해 제공합니다.</div>
       <div style="margin-top:10px;background:rgba(96,165,250,.15);border-radius:6px;padding:7px 10px;font-size:11px;color:#93c5fd">Google Gemini AI 자동 작성</div>
     </div>
     <div class="card-dark" style="border-top:2px solid #a78bfa">
-      <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px">📊 후원금 사용 리포트</div>
+      <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 후원금 사용 리포트</div>
       <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">분기·연간 자동 생성</div>
       <div style="font-size:12px;color:#94a3b8;line-height:1.6">후원금 수입·지출 내역 자동 집계. PDF 리포트 생성. 후원자에게 이메일 자동 발송.</div>
       <div style="margin-top:10px;background:rgba(167,139,250,.15);border-radius:6px;padding:7px 10px;font-size:11px;color:#c084fc">print CSS + PDF 변환</div>
     </div>
     <div class="card-dark" style="border-top:2px solid #34d399">
-      <div style="font-size:11px;font-weight:700;color:#6ee7b7;margin-bottom:8px">🔐 감사 로그</div>
+      <div style="font-size:11px;font-weight:700;color:#6ee7b7;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="lock-keyhole"></span> 감사 로그</div>
       <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">1년 전체 이력 보관</div>
       <div style="font-size:12px;color:#94a3b8;line-height:1.6">누가 무엇을 언제 변경했는지 전체 추적. 이사회·외부 감사 대비. 연간 자동 정리.</div>
       <div style="margin-top:10px;background:rgba(52,211,153,.15);border-radius:6px;padding:7px 10px;font-size:11px;color:#6ee7b7">cron 자동 1년 이상 정리</div>
@@ -1612,30 +1613,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   </div>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
     <div class="card" style="border-top:3px solid #2563eb;padding:18px">
-      <div style="font-size:22px;margin-bottom:8px">📱</div>
+      <div style="font-size:22px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="smartphone"></span></div>
       <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">문자 (SMS·LMS)</div>
       <div style="font-size:12px;color:#64748b;line-height:1.6">솔라피 연동. 단문·장문 지원. 대량 발송과 예약 발송을 제공합니다.</div>
     </div>
     <div class="card" style="border-top:3px solid #f59e0b;padding:18px">
-      <div style="font-size:22px;margin-bottom:8px">💬</div>
+      <div style="font-size:22px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="message-circle"></span></div>
       <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">카카오 알림톡</div>
       <div style="font-size:12px;color:#64748b;line-height:1.6">템플릿 기반 발송. 정기후원 청구·영수증·만료 안내 등 정형 안내에 사용합니다.</div>
     </div>
     <div class="card" style="border-top:3px solid #7c3aed;padding:18px">
-      <div style="font-size:22px;margin-bottom:8px">🔔</div>
+      <div style="font-size:22px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bell"></span></div>
       <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">인앱 알림</div>
       <div style="font-size:12px;color:#64748b;line-height:1.6">로그인 사용자에게 실시간 알림을 표시합니다. 읽음 처리와 알림 환경설정을 제공합니다.</div>
     </div>
     <div class="card" style="border-top:3px solid #10b981;padding:18px">
-      <div style="font-size:22px;margin-bottom:8px">📧</div>
+      <div style="font-size:22px;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="mail"></span></div>
       <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">이메일</div>
       <div style="font-size:12px;color:#64748b;line-height:1.6">개인화 메일·자동 영수증·정기 소식을 발송하고 결과를 자동 기록합니다.</div>
     </div>
   </div>
   <div style="display:flex;gap:12px">
-    <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">✅</span><div><div style="font-size:12px;font-weight:700;color:#0f172a">수신 동의·이력 관리</div><div style="font-size:11px;color:#64748b">동의 여부를 확인한 뒤 발송하고, 채널별 발송 이력을 보관합니다.</div></div></div>
-    <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔁</span><div><div style="font-size:12px;font-weight:700;color:#0f172a">실패 자동 재시도</div><div style="font-size:11px;color:#64748b">발송 실패 건은 자동으로 재시도하고 결과를 기록합니다.</div></div></div>
-    <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🎯</span><div><div style="font-size:12px;font-weight:700;color:#2563eb">상황별 채널 선택</div><div style="font-size:11px;color:#64748b">안내 성격에 맞는 채널로 발송해 발송 비용을 절감합니다.</div></div></div>
+    <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="circle-check"></span></span><div><div style="font-size:12px;font-weight:700;color:#0f172a">수신 동의·이력 관리</div><div style="font-size:11px;color:#64748b">동의 여부를 확인한 뒤 발송하고, 채널별 발송 이력을 보관합니다.</div></div></div>
+    <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="repeat"></span></span><div><div style="font-size:12px;font-weight:700;color:#0f172a">실패 자동 재시도</div><div style="font-size:11px;color:#64748b">발송 실패 건은 자동으로 재시도하고 결과를 기록합니다.</div></div></div>
+    <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px"><span class="siren-icon-wrap" data-icon="target"></span></span><div><div style="font-size:12px;font-weight:700;color:#2563eb">상황별 채널 선택</div><div style="font-size:11px;color:#64748b">안내 성격에 맞는 채널로 발송해 발송 비용을 절감합니다.</div></div></div>
   </div>
 </div>
 
@@ -1645,13 +1646,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <h2 style="font-size:28px;font-weight:900;color:#fff;margin:12px 0 6px">방송·언론 모니터링 & <span style="color:#93c5fd">여론 분석</span></h2>
   <p style="font-size:13px;color:#94a3b8;margin-bottom:18px">단체·이슈 관련 보도를 자동으로 수집하고, AI가 논조와 핵심 쟁점을 요약합니다. 대응이 필요한 보도를 놓치지 않습니다.</p>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
-    <div class="card-dark" style="border-top:2px solid #60a5fa"><div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px">📰 보도 자동 수집</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">키워드 기반 수집</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">설정한 키워드의 뉴스·언론 보도를 정기적으로 자동 수집·정리합니다.</div></div>
-    <div class="card-dark" style="border-top:2px solid #a78bfa"><div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px">🤖 AI 논조 분석</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">긍정·중립·부정 분류</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">기사 논조를 자동 분류하고 핵심 쟁점을 요약해 제공합니다.</div></div>
-    <div class="card-dark" style="border-top:2px solid #34d399"><div style="font-size:11px;font-weight:700;color:#6ee7b7;margin-bottom:8px">📊 여론 추이</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">기간별 보도량·논조</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">기간별 보도량과 논조 변화를 한눈에 확인하는 대시보드를 제공합니다.</div></div>
-    <div class="card-dark" style="border-top:2px solid #fbbf24"><div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:8px">🔔 대응 알림</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">이슈 발생 시 알림</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">부정 보도나 보도량 급증 시 담당자에게 자동으로 알립니다.</div></div>
+    <div class="card-dark" style="border-top:2px solid #60a5fa"><div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="newspaper"></span> 보도 자동 수집</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">키워드 기반 수집</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">설정한 키워드의 뉴스·언론 보도를 정기적으로 자동 수집·정리합니다.</div></div>
+    <div class="card-dark" style="border-top:2px solid #a78bfa"><div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bot"></span> AI 논조 분석</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">긍정·중립·부정 분류</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">기사 논조를 자동 분류하고 핵심 쟁점을 요약해 제공합니다.</div></div>
+    <div class="card-dark" style="border-top:2px solid #34d399"><div style="font-size:11px;font-weight:700;color:#6ee7b7;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 여론 추이</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">기간별 보도량·논조</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">기간별 보도량과 논조 변화를 한눈에 확인하는 대시보드를 제공합니다.</div></div>
+    <div class="card-dark" style="border-top:2px solid #fbbf24"><div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="bell"></span> 대응 알림</div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">이슈 발생 시 알림</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">부정 보도나 보도량 급증 시 담당자에게 자동으로 알립니다.</div></div>
   </div>
   <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 20px">
-    <span style="font-size:20px">📡</span>
+    <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="satellite-dish"></span></span>
     <div style="font-size:13px;color:#cbd5e1;line-height:1.6">홍보 담당과 이사회가 단체를 둘러싼 여론을 한눈에 파악하고, 필요한 보도에 빠르게 대응할 수 있습니다. <span style="color:#93c5fd">정기 자동 수집과 AI 분석</span>으로 매번 직접 검색하지 않아도 됩니다.</div>
   </div>
 </div>
@@ -1668,8 +1669,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 
 <!-- 내보내기 툴바 -->
 <div class="exptools">
-  <button class="expbtn" id="btnPdf" onclick="exportDeck('pdf')">⬇ PDF 내보내기</button>
-  <button class="expbtn" id="btnPpt" onclick="exportDeck('ppt')">⬇ PPT 내보내기</button>
+  <button class="expbtn" id="btnPdf" onclick="exportDeck('pdf')"><span class="siren-icon-wrap" data-icon="arrow-down"></span> PDF 내보내기</button>
+  <button class="expbtn" id="btnPpt" onclick="exportDeck('ppt')"><span class="siren-icon-wrap" data-icon="arrow-down"></span> PPT 내보내기</button>
 </div>
 <div class="exp-overlay" id="expOverlay">
   <div class="exp-spin"></div>

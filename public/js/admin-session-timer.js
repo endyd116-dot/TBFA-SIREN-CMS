@@ -47,7 +47,7 @@
       b.dataset.styled = '1';
     }
     if (!b.getAttribute('onclick')) b.setAttribute('onclick', 'extendAdminSession()');
-    b.innerHTML = '<span id="sessionTimerIcon">🔓</span><span id="sessionTimerText">--:--</span>';
+    b.innerHTML = '<span id="sessionTimerIcon"></span><span id="sessionTimerText">--:--</span>';
     b.title = '관리자 세션 — 자리 비우면 만료. 클릭하면 연장됩니다';
 
     if (!$('sessionWarnModal')) {
@@ -56,7 +56,7 @@
       m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99999;align-items:center;justify-content:center';
       m.innerHTML =
         '<div style="background:#fff;border-radius:14px;padding:26px 28px;width:min(420px,92vw);box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center">' +
-        '<div style="font-size:32px;margin-bottom:8px">⏰</div>' +
+        '<div style="font-size:32px;margin-bottom:8px"></div>' +
         '<h3 style="margin:0 0 8px;font-size:18px;color:#1e293b">곧 자동 로그아웃됩니다</h3>' +
         '<p style="margin:0 0 6px;color:#475569;font-size:14px;line-height:1.6">일정 시간 활동이 없어 곧 로그아웃됩니다.<br>계속 사용하시려면 세션을 연장해 주세요.</p>' +
         '<p style="margin:0 0 18px;color:#dc2626;font-weight:700;font-size:15px">남은 시간 <span id="sessionWarnCountdown">5:00</span></p>' +
@@ -90,7 +90,7 @@
     btn.style.borderColor = warn ? '#fca5a5' : '#e2e8f0';
     btn.style.background = warn ? '#fef2f2' : '#f8fafc';
     btn.style.color = warn ? '#dc2626' : '#475569';
-    if (icon) icon.textContent = warn ? '⏰' : '🔓';
+    if (icon) icon.textContent = warn ? '' : '';
   }
 
   function openWarn() { warnOpen = true; var m = $('sessionWarnModal'); if (m) m.style.display = 'flex'; }

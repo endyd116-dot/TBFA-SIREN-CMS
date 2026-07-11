@@ -176,7 +176,7 @@ function requestAiDraft() {
   var btn = document.getElementById('btnAiDraft');
   var note = document.getElementById('aiNote');
   btn.disabled = true;
-  btn.textContent = '⏳ 생성 중…';
+  btn.textContent = '생성 중…';
   note.textContent = '';
 
   callApi('POST', '/api/admin-family-story-ai', {
@@ -185,7 +185,7 @@ function requestAiDraft() {
     adminNotes: adminNotes || null
   }).then(function(res) {
     btn.disabled = false;
-    btn.textContent = '✨ AI 초안 생성';
+    btn.textContent = 'AI 초안 생성';
     if (!res.ok) {
       toast((res.data && res.data.error) || 'AI 초안 생성 실패', 'error');
       note.textContent = 'AI 호출 실패 — 직접 입력해 주세요.';
@@ -200,7 +200,7 @@ function requestAiDraft() {
     toast('AI 초안이 생성되었습니다.', 'success');
   }).catch(function(e) {
     btn.disabled = false;
-    btn.textContent = '✨ AI 초안 생성';
+    btn.textContent = 'AI 초안 생성';
     toast('AI 초안 실패: ' + e.message, 'error');
     document.getElementById('aiNote').textContent = 'AI 호출 실패 — 직접 입력해 주세요.';
   });

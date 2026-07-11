@@ -3,9 +3,9 @@
  *
  * 워크툴(workspace.html) 상단 출퇴근 버튼.
  * - 진입 시 /api/att-checkin-today 호출로 상태 결정
- *   · 미출근   → 🟢 출근
- *   · 출근 중  → 🔴 퇴근
- *   · 퇴근 완료 → ✅ 퇴근 완료 (재출근하려면 새로고침) — disabled
+ *   · 미출근   → 출근
+ *   · 출근 중  → 퇴근
+ *   · 퇴근 완료 → 퇴근 완료 (재출근하려면 새로고침) — disabled
  * - 클릭 시 navigator.geolocation 위치 강제 수집 (timeout 30s)
  * - 권한 거부 시 안내 + 차단
  * - workspace-attendance.js와 동일 엔드포인트 사용 (충돌 0·att_records 1일 1건 UNIQUE)
@@ -114,12 +114,12 @@
     state.today = rec;
     setDoorBtn(!!(rec && rec.checkinAt && !rec.checkoutAt));
     if (!rec || !rec.checkinAt) {
-      setBtn('checkin-ready', { icon: '🟢', label: '출근', title: '출근하기' });
+      setBtn('checkin-ready', { icon: '', label: '출근', title: '출근하기' });
       return;
     }
     if (rec.checkoutAt) {
       setBtn('done', {
-        icon: '✅',
+        icon: '',
         label: '퇴근 완료 (' + fmtTime(rec.checkoutAt) + ')',
         title: '재출근하려면 새로고침',
         disabled: true,
@@ -128,7 +128,7 @@
     }
     // 출근 중
     setBtn('checkout-ready', {
-      icon: '🔴',
+      icon: '',
       label: '퇴근 (' + fmtTime(rec.checkinAt) + ' 출근)',
       title: '퇴근하기',
     });
@@ -157,7 +157,7 @@
   async function doCheckin() {
     if (state.busy) return;
     state.busy = true;
-    setBtn('loading', { icon: '⏳', label: '위치 확인 중...', disabled: true });
+    setBtn('loading', { icon: '', label: '위치 확인 중...', disabled: true });
     try {
       var pos = await geo();
       var res = await fetch('/api/att-checkin', {
@@ -183,11 +183,11 @@
       var door = (data && data.data && data.data.door) || null;
       var doorMsg = '';
       if (door) {
-        if (door.ok && door.sim) doorMsg = ' · 🚪 문 열림(시뮬레이션)';
-        else if (door.ok) doorMsg = ' · 🚪 문이 열렸습니다';
-        else doorMsg = ' · ⚠️ 문 열림 실패';
+        if (door.ok && door.sim) doorMsg = ' · 문 열림(시뮬레이션)';
+        else if (door.ok) doorMsg = ' · 문이 열렸습니다';
+        else doorMsg = ' · 문 열림 실패';
       }
-      toast('✅ 출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg);
+      toast('출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg);
       var fresh = await fetchToday();
       applyTodayState(fresh);
     } catch (e) {
@@ -203,7 +203,7 @@
     if (state.busy) return;
     if (!confirm('퇴근하시겠습니까?\n(퇴근 후에는 재출근하려면 페이지를 새로고침해야 합니다)')) return;
     state.busy = true;
-    setBtn('loading', { icon: '⏳', label: '위치 확인 중...', disabled: true });
+    setBtn('loading', { icon: '', label: '위치 확인 중...', disabled: true });
     try {
       var pos = await geo();
       var res = await fetch('/api/att-checkout', {
@@ -221,11 +221,11 @@
       var odoor = (data && data.data && data.data.door) || null;
       var odoorMsg = '';
       if (odoor) {
-        if (odoor.ok && odoor.sim) odoorMsg = ' · 🚪 문 열림(시뮬레이션)';
-        else if (odoor.ok) odoorMsg = ' · 🚪 문이 열렸습니다';
-        else odoorMsg = ' · ⚠️ 문 열림 실패';
+        if (odoor.ok && odoor.sim) odoorMsg = ' · 문 열림(시뮬레이션)';
+        else if (odoor.ok) odoorMsg = ' · 문이 열렸습니다';
+        else odoorMsg = ' · 문 열림 실패';
       }
-      toast('🔴 퇴근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + odoorMsg);
+      toast('퇴근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + odoorMsg);
       var fresh = await fetchToday();
       applyTodayState(fresh);
     } catch (e) {
@@ -256,9 +256,9 @@
       var data = null; try { data = await res.json(); } catch (_) {}
       if (!res.ok) throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
       var d = (data && data.data) || {};
-      if (d.ok && d.sim) toast('🚪 문 열림(시뮬레이션 — 장치 연결 전)');
-      else if (d.ok) toast('🚪 문이 열렸습니다');
-      else toast('⚠️ 문 열림 실패 — 관리자에게 문의하세요', 5000);
+      if (d.ok && d.sim) toast('문 열림(시뮬레이션 — 장치 연결 전)');
+      else if (d.ok) toast('문이 열렸습니다');
+      else toast('문 열림 실패 — 관리자에게 문의하세요', 5000);
     } catch (e) {
       toast('문 열기 실패: ' + e.message, 5000);
     } finally {
