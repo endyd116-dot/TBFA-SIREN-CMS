@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.7";
+export const APP_VERSION = "2026-07-12.8";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -28,6 +28,8 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
       { text: "토·일·공휴일에 찍힌 출근은 급여 지급일수에서 제외됩니다. 실제 휴일근무 보상은 명세서에 별도 항목으로 지급됩니다" },
       { text: "2026년 7월부터, 재택근무일에 일일 보고서를 내지 않으면 그 날은 근무로 인정되지 않습니다 (재택일 +3일 자정 마감). 재택보고서 탭에서 아직 안 낸 날과 남은 기한을 확인하세요", link: "/workspace-attendance.html" },
       { text: "명세서에 '왜 이 금액인지'가 표시됩니다 — 소정근로 미달·휴일 출근·재택보고서 미제출·퇴근 미기록이 각각 몇 일인지 알 수 있습니다", link: "/workspace-attendance.html" },
+      { text: "소득세·지방소득세가 명세서에 실제로 공제됩니다 — 국세청 근로소득 간이세액표(2026년 개정) 기준으로, 비과세 항목을 뺀 과세 대상액과 공제대상 가족 수에 따라 자동 산출됩니다", link: "/workspace-payroll.html" },
+      { text: "명세서에 직책이 표시됩니다 (예: 정책국장·사무국장)" },
     ],
   },
   {
