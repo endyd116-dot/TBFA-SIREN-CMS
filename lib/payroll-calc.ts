@@ -126,7 +126,13 @@ export async function calculatePayrollForMonth(
     if (pol?.dailyHours) dailyHours = Number(pol.dailyHours) || 8;
   } catch { /* 기본 8시간 */ }
   const stdMins = Math.max(1, Math.round(dailyHours * 60));
-  const graceMins = PAY_DAY_GRACE_MINS;
+  /* 지급일수 구간 경계(분) — JS에서 미리 계산해 SQL엔 '완성된 숫자 하나'만 넘긴다.
+     SQL 안에서 `파라미터 − 파라미터` 를 하면 Postgres가 타입을 추론하지 못해
+     "operator is not unique: unknown - unknown" 으로 집계 전체가 실패한다(2026-07-12 실측). */
+  const T100 = stdMins - PAY_DAY_GRACE_MINS;
+  const T75  = stdMins * 0.75 - PAY_DAY_GRACE_MINS;
+  const T50  = stdMins * 0.50 - PAY_DAY_GRACE_MINS;
+  const T25  = stdMins * 0.25 - PAY_DAY_GRACE_MINS;
 
   const result: PayrollCalcResult = {
     year, month,
@@ -181,14 +187,14 @@ export async function calculatePayrollForMonth(
          전일 유급휴가(연차 등)는 아래 2-2에서 따로 더한다. */
       const attRows = await db.execute(sql`
         SELECT
-          -- 경계마다 유예(PAY_DAY_GRACE_MINS)를 둔다 — 1분 모자라 25%가 깎이는 일이 없도록.
+          -- 경계마다 유예 10분을 둔다 — 1분 모자라 25%가 깎이는 일이 없도록.
           COALESCE(SUM(
             CASE WHEN t.counts_for_pay THEN
               CASE
-                WHEN t.working_mins >= ${stdMins} - ${graceMins}            THEN 1.00
-                WHEN t.working_mins >= ${stdMins} * 0.75 - ${graceMins}     THEN 0.75
-                WHEN t.working_mins >= ${stdMins} * 0.50 - ${graceMins}     THEN 0.50
-                WHEN t.working_mins >= ${stdMins} * 0.25 - ${graceMins}     THEN 0.25
+                WHEN t.working_mins >= ${T100} THEN 1.00
+                WHEN t.working_mins >= ${T75}  THEN 0.75
+                WHEN t.working_mins >= ${T50}  THEN 0.50
+                WHEN t.working_mins >= ${T25}  THEN 0.25
                 ELSE 0
               END
             ELSE 0 END
