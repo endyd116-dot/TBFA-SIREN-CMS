@@ -13,7 +13,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
-import { buildPayrollBreakdown } from "../../lib/payroll-breakdown";
+import { buildPayrollBreakdown, positionLabelOf } from "../../lib/payroll-breakdown";
 
 export const config = { path: "/api/payroll-my-detail" };
 
@@ -161,7 +161,7 @@ export default async function handler(req: Request, _ctx: Context) {
       firstViewedAt: slip.first_viewed_at,
       hasSignedDocument: !!slip.signed_document_r2_key,
     },
-    member: { id: me.id, name: me.name, email: me.email, role: me.milestoneRole || me.role || null },
+    member: { id: me.id, name: me.name, email: me.email, role: positionLabelOf(me as any) },
     org,
     breakdown,
     signature,

@@ -313,6 +313,16 @@ export const members = pgTable("members", {
    */
   baseSalary: numeric("base_salary", { precision: 15, scale: 2 }).default("0").notNull(),
 
+  /* ───────── 직책 · 소득세 공제대상 가족 (2026-07-12) ─────────
+   * 마이그레이션: migrate-member-position-tax (호출 완료)
+   * position       — 급여명세서에 찍히는 직책. 급여관리 → 직원 설정에서 운영자가 직접 입력
+   * taxDependents  — 근로소득 간이세액표의 '공제대상가족의 수'(본인 포함). 기본 1명
+   * taxChildren    — 8세~20세 자녀 수 (세액공제). 기본 0명
+   */
+  position: varchar("position", { length: 50 }),
+  taxDependents: integer("tax_dependents").default(1).notNull(),
+  taxChildren: integer("tax_children").default(0).notNull(),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -900,6 +900,40 @@ export default async (req: Request) => {
         changedFields.push("baseSalary");
       }
 
+      /* 2026-07-12: 직책 · 소득세 공제대상 가족 — 슈퍼어드민 전용
+         급여관리 → 직원 설정 화면에서 연봉과 함께 저장한다.
+         직책은 급여명세서에 그대로 찍히고, 가족 수는 근로소득 간이세액표의 조회 열이 된다. */
+      if (body.position !== undefined) {
+        if (adminMember?.role !== "super_admin") {
+          return badRequest("직책은 슈퍼어드민만 변경할 수 있습니다");
+        }
+        const pos = String(body.position ?? "").trim().slice(0, 50);
+        updatePayload.position = pos || null;
+        changedFields.push("position");
+      }
+      if (body.taxDependents !== undefined) {
+        if (adminMember?.role !== "super_admin") {
+          return badRequest("소득세 가족정보는 슈퍼어드민만 변경할 수 있습니다");
+        }
+        const dep = Number(body.taxDependents);
+        if (!Number.isFinite(dep) || dep < 1 || dep > 11) {
+          return badRequest("공제대상 가족 수는 본인 포함 1~11명 사이여야 합니다");
+        }
+        updatePayload.taxDependents = Math.round(dep);
+        changedFields.push("taxDependents");
+      }
+      if (body.taxChildren !== undefined) {
+        if (adminMember?.role !== "super_admin") {
+          return badRequest("소득세 가족정보는 슈퍼어드민만 변경할 수 있습니다");
+        }
+        const chd = Number(body.taxChildren);
+        if (!Number.isFinite(chd) || chd < 0 || chd > 10) {
+          return badRequest("8~20세 자녀 수는 0~10명 사이여야 합니다");
+        }
+        updatePayload.taxChildren = Math.round(chd);
+        changedFields.push("taxChildren");
+      }
+
       if (changedFields.length === 0) {
         return badRequest("변경할 항목이 없습니다");
       }

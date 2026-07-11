@@ -16,6 +16,7 @@ import { sql } from "drizzle-orm";
 import { REMOTE_REPORT_REQUIRED_FROM } from "./att-remote-policy";
 import { taxableBaseOf } from "./payroll-breakdown";
 import { getDefaultPolicy, PAY_DAY_GRACE_MINS } from "./att-utils";
+import { incomeTaxFor, localTaxFor, TAX_TABLE_SOURCE } from "./income-tax-table";
 
 /* === 급여 고도화 (2026-05-20): 계산 기준 + 공제 === */
 export interface PayrollSettings {
@@ -48,14 +49,36 @@ export async function loadPayrollSettings(): Promise<PayrollSettings> {
   } catch { return { ...DEFAULT_PAYROLL_SETTINGS }; }
 }
 
-/** 세전총액 기준 법정 공제 자동 산출 (장기요양=건강보험액×요율·지방세=소득세×10%). */
-export function computeDeductions(gross: number, s: PayrollSettings) {
-  const nationalPension = gross * s.pensionRate;
-  const healthInsurance = gross * s.healthRate;
+/** 소득세 계산에 필요한 직원 정보 (근로소득 간이세액표) */
+export interface TaxProfile {
+  /** 공제대상가족의 수 — 본인 포함. 부양가족이 없으면 1 */
+  dependents?: number;
+  /** 8세 이상 20세 이하 자녀 수 */
+  children?: number;
+}
+
+/**
+ * 법정 공제 자동 산출.
+ *
+ * @param taxableBase 과세 대상액 (= 세전 총액 − 비과세 지급액). 4대보험·소득세를 매기는 기준.
+ *
+ * 소득세: 급여 기준 설정의 '소득세 정률'이 0이면(기본) **국세청 근로소득 간이세액표**로 산출한다.
+ *   정률(예: 3%)을 명시하면 그 정률을 쓴다(특수 운영).
+ *   과거엔 정률 0 = "자동계산 안 함"이라 소득세가 계속 0원으로 나가 원천징수가 아예 안 되고 있었다.
+ * 지방소득세: 소득세의 10%.
+ */
+export function computeDeductions(taxableBase: number, s: PayrollSettings, tax: TaxProfile = {}) {
+  const nationalPension = taxableBase * s.pensionRate;
+  const healthInsurance = taxableBase * s.healthRate;
   const longTermCare = healthInsurance * s.longtermRate;
-  const employmentInsurance = gross * s.employmentRate;
-  const incomeTax = gross * s.incomeTaxRate;
-  const localTax = incomeTax * 0.1;
+  const employmentInsurance = taxableBase * s.employmentRate;
+
+  const useRate = Number(s.incomeTaxRate) > 0;
+  const incomeTax = useRate
+    ? taxableBase * s.incomeTaxRate
+    : incomeTaxFor(taxableBase, tax.dependents ?? 1, tax.children ?? 0);
+  const localTax = useRate ? incomeTax * 0.1 : localTaxFor(incomeTax);
+
   return { nationalPension, healthInsurance, longTermCare, employmentInsurance, incomeTax, localTax };
 }
 
@@ -150,7 +173,9 @@ export async function calculatePayrollForMonth(
   let memberRows: any[];
   try {
     const r = await db.execute(sql`
-      SELECT id, name, email, role, base_salary::numeric AS base_salary, hire_date
+      SELECT id, name, email, role, position, base_salary::numeric AS base_salary, hire_date,
+             COALESCE(tax_dependents, 1) AS tax_dependents,   -- 공제대상가족 수 (본인 포함)
+             COALESCE(tax_children, 0)   AS tax_children      -- 8~20세 자녀 수
       FROM members
       WHERE status = 'active'
         AND (type = 'admin' OR operator_active = TRUE)
@@ -321,8 +346,14 @@ export async function calculatePayrollForMonth(
       const perfectBonus = 0;                                 // 만근 보너스 정책 미정의 (이번 범위 외)
       const grossPay = baseSalaryMonth + performanceBonus + perfectBonus;  // 야근·무급차감 제외
 
-      // 3-2. 공제·실수령 (4대보험 요율 자동 + 소득세 정률 + 지방세 10%)
-      const ded = computeDeductions(grossPay, settings);
+      /* 3-2. 공제·실수령
+         4대보험 = 과세 대상액 × 요율 / 소득세 = 근로소득 간이세액표 / 지방세 = 소득세 × 10%
+         (새 명세서는 조정 라인이 없으므로 과세 대상액 = 세전 총액) */
+      const taxProfile: TaxProfile = {
+        dependents: Number(m.tax_dependents ?? 1),
+        children: Number(m.tax_children ?? 0),
+      };
+      const ded = computeDeductions(grossPay, settings, taxProfile);
       const totalDeduction =
         ded.nationalPension + ded.healthInsurance + ded.longTermCare +
         ded.employmentInsurance + ded.incomeTax + ded.localTax;
@@ -344,6 +375,12 @@ export async function calculatePayrollForMonth(
           dailyHours,        // 소정근로시간 (지급일수 환산 기준)
         },
         leave: { paidLeaveDays, unpaidLeaveDays, partialLeaveDays },
+        /* 소득세 산출 근거 (근로소득 간이세액표) — 명세서에 "공제대상가족 N명 기준"으로 표기 */
+        tax: {
+          dependents: taxProfile.dependents,
+          children: taxProfile.children,
+          source: Number(settings.incomeTaxRate) > 0 ? "정률" : TAX_TABLE_SOURCE,
+        },
         perfectAttendance,
         quarter: { year, q, totalBonusPaid: quarterTotalBonus },
         derived: {
@@ -429,7 +466,7 @@ export async function calculatePayrollForMonth(
            ("세전 총액 × 4.5%")과 실제 공제액이 서로 맞지 않았다 — 서명받는 문서에선 치명적.
            성과금을 더하면 보험료도 그만큼 늘고, 비과세로 지정한 차량지원 등은 산정에서 빠진다. */
         const _taxableBase = taxableBaseOf({ adjustments: _adjArr }, grossPayFinal);
-        const dedFinal = computeDeductions(_taxableBase, settings);
+        const dedFinal = computeDeductions(_taxableBase, settings, taxProfile);
         const totalDeductionFinal =
           dedFinal.nationalPension + dedFinal.healthInsurance + dedFinal.longTermCare +
           dedFinal.employmentInsurance + dedFinal.incomeTax + dedFinal.localTax + _otherDeduction;

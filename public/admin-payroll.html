@@ -237,13 +237,17 @@
 
     <!-- 2026-06-03: 직원 연봉 설정 (super 전용) — 회원 모달 대신 여기서 직접 관리 -->
     <div class="card" id="staffSalaryCard" style="display:none">
-      <div class="card-title"><span class="siren-icon-wrap" data-icon="user"></span> 직원 연봉 설정 <span style="font-weight:400;color:#9ca3af;font-size:12px">— 활성 직원(운영자·관리자)만 표시 · 연봉 입력 후 저장하면 그 달 재집계 시 출근일 기반으로 반영</span></div>
+      <div class="card-title"><span class="siren-icon-wrap" data-icon="user"></span> 직원 설정 <span style="font-weight:400;color:#9ca3af;font-size:12px">— 활성 직원(운영자·관리자)만 표시 · <b>직책</b>은 급여명세서에 그대로 표시 · <b>연봉·가족 수</b>는 그 달 재집계 시 반영</span></div>
       <table class="list" style="margin-top:8px">
         <thead><tr>
-          <th style="width:30%">직원</th><th style="width:18%">역할</th>
-          <th style="width:32%">연봉(원)</th><th style="width:20%">처리</th>
+          <th style="width:13%">직원</th>
+          <th style="width:10%">역할</th>
+          <th style="width:19%">직책</th>
+          <th style="width:21%">연봉(원)</th>
+          <th style="width:27%">소득세 기준 <span style="font-weight:400;color:#9ca3af;font-size:11px">— 공제대상 가족(본인 포함)·8~20세 자녀</span></th>
+          <th style="width:10%">처리</th>
         </tr></thead>
-        <tbody id="staffSalaryBody"><tr class="loading-row"><td colspan="4">불러오는 중…</td></tr></tbody>
+        <tbody id="staffSalaryBody"><tr class="loading-row"><td colspan="6">불러오는 중…</td></tr></tbody>
       </table>
     </div>
 
@@ -340,6 +344,6 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260712-days"></script>
+  <script src="/js/admin-payroll.js?v=20260712-position"></script>
 </body>
 </html>

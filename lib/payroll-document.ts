@@ -69,13 +69,14 @@ export async function normalizeSignaturePng(
 
 export interface SlipWithMember {
   slip: any;
-  member: { id: number | string; name: string; email?: string | null; role?: string | null; milestoneRole?: string | null };
+  member: { id: number | string; name: string; email?: string | null; position?: string | null; role?: string | null; milestoneRole?: string | null };
 }
 
 /** 명세서 1건 + 직원 정보 (PDF 생성에 필요한 최소 묶음) */
 export async function loadSlipWithMember(slipId: number): Promise<SlipWithMember | null> {
   const r: any = await db.execute(sql`
-    SELECT s.*, m.name AS m_name, m.email AS m_email, m.role AS m_role, m.milestone_role AS m_milestone_role
+    SELECT s.*, m.name AS m_name, m.email AS m_email, m.role AS m_role,
+           m.milestone_role AS m_milestone_role, m.position AS m_position
       FROM payroll_slips s
       LEFT JOIN members m ON m.id = NULLIF(s.member_uid, '')::int
      WHERE s.id = ${slipId}
@@ -112,6 +113,7 @@ export async function loadSlipWithMember(slipId: number): Promise<SlipWithMember
       email: row.m_email ?? null,
       role: row.m_role ?? null,
       milestoneRole: row.m_milestone_role ?? null,
+      position: row.m_position ?? null,
     },
   };
 }

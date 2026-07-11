@@ -45,6 +45,23 @@ function adjustmentsOf(slip: any): any[] {
 
 /** 비과세로 지급한 금액 합계 (조정 라인 중 '비과세' 표시된 지급 항목).
  *  taxable을 지정하지 않은 옛 데이터는 '과세'로 본다 — 공제를 덜 떼는 쪽으로 기울지 않게. */
+/* 직책 표기 — 급여명세서·직원 화면·목록이 모두 같은 문구를 쓰도록 한 곳에서 만든다.
+   운영자가 급여관리에서 직접 입력한 '직책'이 최우선. 비어 있으면 성과관리 역할(SM/PM/SI)을
+   한국어로 풀어 쓰고, 그것도 없으면 계정 권한 등급으로 갈음한다. */
+const MILESTONE_ROLE_LABEL: Record<string, string> = { SM: "사무국장", PM: "정책국장", SI: "SI관리자" };
+const ACCOUNT_ROLE_LABEL: Record<string, string> = { super_admin: "총괄관리자", admin: "관리자", operator: "운영자" };
+export function positionLabelOf(member: {
+  position?: string | null; milestoneRole?: string | null; role?: string | null;
+} | null | undefined): string {
+  const pos = String(member?.position ?? "").trim();
+  if (pos) return pos;
+  const ms = String(member?.milestoneRole ?? "").trim();
+  if (ms) return MILESTONE_ROLE_LABEL[ms] || ms;
+  const acc = String(member?.role ?? "").trim();
+  if (acc) return ACCOUNT_ROLE_LABEL[acc] || acc;
+  return "-";
+}
+
 export function nonTaxableTotalOf(slip: any): number {
   return adjustmentsOf(slip)
     .filter(a => a?.kind !== "DEDUCT" && a?.taxable === false)
@@ -241,7 +258,8 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
       label: "소득세", kind: "DEDUCT",
       method: settings.incomeTaxRate != null && num(settings.incomeTaxRate) > 0
         ? `${baseLabel} × ${pct(settings.incomeTaxRate)}`
-        : "근로소득 간이세액표 기준",
+        : `근로소득 간이세액표 — ${baseLabel} · 공제대상가족 ${num(snap?.tax?.dependents) || 1}명` +
+          (num(snap?.tax?.children) > 0 ? ` · 8~20세 자녀 ${num(snap.tax.children)}명 공제` : ""),
       amount: incomeTx,
     },
     {

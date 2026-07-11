@@ -166,7 +166,7 @@
 
     tbody.innerHTML = rows.map(r => {
       const name = esc(r.memberName || ('회원ID:' + r.memberUid));
-      const role = esc(r.memberMilestoneRole || r.memberRole || '-');
+      const role = esc(r.memberPosition || r.memberMilestoneRole || r.memberRole || '-');
       const editMark = r.manuallyEdited ? '<span class="edit-badge" title="수동 수정됨 — 재집계가 덮어쓰지 않음">수정</span>' : '';
       const actions = [];
       actions.push('<button class="btn btn-light btn-sm" onclick="openDetail(' + r.id + ')">상세</button>');
@@ -835,29 +835,56 @@
   /* ── 직원 연봉 설정 (super 전용, 회원 모달 대신 여기서 관리) ── */
   const ROLE_LABEL_KO = { super_admin: '슈퍼관리자', admin: '관리자', operator: '운영자' };
   function escP(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  const INP_CSS = 'padding:5px 8px;border:1px solid #d1d5db;border-radius:6px';
   async function loadStaffSalaries() {
     const tb = $('staffSalaryBody');
     if (!tb) return;
     const res = await api('/api/admin-payroll?staff=1');
-    if (!res.ok) { tb.innerHTML = '<tr class="loading-row"><td colspan="4">불러오기 실패</td></tr>'; return; }
+    if (!res.ok) { tb.innerHTML = '<tr class="loading-row"><td colspan="6">불러오기 실패</td></tr>'; return; }
     const staff = (res.data?.data?.staff || res.data?.staff || []);
-    if (!staff.length) { tb.innerHTML = '<tr class="loading-row"><td colspan="4">활성 직원(운영자·관리자)이 없습니다</td></tr>'; return; }
+    if (!staff.length) { tb.innerHTML = '<tr class="loading-row"><td colspan="6">활성 직원(운영자·관리자)이 없습니다</td></tr>'; return; }
     tb.innerHTML = staff.map(s => `
       <tr data-sid="${s.id}">
         <td>${escP(s.name)}</td>
         <td>${ROLE_LABEL_KO[s.role] || escP(s.role) || '—'}</td>
-        <td><input type="number" min="0" step="100000" value="${Number(s.baseSalary) || 0}" id="staffSal_${s.id}" style="width:170px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px"> 원</td>
+        <td><input type="text" maxlength="30" id="staffPos_${s.id}" value="${escP(s.position || '')}" placeholder="${escP(s.positionLabel || '예: 사무국장')}" style="width:100%;max-width:160px;${INP_CSS}"></td>
+        <td><input type="number" min="0" step="100000" value="${Number(s.baseSalary) || 0}" id="staffSal_${s.id}" style="width:150px;${INP_CSS}"> 원</td>
+        <td style="white-space:nowrap;color:#6b7280;font-size:12px">
+          가족 <input type="number" min="1" max="11" value="${Number(s.taxDependents) || 1}" id="staffDep_${s.id}" style="width:58px;${INP_CSS}"> 명
+          · 자녀 <input type="number" min="0" max="10" value="${Number(s.taxChildren) || 0}" id="staffChd_${s.id}" style="width:58px;${INP_CSS}"> 명
+        </td>
         <td><button class="btn btn-primary" onclick="saveStaffSalary(${s.id})">저장</button></td>
       </tr>`).join('');
   }
   async function saveStaffSalary(id) {
-    const inp = document.getElementById('staffSal_' + id);
-    if (!inp) return;
-    const v = Number(inp.value);
-    if (!Number.isFinite(v) || v < 0) { toast('0 이상의 숫자를 입력하세요', 'err'); return; }
-    const res = await api('/api/admin/members', { method: 'PATCH', body: { id, baseSalary: v } });
+    const sal = document.getElementById('staffSal_' + id);
+    if (!sal) return;
+    const v = Number(sal.value);
+    if (!Number.isFinite(v) || v < 0) { toast('연봉은 0 이상의 숫자를 입력하세요', 'err'); return; }
+
+    const body = { id, baseSalary: v };
+
+    const pos = document.getElementById('staffPos_' + id);
+    if (pos) body.position = String(pos.value || '').trim();
+
+    /* 소득세는 '공제대상 가족 수(본인 포함)'와 '8~20세 자녀 수'로 근로소득 간이세액표에서 찾는다 */
+    const dep = document.getElementById('staffDep_' + id);
+    const chd = document.getElementById('staffChd_' + id);
+    if (dep) {
+      const d = Number(dep.value);
+      if (!Number.isFinite(d) || d < 1 || d > 11) { toast('공제대상 가족 수는 본인 포함 1~11명입니다', 'err'); return; }
+      body.taxDependents = d;
+    }
+    if (chd) {
+      const c = Number(chd.value);
+      if (!Number.isFinite(c) || c < 0 || c > 10) { toast('8~20세 자녀 수는 0~10명입니다', 'err'); return; }
+      body.taxChildren = c;
+    }
+
+    const res = await api('/api/admin/members', { method: 'PATCH', body });
     if (!res.ok || res.data?.ok === false) { toast(res.data?.error || '저장 실패', 'err'); return; }
-    toast('연봉 저장 완료 — 해당 월 재집계 시 출근일 기반으로 반영됩니다', 'ok');
+    toast('저장 완료 — 직책은 다음 명세서 발행부터, 연봉·가족 수는 재집계 시 반영됩니다', 'ok');
+    loadStaffSalaries();
   }
   window.saveStaffSalary = saveStaffSalary;
 

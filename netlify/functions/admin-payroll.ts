@@ -15,7 +15,7 @@ import { payrollSlips, payrollAudit, members } from "../../db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { calculatePayrollForMonth, loadPayrollSettings, computeDeductions } from "../../lib/payroll-calc";
-import { taxableBaseOf } from "../../lib/payroll-breakdown";
+import { taxableBaseOf, positionLabelOf } from "../../lib/payroll-breakdown";
 import { callGemini } from "../../lib/ai-gemini";
 
 export const config = { path: "/api/admin-payroll" };
@@ -61,14 +61,22 @@ export default async function handler(req: Request) {
     if (url.searchParams.get("staff") === "1") {
       try {
         const r = await db.execute(sql`
-          SELECT id, name, email, role, COALESCE(base_salary, 0)::numeric AS base_salary
+          SELECT id, name, email, role, milestone_role, position,
+                 COALESCE(base_salary, 0)::numeric AS base_salary,
+                 COALESCE(tax_dependents, 1) AS tax_dependents,
+                 COALESCE(tax_children, 0)   AS tax_children
           FROM members
           WHERE status = 'active' AND (type = 'admin' OR operator_active = TRUE)
           ORDER BY name
         `);
         const staff = (((r as any).rows || (r as any[])) || []).map((m: any) => ({
           id: Number(m.id), name: m.name, email: m.email, role: m.role,
+          /* 직책 — 직접 입력값이 없으면 성과관리 역할을 풀어 쓴 기본값을 미리 채워 보여준다 */
+          position: m.position ?? "",
+          positionLabel: positionLabelOf({ position: m.position, milestoneRole: m.milestone_role, role: m.role }),
           baseSalary: Number(m.base_salary || 0),
+          taxDependents: Number(m.tax_dependents ?? 1),
+          taxChildren: Number(m.tax_children ?? 0),
         }));
         return jsonOk({ staff });
       } catch (err) { return jsonError("select_staff", err); }
@@ -83,7 +91,7 @@ export default async function handler(req: Request) {
         try {
           const [m] = await db.select({
             id: members.id, name: members.name, email: members.email,
-            role: members.role, milestoneRole: members.milestoneRole,
+            role: members.role, milestoneRole: members.milestoneRole, position: members.position,
           }).from(members).where(eq(members.id, Number(slip.memberUid))).limit(1);
           memberInfo = m ?? null;
         } catch (err) {
@@ -143,7 +151,7 @@ export default async function handler(req: Request) {
         try {
           const ms = await db.select({
             id: members.id, name: members.name, email: members.email,
-            role: members.role, milestoneRole: members.milestoneRole,
+            role: members.role, milestoneRole: members.milestoneRole, position: members.position,
           }).from(members).where(inArray(members.id, memberIds));
           memberMap = new Map(ms.map(m => [m.id, m]));
         } catch (err) {
@@ -159,6 +167,7 @@ export default async function handler(req: Request) {
           memberName: memberMap.get(Number(r.memberUid))?.name ?? null,
           memberEmail: memberMap.get(Number(r.memberUid))?.email ?? null,
           memberMilestoneRole: memberMap.get(Number(r.memberUid))?.milestoneRole ?? null,
+          memberPosition: positionLabelOf(memberMap.get(Number(r.memberUid))),
           hasDocument: !!documentR2Key,
           hasSignedDocument: !!signedDocumentR2Key,
         };
@@ -252,18 +261,27 @@ export default async function handler(req: Request) {
         if (autoDeduction) {
           const taxableBase = taxableBaseOf({ adjustments }, grossPay);
           const settings = await loadPayrollSettings();
-          const auto = computeDeductions(taxableBase, settings);
+
+          /* 소득세는 근로소득 간이세액표로 산출 — 직원의 공제대상가족 수·자녀 수가 필요 */
+          let taxProfile = { dependents: 1, children: 0 };
+          try {
+            const tp: any = await db.execute(sql`
+              SELECT COALESCE(tax_dependents, 1) AS d, COALESCE(tax_children, 0) AS c
+                FROM members WHERE id = ${Number(cur.memberUid)} LIMIT 1
+            `);
+            const row = ((tp as any).rows ?? tp ?? [])[0];
+            if (row) taxProfile = { dependents: Number(row.d), children: Number(row.c) };
+          } catch (err) {
+            console.warn("[admin-payroll] 소득세 가족정보 조회 실패 — 본인 1명 기준으로 계산:", err);
+          }
+
+          const auto = computeDeductions(taxableBase, settings, taxProfile);
           next.nationalPension     = auto.nationalPension;
           next.healthInsurance     = auto.healthInsurance;
           next.longTermCare        = auto.longTermCare;
           next.employmentInsurance = auto.employmentInsurance;
-          /* 소득세는 설정 요율이 0이면(간이세액표 직접 입력 운영) 관리자가 넣은 값을 그대로 둔다 */
-          if (Number(settings.incomeTaxRate) > 0) {
-            next.incomeTax = auto.incomeTax;
-            next.localTax  = auto.localTax;
-          } else {
-            next.localTax = next.incomeTax * 0.1;
-          }
+          next.incomeTax           = auto.incomeTax;
+          next.localTax            = auto.localTax;
         }
 
         const totalDeduction = next.incomeTax + next.localTax + next.nationalPension

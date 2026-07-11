@@ -14,7 +14,7 @@ import { PDFDocument, rgb, PDFPage, PDFFont, RGB } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildPayrollBreakdown } from "./payroll-breakdown";
+import { buildPayrollBreakdown, positionLabelOf } from "./payroll-breakdown";
 
 /* ⚠️ 한글 폰트는 반드시 '통째로'(subset: false) 넣는다. 절대 subset: true로 바꾸지 말 것.
    PDF 라이브러리의 한글 폰트 부분추출(subset)이 글자 모양을 실제로 빠뜨린다 —
@@ -47,6 +47,8 @@ export interface PayrollSlipPdfInput {
     id?: number | string;
     name: string;
     email?: string | null;
+    /** 직책 (정책국장·사무국장 등) — 명세서에 찍히는 값 */
+    position?: string | null;
     role?: string | null;
     milestoneRole?: string | null;
   };
@@ -195,7 +197,7 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
   textRight(ctx, member.email || "", rightX, 9.5, GRAY);
   ctx.y -= 18;
   text(ctx, "직책", MARGIN, 10, GRAY);
-  text(ctx, member.milestoneRole || member.role || "-", MARGIN + 70, 11);
+  text(ctx, positionLabelOf(member), MARGIN + 70, 11);
   if (member.id != null) textRight(ctx, `사번 ${member.id}`, rightX, 9.5, GRAY);
   ctx.y -= 24;
   hr(ctx);
