@@ -1,5 +1,5 @@
 // netlify/functions/admin-workspace-tasks.ts
-// ★ Phase 3 Step 2-A — 워크스페이스 Task CRUD API
+// Phase 3 Step 2-A — 워크스페이스 Task CRUD API
 //
 // GET ?list=1         : 목록 (filters: status/mine/assignedToMe/dueBefore/q/sourceType/sourceId)
 // GET ?id=N           : 단일 상세
@@ -57,7 +57,7 @@ function triggerAiCompletion(taskId: number, authorMemberId: number) {
   }).catch((err) => console.warn("[ai-completion trigger]", err?.message || err));
 }
 
-/* ★ Phase 25 — 카드 완료 시 비매출 마일스톤 AI 매칭 트리거 (fire-and-forget) */
+/* Phase 25 — 카드 완료 시 비매출 마일스톤 AI 매칭 트리거 (fire-and-forget) */
 function triggerMilestoneMatch(taskId: number, memberId: number) {
   const base = process.env.URL || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
   const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
@@ -133,7 +133,7 @@ async function parseMentionsAndNotify(opts: {
         params: {
           category: "workspace",
           severity: "info",
-          title: `📌 ${actorName}님이 작업에서 회원님을 멘션했습니다`,
+          title: `${actorName}님이 작업에서 회원님을 멘션했습니다`,
           message: contextSnippet,
           link: `/workspace-kanban.html#task=${taskId}`,
         },
@@ -171,7 +171,7 @@ export default async (req: Request, _ctx: Context) => {
 
         let conds: any;
         if (taskId) {
-          // ★ Q3-016 fix: 특정 task 활동 로그도 단건 상세와 동일한 접근 권한 검증 (소유/담당/지시/완료/super).
+          // Q3-016 fix: 특정 task 활동 로그도 단건 상세와 동일한 접근 권한 검증 (소유/담당/지시/완료/super).
           // 기존엔 visibility 무관 전체 반환이라 작업 ID만 바꾸면 남의 작업 활동 로그가 노출됐다.
           const [ft]: any = await db
             .select({
@@ -473,7 +473,7 @@ export default async (req: Request, _ctx: Context) => {
       const body: any = await parseJson(req);
       if (!body) return badRequest("JSON body 필요");
 
-      // ★ Step 7-C.4 — 템플릿 적용 (사용자 입력이 우선, 빈 값만 템플릿으로 채움)
+      // Step 7-C.4 — 템플릿 적용 (사용자 입력이 우선, 빈 값만 템플릿으로 채움)
       if (body.templateId) {
         const tid = Number(body.templateId);
         if (Number.isFinite(tid) && tid > 0) {
@@ -583,12 +583,12 @@ export default async (req: Request, _ctx: Context) => {
         metadata: { priority: newTask.priority, dueDate: newTask.dueDate, isAssignment },
         notifyMemberIds: isAssignment ? [assignedTo!] : [],
         notifyType: "assigned",
-        notifyTitle: `📋 새 작업이 지시되었습니다: ${newTask.title}`,
+        notifyTitle: `새 작업이 지시되었습니다: ${newTask.title}`,
         notifyBody: dueDateObj ? `마감: ${dueDateObj.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}` : "마감일 없음",
         actionUrl: `/workspace-kanban.html#task=${newTask.id}`,  // [감사#29] 죽은 해시 정정
       });
 
-      // ★ Phase 3 Step 7-C.2 — AI-1 요약 자동 트리거 (description 100자+)
+      // Phase 3 Step 7-C.2 — AI-1 요약 자동 트리거 (description 100자+)
       if (newTask.description && String(newTask.description).length >= 100) {
         triggerAiSummary(newTask.id);
       }
@@ -668,8 +668,8 @@ export default async (req: Request, _ctx: Context) => {
           notifyMemberIds: Array.from(notifyTargets),
           notifyType: newStatus === "done" ? "completed" : "status_changed",
           notifyTitle: newStatus === "done"
-            ? `✅ 작업 완료: ${task.title}`
-            : `🔄 상태 변경(${newStatus}): ${task.title}`,
+            ? `작업 완료: ${task.title}`
+            : `상태 변경(${newStatus}): ${task.title}`,
           actionUrl: `/workspace-kanban.html#task=${id}`,  // [감사#29] 죽은 해시 정정
         });
 
@@ -679,17 +679,17 @@ export default async (req: Request, _ctx: Context) => {
           detail: { prev: task.status, next: newStatus }, req,
         });
 
-        // ★ Phase 3 Step 7-C.2 — AI-3 완료 보고서 초안 자동 트리거 (done 이동 시)
+        // Phase 3 Step 7-C.2 — AI-3 완료 보고서 초안 자동 트리거 (done 이동 시)
         if (newStatus === "done" && task.status !== "done") {
           triggerAiCompletion(id, meId);
         }
 
-        // ★ Phase 25 — 비매출 마일스톤 AI 매칭 트리거 (done 이동 시, 아직 매칭 안 된 경우)
+        // Phase 25 — 비매출 마일스톤 AI 매칭 트리거 (done 이동 시, 아직 매칭 안 된 경우)
         if (newStatus === "done" && task.status !== "done" && !task.milestoneDefId) {  /* Q3-015 fix: snake_case→camelCase (drizzle select 결과) */
           triggerMilestoneMatch(id, meId);
         }
 
-        // ★ Phase 21 R3 / Q3-002 — 카드 done → 원본 서비스 종결 동기화 (양방향·단일 경로로 통합)
+        // Phase 21 R3 / Q3-002 — 카드 done → 원본 서비스 종결 동기화 (양방향·단일 경로로 통합)
         //   기존엔 closeServiceFromTask(lib) + 인라인 tableMap 이 같은 종결을 이중 실행했다.
         //   lib의 pickClosedStatus가 incident/harassment/legal에 없는 'completed'를 반환해 매번
         //   예외(인라인이 결과적으로 종결)였는데, pickClosedStatus를 정확한 'closed'로 교정하고
@@ -792,7 +792,7 @@ export default async (req: Request, _ctx: Context) => {
           metadata: { prevAssignee: task.assignedTo, newAssignee },
           notifyMemberIds: [newAssignee],
           notifyType: "assigned",
-          notifyTitle: `📋 새 작업이 지시되었습니다: ${task.title}`,
+          notifyTitle: `새 작업이 지시되었습니다: ${task.title}`,
           actionUrl: `/workspace-kanban.html#task=${id}`,  // [감사#29] 죽은 해시 정정
         });
 
@@ -834,7 +834,7 @@ export default async (req: Request, _ctx: Context) => {
       /* ─── action=unarchive ─── */
       if (action === "unarchive") {
         if (task.status !== "archived") return badRequest("보관 상태가 아닙니다");
-        // ★ Q3-017 fix: 무조건 done이 아니라 보관 직전 상태를 복원 (archive 시 기록한 metadata.prevStatus).
+        // Q3-017 fix: 무조건 done이 아니라 보관 직전 상태를 복원 (archive 시 기록한 metadata.prevStatus).
         let restoreStatus = "todo";
         try {
           const [arch]: any = await db
@@ -974,7 +974,7 @@ export default async (req: Request, _ctx: Context) => {
       if (body.reminderConfig !== undefined) updateData.reminderConfig = body.reminderConfig;
       if (body.sortOrder !== undefined) updateData.sortOrder = Number(body.sortOrder);
       if (body.parentTaskId !== undefined) updateData.parentTaskId = body.parentTaskId;
-      // ★ Step 7-A: 신규 컬럼
+      // Step 7-A: 신규 컬럼
       if (body.estimatedHours !== undefined) {
         const v = body.estimatedHours;
         updateData.estimatedHours = v === null || v === "" ? null : String(v);
@@ -1051,7 +1051,7 @@ export default async (req: Request, _ctx: Context) => {
         return forbidden("지시받은 작업은 삭제할 수 없습니다. 지시자에게 요청하세요");
       }
 
-      // ★ Q3-018 fix: parentTaskId는 FK가 아니라(schema:1604) 부모 삭제 시 서브태스크가 고아로 남는다.
+      // Q3-018 fix: parentTaskId는 FK가 아니라(schema:1604) 부모 삭제 시 서브태스크가 고아로 남는다.
       // 서브태스크를 먼저 삭제(그 하위 코멘트·첨부·워처 등은 FK onDelete cascade로 정리)한 뒤 부모 삭제.
       await db.delete(workspaceTasks).where(eq(workspaceTasks.parentTaskId, id));
       await db.delete(workspaceTasks).where(eq(workspaceTasks.id, id));

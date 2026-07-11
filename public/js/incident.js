@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — incident.js (★ Phase M-5)
+   SIREN — incident.js (Phase M-5)
    - /incidents.html: 사건 앨범 목록
    - /incident.html?slug=xxx: 사건 상세 + 제보 모달
    ========================================================= */
@@ -328,7 +328,7 @@
 
       document.getElementById('irReportNo').textContent = data.reportNo || '-';
 
-      /* ★ M-17: 후원자 여부에 따른 분기 표시 */
+      /* M-17: 후원자 여부에 따른 분기 표시 */
       if (data.isDonor && data.ai) {
         /* 후원자 — AI 분석 결과 정상 표시 */
         const ai = data.ai;
@@ -417,7 +417,7 @@
   }
 
   // public/js/incident.js — confirmReport 함수 다음에 추가
-  /* ★ M-17: 비후원자 안내 박스 렌더 */
+  /* M-17: 비후원자 안내 박스 렌더 */
   function renderPremiumNotice(notice) {
     const step2 = document.querySelector('[data-ir-step="2"]');
     if (!step2) return;
@@ -452,7 +452,7 @@
   }
   
   /* ===========================================================
-     ★ R10 / R41 Q2-003: 댓글 시스템 (투표 + 신고)
+     R10 / R41 Q2-003: 댓글 시스템 (투표 + 신고)
      - 댓글 목록: /api/incident-comments?incidentId=X
      - 투표: /api/incident-comments (action=vote, voteType=like|dislike)
      - 신고: /api/incident-comments (action=report)

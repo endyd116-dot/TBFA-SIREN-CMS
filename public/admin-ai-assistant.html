@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SIREN AI 비서 | 관리자</title>
@@ -236,7 +236,7 @@ body {
     var box = document.createElement('div');
     box.className = 'tools-info';
     box.innerHTML = '사용한 도구: ' + toolCalls.map(function (t) {
-      return '<b>' + escapeHtml(t.name) + '</b>(' + (t.result.ok ? '✓' : '✗') + ')';
+      return '<b>' + escapeHtml(t.name) + '</b>(' + (t.result.ok ? Icons.svg('check') : Icons.svg('x')) + ')';
     }).join(', ');
     msgs.appendChild(box);
     msgs.scrollTop = msgs.scrollHeight;

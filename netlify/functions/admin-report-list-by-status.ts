@@ -29,11 +29,11 @@ export default async (req: Request) => {
   const reportType = url.searchParams.get("reportType") || url.searchParams.get("type") || "all";
   const statusFilter = url.searchParams.get("status") || undefined;
   const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-  // ★ R41 Q2-019: 프론트가 보내는 limit 수용 (기본 30, 안전 상한 100)
+  // R41 Q2-019: 프론트가 보내는 limit 수용 (기본 30, 안전 상한 100)
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 30)));
-  // ★ R41 Q2-019: onlyAnonymous=1 이면 익명 신고만 (서버 필터)
+  // R41 Q2-019: onlyAnonymous=1 이면 익명 신고만 (서버 필터)
   const onlyAnonymous = url.searchParams.get("onlyAnonymous") === "1";
-  // ★ R41 Q2-019: q 키워드(제목 부분일치)
+  // R41 Q2-019: q 키워드(제목 부분일치)
   const keyword = (url.searchParams.get("q") || "").trim();
   // 단일 타입일 때만 page 기반 offset 적용 (all은 3종 합산이라 0)
   const offset = reportType === "all" ? 0 : (page - 1) * limit;
@@ -81,7 +81,7 @@ export default async (req: Request) => {
     } catch (err) {
       console.warn("[admin-report-list-by-status] incident 조회 실패", err);
     }
-    // ★ R41 Q2-019: 별도 count로 정확한 total 산출
+    // R41 Q2-019: 별도 count로 정확한 total 산출
     try {
       const [c] = await db.select({ n: count() }).from(incidentReports).where(cond);
       total += Number(c?.n ?? 0);
@@ -131,7 +131,7 @@ export default async (req: Request) => {
         title: legalConsultations.title,
         status: legalConsultations.status,
         isAnonymous: legalConsultations.isAnonymous,
-        // ★ R41 Q2-021: legalConsultations엔 aiSeverity 컬럼 없음 → aiUrgency로 매핑 (런타임 컬럼 오류 방지)
+        // R41 Q2-021: legalConsultations엔 aiSeverity 컬럼 없음 → aiUrgency로 매핑 (런타임 컬럼 오류 방지)
         aiSeverity: legalConsultations.aiUrgency,
         createdAt: legalConsultations.createdAt,
         updatedAt: legalConsultations.updatedAt,

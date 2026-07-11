@@ -1,5 +1,5 @@
 // netlify/functions/blob-presign.ts
-// ★ Phase M-2.5: R2 직접 업로드용 Pre-signed PUT URL 발급
+// Phase M-2.5: R2 직접 업로드용 Pre-signed PUT URL 발급
 // - 클라이언트 → 이 API: 메타데이터만 전송 (파일 본문 X)
 // - 응답: { id, uploadUrl, key }
 // - 클라이언트 → uploadUrl로 직접 PUT (R2에 직접, 6MB 한도 우회)

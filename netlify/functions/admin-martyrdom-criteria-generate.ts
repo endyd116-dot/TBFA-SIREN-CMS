@@ -3,7 +3,7 @@
  *
  * POST {}
  *   docs/law/martyrdom/*.md 를 AI로 파싱해 인정요건 후보를 제안(검토용).
- *   ⚠️ 자동 저장 안 함 — 운영자가 검토 후 admin-martyrdom-criteria POST로 채택.
+ *   자동 저장 안 함 — 운영자가 검토 후 admin-martyrdom-criteria POST로 채택.
  *   기존 code와 겹치면 exists:true 표기(중복 채택 방지).
  *
  * 권한: super_admin (요건 기준 변경 책임)

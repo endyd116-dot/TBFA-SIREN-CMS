@@ -1,5 +1,5 @@
 // netlify/functions/admin-activity-posts.ts
-// ★ M-11: 주요 활동 게시글 CRUD (어드민)
+// M-11: 주요 활동 게시글 CRUD (어드민)
 
 import { eq, and, desc, count, or, like } from "drizzle-orm";
 import { db } from "../../db";

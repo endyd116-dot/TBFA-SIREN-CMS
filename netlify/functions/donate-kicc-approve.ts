@@ -1,9 +1,9 @@
 /**
- * POST|GET /api/donate-kicc-approve   ← ★ KICC returnUrl 핸들러 (브라우저 복귀 지점)
+ * POST|GET /api/donate-kicc-approve   ← KICC returnUrl 핸들러 (브라우저 복귀 지점)
  *
  * KICC 일시 결제 2단계 — 승인(approval).
  * - KICC가 결제창 인증 후 이 URL로 POST 복귀(authorizationId·shopOrderNo)
- * - register 때 저장한 pending 레코드 로드 → ★ 서버 금액 기준으로 승인
+ * - register 때 저장한 pending 레코드 로드 → 서버 금액 기준으로 승인
  * - KICC 승인금액 == 등록금액 대조 후 confirmed
  * - 영수증 발급 + 감사 메일 + 포인트 적립
  * - 처리 후 302 redirect → /payment-success.html(성공) / /payment-fail.html(실패)
@@ -92,7 +92,7 @@ export default async (req: Request) => {
     const result = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo });
 
     if (!result.success) {
-      /* ★ 2026-06-26 FIX: 네트워크 단절/타임아웃은 KICC 승인 여부가 불확실하다(KICC는 승인·매입
+      /* 2026-06-26 FIX: 네트워크 단절/타임아웃은 KICC 승인 여부가 불확실하다(KICC는 승인·매입
          완료됐는데 응답만 못 받은 경우 존재 → 돈은 빠지고 우리만 미반영). 이때 'failed'로 굳히면
          웹훅 백업이 failed→completed 승격을 거부해 영영 미반영됨. → 네트워크성 실패는 'pending'을
          유지해 웹훅/거래조회 복구가 확정하게 한다. 명확한 거절(카드오류 등)만 'failed'. */
@@ -109,7 +109,7 @@ export default async (req: Request) => {
       return failRedirect(result.errorMessage || "결제 승인에 실패했습니다");
     }
 
-    /* 승인금액 == 등록금액 대조 — ★US-016 fail-closed:
+    /* 승인금액 == 등록금액 대조 — US-016 fail-closed:
        PG 승인금액이 숫자가 아니거나(누락·NaN) 등록금액과 다르면 거부(이전엔 number일 때만 대조). */
     if (typeof result.amount !== "number" || !Number.isFinite(result.amount) || result.amount !== donation.amount) {
       await db
@@ -119,10 +119,10 @@ export default async (req: Request) => {
       return failRedirect("결제 금액 검증에 실패했습니다");
     }
 
-    /* ★R45 통합 결제창: 실제 선택된 결제수단(카드/간편결제 등) 기록 — register 때 'card' 가정값을 덮어씀 */
+    /* R45 통합 결제창: 실제 선택된 결제수단(카드/간편결제 등) 기록 — register 때 'card' 가정값을 덮어씀 */
     const actualPayMethod = kiccPayMethod(result.payMethodTypeCode, result.cpCode);
 
-    /* ★R45 방어 가드: 가상계좌(입금 대기형)는 즉시승인 흐름과 불일치 — 채번 응답은 금액이 맞아도
+    /* R45 방어 가드: 가상계좌(입금 대기형)는 즉시승인 흐름과 불일치 — 채번 응답은 금액이 맞아도
        실제 입금 전이라 '완료'로 기록하면 안 됨(입금통보 webhook 미구현). 원장 설정상 노출 안 되게
        하는 게 1차 통제이나, 만일 섞여 들어오면 여기서 pending 유지 후 거절. */
     if (actualPayMethod === "vbank") {
@@ -202,10 +202,10 @@ export default async (req: Request) => {
       console.warn("[donate-kicc-approve] 포인트 적립 실패", e);
     }
 
-    /* ★ US-044: 캠페인 지정 후원이면 모금현황(모금액·후원자수) 즉시 재계산 */
+    /* US-044: 캠페인 지정 후원이면 모금현황(모금액·후원자수) 즉시 재계산 */
     await recalcCampaignStatsSafe((donation as any).campaignId);
 
-    /* ★ 2026-06-26: 일시후원 완료 → 예비 후원자로 자동 등록(회원 연결·또는 게스트는 매칭/생성).
+    /* 2026-06-26: 일시후원 완료 → 예비 후원자로 자동 등록(회원 연결·또는 게스트는 매칭/생성).
        fire-and-forget — 실패해도 결제 완료에 영향 0. */
     void ensureProspectFromDonation({
       donationId: updated.id,
@@ -221,7 +221,7 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "🔔 새 일시후원",
+        title: "새 일시후원",
         message: `방금 일시후원이 들어왔어요. ${updated.donorName}님 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
         link: "/admin.html#donations",
         refTable: "donations",

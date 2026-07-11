@@ -55,7 +55,7 @@ export default async function handler(req: Request) {
 
   // GET
   if (method === "GET") {
-    // ★ 2026-06-03: 직원 연봉 설정용 — 활성 직원(운영자·관리자) 목록 + 현재 연봉.
+    // 2026-06-03: 직원 연봉 설정용 — 활성 직원(운영자·관리자) 목록 + 현재 연봉.
     //   회원 모달이 아닌 급여관리에서 직원 연봉을 직접 관리(통합 일반 회원과 분리).
     if (url.searchParams.get("staff") === "1") {
       try {

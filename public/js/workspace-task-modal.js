@@ -244,7 +244,7 @@
       sel.innerHTML = '<option value="">— 운영자 선택 —</option>';
       try {
         const res = await _api('/api/admin-workspace-members');
-        /* ★ P1-10 fix: 서버가 ok({data:rows})로 한 겹 더 감싸므로 res.data.data가 배열(파일공유 화면과 동일). */
+        /* P1-10 fix: 서버가 ok({data:rows})로 한 겹 더 감싸므로 res.data.data가 배열(파일공유 화면과 동일). */
         const items = (res && res.data && res.data.data) || (res && res.data && res.data.items) || (res && res.items) || [];
         if (Array.isArray(items)) {
           items.forEach(function (m) {

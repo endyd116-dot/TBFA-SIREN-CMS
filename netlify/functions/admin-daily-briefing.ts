@@ -1,7 +1,7 @@
 // netlify/functions/admin-daily-briefing.ts
-// ★ Phase 3 Step 2-B — 일일 브리핑 조회 API
+// Phase 3 Step 2-B — 일일 브리핑 조회 API
 //
-// ⚠️ 브리핑 생성은 Step 5의 Agent-8 cron이 담당. 이 API는 조회/읽음만.
+// 브리핑 생성은 Step 5의 Agent-8 cron이 담당. 이 API는 조회/읽음만.
 //
 // GET ?today=1            : 오늘 브리핑
 // GET ?date=YYYY-MM-DD    : 특정 날짜

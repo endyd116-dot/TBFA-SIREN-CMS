@@ -31,7 +31,7 @@ export default async function handler(_req: Request, _ctx: Context) {
     if (ended.length > 0) results.push(`ENDED 전환: ${ended.map((r: any) => `${r.year}Q${r.quarter}`).join(", ")}`);
 
     // ENDED → SETTLED (모든 결산 PAID 완료 시)
-    /* ★ R34-P2-B-1: 'APPROVED' 제거 — 명세 의도는 100% PAID일 때만 SETTLED 마감.
+    /* R34-P2-B-1: 'APPROVED' 제거 — 명세 의도는 100% PAID일 때만 SETTLED 마감.
        APPROVED 단계에서도 SETTLED 마감되면 후속 PAID 트리거가 누락될 위험 */
     const endedQRows = await db.execute(sql`SELECT id, year, quarter FROM quarters WHERE status = 'ENDED'`);
     const endedQs = (endedQRows as any).rows || (endedQRows as any[]);
@@ -86,7 +86,7 @@ export default async function handler(_req: Request, _ctx: Context) {
     }
 
     // ── 임계점 도달 체크: 매일 REVENUE_LINKED 누적치 임계점 초과 여부 ──
-    /* ★ R35-GAP-P2-M4: ACTIVE → ENDED 전환된 분기도 1회 일괄 알림 발송 (분기 종료일 직전 매출 누락 방지).
+    /* R35-GAP-P2-M4: ACTIVE → ENDED 전환된 분기도 1회 일괄 알림 발송 (분기 종료일 직전 매출 누락 방지).
        dedup은 기존 notifications(ref_table='milestone_threshold' AND ref_id=m.id AND created_at>=quarter.start_date)
        조건으로 분기 내 중복 자동 차단 — ENDED 전환 cron에서도 동일 분기 ID 매칭. */
     const activeQRows = await db.execute(sql`SELECT id, year, quarter, 'ACTIVE' as phase FROM quarters WHERE status = 'ACTIVE'`);
@@ -107,7 +107,7 @@ export default async function handler(_req: Request, _ctx: Context) {
 
       for (const m of milestones) {
         try {
-          /* ★ R29-GAP-P2-M1: 입력자 이름·담당 admin 함께 조회 (그룹 알림용) */
+          /* R29-GAP-P2-M1: 입력자 이름·담당 admin 함께 조회 (그룹 알림용) */
           const sumRows = await db.execute(sql`
             SELECT COALESCE(SUM(re.amount::numeric), 0) as total,
                    re.entered_by,
@@ -122,7 +122,7 @@ export default async function handler(_req: Request, _ctx: Context) {
           const sums = (sumRows as any).rows || (sumRows as any[]);
           const thrVal = Number(m.threshold_value || 0);
 
-          /* ★ R29-GAP-P2-M1: 담당 admin(milestone_role 일치) 조회 — 그룹 알림 대상 */
+          /* R29-GAP-P2-M1: 담당 admin(milestone_role 일치) 조회 — 그룹 알림 대상 */
           const roleAdminRows = await db.execute(sql`
             SELECT id FROM members
             WHERE type = 'admin' AND status = 'active'
@@ -131,7 +131,7 @@ export default async function handler(_req: Request, _ctx: Context) {
           const roleAdminIds: number[] = ((roleAdminRows as any).rows || (roleAdminRows as any[]))
             .map((r: any) => Number(r.id));
 
-          /* ★ R35-GAP-P2-M4: JUST_ENDED 분기는 메시지에 "분기 종료 후" 명시 (운영자 인식 보조) */
+          /* R35-GAP-P2-M4: JUST_ENDED 분기는 메시지에 "분기 종료 후" 명시 (운영자 인식 보조) */
           const phaseLabel = (q as any).phase === "JUST_ENDED" ? " (분기 종료 후)" : "";
 
           for (const row of sums) {
@@ -163,7 +163,7 @@ export default async function handler(_req: Request, _ctx: Context) {
               });
             }
 
-            /* 2. ★ R29-GAP-P2-M1: 담당 admin 그룹 알림 (입력자 본인 제외, 분기 내 중복 제외) */
+            /* 2. R29-GAP-P2-M1: 담당 admin 그룹 알림 (입력자 본인 제외, 분기 내 중복 제외) */
             const targetAdminIds = roleAdminIds.filter((id) => id !== enteredById);
             if (targetAdminIds.length > 0) {
               const sendIds: number[] = [];
@@ -191,7 +191,7 @@ export default async function handler(_req: Request, _ctx: Context) {
                 });
               }
             } else {
-              /* 3. ★ R29-GAP-P2-M1: 담당 admin 0명 → 슈퍼어드민 fallback */
+              /* 3. R29-GAP-P2-M1: 담당 admin 0명 → 슈퍼어드민 fallback */
               await notifyAllSuperAdmins({
                 category: "milestone", severity: "warning",
                 title: `[성과 임계점${phaseLabel}] ${memberName}의 ${m.name} 임계 도달 (담당 미배정)`,

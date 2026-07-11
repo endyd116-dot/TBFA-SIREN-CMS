@@ -1,5 +1,5 @@
 // netlify/functions/admin-related-sites.ts
-// ★ Phase B: 어드민 관련사이트 CRUD (Draft 시스템 없음 — 즉시 반영)
+// Phase B: 어드민 관련사이트 CRUD (Draft 시스템 없음 — 즉시 반영)
 //
 // GET    /api/admin/related-sites              — 전체 목록 (비활성 포함)
 // POST   /api/admin/related-sites              — 신규 생성

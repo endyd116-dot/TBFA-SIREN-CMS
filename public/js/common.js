@@ -36,12 +36,12 @@
     const target = $(slot);
     if (!target) return;
     try {
-      /* ★ 캐시 강제 무력화 — 헤더/푸터/모달 변경 시 즉시 반영 */
+      /* 캐시 강제 무력화 — 헤더/푸터/모달 변경 시 즉시 반영 */
       const res = await fetch(file + (file.includes('?') ? '&' : '?') + 'cb=' + Date.now(),
                               { cache: 'no-store' });
       if (!res.ok) throw new Error(`${file} ${res.status}`);
       target.innerHTML = await res.text();
-      /* ★ 핵심: innerHTML로 삽입된 <script> 태그는 브라우저 보안 정책상 실행 안 됨.
+      /* 핵심: innerHTML로 삽입된 <script> 태그는 브라우저 보안 정책상 실행 안 됨.
        * 새 script 요소를 만들어 다시 추가해야 inline script가 실행됨. */
       target.querySelectorAll('script').forEach(function(oldScript) {
         const newScript = document.createElement('script');
@@ -256,7 +256,7 @@
   }
 
   /* =========================================================
-     ★ Phase B Step 5-A — 헤더 메뉴 동적 렌더링
+     Phase B Step 5-A — 헤더 메뉴 동적 렌더링
      - /api/public/nav-menus 호출 → DB 데이터로 <ul class="gnb"> 다시 그림
      - 실패 시 정적 HTML 폴백 그대로 유지
      - preview=1 일 때 Draft 데이터 우선
@@ -305,7 +305,7 @@
     if (!Icons._paths || !Icons._paths[name]) return '';
     return Icons.svg(name) + ' ';
   }
-  /* [메인] DB label 선두에 박힌 이모지를 SVG로 분리 (예: "📗 자료실" → 아이콘 + "자료실") */
+  /* [메인] DB label 선두에 박힌 이모지를 SVG로 분리 (예: "[이모지] 자료실" → 아이콘 + "자료실") */
   function navLabel(label) {
     var s = String(label || '');
     var sp = s.indexOf(' ');
@@ -551,7 +551,7 @@
     } catch (_) { /* 무시 — 정적 기본값 유지 */ }
   }
 
-  /* ★ 2026-07-07 푸터를 DB 설정값(site_settings scope=footer)으로 렌더.
+  /* 2026-07-07 푸터를 DB 설정값(site_settings scope=footer)으로 렌더.
      preview=1이면 임시발행(draft) 우선 → 편집기 저장·발행이 실제 푸터에 반영.
      값이 없으면 정적 기본값 유지(폴백 안전·비차단). */
   async function renderFooter() {
@@ -587,16 +587,16 @@
   /* ------------ 14. 초기화 ------------ */
   async function init() {
     await loadAllPartials();
-    /* ★ Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림 */
+    /* Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림 */
     await renderHeaderMenu();
-    renderFooter();   /* ★ 2026-07-07 푸터 DB 설정 렌더(비차단) */
+    renderFooter();   /* 2026-07-07 푸터 DB 설정 렌더(비차단) */
     activateGNB();
     setupLangToggle();
     setupSearch();
     setupRelatedSelect();
     setupCommonForms();
     setupPreviewBanner();
-    applyBrand();   /* ★ 2026-06-03 브랜드 설정 적용 (fallback-safe·비차단) */
+    applyBrand();   /* 2026-06-03 브랜드 설정 적용 (fallback-safe·비차단) */
     if (typeof window.SIREN_PAGE_INIT === 'function') {
       window.SIREN_PAGE_INIT();
     }
@@ -613,7 +613,7 @@
     $, $$, toast,
     openModal, closeModal, switchModal,
     isPartialsLoaded: () => partialsLoaded,
-    /* ★ 외부에서 헤더 강제 새로고침 가능 (어드민 미리보기에서 활용) */
+    /* 외부에서 헤더 강제 새로고침 가능 (어드민 미리보기에서 활용) */
     reloadHeader: renderHeaderMenu,
     reloadFooter: renderFooter,
   };
@@ -621,7 +621,7 @@
 })();
 
 /* =========================================================
-   ★ K-9: 401 자동 세션 만료 처리 (변경 없음)
+   K-9: 401 자동 세션 만료 처리 (변경 없음)
    ========================================================= */
 (function () {
   'use strict';
@@ -641,14 +641,14 @@
     '/api/auth/email-verify',
     '/api/admin/login',
     '/api/auth/me',
-    /* ★ 2026-05-16: 헤더 '관리자 모드' 버튼 표시 판단용 호출(/api/admin/me·
+    /* 2026-05-16: 헤더 '관리자 모드' 버튼 표시 판단용 호출(/api/admin/me·
        /api/admin/me?light=1)이 비로그인 메인 페이지에서 정상 401 응답인데,
        isExcluded 미통과로 handle401이 모달을 강제로 열어 모든 사용자에게
        세션 만료 모달이 뜨던 결함. 어드민 페이지 자체는 진입 시 별도 redirect
        흐름이 있어 모달 안 떠도 안전. ai-agent-widget.js의 권한 체크 호출도
        동일하게 보호됨. */
     '/api/admin/me',
-    /* ★ 2026-05-16: mypage-out-of-office.js가 마이페이지 진입 시 /api/admin-user-preferences
+    /* 2026-05-16: mypage-out-of-office.js가 마이페이지 진입 시 /api/admin-user-preferences
        호출(부재 일정 카드 렌더 — 어드민·운영자 전용 기능). 일반 회원은 정상 401 응답인데
        EXCLUDED 미통과 → 모달 트리거. 클라이언트 측은 catch로 카드 숨김 처리하지만
        fetch wrap의 handle401이 먼저 발사돼서 모달 강제 표시. */
@@ -747,7 +747,7 @@
 })();
 
 /* ============================================================
-   ★ SIREN 클라이언트 캐시 레이어
+   SIREN 클라이언트 캐시 레이어
    - GET 요청 결과를 메모리에 TTL 기반으로 저장
    - 자주 바뀌지 않는 데이터(메뉴·설정·통계) 재요청 방지
    - window.__sirenCache.get(url) / .set(url, data, ttlMs) / .clear()

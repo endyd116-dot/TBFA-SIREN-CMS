@@ -1,5 +1,5 @@
 // netlify/functions/admin-board-posts.ts
-// ★ M-10: 자유게시판 관리자 목록 + 상세 + 숨김/메모/답변
+// M-10: 자유게시판 관리자 목록 + 상세 + 숨김/메모/답변
 
 import type { Context } from "@netlify/functions";
 import { eq, and, desc, count, or, ilike, sql, inArray } from "drizzle-orm";
@@ -238,7 +238,7 @@ export default async (req: Request, _ctx: Context) => {
                 recipientType: "user",
                 category: "support",
                 severity: "info",
-                title: "💬 자유게시판 게시글에 운영진 답변이 등록되었습니다",
+                title: "자유게시판 게시글에 운영진 답변이 등록되었습니다",
                 message: (row as any).title,
                 link: `/board-view.html?id=${id}`,
                 refTable: "board_posts",

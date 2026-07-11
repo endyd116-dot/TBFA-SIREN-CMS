@@ -1,5 +1,5 @@
 /**
- * ⛔ DEPRECATED (Q3-001 fix) — 소유자 검증이 전혀 없던 무검증 파일 공유 엔드포인트.
+ * DEPRECATED (Q3-001 fix) — 소유자 검증이 전혀 없던 무검증 파일 공유 엔드포인트.
  * 누구나 남의 파일/폴더를 임의 멤버에게 공유·해제·열람할 수 있는 IDOR였다.
  * 모든 클라이언트는 소유자/super_admin 검증이 있는 `/api/admin-workspace-file-share`로 일원화됨
  * (public/js/workspace-files.js). 이 경로는 더 이상 어떤 쓰기도 수행하지 않고 410을 반환한다.

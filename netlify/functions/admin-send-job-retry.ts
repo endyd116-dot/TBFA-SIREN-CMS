@@ -99,7 +99,7 @@ export default async function handler(req: Request) {
       `);
     }
 
-    /* ★ 2026-06-25 즉시 처리: 30분 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire.
+    /* 2026-06-25 즉시 처리: 30분 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire.
        fire 실패해도 안전망 크론이 줍게 이중화(여기서 throw 금지). */
     void triggerDispatchBackground().catch(() => {});
 

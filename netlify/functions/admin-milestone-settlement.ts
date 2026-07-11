@@ -27,10 +27,10 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
     const status = url.searchParams.get("status");
-    /* ★ R29-GAP-P2-M3: memberId 필터 + 단건 응답 키 */
+    /* R29-GAP-P2-M3: memberId 필터 + 단건 응답 키 */
     const memberIdQ = url.searchParams.get("memberId");
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params)는 drizzle에서 파라미터 바인딩 미지원 →
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params)는 drizzle에서 파라미터 바인딩 미지원 →
          sql 템플릿 합성으로 변경 (status·quarterId·memberId 동적 조건 안전 바인딩) */
       let baseSql = sql`
         SELECT qs.*, q.year, q.quarter, m.name as member_name, m.milestone_role
@@ -56,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
         approvedAt: r.approved_at, paidAt: r.paid_at,
         calculationSnapshot: r.calculation_snapshot,
       }));
-      /* ★ R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키, 아니면 null */
+      /* R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키, 아니면 null */
       let settlement: any = null;
       if (quarterId && memberIdQ) {
         settlement = settlements.find((s: any) =>
@@ -73,7 +73,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
   const id = Number(idStr);
 
-  /* ★ R29-MS-GAP1-D: HOLD 트랜지션 추가 (SUBMITTED/REVIEWED → HOLD, HOLD → REVIEWED 복귀) */
+  /* R29-MS-GAP1-D: HOLD 트랜지션 추가 (SUBMITTED/REVIEWED → HOLD, HOLD → REVIEWED 복귀) */
   const statusTransitions: Record<string, { from: string[]; to: string }> = {
     approve:  { from: ["SUBMITTED", "REVIEWED", "HOLD"], to: "APPROVED" },
     reject:   { from: ["SUBMITTED", "REVIEWED", "APPROVED", "HOLD"], to: "REJECTED" },
@@ -100,12 +100,12 @@ export default async function handler(req: Request, _ctx: Context) {
         return Response.json({ ok: false, error: `현재 상태(${settle.status})에서 ${action} 불가` }, { status: 400 });
       }
 
-      /* ★ R29-MS-GAP1-D: HOLD 시 사유 필수 */
+      /* R29-MS-GAP1-D: HOLD 시 사유 필수 */
       if (action === "hold" && !body?.holdReason?.trim()) {
         return Response.json({ ok: false, error: "HOLD 사유를 입력하세요" }, { status: 400 });
       }
 
-      /* ★ R34-P1-B-13: sql.raw + escape 패턴 → sql 템플릿 합성 (R32-P0-C2·C3 동일 패턴 적용) */
+      /* R34-P1-B-13: sql.raw + escape 패턴 → sql 템플릿 합성 (R32-P0-C2·C3 동일 패턴 적용) */
       let updateSql = sql`UPDATE quarterly_settlements SET status = ${transition.to}, reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()`;
       if (action === "approve") updateSql = sql`${updateSql}, approved_at = NOW()`;
       if (action === "paid")    updateSql = sql`${updateSql}, paid_at = NOW()`;
@@ -133,7 +133,7 @@ export default async function handler(req: Request, _ctx: Context) {
         }
       }
 
-      /* ★ R29-MS-GAP1-D: HOLD 시 운영자에게 자료 보완 요청 알림 */
+      /* R29-MS-GAP1-D: HOLD 시 운영자에게 자료 보완 요청 알림 */
       if (action === "hold" && settle.member_id) {
         createNotification({
           recipientId: settle.member_id, recipientType: "admin",
@@ -144,7 +144,7 @@ export default async function handler(req: Request, _ctx: Context) {
         }).catch(() => {});
       }
 
-      /* ★ R29-MS-GAP1-J: PAID 처리 시 어드민/운영자 양쪽 알림 */
+      /* R29-MS-GAP1-J: PAID 처리 시 어드민/운영자 양쪽 알림 */
       if (action === "paid") {
         // 운영자에게 지급 안내
         if (settle.member_id) {
@@ -164,12 +164,12 @@ export default async function handler(req: Request, _ctx: Context) {
           link: "/cms-tbfa.html#milestone-review",
         }).catch(() => {});
 
-        /* ★ R29-MS-GAP1-G: PAID 후 다음 분기 자동 생성 */
+        /* R29-MS-GAP1-G: PAID 후 다음 분기 자동 생성 */
         await ensureNextQuarter(settle.year, settle.quarter).catch((e: any) => {
           console.warn("[next-quarter-create]", e?.message);
         });
 
-        /* ★ Q3-032 fix: PAID 시 해당 분기 3개월 급여 재집계 — 분기 성과급(/3 안분)이 앞 달 명세에도
+        /* Q3-032 fix: PAID 시 해당 분기 3개월 급여 재집계 — 분기 성과급(/3 안분)이 앞 달 명세에도
            반영되도록. force=false라 확정(REVIEWED↑)·수동수정 명세는 보존(미반영). */
         try {
           const { calculatePayrollForMonth } = await import("../../lib/payroll-calc");
@@ -189,7 +189,7 @@ export default async function handler(req: Request, _ctx: Context) {
   return Response.json({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
 }
 
-/* ★ R29-MS-GAP1-G: 다음 분기 자동 생성 (UPCOMING)
+/* R29-MS-GAP1-G: 다음 분기 자동 생성 (UPCOMING)
    - 이미 존재하면 skip
    - startDate/endDate/settlementDate는 직전 분기 기준 90일 단위 자동 계산 */
 async function ensureNextQuarter(year: number, quarter: number) {
@@ -206,7 +206,7 @@ async function ensureNextQuarter(year: number, quarter: number) {
   const startDate = `${nextY}-${String(startMonth).padStart(2, "0")}-01`;
   const endMonthDate = new Date(nextY, startMonth + 2, 0); // 분기 마지막 달의 말일
   const endDate = `${nextY}-${String(endMonthDate.getMonth() + 1).padStart(2, "0")}-${String(endMonthDate.getDate()).padStart(2, "0")}`;
-  /* ★ R34-P1-B-5: 결산일은 분기 종료일 + 14일 (UI 안내 "10~14일"과 정합) */
+  /* R34-P1-B-5: 결산일은 분기 종료일 + 14일 (UI 안내 "10~14일"과 정합) */
   const settleDt = new Date(endMonthDate);
   settleDt.setDate(settleDt.getDate() + 14);
   const settlementDate = `${settleDt.getFullYear()}-${String(settleDt.getMonth() + 1).padStart(2, "0")}-${String(settleDt.getDate()).padStart(2, "0")}`;

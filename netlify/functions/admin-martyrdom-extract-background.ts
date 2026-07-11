@@ -22,7 +22,7 @@ import { extractDocText, isMediaFile, transcribeMedia } from "../../lib/ai-ocr";
 import { classifyDocument, indexApprovedReport } from "../../lib/martyrdom-ai";
 import { embedText } from "../../lib/ai-embedding";
 
-/* ⚠️ Netlify 백그라운드 함수(-background)는 config.path 금지 — 붙이면 /.netlify/functions/ 비동기 호출이
+/* Netlify 백그라운드 함수(-background)는 config.path 금지 — 붙이면 /.netlify/functions/ 비동기 호출이
    안 먹혀 자동 체인이 시작 안 됨(2026-05-26 "처리 중 멈춤" 근본 원인). 정상 RAG background도 config 없음. */
 
 const MAX_CHUNK_CHARS = 1200;
@@ -153,7 +153,7 @@ export default async (req: Request, _ctx: Context) => {
     const caseKind = String(doc.caseKind || "active");
 
     /* extract_status → processing (프론트 폴링·배지와 동일 어휘·§1 enum)
-       ★ 2026-05-26: 재처리 시작 시 옛 오류·요약 초기화 — 재시도 중 이전 실패 사유가
+       2026-05-26: 재처리 시작 시 옛 오류·요약 초기화 — 재시도 중 이전 실패 사유가
        화면에 남아 혼동되던 문제 방지(새 결과로 덮어쓰기 전까지 깨끗하게). */
     await db.execute(sql.raw(`
       UPDATE martyrdom_case_documents

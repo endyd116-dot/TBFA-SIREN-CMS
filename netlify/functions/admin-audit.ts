@@ -1,7 +1,7 @@
 // netlify/functions/admin-audit.ts
 /**
  * GET /api/admin/audit            — 감사 로그 목록 조회 (super_admin 전용)
- * GET /api/admin/audit?id=N       — 단건 상세 조회 (★ M-16 신규)
+ * GET /api/admin/audit?id=N       — 단건 상세 조회 (M-16 신규)
  *
  * 쿼리 파라미터 (목록):
  * - page (1~), limit (10~100, 기본 50)
@@ -10,7 +10,7 @@
  * - dateFrom / dateTo (ISO 날짜)
  *
  * 권한:
- * - 모든 admin이 GET 가능 (operator 포함) → ★ M-16에서 super_admin only로 강화
+ * - 모든 admin이 GET 가능 (operator 포함) → M-16에서 super_admin only로 강화
  *
  * 응답:
  * - 목록: { list, pagination, stats, filters }
@@ -32,10 +32,10 @@ export default async (req: Request) => {
   /* 1. 관리자 인증 */
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
-  /* ★ M-16: member.role 사용 (DB 최신값 + AdminPayload 타입 안정성) */
+  /* M-16: member.role 사용 (DB 최신값 + AdminPayload 타입 안정성) */
   const { member } = guard.ctx;
 
-  /* ★ M-16: super_admin only 가드 */
+  /* M-16: super_admin only 가드 */
   if (!requireRole(member, "super_admin")) return roleForbidden("super_admin");
 
   try {
@@ -43,7 +43,7 @@ export default async (req: Request) => {
 
 // netlify/functions/admin-audit.ts — 단건 GET 분기 다음에 export 분기 추가
 
-    /* ===== ★ M-16: CSV 익스포트 (?export=csv) ===== */
+    /* ===== M-16: CSV 익스포트 (?export=csv) ===== */
     const exportType = url.searchParams.get("export") || "";
     if (exportType === "csv") {
       /* 필터는 목록과 동일하게 적용 (현재 화면 그대로 추출) */

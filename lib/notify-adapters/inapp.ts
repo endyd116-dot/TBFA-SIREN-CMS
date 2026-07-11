@@ -4,7 +4,7 @@
 
 import { createNotification } from "../notify";
 import type { NotifyAdapter, AdapterSendOpts, AdapterResult } from "./types";
-/* ★ 2026-05-16: 어드민 채널 토글 — isActive=false면 인앱 알림도 차단. */
+/* 2026-05-16: 어드민 채널 토글 — isActive=false면 인앱 알림도 차단. */
 import { loadEventTemplate } from "../notify-dispatcher";
 
 export const inappAdapter: NotifyAdapter = {

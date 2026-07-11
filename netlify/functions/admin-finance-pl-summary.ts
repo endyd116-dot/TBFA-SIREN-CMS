@@ -24,7 +24,7 @@ export default async function handler(req: Request): Promise<Response> {
     fiscalYear: url.searchParams.get("fiscalYear"),
   });
 
-  /* ★ 버그픽스 #13-2: 손익 요약은 읽기 전용 집계 — 기간 키별 3분 캐시.
+  /* 버그픽스 #13-2: 손익 요약은 읽기 전용 집계 — 기간 키별 3분 캐시.
    *  donations/expenses/other_revenues 풀집계가 매 진입마다 도는 부담을 줄임. */
   const cacheKey = `pl-summary-v1:${period}:${startDate}:${endDate}:${fiscalYear ?? "-"}:${includeMonthly ? "m" : "-"}`;
   const cached = await getCache<Record<string, any>>(cacheKey);

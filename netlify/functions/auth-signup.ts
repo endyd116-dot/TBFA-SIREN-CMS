@@ -1,5 +1,5 @@
 // netlify/functions/auth-signup.ts
-// ★ Phase M-19-11 V2: 직업군별 회원가입 통합 처리
+// Phase M-19-11 V2: 직업군별 회원가입 통합 처리
 //
 // POST /api/auth/signup
 // body: {
@@ -34,13 +34,13 @@ import {
   ok, badRequest, conflict, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
-/* ★ 2026-05-16 A안: 효성 후원자 사이트 가입 흐름 — 전화 인증 토큰 처리 */
+/* 2026-05-16 A안: 효성 후원자 사이트 가입 흐름 — 전화 인증 토큰 처리 */
 import { consumeVerifyToken, normalizePhone as normPhoneVerify } from "../../lib/phone-verify";
-/* ★ 2026-05-26: 웹 가입자 가입경로(signup_source_id) 기록 — 미기록 시 NULL→집계 누락 */
+/* 2026-05-26: 웹 가입자 가입경로(signup_source_id) 기록 — 미기록 시 NULL→집계 누락 */
 import { getSignupSourceId } from "../../lib/member-classifier";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
-const SITE_URL = process.env.SITE_URL || "https://tbfa.co.kr";   /* ★US-010: 공식 도메인 폴백 */
+const SITE_URL = process.env.SITE_URL || "https://tbfa.co.kr";   /* US-010: 공식 도메인 폴백 */
 const ORG_NAME = process.env.ORG_NAME || "(사)교사유가족협의회";
 
 /* ───────── 직업군별 설정 ───────── */
@@ -271,7 +271,7 @@ export default async (req: Request, _ctx: Context) => {
       certificateBlobId = blobId;
     }
 
-    /* ★ A안: 전화 인증 토큰 처리 — verifyToken 있으면 phone_verifications에서 matched_member_id 조회.
+    /* A안: 전화 인증 토큰 처리 — verifyToken 있으면 phone_verifications에서 matched_member_id 조회.
        matched 있으면 그 row를 활성화 흐름으로 (이메일·비번 추가). 없으면 신규 가입 흐름. */
     let matchedMemberId: number | null = null;
     const verifyToken = body?.verifyToken ? String(body.verifyToken) : "";
@@ -314,7 +314,7 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 8. 회원 생성 */
     const now = new Date();
-    /* ★ 2026-05-26: 웹 가입자는 가입경로 'website'로 기록. 미기록(NULL) 시 대시보드·
+    /* 2026-05-26: 웹 가입자는 가입경로 'website'로 기록. 미기록(NULL) 시 대시보드·
        통합분석·가입회원관리 집계에서 누락됨. 시드 미존재 등으로 null이면 기존과 동일. */
     const webSignupSourceId = await getSignupSourceId("website");
     const insertData: any = {
@@ -335,14 +335,14 @@ export default async (req: Request, _ctx: Context) => {
       memo: body.memo ? String(body.memo).slice(0, 500) : null,
       /* 유가족은 수동 승인 필요 */
       emailVerified: false,
-      /* ★ 2026-05-16 SECURITY: schema의 operatorActive default가 true로 박혀
+      /* 2026-05-16 SECURITY: schema의 operatorActive default가 true로 박혀
          있어 신규 가입 회원이 자동으로 운영자 권한을 받았음. 일반 가입 흐름에서는
          절대 운영자 아니므로 명시적으로 false. 관리자 권한 부여는 관리자 화면에서
          별도 PATCH로만 가능하게 유지. */
       operatorActive: false,
     };
 
-    /* ★ A안: matchedMemberId 있으면 INSERT 대신 UPDATE (기존 효성 후원자 row 활성화).
+    /* A안: matchedMemberId 있으면 INSERT 대신 UPDATE (기존 효성 후원자 row 활성화).
        후원 이력·hyosung_member_no·hyosung_synced_at 등은 그대로 유지. */
     let created: any;
     if (matchedMemberId) {
@@ -406,7 +406,7 @@ export default async (req: Request, _ctx: Context) => {
         await notifyAllOperators({
           category: "member",
           severity: config.requiresSecondaryVerification ? "critical" : "warning",
-          title: `🔔 ${config.icon} ${config.displayName} 가입 신청`,
+          title: `${config.displayName} 가입 신청`,
           message: `${created.name}님이 ${config.displayName} 회원으로 가입 신청했어요.${
             config.requiresSecondaryVerification ? " 2단계 검증이 필요해요!" : " 승인을 확인해 주세요."
           }`,
@@ -477,7 +477,7 @@ export default async (req: Request, _ctx: Context) => {
             </span>
           </div>`
         : `<div style="background:#e7f7ec;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #1a8b46">
-            <strong style="color:#1a5e2c">✅ 가입 즉시 활성화</strong><br />
+            <strong style="color:#1a5e2c">가입 즉시 활성화</strong><br />
             <span style="font-size:13px;color:var(--text-2)">
               지금 바로 로그인하여 서비스를 이용하실 수 있습니다.
             </span>
@@ -495,7 +495,6 @@ export default async (req: Request, _ctx: Context) => {
               <tr><td align="center" style="padding:40px 20px">
                 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
                   <tr><td style="padding:50px 40px 30px;text-align:center;background:linear-gradient(135deg,#7a1f2b,#3a0d14);color:#fff">
-                    <div style="font-size:64px;margin-bottom:12px;line-height:1">${config.icon}</div>
                     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;font-family:'Noto Serif KR',serif">
                       ${config.displayName} 회원 가입을 환영합니다
                     </h1>
@@ -532,7 +531,7 @@ export default async (req: Request, _ctx: Context) => {
       }).catch(() => {});
     } catch (_) {}
 
-    /* 12-b. ★ US-002: 이메일 인증 메일 자동 발송 (가입 직후·활성/대기 무관)
+    /* 12-b. US-002: 이메일 인증 메일 자동 발송 (가입 직후·활성/대기 무관)
        기존엔 가입 시 인증 메일이 발송되지 않아 emailVerified가 영구 false로 남고,
        사용자가 마이페이지에서 '재발송'을 직접 눌러야만 인증할 수 있었음. */
     try {
@@ -576,10 +575,10 @@ export default async (req: Request, _ctx: Context) => {
       };
       const response = ok({
         member: memberPayload,
-        /* ★ US-006: 클라이언트(auth.js)가 res.data.data.user를 읽어 가입 직후 헤더를
+        /* US-006: 클라이언트(auth.js)가 res.data.data.user를 읽어 가입 직후 헤더를
            로그인 상태로 전환함. auth.js는 보호 파일이라 서버에서 user 별칭을 함께 반환. */
         user: memberPayload,
-      }, "회원가입이 완료되었습니다 🎉");
+      }, "회원가입이 완료되었습니다");
 
       /* Set-Cookie 헤더 추가 */
       response.headers.set("Set-Cookie", cookie);

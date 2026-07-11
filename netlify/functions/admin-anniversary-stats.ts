@@ -1,5 +1,5 @@
 // netlify/functions/admin-anniversary-stats.ts
-// ★ Phase M-19-7: 기념일 축하 메일 통계 + 발송 로그 조회
+// Phase M-19-7: 기념일 축하 메일 통계 + 발송 로그 조회
 //
 // GET /api/admin/anniversary-stats              — 통계 대시보드
 // GET /api/admin/anniversary-stats?logs=1       — 발송 로그 목록 (페이지네이션)

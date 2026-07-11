@@ -1,6 +1,6 @@
 /**
  * GET /api/admin/member-detail?id=N
- * 회원 종합 정보 (회원정보 + 후원 요약 + 지원 신청 요약 + ★ I-3 블랙/채팅메모)
+ * 회원 종합 정보 (회원정보 + 후원 요약 + 지원 신청 요약 + I-3 블랙/채팅메모)
  */
 import { eq, desc, count, sql, and, isNotNull } from "drizzle-orm";
 // netlify/functions/admin-member-detail.ts — import 라인 교체
@@ -29,7 +29,7 @@ export default async (req: Request) => {
 
     /* 1. 회원 기본 정보 */
 // netlify/functions/admin-member-detail.ts — '1. 회원 기본 정보' 블록 교체
-    /* 1. 회원 기본 정보 (★ M-19-1: 등급 정보 포함) */
+    /* 1. 회원 기본 정보 (M-19-1: 등급 정보 포함) */
     const [member] = await db
       .select({
         id: members.id,
@@ -45,7 +45,7 @@ export default async (req: Request) => {
         lastLoginAt: members.lastLoginAt,
         createdAt: members.createdAt,
         memo: members.memo,
-        /* ★ M-19-1: 등급 정보 */
+        /* M-19-1: 등급 정보 */
         gradeId: members.gradeId,
         gradeCode: memberGrades.code,
         gradeNameKo: memberGrades.nameKo,
@@ -106,7 +106,7 @@ export default async (req: Request) => {
     ).length;
     const supportCompleted = supportList.filter((s) => s.status === "completed").length;
 
-    /* ★ I-3: 4. 블랙리스트 상태 (활성 블랙만) */
+    /* I-3: 4. 블랙리스트 상태 (활성 블랙만) */
     const [blackRow] = await db
       .select({
         id: chatBlacklist.id,
@@ -128,7 +128,7 @@ export default async (req: Request) => {
       if (b) blackBlockedByName = (b as any).name;
     }
 
-    /* ★ I-3: 5. 해당 회원의 채팅방 중 관리자 메모가 있는 것들 */
+    /* I-3: 5. 해당 회원의 채팅방 중 관리자 메모가 있는 것들 */
     const chatMemos = await db
       .select({
         roomId: chatRooms.id,
@@ -161,7 +161,7 @@ export default async (req: Request) => {
         completed: supportCompleted,
         list: supportList,
       },
-      /* ★ I-3 신규 */
+      /* I-3 신규 */
       blacklist: blackRow
         ? {
             id: (blackRow as any).id,

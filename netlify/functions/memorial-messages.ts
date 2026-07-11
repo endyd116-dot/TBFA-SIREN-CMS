@@ -39,7 +39,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const rows = await db
         .select({
           id:         memorialMessages.id,
-          memberId:   memorialMessages.memberId,   /* ★US-028: isMine 판정용(응답엔 미포함 — 익명성 유지) */
+          memberId:   memorialMessages.memberId,   /* US-028: isMine 판정용(응답엔 미포함 — 익명성 유지) */
           authorName: memorialMessages.authorName,
           content:    memorialMessages.content,
           likeCount:  memorialMessages.likeCount,
@@ -79,7 +79,7 @@ export default async function handler(req: Request, _ctx: Context) {
         likeCount: r.likeCount,
         createdAt: r.createdAt,
         liked:     likedSet.has(r.id),
-        /* ★US-028: 로그인 회원이 본인 글을 식별해 삭제 버튼을 띄울 수 있도록 isMine만 노출(memberId는 미노출) */
+        /* US-028: 로그인 회원이 본인 글을 식별해 삭제 버튼을 띄울 수 있도록 isMine만 노출(memberId는 미노출) */
         isMine:    !!(user && r.memberId === user.uid),
       }));
 
@@ -104,7 +104,7 @@ export default async function handler(req: Request, _ctx: Context) {
     if (action === "like") {
       if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
-        /* ★ R41 Q2-047: 존재·미숨김 메시지에만 공감 허용 (삭제·숨김 글에 고아 좋아요 방지) */
+        /* R41 Q2-047: 존재·미숨김 메시지에만 공감 허용 (삭제·숨김 글에 고아 좋아요 방지) */
         const [msg] = await db.select({ id: memorialMessages.id, isHidden: memorialMessages.isHidden })
           .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
         if (!msg || msg.isHidden) {
@@ -145,17 +145,17 @@ export default async function handler(req: Request, _ctx: Context) {
     if (action === "report") {
       if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
-        /* ★ R41 Q2-047: 존재하는 메시지에만 신고 누적 */
+        /* R41 Q2-047: 존재하는 메시지에만 신고 누적 */
         const [msg] = await db.select({ id: memorialMessages.id, memberId: memorialMessages.memberId })
           .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
         if (!msg) {
           return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
         }
-        /* ★ US-030: 본인 글 신고 차단 */
+        /* US-030: 본인 글 신고 차단 */
         if (msg.memberId === user.uid) {
           return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 글은 신고할 수 없습니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
         }
-        /* ★ US-030: 1인 1신고 멱등 — memorial_report_logs UNIQUE(member_id,ref_table,ref_id).
+        /* US-030: 1인 1신고 멱등 — memorial_report_logs UNIQUE(member_id,ref_table,ref_id).
            마이그(migrate-r45-memorial-report-log) 적용 전이면 테이블이 없어 catch로 degrade(기존 동작). */
         let alreadyReported = false;
         try {
@@ -187,7 +187,7 @@ export default async function handler(req: Request, _ctx: Context) {
       }
     }
 
-    /* ★ US-028: 본인 추모 메시지 삭제 (작성자 본인만) */
+    /* US-028: 본인 추모 메시지 삭제 (작성자 본인만) */
     if (action === "delete") {
       if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
@@ -226,7 +226,7 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const authorName = isAnonymous ? "익명" : (user.name || "회원");
 
-      /* ★ R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
+      /* R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
       const mod = await moderateMemorialText(content);
 
       const insertData: any = {
@@ -244,7 +244,7 @@ export default async function handler(req: Request, _ctx: Context) {
         notifyAllOperators({
           category: "support",
           severity: "warning",
-          title: "🛡️ 추모 메시지 자동 보류 — 검토 필요",
+          title: "추모 메시지 자동 보류 — 검토 필요",
           message: `AI가 부적절로 판단해 비공개 처리했습니다. (사유: ${mod.reason || "검토 필요"})`,
           link: `/admin.html#memorial`,
           refTable: "memorial_messages",

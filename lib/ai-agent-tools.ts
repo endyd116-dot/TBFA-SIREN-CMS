@@ -264,7 +264,7 @@ export const TOOL_DECLARATIONS = [
       dueDate: { type: "STRING", description: "YYYY-MM-DD (생략 시 7일 후)" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["title"] }},
-  { name: "email_send", description: "이메일 발송. ★사용자가 원시 이메일 주소(예: abc@gmail.com)를 직접 주면 members_search로 회원을 찾지 말고 그 주소를 toEmails 배열에 그대로 넣어 즉시 호출하라 — 외부 주소도 발송 가능하므로 '회원을 찾을 수 없다'고 포기하지 말 것. 등록 회원에게 보낼 때만 memberIds(정수 배열) 사용. memberIds와 toEmails 중 하나 이상 필수, subject·body 필수. 파일함 파일 첨부 가능. wrapWithLayout=true 시 SIREN 공식 브랜드 템플릿(흑백+금색 테두리, 깔끔)으로 자동 래핑 — '가장 깔끔한 템플릿', '격식 있게' 요청 시 반드시 true.",
+  { name: "email_send", description: "이메일 발송. 사용자가 원시 이메일 주소(예: abc@gmail.com)를 직접 주면 members_search로 회원을 찾지 말고 그 주소를 toEmails 배열에 그대로 넣어 즉시 호출하라 — 외부 주소도 발송 가능하므로 '회원을 찾을 수 없다'고 포기하지 말 것. 등록 회원에게 보낼 때만 memberIds(정수 배열) 사용. memberIds와 toEmails 중 하나 이상 필수, subject·body 필수. 파일함 파일 첨부 가능. wrapWithLayout=true 시 SIREN 공식 브랜드 템플릿(흑백+금색 테두리, 깔끔)으로 자동 래핑 — '가장 깔끔한 템플릿', '격식 있게' 요청 시 반드시 true.",
     parameters: { type: "OBJECT", properties: {
       memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명). toEmails와 함께 쓸 수 있음." },
       toEmails: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 이메일 주소 목록 (최대 10개). 회원이 아닌 외부 주소 포함 가능." },
@@ -282,7 +282,7 @@ export const TOOL_DECLARATIONS = [
       title: { type: "STRING" }, body: { type: "STRING" }, linkUrl: { type: "STRING" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["memberIds", "title"] }},
-  { name: "sms_send", description: "문자(SMS/LMS) 발송. ★사용자가 회원이 아닌 외부 전화번호(예: 010-1234-5678)를 직접 주면 회원 검색하지 말고 그 번호를 toPhones 배열에 그대로 넣어 즉시 발송하라 — 외부 번호도 발송 가능하므로 '회원을 찾을 수 없다'고 포기하지 말 것. 등록 회원에게 보낼 때만 memberIds(정수 배열) 사용. memberIds와 toPhones 중 하나 이상 필수, message 필수. 본문 90바이트(한글 약 45자) 초과 시 자동 LMS 전환.",
+  { name: "sms_send", description: "문자(SMS/LMS) 발송. 사용자가 회원이 아닌 외부 전화번호(예: 010-1234-5678)를 직접 주면 회원 검색하지 말고 그 번호를 toPhones 배열에 그대로 넣어 즉시 발송하라 — 외부 번호도 발송 가능하므로 '회원을 찾을 수 없다'고 포기하지 말 것. 등록 회원에게 보낼 때만 memberIds(정수 배열) 사용. memberIds와 toPhones 중 하나 이상 필수, message 필수. 본문 90바이트(한글 약 45자) 초과 시 자동 LMS 전환.",
     parameters: { type: "OBJECT", properties: {
       memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명, 휴대폰 등록 회원만). toPhones와 함께 쓸 수 있음." },
       toPhones: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 전화번호 목록 (최대 20개, 대시 포함 무관). 회원이 아닌 외부 번호 포함 가능." },
@@ -1631,7 +1631,7 @@ async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolR
           actionType: "task.assign",
           metadata: { isAssignment: true, via: "ai_agent" },
           notifyMemberIds: [assignedTo], notifyType: "assigned",
-          notifyTitle: `📋 새 작업이 지시되었습니다: ${title}`,
+          notifyTitle: `새 작업이 지시되었습니다: ${title}`,
           notifyBody: dueDateStr ? `마감: ${dueDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}` : "마감일 없음",
           actionUrl: `/workspace-kanban.html#task=${id}`,
         });
@@ -2069,7 +2069,7 @@ async function tool_taskUpdate(args: any, adminId: number | null): Promise<ToolR
           metadata: { prevStatus: before.status, newStatus: patch.status, via: "ai_agent" },
           notifyMemberIds: Array.from(notify),
           notifyType: goingDone ? "completed" : "status_changed",
-          notifyTitle: goingDone ? `✅ 작업 완료: ${before.title}` : `🔄 상태 변경(${patch.status}): ${before.title}`,
+          notifyTitle: goingDone ? `작업 완료: ${before.title}` : `상태 변경(${patch.status}): ${before.title}`,
           actionUrl: `/workspace-kanban.html#task=${id}`,
         });
       }
@@ -2080,7 +2080,7 @@ async function tool_taskUpdate(args: any, adminId: number | null): Promise<ToolR
           actionType: "task.assign",
           metadata: { prevAssignee: before.assignedTo, newAssignee: patch.assigned_to, via: "ai_agent" },
           notifyMemberIds: [Number(patch.assigned_to)], notifyType: "assigned",
-          notifyTitle: `📋 새 작업이 지시되었습니다: ${before.title}`,
+          notifyTitle: `새 작업이 지시되었습니다: ${before.title}`,
           actionUrl: `/workspace-kanban.html#task=${id}`,
         });
       }
@@ -2273,7 +2273,7 @@ async function tool_donationsStatusUpdate(args: any, adminId: number | null): Pr
         UPDATE donations SET status = ${status} WHERE id = ${donationId}
       `);
     }
-    /* ★ 2026-06-27: 환불 시 영수증 무효화 + 캠페인 모금현황 재계산(타 환불 경로와 정합) */
+    /* 2026-06-27: 환불 시 영수증 무효화 + 캠페인 모금현황 재계산(타 환불 경로와 정합) */
     if (status === "refunded") {
       await db.execute(sql`
         UPDATE donations SET receipt_issued = false, receipt_number = NULL, receipt_issued_at = NULL WHERE id = ${donationId}
@@ -2812,7 +2812,7 @@ async function tool_taskCommentAdd(args: any, adminId: number | null): Promise<T
           actionType: "task.update",
           metadata: { subType: "comment.create", via: "ai_agent", mentionsCount: mentions.length },
           notifyMemberIds: Array.from(notify), notifyType: "status_changed",
-          notifyTitle: `💬 새 댓글: ${task.title}`,
+          notifyTitle: `새 댓글: ${task.title}`,
           notifyBody: content.slice(0, 100),
           actionUrl: `/workspace-kanban.html#task=${taskId}`,
         });
@@ -5666,7 +5666,7 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
       return { ok: false, error: `source="${source}"에서 action="${action}"은 지원하지 않습니다. 가능: ${allowedActions[source]?.join(", ")}` };
     }
 
-    // ★ Q3-036 fix: 필터값 화이트리스트/검증 — AI·운영자 매개 raw SQL 인젝션 표면 제거 (보간 전 정제).
+    // Q3-036 fix: 필터값 화이트리스트/검증 — AI·운영자 매개 raw SQL 인젝션 표면 제거 (보간 전 정제).
     const safeEnum = (v: any): string | null => (typeof v === "string" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) ? v : null;
     const safeDate = (v: any): string | null => {
       if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/.test(v)) return null;
@@ -5735,7 +5735,7 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
 
     for (const row of rows) {
       try {
-        // ★ Q3-035 fix: 내부 도구가 dry-run preview를 반환하지 않도록 실제 실행 강제(requireApproval:false).
+        // Q3-035 fix: 내부 도구가 dry-run preview를 반환하지 않도록 실제 실행 강제(requireApproval:false).
         //   기존엔 미지정이라 각 변경 도구가 자기 dry-run을 반환 → 실제 변경 0건인데 result.ok=true라 "처리 완료" 거짓 카운트.
         const toolArgs = { ...actionParams, id: row.id, requireApproval: false };
         const result = await executeTool(action, toolArgs, adminId);

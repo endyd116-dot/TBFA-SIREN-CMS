@@ -18,15 +18,15 @@ export interface SendPayload {
   subject?: string;
   /** 본문 — 모든 채널 공통. 카카오는 변수 치환된 최종 본문(알리고에 그대로 전송) */
   body: string;
-  /** ★ 2026-05-16: 카카오 알림톡 — 알리고 등록 tpl_code (UH_XXXX). 없으면 발송 안 함 */
+  /** 2026-05-16: 카카오 알림톡 — 알리고 등록 tpl_code (UH_XXXX). 없으면 발송 안 함 */
   alimtalkTemplateCode?: string;
-  /** ★ 2026-05-16: 카카오 알림톡 버튼 JSON (button_1) */
+  /** 2026-05-16: 카카오 알림톡 버튼 JSON (button_1) */
   alimtalkButtonJson?: any;
-  /** ★ 2026-05-17: SMS 채널일 때 이미지 첨부 시 자동 MMS 전환. 첫 번째 이미지 URL만 사용. */
+  /** 2026-05-17: SMS 채널일 때 이미지 첨부 시 자동 MMS 전환. 첫 번째 이미지 URL만 사용. */
   mmsImageUrl?: string;
-  /** ★ 2026-05-16: 이메일 채널 전용 — SIREN baseLayout으로 wrap (메일 웹 감싸기) */
+  /** 2026-05-16: 이메일 채널 전용 — SIREN baseLayout으로 wrap (메일 웹 감싸기) */
   wrapEmail?: boolean;
-  /** ★ 2026-05-16: 이메일 채널 전용 — 첨부파일 (R2 blob_key + 파일명). 무시되는 채널은 무관. */
+  /** 2026-05-16: 이메일 채널 전용 — 첨부파일 (R2 blob_key + 파일명). 무시되는 채널은 무관. */
   emailAttachments?: Array<{ blobKey: string; filename: string }>;
 }
 
@@ -75,7 +75,7 @@ async function sendEmailDirect(
   if (!member.email) {
     return { ok: false, error: `이메일 주소 없음 (memberId=${member.id})` };
   }
-  /* ★ 2026-05-16: 효성 import 시 자동 생성된 placeholder 이메일은 발송 시도 X.
+  /* 2026-05-16: 효성 import 시 자동 생성된 placeholder 이메일은 발송 시도 X.
      실제 도메인이 아니라 Resend가 응답 안 보내 15초 타임아웃 낭비됨. */
   const emailLower = member.email.toLowerCase();
   if (emailLower.endsWith("@noemail.siren.local") || emailLower.endsWith(".local") || emailLower.endsWith(".invalid") || emailLower.endsWith(".test")) {
@@ -84,7 +84,7 @@ async function sendEmailDirect(
   const subject = (payload.subject || "").trim() || "(제목 없음)";
   const innerBody = String(payload.body).slice(0, 50000);
 
-  /* ★ 2026-05-16: wrapEmail=true면 SIREN baseLayout으로 wrap, 아니면 기본 div */
+  /* 2026-05-16: wrapEmail=true면 SIREN baseLayout으로 wrap, 아니면 기본 div */
   let html: string;
   if (payload.wrapEmail) {
     const { baseLayout } = await import("./email");
@@ -93,7 +93,7 @@ async function sendEmailDirect(
     html = `<div style="font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;color:#0f0f0f;padding:24px;line-height:1.7;font-size:15px;">${innerBody}</div>`;
   }
 
-  /* ★ 2026-05-16: 첨부파일 — R2 private bucket이라 downloadFromR2 직접 호출 → base64 */
+  /* 2026-05-16: 첨부파일 — R2 private bucket이라 downloadFromR2 직접 호출 → base64 */
   let attachments: Array<{ filename: string; content: string }> | undefined;
   if (Array.isArray(payload.emailAttachments) && payload.emailAttachments.length > 0) {
     const { downloadFromR2 } = await import("./r2-server");
@@ -130,7 +130,7 @@ async function sendSmsDirect(
   const msg = String(payload.body).slice(0, 2000);
   const title = payload.subject ? String(payload.subject).slice(0, 30) : undefined;
 
-  /* ★ 2026-05-17: 이미지 URL이 있으면 MMS로 발송. 알리고 단가 LMS의 2~3배. */
+  /* 2026-05-17: 이미지 URL이 있으면 MMS로 발송. 알리고 단가 LMS의 2~3배. */
   if (payload.mmsImageUrl) {
     const mmsResult = await aligoSendMms({
       receiver: member.phone,
@@ -176,7 +176,7 @@ async function sendInappDirect(
 }
 
 /* ─── 카카오 알림톡 직접 발송 ───
-   ★ 2026-05-23 솔라피 전환: 마케팅 발송의 "임의 본문" 카카오는 솔라피 미지원
+   2026-05-23 솔라피 전환: 마케팅 발송의 "임의 본문" 카카오는 솔라피 미지원
    (솔라피 알림톡은 등록 템플릿ID + 변수맵만 허용). 시스템 이벤트 알림톡(결제·
    후원 안내 등)은 notify-adapters/kakao-aligo(솔라피)가 담당. → 본 경로는 정책 스킵. */
 async function sendKakaoDirect(
@@ -323,7 +323,7 @@ export function buildMemberRenderData(member: {
   email: string | null;
   phone: string | null;
 }): Record<string, string> {
-  /* ★ 2026-05-16: 사용자가 템플릿 본문에서 어떤 변수 표기를 써도 회원 정보가
+  /* 2026-05-16: 사용자가 템플릿 본문에서 어떤 변수 표기를 써도 회원 정보가
      자동 치환되도록 한글·영문 alias 폭넓게 채움. 매핑되지 않으면 빈 문자열로
      치환되어 미리보기 예시값(홍길동 등)이 실제 메일에 박히는 사고 차단. */
   const name = member.name || "";

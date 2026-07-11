@@ -1,6 +1,6 @@
 // lib/ai-gemini.ts
 /**
- * Google Gemini API 래퍼 (★ 2026-05 v3.6 — 기능별 비용 집계·토글 통합)
+ * Google Gemini API 래퍼 (2026-05 v3.6 — 기능별 비용 집계·토글 통합)
  *
  * 모델 정책:
  *   1차 (디폴트): GEMINI_MODEL_PRO / FLASH (기본 gemini-3-flash)
@@ -30,7 +30,7 @@ const EFFECTIVE_FLASH = LEGACY_MODEL && LEGACY_MODEL.includes("flash") ? LEGACY_
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
-/* ★ 비용 최적화 정책 (월 $100 이내 목표)
+/* 비용 최적화 정책 (월 $100 이내 목표)
  *   pro   (복잡 분석 — 일일 브리핑·주간 보고서·심층 추론):
  *           gemini-2.5-flash → gemini-3.1-flash-lite (폴백)
  *   flash (단순 작업 — 요약·평가·짧은 응답):
@@ -50,13 +50,13 @@ function buildFallbackChain(mode: "pro" | "flash"): string[] {
   return chain.length ? chain : [mode === "pro" ? PRO_MODEL : EFFECTIVE_FLASH];
 }
 
-/* ★ B-9: 인라인 파일 정의 */
+/* B-9: 인라인 파일 정의 */
 export interface InlineFile {
   data: string;        // base64 (data: prefix 없이)
   mimeType: string;    // 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
 }
 
-/* ★ 2026-05-26: Files API로 업로드한 대용량 파일 참조(음성·영상 등 인라인 20MB 초과) */
+/* 2026-05-26: Files API로 업로드한 대용량 파일 참조(음성·영상 등 인라인 20MB 초과) */
 export interface FilePart {
   fileUri: string;     // 'https://generativelanguage.googleapis.com/v1beta/files/xxx'
   mimeType: string;
@@ -68,20 +68,20 @@ export interface GeminiOptions {
   systemInstruction?: string;
   mode?: "pro" | "flash";
   inlineFiles?: InlineFile[];
-  /** ★ 2026-05-26: Files API 업로드 파일 참조(대용량 음성·영상). inlineFiles와 별개. */
+  /** 2026-05-26: Files API 업로드 파일 참조(대용량 음성·영상). inlineFiles와 별개. */
   fileParts?: FilePart[];
-  /** ★ Phase 1.5 — 어떤 AI 기능이 호출했는지 식별 (15개 feature_key 중 하나).
+  /** Phase 1.5 — 어떤 AI 기능이 호출했는지 식별 (15개 feature_key 중 하나).
    *  생략하면 'unknown'으로 기록되며 토글·한도 적용 안 됨. 호출자가 명시할 것. */
   featureKey?: string;
   /** 운영자/사용자 식별 (admin-action 계열) */
   adminId?: number | null;
   /** ai_agent_chat용 — 대화 ID 연결 */
   conversationId?: number | null;
-  /** ★ 2026-05-26: fetch 타임아웃(ms). 미지정 시 8000(동기 함수 10초 한도 방어).
+  /** 2026-05-26: fetch 타임아웃(ms). 미지정 시 8000(동기 함수 10초 한도 방어).
    *  background 함수(-background·15분 한도)의 무거운 호출(Vision OCR·사건 구조 추출)은
    *  8초가 턱없이 짧아 대량 abort 실패 → 호출처에서 넉넉히 지정(예: 60000~120000). */
   timeoutMs?: number;
-  /** ★ 2026-05-26: 운영자가 의도한 대량 background 작업(딥릴리프 일괄 추출·분류 등).
+  /** 2026-05-26: 운영자가 의도한 대량 background 작업(딥릴리프 일괄 추출·분류 등).
    *  true면 5분 비용 급증 cooldown(마이크로가드)을 면제 — 작업 자신의 비용 급증으로
    *  나머지 호출이 줄줄이 차단되는 자기차단 방지. (월 예산·기능 토글은 그대로 적용) */
   internalBulk?: boolean;
@@ -97,7 +97,7 @@ interface GeminiResult {
     totalTokens: number;
   };
   modelUsed?: string;
-  /** ★ Phase 1.5 — 어드민이 기능을 끄거나 한도를 넘긴 경우 true */
+  /** Phase 1.5 — 어드민이 기능을 끄거나 한도를 넘긴 경우 true */
   disabled?: boolean;
   /** disabled=true일 때 사유 */
   disabledReason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded" | "surge_cooldown";
@@ -114,10 +114,10 @@ async function callSingleModel(
 
   const url = `${GEMINI_API_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
-  /* ★ v3.5 핵심: 파일을 먼저, 텍스트(질문)를 나중에 — Gemini 공식 권장 순서 */
+  /* v3.5 핵심: 파일을 먼저, 텍스트(질문)를 나중에 — Gemini 공식 권장 순서 */
   const parts: any[] = [];
 
-  /* ★ 2026-05-26: Files API 업로드 파일 참조(대용량 음성·영상) — 파일 먼저 */
+  /* 2026-05-26: Files API 업로드 파일 참조(대용량 음성·영상) — 파일 먼저 */
   if (opts.fileParts && opts.fileParts.length > 0) {
     for (const fp of opts.fileParts) {
       parts.push({ fileData: { mimeType: fp.mimeType, fileUri: fp.fileUri } });
@@ -126,7 +126,7 @@ async function callSingleModel(
 
   if (opts.inlineFiles && opts.inlineFiles.length > 0) {
     for (const f of opts.inlineFiles) {
-      /* ★ v3.5: 'data:application/pdf;base64,XXX' prefix 자동 정리 */
+      /* v3.5: 'data:application/pdf;base64,XXX' prefix 자동 정리 */
       let cleanData = f.data || "";
       const hadPrefix = cleanData.startsWith("data:");
       if (hadPrefix) {
@@ -141,7 +141,7 @@ async function callSingleModel(
       });
     }
 
-    /* ★ v3.5: 첨부 전송 직전 상세 진단 로그 */
+    /* v3.5: 첨부 전송 직전 상세 진단 로그 */
     console.info(`[Gemini-${modelName}] inlineFiles 전송:`,
       opts.inlineFiles.map((f, i) => ({
         idx: i,
@@ -187,7 +187,7 @@ async function callSingleModel(
   }
 
   try {
-    /* ★ 2026-05-17: Gemini API fetch에 timeout 명시. 옛 코드에 timeout 없어
+    /* 2026-05-17: Gemini API fetch에 timeout 명시. 옛 코드에 timeout 없어
        API 응답 늦을 시 Netlify Functions 10초 한도까지 무한 대기 → 504.
        8초로 두면 폴백 chain의 첫 모델 시도 가능. */
     const res = await fetch(url, {
@@ -243,7 +243,7 @@ export async function callGemini(
     return { ok: false, error: "GEMINI_API_KEY not configured" };
   }
 
-  /* ★ Phase 1.5 — featureKey 확인 + 어드민 토글·한도 체크 */
+  /* Phase 1.5 — featureKey 확인 + 어드민 토글·한도 체크 */
   let featureKey = opts.featureKey || "";
   if (!featureKey) {
     console.warn(`[Gemini] featureKey 누락 — 'unknown'으로 기록. 호출 스택 확인 필요.`);
@@ -280,7 +280,7 @@ export async function callGemini(
       if (i > 0) {
         console.info(`[Gemini-${mode}] 폴백 #${i + 1} 성공: ${model} 사용 (1차 ${chain[0]} 실패)`);
       }
-      /* ★ Phase 1.5 — 성공 응답 직후 사용량 기록 (fire-and-forget) */
+      /* Phase 1.5 — 성공 응답 직후 사용량 기록 (fire-and-forget) */
       try {
         if (result.usage) {
           await recordFeatureUsage({
@@ -372,7 +372,7 @@ export async function callGeminiJSON<T = any>(
     const parsed = JSON.parse(cleaned) as T;
     return { ok: true, data: parsed, raw: result.text, modelUsed: result.modelUsed };
   } catch (_first) {
-    /* ★ 2026-05-26: 폴백 — 모델이 JSON 앞뒤에 설명·마크다운을 섞어 보내거나
+    /* 2026-05-26: 폴백 — 모델이 JSON 앞뒤에 설명·마크다운을 섞어 보내거나
        앞쪽에 코드펜스가 없어 strip이 안 된 경우, 첫 { 부터 마지막 } 까지(또는 배열)
        만 추출해 재파싱. (딥릴리프 분류 "AI 응답 파싱 실패" 대량 발생 원인) */
     const m = cleaned.match(/[\{\[][\s\S]*[\}\]]/);
@@ -391,7 +391,7 @@ export async function callGeminiJSON<T = any>(
 }
 
 /* =========================================================
-   ★ 2026-05-26: Gemini Files API — 대용량 미디어(음성·영상) 업로드
+   2026-05-26: Gemini Files API — 대용량 미디어(음성·영상) 업로드
    인라인 한도(~20MB) 초과 파일을 업로드(최대 2GB)하고 fileUri로 generateContent 참조.
    ========================================================= */
 const GEMINI_FILE_BASE = "https://generativelanguage.googleapis.com";
@@ -477,7 +477,7 @@ export async function pingGemini(): Promise<boolean> {
 }
 
 /* =========================================================
-   ★ R43 (2026-05-29): Gemini Search Grounding 신규 래퍼
+   R43 (2026-05-29): Gemini Search Grounding 신규 래퍼
    - tools: [{ googleSearchRetrieval: {} }] 활성화
    - 응답 candidates[0].groundingMetadata.groundingChunks에서 출처 URL 추출
    - 기존 callGemini 미수정 (외부 검색 전용 신설)

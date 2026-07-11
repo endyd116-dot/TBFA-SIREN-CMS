@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>템플릿 편집 | SIREN 어드민</title>
@@ -238,12 +238,12 @@ textarea {
       </div>
     </div>
 
-    <!-- ★ 2026-05-17: 자주 쓰는 변수 프리셋 모달 (카테고리별 카탈로그) -->
+    <!-- 2026-05-17: 자주 쓰는 변수 프리셋 모달 (카테고리별 카탈로그) -->
     <div id="varPresetModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
       <div style="background:#fff;width:min(720px,95vw);max-height:85vh;overflow-y:auto;border-radius:12px;padding:24px 26px;box-shadow:0 10px 40px rgba(0,0,0,.2)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <h3 style="margin:0;font-size:18px;font-weight:700"><span class="siren-icon-wrap" data-icon="book"></span> 자주 쓰는 변수 — 카테고리별 카탈로그</h3>
-          <button type="button" id="varPresetClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280">✕</button>
+          <button type="button" id="varPresetClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280"><span class="siren-icon-wrap" data-icon="x"></span></button>
         </div>
         <p style="margin:0 0 14px;font-size:13px;color:#6b7280;line-height:1.55">
           카테고리에서 변수를 클릭하면 본 템플릿의 변수 정의에 자동 추가됩니다. 이미 정의된 변수는 회색으로 표시됩니다.
@@ -261,7 +261,7 @@ textarea {
              placeholder="예) [교사유가족협의회] {{member_name}}님께" />
     </div>
 
-    <!-- ★ 2026-05-16: 카카오 알림톡 전용 입력 카드 (채널=kakao일 때만 노출) -->
+    <!-- 2026-05-16: 카카오 알림톡 전용 입력 카드 (채널=kakao일 때만 노출) -->
     <div class="card" id="alimtalkCard" style="display:none;border-left:3px solid #ea580c">
       <h3 style="color:#9a3412"><span class="siren-icon-wrap" data-icon="sun"></span> 알리고 카카오 알림톡 등록 정보</h3>
       <p class="helper-text" style="margin-top:-4px;margin-bottom:14px;">
@@ -300,7 +300,7 @@ textarea {
       </div>
     </div>
 
-    <!-- ★ 2026-05-17: SIREN 깔끔한 이메일 레이아웃 옵션 (이메일 채널 전용) -->
+    <!-- 2026-05-17: SIREN 깔끔한 이메일 레이아웃 옵션 (이메일 채널 전용) -->
     <div class="card" id="sirenLayoutCard" style="display:none;border-left:3px solid #b8935a;background:#fffaf5">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
         <input type="checkbox" id="fUseSirenLayout" style="width:17px;height:17px;cursor:pointer">
@@ -313,7 +313,7 @@ textarea {
       </p>
     </div>
 
-    <!-- ★ 2026-05-17: 이미지 첨부 카드 (이메일 채널 전용 — 다른 채널에선 숨김) -->
+    <!-- 2026-05-17: 이미지 첨부 카드 (이메일 채널 전용 — 다른 채널에선 숨김) -->
     <div class="card" id="imagesCard" style="display:none">
       <h3><span class="siren-icon-wrap" data-icon="image"></span> 이미지 첨부 (이메일 전용)</h3>
       <p class="helper-text" style="margin-top:-4px;margin-bottom:14px">
@@ -359,6 +359,6 @@ textarea {
 <div id="toast" class="toast"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-template-edit.js?v=20260518siren-layout"></script>
+<script src="/js/admin-template-edit.js?v=20260712-noemoji"></script>
 </body>
 </html>

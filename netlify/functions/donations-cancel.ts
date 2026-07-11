@@ -103,7 +103,7 @@ export default async (req: Request) => {
     const updatePayload: any = {
       status: "cancelled",
       memo: newMemo,
-      /* ★ 2026-06-27: 취소 시 기부영수증 무효화(세무 정합) */
+      /* 2026-06-27: 취소 시 기부영수증 무효화(세무 정합) */
       receiptIssued: false,
       receiptNumber: null,
       receiptIssuedAt: null,
@@ -121,7 +121,7 @@ export default async (req: Request) => {
         amount: donations.amount,
       });
 
-    /* 7-B. ★ R41 Q1-005 FIX: 정기 후원 '해지'는 빌링키도 비활성화해야 실제 자동청구가 멈춤.
+    /* 7-B. R41 Q1-005 FIX: 정기 후원 '해지'는 빌링키도 비활성화해야 실제 자동청구가 멈춤.
        이전엔 후원 레코드만 cancelled로 바꿔 "해지되었습니다" 안내를 띄우면서도 빌링키가 살아있어
        다음 달 자동청구가 계속될 수 있었음. 본인 활성 빌링키 해지 + KICC 빌키 삭제 + 다음청구일 해제. */
     try {
@@ -144,7 +144,7 @@ export default async (req: Request) => {
     }
     await safeReevaluate(auth.uid, "donations-cancel");
 
-    /* ★ 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(완료분만 집계 → 취소분 차감 반영) */
+    /* 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(완료분만 집계 → 취소분 차감 반영) */
     await recalcCampaignStatsSafe((donation as any).campaignId);
 
     /* 8. 감사 로그 */

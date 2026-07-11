@@ -110,7 +110,7 @@ export default async function handler(req: Request, _ctx: Context) {
         await createNotification({
           recipientId: Number(r.drafter_id), recipientType: "operator",
           category: "system", severity: "warning",
-          title: "❌ 지출 결재 반려",
+          title: "지출 결재 반려",
           message: `"${r.title}" 지출 결재가 반려됐어요.${comment ? " 사유: " + comment : ""}`,
           link: "/cms-tbfa.html#approval-drafts", refTable: "approval_requests", refId: requestId,
         });
@@ -141,7 +141,7 @@ export default async function handler(req: Request, _ctx: Context) {
       if (ids.length) {
         await notifyMany(ids, {
           recipientType: "operator", category: "system", severity: "warning",
-          title: "🧾 지출 결재 차례",
+          title: "지출 결재 차례",
           message: `${r.drafter_name || "기안자"}님의 ${Number(r.amount).toLocaleString()}원 지출 결재가 다음 결재를 기다려요. "${r.title}"`,
           link: "/cms-tbfa.html#approval-inbox", refTable: "approval_requests", refId: requestId,
         });
@@ -226,7 +226,7 @@ export default async function handler(req: Request, _ctx: Context) {
       await createNotification({
         recipientId: Number(r.drafter_id), recipientType: "operator",
         category: "system", severity: "info",
-        title: "✅ 지출 결재 승인 완료",
+        title: "지출 결재 승인 완료",
         message: `"${r.title}" 지출이 최종 승인됐어요. 지출결의서 ${resolutionNo} 발행 완료.`,
         link: "/cms-tbfa.html#approval-resolutions", refTable: "approval_requests", refId: requestId,
       });

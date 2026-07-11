@@ -28,7 +28,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const quarterId = url.searchParams.get("quarterId");
     const status = url.searchParams.get("status") || "PENDING";
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       let baseSql = sql`
         SELECT nra.*, md.code, md.name as milestone_name, md.target_milestone_role,
                md.bonus_formula, m.name as submitted_by_name
@@ -56,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch (err) { return jsonError("select", err); }
   }
 
-  /* ★ R29-MS-GAP2-D: REVIEWED 중간 상태 (1차 검토 완료) — 2단계 UX */
+  /* R29-MS-GAP2-D: REVIEWED 중간 상태 (1차 검토 완료) — 2단계 UX */
   if (req.method === "POST" && action === "review" && idStr) {
     try {
       const rows = await db.execute(sql`
@@ -98,7 +98,7 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE nra.id = ${Number(idStr)}
       `);
       const ach = (rows as any).rows?.[0] || rows[0];
-      /* ★ R29-MS-GAP2-D: PENDING 또는 REVIEWED에서만 VERIFIED 허용 */
+      /* R29-MS-GAP2-D: PENDING 또는 REVIEWED에서만 VERIFIED 허용 */
       if (ach && !["PENDING", "REVIEWED"].includes(ach.status)) {
         return Response.json({ ok: false, error: `현재 상태(${ach.status})에서 verify 불가` }, { status: 400 });
       }
@@ -165,7 +165,7 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "eventRangeAmount는 0 이상 숫자여야 합니다" }, { status: 400 });
     }
     try {
-      /* ★ Q3-031 fix: 존재 확인 + bonus_formula의 minAmount~maxAmount 범위 검증 (매출 카운터파트와 동일 보호).
+      /* Q3-031 fix: 존재 확인 + bonus_formula의 minAmount~maxAmount 범위 검증 (매출 카운터파트와 동일 보호).
          기존엔 검증 없이 무조건 UPDATE라 0행도 ok:true(저장 오인)·범위 밖/음수도 정산에 반영됐다. */
       const mdRows = await db.execute(sql`
         SELECT md.bonus_formula FROM non_revenue_achievements nra

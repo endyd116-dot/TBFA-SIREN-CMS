@@ -104,7 +104,7 @@
         '</div>' +
       '</div>' +
 
-      /* ★ 2026-05-16 #3: SIREN 주별 신고 추이 라인 차트 (임원 회의·사업 보고용) */
+      /* 2026-05-16 #3: SIREN 주별 신고 추이 라인 차트 (임원 회의·사업 보고용) */
       '<div class="panel" style="padding:20px;margin-bottom:28px">' +
         '<div style="font-size:15px;font-weight:600;margin-bottom:14px">SIREN 주별 신고 추이 (최근 12주)</div>' +
         '<canvas id="ud-chart-siren-weekly" height="120"></canvas>' +
@@ -146,7 +146,7 @@
     if (!el) return;
     var donation = d.donation || {};
     var member = d.member || {};
-    /* ★ 2026-05-16 #3: SIREN KPI 2종 추가 — 신규 신고 + 처리율 */
+    /* 2026-05-16 #3: SIREN KPI 2종 추가 — 신규 신고 + 처리율 */
     var siren = d.siren || {};
     var cards = [
       { label: '월간 후원 수입', value: fmtAmount(donation.totalAmount), icon: '', color: '#10b981' },
@@ -232,7 +232,7 @@
     });
   }
 
-  /* ★ 2026-05-16 #3: SIREN 주별 신고 추이 (라인 차트) ---- */
+  /* 2026-05-16 #3: SIREN 주별 신고 추이 (라인 차트) ---- */
   function renderSirenWeeklyChart(siren) {
     var canvas = document.getElementById('ud-chart-siren-weekly');
     if (!canvas || !window.Chart) return;

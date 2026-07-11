@@ -1,5 +1,5 @@
 // lib/donor-check.ts
-// ★ Phase M-17: 후원자 검증 헬퍼
+// Phase M-17: 후원자 검증 헬퍼
 // - 사이렌 AI 분석 결과 응답을 "후원 내역 1건 이상 회원"에게만 제공
 // - 적용 도메인: 사건제보 / 악성민원 / 법률상담 (유가족 지원은 제외)
 // - 기준: donations.status = 'completed' 1건 이상
@@ -62,7 +62,7 @@ export function getNonDonorPremiumNotice(category: "incident" | "harassment" | "
   };
 
   return {
-    title: "🎗 사이렌 후원 회원 전용 서비스",
+    title: "사이렌 후원 회원 전용 서비스",
     message:
       `AI 분석 결과는 사이렌 후원 회원에게 제공되는 우대 서비스입니다.\n\n` +
       `${categoryLabel[category] || "이 도메인"}은 정상적으로 접수되었으며, ` +

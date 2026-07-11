@@ -2,11 +2,11 @@
  * POST /api/auth/login
  * 로그인 — 이메일 조회 → 비밀번호 검증 → 잠금 처리 → JWT 발급 → 쿠키 설정
  *
- * ★ K-1+ A-1: 비밀번호 검증 후에 상태 체크 (정보 유출 방지)
- * ★ K-1+ A-2: 응답 본문에서 token 제거 (XSS 방어)
- * ★ K-1+ A-4: 타이밍 공격 방어 (이메일 미존재 시 더미 verify)
- * ★ K-1+ B-5: getClientIp null 가드
- * ★ K-1+ E:   remember 옵션 시 14일 영속 쿠키 / 미체크 시 세션 쿠키 (브라우저 종료 시 삭제)
+ * K-1+ A-1: 비밀번호 검증 후에 상태 체크 (정보 유출 방지)
+ * K-1+ A-2: 응답 본문에서 token 제거 (XSS 방어)
+ * K-1+ A-4: 타이밍 공격 방어 (이메일 미존재 시 더미 verify)
+ * K-1+ B-5: getClientIp null 가드
+ * K-1+ E:   remember 옵션 시 14일 영속 쿠키 / 미체크 시 세션 쿠키 (브라우저 종료 시 삭제)
  */
 import { eq } from "drizzle-orm";
 import { db, members } from "../../db";
@@ -25,7 +25,7 @@ import { logUserAction } from "../../lib/audit";
 const MAX_FAIL = Number(process.env.LOGIN_MAX_FAIL || 5);
 const LOCK_MIN = Number(process.env.LOGIN_LOCK_MINUTES || 30);
 
-/* ★ E: 쿠키 + JWT 만료 정책
+/* E: 쿠키 + JWT 만료 정책
    2026-07-09 Swain: 일반회원 '로그인 유지' = 1주일 유지. (관리자 모드 세션은 별도 — 유지 시 1일)
    미체크는 세션 쿠키(브라우저 종료 시 로그아웃). */
 const REMEMBER_MAX_AGE = 60 * 60 * 24 * 7; // 1주일 (체크 시 7일 영속 쿠키)
@@ -69,7 +69,7 @@ export default async (req: Request) => {
       }
     }
 
-    /* ★ A-4: 이메일 미존재 시 더미 verify로 타이밍 공격 방어
+    /* A-4: 이메일 미존재 시 더미 verify로 타이밍 공격 방어
        (실제 비밀번호와 절대 매칭되지 않는 해시이며, 단순히 시간 균일화 목적) */
     if (!user) {
       await verifyPassword(password, DUMMY_BCRYPT_HASH);
@@ -94,7 +94,7 @@ export default async (req: Request) => {
       );
     }
 
-    /* 4. ★ A-1: 비밀번호 검증을 상태 체크보다 먼저 수행 */
+    /* 4. A-1: 비밀번호 검증을 상태 체크보다 먼저 수행 */
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       const newFailCount = (user.loginFailCount ?? 0) + 1;
@@ -122,7 +122,7 @@ export default async (req: Request) => {
       );
     }
 
-    /* 5. ★ A-1: 비밀번호 검증 통과 후에 계정 상태 확인 (이메일 enumeration 방지) */
+    /* 5. A-1: 비밀번호 검증 통과 후에 계정 상태 확인 (이메일 enumeration 방지) */
     if (user.status === "suspended") {
       await logUserAction(req, user.id, user.name, "login_blocked", {
         detail: { reason: "suspended" }, success: false,
@@ -148,7 +148,7 @@ export default async (req: Request) => {
         loginFailStreak: 0,
         lockedUntil: null,
         lastLoginAt: new Date(),
-        /* ★ B-5: null 가드 */
+        /* B-5: null 가드 */
         lastLoginIp: (getClientIp(req) || "").slice(0, 45),
       } as any)
       .where(eq(members.id, user.id));
@@ -177,19 +177,19 @@ export default async (req: Request) => {
       console.warn("[auth-login] 일일 포인트 적립 실패", pointErr);
     }
 
-    /* 7. ★ E: JWT + 쿠키 발급 (remember 분기) */
+    /* 7. E: JWT + 쿠키 발급 (remember 분기) */
     const token = signUserToken(
       {
         uid: user.id,
         email: user.email,
         type: user.type,
         name: user.name,
-        remember: wantRemember,   // ★ 관리자 모드 진입(admin-elevate) 시 세션 1일 여부 판단용
+        remember: wantRemember,   // 관리자 모드 진입(admin-elevate) 시 세션 1일 여부 판단용
       },
       wantRemember ? REMEMBER_JWT_EXPIRES : SHORT_JWT_EXPIRES
     );
     const cookie = buildCookie("siren_token", token, {
-      /* ★ 핵심:
+      /* 핵심:
          - 체크함:   Max-Age=14일 (영속 쿠키 → 브라우저 종료해도 14일 유지)
          - 미체크:   null (세션 쿠키 → 브라우저 종료 시 즉시 삭제) */
       maxAge: wantRemember ? REMEMBER_MAX_AGE : null,
@@ -204,7 +204,7 @@ export default async (req: Request) => {
       detail: { type: user.type, remember: wantRemember, isAdmin, isOperator },
     });
 
-    /* 9. ★ A-2: 응답 본문에서 token 제거 (XSS로부터 보호) */
+    /* 9. A-2: 응답 본문에서 token 제거 (XSS로부터 보호) */
     const res = ok(
       {
         user: {

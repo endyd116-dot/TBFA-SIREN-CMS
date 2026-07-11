@@ -10,7 +10,7 @@ export interface AdminContext {
   member: typeof members.$inferSelect;
 }
 
-/* ★ 2026-06-03 R46 2단계: 경로 → 권한키 중앙 매핑.
+/* 2026-06-03 R46 2단계: 경로 → 권한키 중앙 매핑.
    등록된 API 경로는 requireAdmin 통과 후 canAccess(role, key)로 추가 게이트.
    (super_admin은 canAccess가 항상 true. 미등록 키는 admin 허용·operator 불가.)
    기존엔 콘텐츠 엔드포인트가 requireAdmin만 통과시켜 operator도 직접 호출 가능했음.
@@ -49,16 +49,16 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-auto-trigger-runs": "send_auto",
   "/api/admin-system-notification-list": "send_auto",
   "/api/admin-system-notification-update": "send_auto",
-  /* ★ 2026-06-09: SSO 위성앱 진입 권한. operator_allowed=false면 토큰 발급 전 차단(진입 불가).
+  /* 2026-06-09: SSO 위성앱 진입 권한. operator_allowed=false면 토큰 발급 전 차단(진입 불가).
      기본 admin 허용·operator 차단. super_admin은 canAccess 항상 통과. 정책 화면 'SSO 위성앱' 탭에서 앱별 조정. */
   "/api/sso-on": "sso_on",
   "/api/sso-si": "sso_si",
   "/api/sso-marketing": "sso_marketing",
-  /* ★ 2026-07-01: 지출 결재 기안은 직원(operator)도 가능(finance_approval_submit·operator 허용 시드).
+  /* 2026-07-01: 지출 결재 기안은 직원(operator)도 가능(finance_approval_submit·operator 허용 시드).
      결재 처리(decide)·라인/위임 설정은 PATH_FEATURE 미등록 → 기본 admin/이사장만. */
   "/api/admin-approval-request-create": "finance_approval_submit",
   "/api/admin-approval-requests": "finance_approval_submit",
-  /* ★ 2026-07-02 권한설계 동기화: 프런트 메뉴에만 걸려있던 콘텐츠 게이트를 서버에도 강제.
+  /* 2026-07-02 권한설계 동기화: 프런트 메뉴에만 걸려있던 콘텐츠 게이트를 서버에도 강제.
      키는 lib/permission-catalog.ts 카탈로그와 동일 — 권한정책관리 화면 토글이 실제 차단으로 이어짐. */
   "/api/admin-popups": "cms_popup",
   "/api/admin-form-save": "cms_forms",
@@ -88,7 +88,7 @@ export async function requireAdmin(req: Request): Promise<
   if (member.type !== "admin") return { ok: false, res: forbidden("관리자 권한이 없습니다") };
   if (member.status !== "active") return { ok: false, res: forbidden("이용할 수 없는 계정입니다") };
 
-  /* ★ R46 2단계: 경로 기반 기능 권한 게이트 (PATH_FEATURE 등록 경로만). super_admin은 통과. */
+  /* R46 2단계: 경로 기반 기능 권한 게이트 (PATH_FEATURE 등록 경로만). super_admin은 통과. */
   try {
     const pathname = new URL(req.url).pathname;
     const featureKey = PATH_FEATURE[pathname];

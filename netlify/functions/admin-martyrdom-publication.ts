@@ -144,11 +144,11 @@ export default async (req: Request, _ctx: Context) => {
       let bgStatus: string | number = "ok";
       let bgError: string | undefined;
       if (!secret) {
-        /* ★ R41 Q2-028: 시크릿 미설정 시 백그라운드 생성 불가 — 응답에 경고 노출 */
+        /* R41 Q2-028: 시크릿 미설정 시 백그라운드 생성 불가 — 응답에 경고 노출 */
         bgStatus = "secret_missing";
         console.warn("[martyrdom-publication] INTERNAL_TRIGGER_SECRET 미설정 — 발간물 본문 자동 생성 스킵(draft만 생성)");
       } else {
-        /* ★ R41 Q2-051: baseUrl http 정규화 가드(generate.ts:52-53 패턴) */
+        /* R41 Q2-051: baseUrl http 정규화 가드(generate.ts:52-53 패턴) */
         const base = process.env.URL || process.env.SITE_URL || "https://tbfa.co.kr";
         const baseUrl = base.startsWith("http") ? base : `https://${base}`;
         try {
@@ -193,7 +193,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     try {
-      /* ★ R41 Q2-007: 현재 상태 확인 후 전이 검증 — 검수(reviewed) 없이 발간(published) 직행 차단 */
+      /* R41 Q2-007: 현재 상태 확인 후 전이 검증 — 검수(reviewed) 없이 발간(published) 직행 차단 */
       const curRes: any = await db.execute(sql.raw(
         `SELECT status, title, (content_html IS NULL OR content_html = '') AS "isEmpty" FROM martyrdom_publications WHERE id = ${id} LIMIT 1`
       ));

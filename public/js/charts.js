@@ -24,7 +24,7 @@
     size: 11,
   };
 
-  /* ★ M-18: 한국식 금액 포맷터 (admin.js의 SIREN_FMT 우선 사용, 없으면 자체 폴백) */
+  /* M-18: 한국식 금액 포맷터 (admin.js의 SIREN_FMT 우선 사용, 없으면 자체 폴백) */
   function fmtKrw(n) {
     if (window.SIREN_FMT && typeof window.SIREN_FMT.money === 'function') {
       return window.SIREN_FMT.money(n);
@@ -74,7 +74,7 @@
   }
 
   /* ============ 대시보드 차트 (실 데이터) ============
-     ★ 2026-05-16 재구성: 싸이렌 어드민은 SIREN 플랫폼 중심 →
+     2026-05-16 재구성: 싸이렌 어드민은 SIREN 플랫폼 중심 →
        chart1: 사이렌 신고 추이 (최근 12주, 사건·악성·법률 합계 라인)
        chart2: 웹 가입자 분포 (가입경로='siren' 회원만, 회원 유형별 도넛)
      데이터 출처: /api/admin-dashboard-kpi?webonly=1 → siren.weeklyTrend + member.byType */
@@ -277,16 +277,16 @@
 
   /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
     /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
-  /* ★ 2026-05 패치: admin API 호출 제거 → 401로 인한 로그인 모달 강제 오픈 방지
+  /* 2026-05 패치: admin API 호출 제거 → 401로 인한 로그인 모달 강제 오픈 방지
      향후 public 통계 API가 추가되면 그쪽으로 교체 권장 */
     /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
-  /* ★ 2026-05 v2: /api/public/stats 사용 (admin API 호출 X, 401 발생 X) */
+  /* 2026-05 v2: /api/public/stats 사용 (admin API 호출 X, 401 발생 X) */
   /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
-  /* ★ 2026-05 Phase B: ?preview=1 감지 → 어드민 미리보기 모드 */
+  /* 2026-05 Phase B: ?preview=1 감지 → 어드민 미리보기 모드 */
   async function initReport() {
     if (typeof Chart === 'undefined') return;
 
-    /* ★ Phase B: 미리보기 모드 감지 */
+    /* Phase B: 미리보기 모드 감지 */
     const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
 
     /* 공개 통계 API 호출 — 인증 불필요 (preview=1일 땐 어드민 쿠키 자동 포함) */

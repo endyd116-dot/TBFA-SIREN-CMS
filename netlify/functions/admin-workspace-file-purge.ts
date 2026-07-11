@@ -62,7 +62,7 @@ export default async (req: Request) => {
         userId: meId,
         userType: "admin",
         action: "WORKSPACE_FILE_PURGE",
-        target: `workspace_file:${fileId}`,   // ★ Q3-023 fix: logAudit 실제 필드(userId·target)로 교정 (기존 memberId/targetType/targetId는 무시돼 누락)
+        target: `workspace_file:${fileId}`,   // Q3-023 fix: logAudit 실제 필드(userId·target)로 교정 (기존 memberId/targetType/targetId는 무시돼 누락)
         detail: {
           fileName: (file as any).name,
           sizeBytes: (file as any).sizeBytes,

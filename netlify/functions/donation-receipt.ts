@@ -2,7 +2,7 @@
  * GET /api/donation-receipt?id=N         — PDF 영수증 (인라인)
  * GET /api/donation-receipt?id=N&dl=1    — 다운로드
  *
- * ★ M-14:
+ * M-14:
  * - 첫 발급 시 R2에 PDF 저장 + donations.receipt_blob_id 기록
  * - 재발급 시 R2에서 캐시된 PDF 반환 (동일 영수증 일관성 보장)
  * - regenerate=1 쿼리로 강제 재생성 가능 (관리자만)
@@ -90,7 +90,7 @@ export default async (req: Request, _ctx: Context) => {
       `[donation-receipt] id=${donationId} receiptNumber=${receiptNumber} isNew=${isNew} forceRegen=${forceRegenerate}`
     );
 
-    /* 5) ★ M-14: R2 캐시 활용
+    /* 5) M-14: R2 캐시 활용
        - donations.receipt_blob_id가 있고 forceRegenerate가 false면 캐시 반환
        - regenerate=1은 관리자만 허용 */
     let pdfBytes: Uint8Array | null = null;
@@ -136,7 +136,7 @@ export default async (req: Request, _ctx: Context) => {
         donorEmail: (d as any).donorEmail,
         donorPhone: (d as any).donorPhone,
         amount: (d as any).amount,
-        /* ★ Q12: 영수증의 후원일은 실제 결제일 (효성은 자료의 결제일, 그 외는 createdAt) */
+        /* Q12: 영수증의 후원일은 실제 결제일 (효성은 자료의 결제일, 그 외는 createdAt) */
         donationDate: new Date((d as any).hyosungPaidDate ?? (d as any).createdAt),
         payMethod: (d as any).payMethod,
         donationType: (d as any).type,

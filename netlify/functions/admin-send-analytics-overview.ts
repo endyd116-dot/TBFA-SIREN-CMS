@@ -26,7 +26,7 @@ export default async function handler(req: Request) {
   const from = url.searchParams.get("from");
   const to   = url.searchParams.get("to");
 
-  /* ★ 2026-05-16 (4차): drizzle-orm/postgres-js는 sql 태그 안에 Date 객체를
+  /* 2026-05-16 (4차): drizzle-orm/postgres-js는 sql 태그 안에 Date 객체를
      직접 바인딩하지 못함('argument must be string or Buffer/ArrayBuffer.
      Received instance of Date'). ISO 문자열로 변환해 PG가 자동 timestamp
      cast 하도록 처리. */
@@ -35,7 +35,7 @@ export default async function handler(req: Request) {
   const fromIso  = fromDate.toISOString();
   const toIso    = toDate.toISOString();
 
-  /* ★ 2026-05-16 (3차): 메인 jobs/recipients 쿼리도 inner try로 감싸 outer 500
+  /* 2026-05-16 (3차): 메인 jobs/recipients 쿼리도 inner try로 감싸 outer 500
      자체를 차단. 한 쿼리 fail해도 다른 쿼리는 정상 응답 + 응답에 _errors 배열로
      실패한 쿼리 step과 detail 표시 → 사용자가 화면에서 정확한 원인 인지. */
   const _errors: { step: string; detail: string }[] = [];
@@ -134,7 +134,7 @@ export default async function handler(req: Request) {
       console.warn("[analytics-overview] trend 실패", e);
     }
 
-    /* ★ 2026-05-16 (2차): Top 발송 작업 — COUNT(r.id) 안전 패턴.
+    /* 2026-05-16 (2차): Top 발송 작업 — COUNT(r.id) 안전 패턴.
        옛 r.* 패턴은 PG 버전에 따라 parser 이슈 가능. r.id는 NOT NULL이라
        매칭 안 된 LEFT JOIN row(전부 NULL)는 자연스럽게 제외됨. */
     let topJobs: any[] = [];
@@ -175,7 +175,7 @@ export default async function handler(req: Request) {
       console.warn("[analytics-overview] topJobs 실패", e);
     }
 
-    /* ★ 2026-05-16: AI 트리거 효과 — triggered_by_auto_id 기준 집계
+    /* 2026-05-16: AI 트리거 효과 — triggered_by_auto_id 기준 집계
        (정확한 컬럼명: communication_send_jobs.triggered_by_auto_id +
        communication_auto_triggers.name) */
     let aiTriggerEffect: any[] = [];

@@ -8,7 +8,7 @@
  * 응답(성공): { ok, messageId, editedAt }
  * 응답(5분 초과): { ok:false, error, step:"check_time" } (403)
  *
- * ★ schema.ts의 edited_at/is_deleted 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL로 동작
+ * schema.ts의 edited_at/is_deleted 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL로 동작
  */
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
@@ -65,7 +65,7 @@ export default async (req: Request, _ctx: Context) => {
     /* check_deleted */
     if (row.is_deleted) return jsonError(403, "check_deleted", "삭제된 메시지입니다.");
 
-    /* ★ Q3-051 fix: 종료(closed)된 채팅방의 메시지는 수정 금지 (기록 불변성 — 전송 경로와 일관) */
+    /* Q3-051 fix: 종료(closed)된 채팅방의 메시지는 수정 금지 (기록 불변성 — 전송 경로와 일관) */
     try {
       const rr: any = await db.execute(sql`SELECT status FROM chat_rooms WHERE id = ${row.room_id} LIMIT 1`);
       const rst = (rr?.rows ?? rr ?? [])[0]?.status;

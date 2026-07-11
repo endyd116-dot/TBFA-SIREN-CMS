@@ -58,7 +58,7 @@ export default async (req: Request) => {
       .limit(1);
 
     if (!room) return badRequest("채팅방을 찾을 수 없습니다");
-    // ★ Q3-038 fix: expert_1on1 룸은 배정 전문가도 업로드 허용 (메시지 경로와 동일 canEnterExpertRoom 정책)
+    // Q3-038 fix: expert_1on1 룸은 배정 전문가도 업로드 허용 (메시지 경로와 동일 canEnterExpertRoom 정책)
     if ((room as any).roomType === ROOM_TYPE_EXPERT) {
       if (!canEnterExpertRoom(room as any, auth.uid, false)) return forbidden("접근 권한이 없습니다");
     } else if (room.memberId !== auth.uid) {

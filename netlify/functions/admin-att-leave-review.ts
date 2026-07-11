@@ -123,7 +123,7 @@ export default async function handler(req: Request) {
       .limit(1);
 
     if (!request) return jsonError("not_found", new Error("휴가 신청 없음"), 404);
-    /* ★ Q3-009 fix: 승인취소(CANCELLED)는 APPROVED 건에만, 승인/반려는 PENDING 건에만 허용 */
+    /* Q3-009 fix: 승인취소(CANCELLED)는 APPROVED 건에만, 승인/반려는 PENDING 건에만 허용 */
     if (action === "CANCELLED") {
       if (request.status !== "APPROVED") {
         return jsonError("invalid_transition", new Error("승인된 휴가만 취소할 수 있습니다"), 409);
@@ -195,7 +195,7 @@ export default async function handler(req: Request) {
         // R35-GAP-P1 H-G2: 출근 기록 있는 날은 시각·근무시간 보존, status만 'LEAVE'로 변경
         // 새 INSERT는 빈 행(check_in/out NULL), ON CONFLICT 시 기존 시각 유지
         for (const d of dates) {
-          // ★ Q3-028: 반차는 종일 LEAVE 스탬프 금지 — 직원이 나머지 반나절 출근하면 att-checkin이 PARTIAL_LEAVE로 기록.
+          // Q3-028: 반차는 종일 LEAVE 스탬프 금지 — 직원이 나머지 반나절 출근하면 att-checkin이 PARTIAL_LEAVE로 기록.
           if (request.isHalfDay) continue;
           try {
             await db.execute(sql`
@@ -232,7 +232,7 @@ export default async function handler(req: Request) {
       }
     }
 
-    // ★ Q3-009 fix: CANCELLED(승인 취소) — 차감했던 연차 복원 + 빈 LEAVE 행 제거
+    // Q3-009 fix: CANCELLED(승인 취소) — 차감했던 연차 복원 + 빈 LEAVE 행 제거
     if (action === "CANCELLED") {
       const year = new Date(request.startDate).getFullYear();
       try {

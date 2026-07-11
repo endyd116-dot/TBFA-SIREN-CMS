@@ -431,7 +431,7 @@
     if (!tbody) return;
 
     const statusMap = {
-      paid: { label: '✓ 수금완료', cls: 'paid' },
+      paid: { label: Icons.svg('check') + ' 수금완료', cls: 'paid' },
       pending: { label: '대기중', cls: 'pending' },
       overdue: { label: '연체', cls: 'overdue' },
       draft: { label: '초안', cls: 'draft' },

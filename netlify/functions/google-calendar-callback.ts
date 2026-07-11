@@ -1,7 +1,7 @@
 // netlify/functions/google-calendar-callback.ts
 // GET /api/google-calendar-callback?code=XXX&state=YYY : OAuth 콜백 — 토큰 저장
-// ★ Q3-020: 브라우저 리다이렉트 대상이므로 JSON이 아니라 자동 닫기 HTML 반환(팝업 종료·부모창 통지).
-// ★ Q3-021: state nonce를 httpOnly 쿠키와 대조해 CSRF 방지.
+// Q3-020: 브라우저 리다이렉트 대상이므로 JSON이 아니라 자동 닫기 HTML 반환(팝업 종료·부모창 통지).
+// Q3-021: state nonce를 httpOnly 쿠키와 대조해 CSRF 방지.
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
@@ -38,7 +38,7 @@ export default async (req: Request, _ctx: Context) => {
     const code = url.searchParams.get("code");
     if (!code) return htmlPage("연동 코드가 없습니다. 다시 시도해주세요.", { error: true });
 
-    // ★ Q3-021: state 검증 (CSRF) — 쿼리 state ↔ httpOnly 쿠키 대조
+    // Q3-021: state 검증 (CSRF) — 쿼리 state ↔ httpOnly 쿠키 대조
     const stateParam = url.searchParams.get("state");
     const cookieHeader = req.headers.get("cookie") || "";
     const stateCookie = (cookieHeader.match(/(?:^|;\s*)gcal_oauth_state=([^;]+)/) || [])[1];

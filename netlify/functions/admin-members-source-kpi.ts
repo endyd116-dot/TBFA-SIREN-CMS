@@ -8,11 +8,11 @@
  *   ok: true,
  *   data: {
  *     total:    number,   // 전체 (탈퇴/차단 포함, 운영 풀 전체)
- *     siren:    number,   // 🌐 싸이렌 가입(웹)
- *     hyosung:  number,   // 🏦 효성 CMS+
- *     manual:   number,   // ✍️ 수기
- *     event:    number,   // 🎫 이벤트
- *     etc:      number,   // 🔘 기타(매핑 코드)
+ *     siren:    number,   // 싸이렌 가입(웹)
+ *     hyosung:  number,   // 효성 CMS+
+ *     manual:   number,   // 수기
+ *     event:    number,   // 이벤트
+ *     etc:      number,   // 기타(매핑 코드)
  *     other:    number,   // 매핑 안 된 코드 + signup_source_id NULL
  *   }
  */

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>새 발송 만들기 | SIREN 어드민</title>
@@ -219,7 +219,7 @@ body {
       <div class="form-hint">템플릿 선택 시 기본 채널이 자동으로 체크됩니다. 여러 채널을 동시에 선택하면 각 채널마다 개별 발송 작업이 등록됩니다.</div>
     </div>
 
-    <!-- ★ 2026-05-16: 이메일 전용 옵션 (이메일 채널 체크 시에만 표시) -->
+    <!-- 2026-05-16: 이메일 전용 옵션 (이메일 채널 체크 시에만 표시) -->
     <div class="form-row" id="emailOptionsRow" style="display:none;background:#eff6ff;border-left:4px solid #1e40af;padding:14px 16px;border-radius:6px">
       <label class="form-label" style="color:#1e3a8a"><span class="siren-icon-wrap" data-icon="mail"></span> 이메일 전용 옵션</label>
       <div style="margin-bottom:10px">
@@ -271,7 +271,7 @@ body {
     </div>
   </div>
 
-  <!-- ★ 2026-05-17: 이미지 편집 (이메일 채널 전용) -->
+  <!-- 2026-05-17: 이미지 편집 (이메일 채널 전용) -->
   <div class="card" id="imagesCard" style="display:none">
     <div class="card-title">
       <span class="siren-icon-wrap" data-icon="image"></span> 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>
@@ -289,7 +289,7 @@ body {
     <div id="jobImagesList" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
 
-  <!-- ★ 2026-05-17: 발송 미리보기 (채널별 탭) -->
+  <!-- 2026-05-17: 발송 미리보기 (채널별 탭) -->
   <div class="card" id="sendPreviewCard" style="display:none">
     <div class="card-title">
       <span class="siren-icon-wrap" data-icon="eye"></span> 발송 미리보기 <span class="badge-tip">실제 수신자에게 보일 모습</span>
@@ -345,7 +345,7 @@ body {
   <div style="background:#fff;border-radius:12px;width:min(640px,94vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0">
       <div style="font-size:1rem;font-weight:700;color:#1e293b"><span class="siren-icon-wrap" data-icon="folder"></span> 파일함에서 선택</div>
-      <button type="button" id="btnFilePickerClose" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b;padding:4px 8px">✕</button>
+      <button type="button" id="btnFilePickerClose" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b;padding:4px 8px"><span data-icon="x" aria-hidden="true"></span></button>
     </div>
     <div style="padding:12px 20px;border-bottom:1px solid #f1f5f9">
       <input type="text" id="filePickerSearch" class="form-input" placeholder="파일명 검색…" style="font-size:0.875rem">
@@ -361,6 +361,6 @@ body {
 </div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-send-job-create.js?v=20260520kst"></script>
+<script src="/js/admin-send-job-create.js?v=20260712-noemoji"></script>
 </body>
 </html>

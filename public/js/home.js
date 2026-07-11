@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — home.js (★ Phase B: 통계 API 연동)
+   SIREN — home.js (Phase B: 통계 API 연동)
    홈페이지 전용 인터랙션 (메인 슬라이더 / 카운터 / FAQ)
    ========================================================= */
 (function () {
@@ -73,7 +73,7 @@
     startSlideAuto();
   }
 
-  /* ------------ 2-A. ★ Phase B: 공개 통계 API에서 값 가져와 data-target 갱신 ------------ */
+  /* ------------ 2-A. Phase B: 공개 통계 API에서 값 가져와 data-target 갱신 ------------ */
   async function fetchAndApplyStats() {
     try {
       const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
@@ -87,7 +87,7 @@
 
       const d = json.data;
 
-      /* ★ HTML의 data-stat-key 속성을 가진 요소에 값 매핑 */
+      /* HTML의 data-stat-key 속성을 가진 요소에 값 매핑 */
       const mapping = {
         'donations.totalAmount': d.donations?.totalAmount,
         'support.totalCount': d.support?.totalCount,
@@ -116,7 +116,7 @@
         });
       });
 
-      /* ★ totalAmount는 별도 처리 (만원 단위 변환 가능성) */
+      /* totalAmount는 별도 처리 (만원 단위 변환 가능성) */
       const totalAmtEls = document.querySelectorAll('[data-stat-key="donations.totalAmount"]');
       totalAmtEls.forEach((el) => {
         if (el.classList.contains('stat-num')) {
@@ -222,7 +222,7 @@
   /* ------------ 6. 초기화 ------------ */
   async function init() {
     setupSlider();
-    /* ★ Phase B: API 값 먼저 적용한 뒤 카운터 옵저버 설정 */
+    /* Phase B: API 값 먼저 적용한 뒤 카운터 옵저버 설정 */
     await fetchAndApplyStats();
     setupCounterObserver();
     setupFAQ();
@@ -359,7 +359,7 @@
     }
   }
 
-  /* ------------ ★ Step 6-C: 메인 콘텐츠 API 연동 ------------ */
+  /* ------------ Step 6-C: 메인 콘텐츠 API 연동 ------------ */
   async function fetchAndApplyHomeContent() {
     try {
       const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';

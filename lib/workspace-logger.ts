@@ -1,5 +1,5 @@
 // lib/workspace-logger.ts
-// ★ Phase 3 — 워크스페이스 활동 로그 + 알림 통합 헬퍼
+// Phase 3 — 워크스페이스 활동 로그 + 알림 통합 헬퍼
 // 모든 워크스페이스 변경 사항을 Activity Log + Notification 양쪽에 기록
 //
 // 사용법:
@@ -66,7 +66,7 @@ export type NotifType =
   | "overdue" | "assigned" | "approved" | "rejected"
   | "invited" | "status_changed" | "completed";
 
-/** ⭐ Phase 21 R2+R3 — 알림 카테고리 (분류 — 드롭다운 색·필터용)
+/** Phase 21 R2+R3 — 알림 카테고리 (분류 — 드롭다운 색·필터용)
  *  assign / due / mention / transfer / watcher / system
  *  notifType (reminder/assigned 등)와 별개 개념 */
 export type NotifCategory = "assign" | "due" | "mention" | "transfer" | "watcher" | "system";

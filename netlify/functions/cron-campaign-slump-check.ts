@@ -1,5 +1,5 @@
 // netlify/functions/cron-campaign-slump-check.ts
-// ★ Phase M-19-2: 캠페인 진행 부진 자동 감지 + super_admin 알림
+// Phase M-19-2: 캠페인 진행 부진 자동 감지 + super_admin 알림
 //
 // 매주 월요일 오전 10시 KST (UTC 일요일 01:00) 실행
 // - 활성 fundraising 캠페인 전체 검사
@@ -83,7 +83,7 @@ export default async (req: Request) => {
         await notifyAllSuperAdmins({
           category: "donation",
           severity: "warning",
-          title: `📉 캠페인 진행 부진: ${c.title}`,
+          title: `캠페인 진행 부진: ${c.title}`,
           message: `목표 ₩${c.goal.toLocaleString()} 중 ₩${c.raised.toLocaleString()} (${c.actualPercent}% / 예상 ${c.expectedPercent}%, ${c.gap}%p 부족)`,
           link: `/admin.html#ai`,
           refTable: "campaigns",

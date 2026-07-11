@@ -180,7 +180,7 @@ async function buildPublicationPdf(pub: any): Promise<Uint8Array> {
   ensureSpace(20);
   page.drawLine({ start: { x: MARGIN, y }, end: { x: A4.w - MARGIN, y }, thickness: 0.5, color: gray });
   y -= 12;
-  drawLine("⚠️ 본 보고서는 AI 보조 초안입니다. 외부 발간 전 전문가 검수 필수.", 9, gray);
+  drawLine("본 보고서는 AI 보조 초안입니다. 외부 발간 전 전문가 검수 필수.", 9, gray);
 
   return pdf.save();
 }
@@ -191,7 +191,7 @@ export default async (req: Request, _ctx: Context) => {
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
-  /* ★ R41 Q2-054: 내보내기 쓰기 권한 게이트 (미정의 키면 admin 허용 기본) */
+  /* R41 Q2-054: 내보내기 쓰기 권한 게이트 (미정의 키면 admin 허용 기본) */
   if (!(await canAccess(auth.ctx.member.role ?? "", PUB_EXPORT_FEATURE))) return roleForbidden("operator");
 
   let body: any;
@@ -217,7 +217,7 @@ export default async (req: Request, _ctx: Context) => {
       const htmlContent = String(pub.contentHtml || "<p>내용 없음</p>");
       const fullHtml = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${safeTitle}</title>
 <style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px}h1{color:#7a1e2b}h2{color:#7a1e2b}</style>
-</head><body>${htmlContent}<hr><p style="color:#888;font-size:12px">⚠️ 본 보고서는 AI 보조 초안입니다. 외부 발간 전 전문가 검수 필수.</p></body></html>`;
+</head><body>${htmlContent}<hr><p style="color:#888;font-size:12px">본 보고서는 AI 보조 초안입니다. 외부 발간 전 전문가 검수 필수.</p></body></html>`;
       const base64 = Buffer.from(fullHtml).toString("base64");
       return new Response(JSON.stringify({
         ok: true,

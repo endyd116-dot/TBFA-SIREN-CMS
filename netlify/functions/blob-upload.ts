@@ -1,5 +1,5 @@
 // netlify/functions/blob-upload.ts
-// ★ Phase M-1: Toast UI Editor + 일반 첨부 공용 업로드 API
+// Phase M-1: Toast UI Editor + 일반 첨부 공용 업로드 API
 // - 사용자(siren_token) 또는 관리자(siren_admin_token) 모두 허용
 // - Netlify Blobs 저장 + blob_uploads 테이블 기록
 // - Toast UI Editor의 hooks.addImageBlobHook 응답 형식 호환

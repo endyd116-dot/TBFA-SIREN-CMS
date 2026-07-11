@@ -1,5 +1,5 @@
 // lib/csv-export.ts
-// ★ Phase M-12: CSV 생성 헬퍼 (UTF-8 BOM + Excel 호환)
+// Phase M-12: CSV 생성 헬퍼 (UTF-8 BOM + Excel 호환)
 
 /* CSV 셀 이스케이프 */
 function escapeCell(v: any): string {

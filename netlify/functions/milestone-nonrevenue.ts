@@ -24,7 +24,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       let baseSql = sql`
         SELECT nra.*, md.code, md.name as milestone_name, md.quarter_applicable,
                md.bonus_formula, md.target_milestone_role, md.non_revenue_category
@@ -49,7 +49,7 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "필수 필드 누락" }, { status: 400 });
     }
     try {
-      /* ★ R29-MS-GAP2-H: 결산 SUBMITTED/APPROVED/PAID 후 비매출 제출 차단 */
+      /* R29-MS-GAP2-H: 결산 SUBMITTED/APPROVED/PAID 후 비매출 제출 차단 */
       const settleRows = await db.execute(sql`
         SELECT status FROM quarterly_settlements
         WHERE quarter_id = ${Number(quarterId)} AND member_id = ${admin.id}
@@ -73,7 +73,7 @@ export default async function handler(req: Request, _ctx: Context) {
         return Response.json({ ok: false, error: "본인 담당 마일스톤만 제출 가능" }, { status: 403 });
       }
 
-      /* ★ R34-P1-B-6: quarterApplicable 검증 — sm-q1-*는 Q1, sm-q2-*는 Q2, 'ALL'·null은 분기 무관 */
+      /* R34-P1-B-6: quarterApplicable 검증 — sm-q1-*는 Q1, sm-q2-*는 Q2, 'ALL'·null은 분기 무관 */
       if (md.quarter_applicable && md.quarter_applicable !== "ALL") {
         const qInfo = await db.execute(sql`SELECT quarter FROM quarters WHERE id = ${Number(quarterId)}`);
         const qRow = (qInfo as any).rows?.[0] || (qInfo as any[])[0];
@@ -124,7 +124,7 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "분기당 비매출 보너스는 최대 7개까지만 선택 가능합니다" }, { status: 400 });
     }
     try {
-      /* ★ R32-P0-MS-C1 + R34-P1-B-8: sql 템플릿 + 단일 UPDATE로 원자화 (race 차단) */
+      /* R32-P0-MS-C1 + R34-P1-B-8: sql 템플릿 + 단일 UPDATE로 원자화 (race 차단) */
       const ids = selectedIds.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n));
       if (ids.length > 0) {
         // VERIFIED + 본인 소유 사전 검증
@@ -137,7 +137,7 @@ export default async function handler(req: Request, _ctx: Context) {
         if (notVerified.length > 0 || items.length !== ids.length) {
           return Response.json({ ok: false, error: "검증(VERIFIED) 완료된 본인 항목만 선택 가능합니다" }, { status: 400 });
         }
-        /* ★ v4 2단계: 카테고리당 최대 2개 (분기 7개는 위 길이 검증) */
+        /* v4 2단계: 카테고리당 최대 2개 (분기 7개는 위 길이 검증) */
         const catRows = await db.execute(sql`
           SELECT md.non_revenue_category AS cat, COUNT(*)::int AS cnt
           FROM non_revenue_achievements nra

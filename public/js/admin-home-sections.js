@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-home-sections.js (★ Phase B Step 6-F)
+   SIREN — admin-home-sections.js (Phase B Step 6-F)
    메인 화면 편집 → 섹션 제목 (캠페인/공지/FAQ) 편집 모듈
    ========================================================= */
 (function () {

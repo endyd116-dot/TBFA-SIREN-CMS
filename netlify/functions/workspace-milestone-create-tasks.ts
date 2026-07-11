@@ -4,7 +4,7 @@
  * body: { milestoneDefId, count? }
  */
 import type { Context } from "@netlify/functions";
-/* ★ R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
+/* R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -49,7 +49,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return Response.json({ ok: false, error: "매출 마일스톤은 카드 자동 생성을 지원하지 않습니다" }, { status: 400 });
   }
 
-  // 담당 역할 확인 (★ R35-GAP-P2-M3: super_admin은 milestoneRole=null이라도 모든 정의에 카드 생성 가능)
+  // 담당 역할 확인 (R35-GAP-P2-M3: super_admin은 milestoneRole=null이라도 모든 정의에 카드 생성 가능)
   const milestoneRole = member.milestoneRole || member.milestone_role || null;
   if (def.target_milestone_role !== milestoneRole && member.role !== "super_admin") {
     return Response.json({ ok: false, error: "본인 담당 마일스톤이 아닙니다" }, { status: 403 });
@@ -68,7 +68,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   // 생성할 카드 수 (명시적 count 또는 threshold_value 기준, 최대 10개)
   const count = Math.min(Number(body?.count || def.threshold_value || 1), 10);
-  const force = body?.force === true;   // ★ Q3-047 fix: 안내한 force=true를 실제 처리 (기존엔 미처리라 항상 409)
+  const force = body?.force === true;   // Q3-047 fix: 안내한 force=true를 실제 처리 (기존엔 미처리라 항상 409)
 
   // 이미 생성된 연결 카드 수 확인
   let existCount = 0;
@@ -105,7 +105,7 @@ export default async function handler(req: Request, _ctx: Context) {
         VALUES
           (${member.id},
            ${def.name + titleSuffix},
-           ${"[🏆 마일스톤 연동] " + def.name + " 달성을 위한 업무 카드입니다.\n목표: " + (def.threshold_value || 1) + (def.threshold_unit || "건")},
+           ${"[마일스톤 연동] " + def.name + " 달성을 위한 업무 카드입니다.\n목표: " + (def.threshold_value || 1) + (def.threshold_unit || "건")},
            'todo', 'normal', ${dueDate},
            ${JSON.stringify([tag])}, 'milestone',
            ${milestoneDefId}, 'user',

@@ -1,7 +1,7 @@
 /**
  * admin-martyrdom-draft-generate-background — 섹션 순차 생성 (INTERNAL·Background)
  *
- * ⚠️ 백그라운드 함수(-background)는 config.path 금지.
+ * 백그라운드 함수(-background)는 config.path 금지.
  *
  * POST { caseId, outputId, secret }
  *   'generating' 상태 섹션을 순서대로 draftSection 생성 → done(성공)·pending(실패·재시도 가능).

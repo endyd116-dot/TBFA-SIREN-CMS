@@ -3,7 +3,7 @@
  * POST /api/chat/mine    — 새 채팅방 생성
  *                          body: { category, title? }
  *
- * ★ 6순위 #8: GET 시 전문가(expert_id)로 배정된 expert_1on1 룸도 함께 반환
+ * 6순위 #8: GET 시 전문가(expert_id)로 배정된 expert_1on1 룸도 함께 반환
  */
 import { eq, and, or, desc } from "drizzle-orm";
 import { db, chatRooms, chatBlacklist, members } from "../../db";
@@ -38,7 +38,7 @@ export default async (req: Request) => {
   try {
     /* ===== GET — 내 채팅방 목록 ===== */
     if (req.method === "GET") {
-      /* ★ 6순위 #8: memberId 또는 expertId(전문가로 배정된 룸)까지 포함 */
+      /* 6순위 #8: memberId 또는 expertId(전문가로 배정된 룸)까지 포함 */
       const rooms = await db
         .select({
           id: chatRooms.id,
@@ -82,7 +82,7 @@ export default async (req: Request) => {
 
     /* ===== POST — 새 채팅방 생성 ===== */
     if (req.method === "POST") {
-      /* ★ 2026-06-27: 전역 차단(정지/탈퇴/블랙) 회원 채팅 개설 차단 — 채팅 전용 블랙 외 계정 상태도 게이트 */
+      /* 2026-06-27: 전역 차단(정지/탈퇴/블랙) 회원 채팅 개설 차단 — 채팅 전용 블랙 외 계정 상태도 게이트 */
       const _act = await requireActiveUser(req);
       if (!_act.ok) return (_act as { ok: false; res: Response }).res;
 
@@ -150,7 +150,7 @@ export default async (req: Request) => {
         await notifyAllOperators({
           category: "support",
           severity: "info",
-          title: `💬 새 1:1 상담 접수 — ${requester?.name || "회원"}`,
+          title: `새 1:1 상담 접수 — ${requester?.name || "회원"}`,
           message: `${title} · 응대가 필요합니다`,
           link: "/admin.html",
           refTable: "chat_rooms",

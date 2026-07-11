@@ -1,5 +1,5 @@
 // netlify/functions/notifications-read.ts
-// ★ Phase M-3: 알림 읽음 처리
+// Phase M-3: 알림 읽음 처리
 // POST /api/notifications/read
 //   body: { id: number }            → 단건 읽음
 //   body: { ids: number[] }         → 다건 읽음

@@ -8,7 +8,7 @@
 //   DOOR_DEVICE_CHANNEL= 릴레이 채널(선택, 기본 0)
 //   DOOR_PULSE_SEC     = 모멘터리 펄스 초(선택). 미설정 시 단일 turn=on(장치 auto-off에 위임 — 설계 권장).
 // 값 미설정 시 ok=false(감사 기록은 남음). 개방=모멘터리 펄스(장치 auto-off ~1~2s).
-// ⚠ ON과 동일 물리 문 → ON과 동일한 DOOR_* 값을 SIREN Netlify에도 입력(같은 장치를 각자 개방).
+// ON과 동일 물리 문 → ON과 동일한 DOOR_* 값을 SIREN Netlify에도 입력(같은 장치를 각자 개방).
 import type { DoorAdapter, DoorResult, DoorStatusResult } from "./index";
 
 function baseUrl(): string { return (process.env.DOOR_ADAPTER_URL || "").replace(/\/$/, ""); }

@@ -379,7 +379,7 @@
   }
 
   function bindShellEvents(container) {
-    /* ★ 버그픽스 20260515-2차 (#10): renderShell HTML에 없는 요소를 querySelector 후
+    /* 버그픽스 20260515-2차 (#10): renderShell HTML에 없는 요소를 querySelector 후
        null 체크 없이 addEventListener → "Cannot read properties of null" → renderShell
        전체 throw → 빈 화면. 모든 참조에 null 가드. (#expYearSelect는 기간 선택기로
        대체돼 더 이상 HTML에 없으므로 참조 제거 — 기간 필터는 bindPeriodSelector가 담당) */
@@ -954,7 +954,7 @@
   }
 
   /* ── 초기화 / 재진입 통합 ──
-     ★ 버그픽스: 사전 로드(권한·카테고리)가 실패해도 화면 골격은 반드시 그린다.
+     버그픽스: 사전 로드(권한·카테고리)가 실패해도 화면 골격은 반드시 그린다.
         예전엔 중간 단계가 throw하면 renderShell이 안 돌아 빈 섹션 = 무한로딩. */
   async function init() {
     const container = document.getElementById('adm-expenses') || document.getElementById('page-expenses');

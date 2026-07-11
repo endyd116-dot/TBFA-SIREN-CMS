@@ -1,6 +1,6 @@
 // netlify/functions/incident-reports-mine.ts
-// ★ M-5: 본인이 작성한 사건 제보 목록 조회 (마이페이지용)
-// ★ 2026-05 응급 패치: 파일에 auth.js 코드가 잘못 들어가 있던 것 완전 제거
+// M-5: 본인이 작성한 사건 제보 목록 조회 (마이페이지용)
+// 2026-05 응급 패치: 파일에 auth.js 코드가 잘못 들어가 있던 것 완전 제거
 
 import type { Context } from "@netlify/functions";
 import { eq, desc } from "drizzle-orm";

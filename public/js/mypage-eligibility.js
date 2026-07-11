@@ -98,7 +98,7 @@
           '<label>변경 사유 <span style="color:var(--danger)">*</span> <span class="hint">(10자 이상)</span></label>' +
           '<textarea id="eligReason" rows="4" maxlength="2000" placeholder="자격 변경이 필요한 사유를 작성해주세요" ' + disabled + '></textarea>' +
         '</div>' +
-        /* ★ 2026-05-16: 자격 증빙 파일 첨부 (선택). JPG·PNG·PDF 등 10MB 이내.
+        /* 2026-05-16: 자격 증빙 파일 첨부 (선택). JPG·PNG·PDF 등 10MB 이내.
            파일 선택 시 즉시 업로드되어 blob ID 받음. 제출 시 그 ID를 함께 전송. */
         '<div class="fg">' +
           '<label>자격 증빙 파일 <span class="hint">(선택 — JPG/PNG/PDF, 최대 10MB)</span></label>' +
@@ -144,7 +144,7 @@
     if (fileInput) fileInput.addEventListener('change', onEvidenceChange);
   }
 
-  /* ★ 2026-05-16: 자격 증빙 파일 자동 업로드 (회원가입 인증서 첨부와 동일 패턴) */
+  /* 2026-05-16: 자격 증빙 파일 자동 업로드 (회원가입 인증서 첨부와 동일 패턴) */
   async function onEvidenceChange(e) {
     var fileInput = e.target;
     var file = fileInput.files && fileInput.files[0];

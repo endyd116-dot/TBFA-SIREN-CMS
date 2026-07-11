@@ -1,5 +1,5 @@
 // public/js/admin-activity-report.js
-// ★ Phase M-19-3: AI 활동보고서 생성 어드민 모듈
+// Phase M-19-3: AI 활동보고서 생성 어드민 모듈
 (function () {
   'use strict';
 
@@ -166,7 +166,7 @@
       return toast(e.message);
     }
 
-    /* ★ C안 A안: 자동 저장 + PDF 항상 활성화 (모달 종료해도 보존) */
+    /* C안 A안: 자동 저장 + PDF 항상 활성화 (모달 종료해도 보존) */
     const saveAsPostEl = document.getElementById('arSaveAsPost');
     const generatePdfEl = document.getElementById('arGeneratePdf');
     if (saveAsPostEl) saveAsPostEl.checked = true;
@@ -220,7 +220,7 @@
     const m = stats.members || {};
     const s = stats.support || {};
 
-    /* ★ 데이터가 모두 0이면 기간 안내 */
+    /* 데이터가 모두 0이면 기간 안내 */
     const totalData = (d.totalAmount || 0) + (d.donorCount || 0) + (m.newCount || 0) + (s.total || 0);
     if (totalData === 0) {
       const periodLabel = stats.period?.label || '선택한 기간';
@@ -285,7 +285,7 @@
         `데이터 ${result.timing.dataCollectMs}ms / AI ${result.timing.aiGenerateMs}ms / 총 ${result.timing.totalMs}ms`);
     }
 
-    /* ★ C안: 활동보고서 목록 페이지가 열려있으면 자동 새로고침 */
+    /* C안: 활동보고서 목록 페이지가 열려있으면 자동 새로고침 */
     if (window.SIREN_ADMIN_ACTIVITY_REPORT_LIST && window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.refresh) {
       window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.refresh();
     }

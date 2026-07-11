@@ -1,5 +1,5 @@
 // netlify/functions/admin-resource-categories.ts
-// ★ Phase M-19-8: 자료실 카테고리 마스터 CRUD
+// Phase M-19-8: 자료실 카테고리 마스터 CRUD
 //
 // GET    /api/admin/resource-categories           — 전체 목록 + 자료 카운트
 // GET    /api/admin/resource-categories?id=N      — 단건 상세
@@ -238,7 +238,7 @@ export default async (req: Request) => {
         .where(eq(resources.categoryId, id));
       const linkedCount = Number(cntRow[0]?.c ?? 0);
 
-      /* schema에 onDelete: "set null" 명시되어 있어 DB가 자동 처리 ✅ */
+      /* schema에 onDelete: "set null" 명시되어 있어 DB가 자동 처리 */
       await db.delete(resourceCategories).where(eq(resourceCategories.id, id));
 
       try {

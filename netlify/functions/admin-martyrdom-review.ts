@@ -92,7 +92,7 @@ export default async (req: Request, _ctx: Context) => {
     const note = body.note ? String(body.note).slice(0, 2000) : null;
 
     try {
-      /* ★ R41 Q2-027: 현재 status 포함 SELECT — pending일 때만 결정 허용(이미 결정된 건 재결정 차단·전이 보호) */
+      /* R41 Q2-027: 현재 status 포함 SELECT — pending일 때만 결정 허용(이미 결정된 건 재결정 차단·전이 보호) */
       const rv: any = await db.execute(sql.raw(`SELECT id, case_id AS "caseId", output_id AS "outputId", status, assigned_to AS "assignedTo" FROM martyrdom_reviews WHERE id = ${reviewId} LIMIT 1`));
       const row = (rv?.rows ?? rv ?? [])[0];
       if (!row) {

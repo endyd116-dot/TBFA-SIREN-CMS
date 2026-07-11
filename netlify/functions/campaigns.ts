@@ -1,5 +1,5 @@
 // netlify/functions/campaigns.ts
-// ★ Phase M-19-2: 사용자 공개 캠페인 API
+// Phase M-19-2: 사용자 공개 캠페인 API
 //
 // GET /api/campaigns                — 공개된 active 캠페인 목록
 // GET /api/campaigns?slug=xxx       — 단건 상세 (slug 기반)

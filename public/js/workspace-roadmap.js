@@ -424,7 +424,7 @@
     $('#rmPhaseSaveBtn')?.addEventListener('click', savePhase);
     $('#rmPhaseDeleteBtn')?.addEventListener('click', deletePhase);
 
-    // 모달 닫기(백드롭·✕·취소)
+    // 모달 닫기(백드롭·닫기 버튼·취소)
     document.addEventListener('click', e => {
       const close = e.target.closest('[data-close-modal]');
       if (close) { closeModal(close.dataset.closeModal); return; }

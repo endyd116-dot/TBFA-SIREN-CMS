@@ -1,5 +1,5 @@
 // netlify/functions/admin-campaigns.ts
-// ★ Phase M-19-2: 캠페인 관리 (어드민 CRUD)
+// Phase M-19-2: 캠페인 관리 (어드민 CRUD)
 //
 // GET    /api/admin/campaigns                  — 목록 (페이지네이션 + 통계)
 // GET    /api/admin/campaigns?id=N             — 단건 상세
@@ -349,7 +349,7 @@ export default async (req: Request) => {
         .where(eq(donations.campaignId, id));
       const linkedCount = Number(linkedRow[0]?.c ?? 0);
 
-           /* ★ Pass 2 패치: donations.campaignId가 FK가 아니므로 명시적으로 NULL 처리
+           /* Pass 2 패치: donations.campaignId가 FK가 아니므로 명시적으로 NULL 처리
          (FK가 추가되면 ON DELETE SET NULL이 자동 처리할 예정) */
       if (linkedCount > 0) {
         await db.update(donations)

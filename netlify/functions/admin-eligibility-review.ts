@@ -94,7 +94,7 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 4. 승인 시 회원 자격 갱신 */
     if (action === "approve") {
-      /* ★ 2026-05-16: 자격 변경 승인 시 전문가 매칭 풀 조건(type='volunteer' +
+      /* 2026-05-16: 자격 변경 승인 시 전문가 매칭 풀 조건(type='volunteer' +
          member_subtype + secondary_verified=true)도 함께 반영. 옛 코드는 eligibility_type
          만 박아서 매칭 풀·전문가 프로필 화면에 표시 안 되던 결함. 변호사·심리상담사는
          전문가 풀에 자동 등록, 일반·유가족 등은 type/subtype은 안 건드림. */

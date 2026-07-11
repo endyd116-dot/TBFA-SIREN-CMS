@@ -330,7 +330,7 @@
     const payload = res.data?.data ?? res.data ?? {};
     const rows  = payload.recipients ?? res.data?.recipients ?? [];
     const total = payload.total ?? res.data?.total ?? rows.length;
-    /* ★ 2026-05-17: 작업이 pending이면 백엔드가 그룹 미리보기 멤버를 반환하고
+    /* 2026-05-17: 작업이 pending이면 백엔드가 그룹 미리보기 멤버를 반환하고
        isPreview=true 플래그를 함께 보냄. 화면에 '발송 대기 — 미리보기' 안내. */
     const isPreview = payload.isPreview ?? res.data?.isPreview ?? false;
     recState.total = total;
@@ -349,7 +349,7 @@
     } else {
       $("recBody").innerHTML = rows.map(r => {
         const st = String(r.status || "pending");
-        /* ★ 2026-05-16: 카카오 알림톡 정책 스킵은 cron이 status='sent'+error='[정책 스킵]...'
+        /* 2026-05-16: 카카오 알림톡 정책 스킵은 cron이 status='sent'+error='[정책 스킵]...'
            으로 박음. 화면엔 '성공'이 아니라 '발송 안 함'으로 표시해야 오해 방지. */
         const err = String(r.error || "");
         const isPolicySkip = st === "sent" && err.startsWith("[정책 스킵]");

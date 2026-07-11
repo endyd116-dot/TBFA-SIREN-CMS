@@ -63,7 +63,7 @@ export default async function handler(req: Request, _ctx: Context) {
         ? sql`WHERE ${conditions.reduce((a, b) => sql`${a} AND ${b}`)}`
         : sql``;
 
-    /* ★ 2026-05-16: 카카오 알림톡 필드 3종이 DB에 있을 때만 SELECT.
+    /* 2026-05-16: 카카오 알림톡 필드 3종이 DB에 있을 때만 SELECT.
        마이그(/api/migrate-add-alimtalk-fields?run=1) 호출 전엔 없으므로 조건부 SELECT. */
     const alimtalkCheck: any = await db.execute(sql`
       SELECT COUNT(*)::int AS n FROM information_schema.columns
@@ -76,7 +76,7 @@ export default async function handler(req: Request, _ctx: Context) {
       ? sql`, alimtalk_template_code, alimtalk_review_status, alimtalk_button_json`
       : sql``;
 
-    /* ★ 2026-05-17: images jsonb 컬럼 존재 시 SELECT (마이그 후) */
+    /* 2026-05-17: images jsonb 컬럼 존재 시 SELECT (마이그 후) */
     const imgCheck: any = await db.execute(sql`
       SELECT 1 AS ok FROM information_schema.columns
        WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
@@ -84,7 +84,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
     const imagesCol = hasImagesCol ? sql`, images` : sql``;
 
-    /* ★ 2026-05-17: use_siren_layout 컬럼 조건부 */
+    /* 2026-05-17: use_siren_layout 컬럼 조건부 */
     const sirenCheck: any = await db.execute(sql`
       SELECT 1 AS ok FROM information_schema.columns
        WHERE table_name = 'communication_templates' AND column_name = 'use_siren_layout' LIMIT 1
@@ -120,7 +120,7 @@ export default async function handler(req: Request, _ctx: Context) {
       alimtalkReviewStatus: r.alimtalk_review_status ?? null,
       alimtalkButtonJson:   r.alimtalk_button_json ?? null,
       isKakaoOnly:          !!(r.alimtalk_template_code),
-      /* ★ 2026-05-17: 이미지 첨부 — 마이그 후에만 값 존재 */
+      /* 2026-05-17: 이미지 첨부 — 마이그 후에만 값 존재 */
       images:               Array.isArray(r.images) ? r.images : [],
       useSirenLayout:       !!r.use_siren_layout,
     }));

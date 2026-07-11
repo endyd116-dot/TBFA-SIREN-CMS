@@ -1,7 +1,7 @@
 /**
  * communication-send-dispatch-background — 발송 큐 드레이너 (INTERNAL·Background)
  *
- * ⚠️ 백그라운드 함수(-background)는 config.path 금지. 플랫폼이 즉시 202 반환 후 최대 15분 실행.
+ * 백그라운드 함수(-background)는 config.path 금지. 플랫폼이 즉시 202 반환 후 최대 15분 실행.
  *
  * 호출처:
  *   - admin-send-job-create: 운영자가 "지금 발송" 시 즉시 fire (지연 0)

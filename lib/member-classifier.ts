@@ -1,5 +1,5 @@
 // lib/member-classifier.ts
-// ★ Phase M-12 + M-13: 회원 자동 분류 + 가입경로 매핑 + 효성 자동 회원 생성
+// Phase M-12 + M-13: 회원 자동 분류 + 가입경로 매핑 + 효성 자동 회원 생성
 
 import { eq, sql } from "drizzle-orm";
 import crypto from "crypto";
@@ -166,7 +166,7 @@ export async function recomputeMemberClassification(memberId: number): Promise<C
 }
 
 /* =========================================================
-   ★ M-13: 효성 CMS+ 매칭 실패 행 → 자동 회원 생성
+   M-13: 효성 CMS+ 매칭 실패 행 → 자동 회원 생성
    - 가상 이메일: hyosung-{회원번호}@auto.siren-org.kr
    - passwordHash: 임의 랜덤 (로그인 불가 — admin이 비번 발급해야 함)
    - emailVerified: false

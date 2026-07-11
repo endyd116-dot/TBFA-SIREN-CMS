@@ -1,7 +1,7 @@
 /**
  * POST /api/admin-donation-confirm
  *
- * ★ 6순위 #15 + Phase 3 D1·D2 (2026-05-10 재작성):
+ * 6순위 #15 + Phase 3 D1·D2 (2026-05-10 재작성):
  *   pending_donations 행을 통과(확정) 처리.
  *   source 별 분기:
  *     - 'hyosung_contracts' : hyosungContracts UPSERT + 회원 매칭/신규 생성
@@ -206,7 +206,7 @@ async function confirmHyosungBilling(
       .limit(1);
 
     if (existingDonation.length === 0) {
-      /* ★ 2026-05-16 fix: PDF '상품' 값 기준으로 정기/일시 분기.
+      /* 2026-05-16 fix: PDF '상품' 값 기준으로 정기/일시 분기.
          '일시후원' = onetime, 그 외('정기후원'·'후원회비') = regular.
          이전엔 무조건 regular로 박혀서 후원 결제 내역 유형이 부정확. */
       const donationType = row.productName === "일시후원" ? "onetime" : "regular";
@@ -305,7 +305,7 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   const { admin, member: adminMember } = (auth as any).ctx;
 
-  /* ★ R41 Q1-009 / R45 F2: 후원 통과 처리 권한 게이트 — 권한 정책 화면(admin-role-policy)에서 토글.
+  /* R41 Q1-009 / R45 F2: 후원 통과 처리 권한 게이트 — 권한 정책 화면(admin-role-policy)에서 토글.
      시드 기본값 operator 차단(재무성 작업·admin+ 전용), super_admin이 권한정책에서 운영자 허용으로 조정 가능. */
   if (!(await canAccess(adminMember.role ?? "", "donation_confirm"))) {
     return forbidden("후원 통과 처리 권한이 없습니다");
@@ -487,7 +487,7 @@ export default async (req: Request, _ctx: Context) => {
       });
     } catch {}
 
-    /* ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
+    /* Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
      * 효성 계약/수납·IBK 통과로 회원 또는 후원 변경 → 자동 분류 갱신
      * 회원별 1회씩 fire-and-forget. */
     const reevalIds = Array.from(

@@ -1,5 +1,5 @@
 // netlify/functions/board-list.ts
-// ★ Phase M-8: 게시글 목록 (페이징 + 카테고리 + 검색)
+// Phase M-8: 게시글 목록 (페이징 + 카테고리 + 검색)
 // - 공개 GET (로그인 불필요)
 
 import type { Context } from "@netlify/functions";

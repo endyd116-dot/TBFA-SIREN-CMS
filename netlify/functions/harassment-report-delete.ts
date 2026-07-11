@@ -1,5 +1,5 @@
 // netlify/functions/harassment-report-delete.ts
-// ★ Phase M-6: 본인 신고 삭제
+// Phase M-6: 본인 신고 삭제
 
 import type { Context } from "@netlify/functions";
 import { eq, and } from "drizzle-orm";

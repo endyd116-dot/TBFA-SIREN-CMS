@@ -1,5 +1,5 @@
 // netlify/functions/blob-confirm.ts
-// ★ Phase M-2.5: R2 업로드 완료 후 호출되는 확인 API
+// Phase M-2.5: R2 업로드 완료 후 호출되는 확인 API
 // - HEAD 요청으로 R2에 실제 업로드되었는지 검증
 // - upload_status: pending → completed 갱신
 // - 실제 size/type 동기화

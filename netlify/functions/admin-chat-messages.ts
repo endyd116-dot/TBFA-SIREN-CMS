@@ -3,7 +3,7 @@
  * POST  /api/admin/chat/messages                       — 관리자 메시지 전송
  * PATCH /api/admin/chat/messages                       — 관리자 측 읽음 처리
  *
- * ★ STEP H-1: 응답에 attachment 객체 합쳐서 전달
+ * STEP H-1: 응답에 attachment 객체 합쳐서 전달
  */
 import { eq, and, gt, asc, inArray } from "drizzle-orm";
 import { db, chatRooms, chatMessages, chatAttachments } from "../../db";

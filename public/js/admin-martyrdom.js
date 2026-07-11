@@ -1112,7 +1112,7 @@ function renderTabDocs(d) {
 }
 
 function renderDocRow(doc) {
-  /* ★ 2026-05-26: 유효 분류 = 수기수정(docType) 우선, 없으면 AI 자동판정(docTypeAuto).
+  /* 2026-05-26: 유효 분류 = 수기수정(docType) 우선, 없으면 AI 자동판정(docTypeAuto).
      기존엔 docType(수기·보통 NULL)만 봐서 자동분류가 성공해도 드롭다운이 첫 옵션
      '신청·행정 서류'로 잘못 보였음. 둘 다 없으면 '미분류'. */
   const effectiveType = doc.docType || doc.docTypeAuto || "";
@@ -1141,7 +1141,7 @@ function renderDocRow(doc) {
     ${Object.entries(MARTYRDOM_DOC_TYPES).map(([v,l])=>`<option value="${v}"${effectiveType===v?" selected":""}>${l}</option>`).join("")}
   </select>`;
 
-  /* ★ 2026-05-26: 실패/문제 자료는 요약칸에 실제 사유(extractError)를 빨강으로 노출 —
+  /* 2026-05-26: 실패/문제 자료는 요약칸에 실제 사유(extractError)를 빨강으로 노출 —
      기존엔 '-'만 보여 왜 실패했는지(엑셀 미지원·AI 한도·타임아웃 등) 알 수 없었음. */
   const summaryCell = (doc.extractError && doc.extractStatus !== "done")
     ? `<span style="color:#c5293a;font-size:11.5px" title="${escapeHtml(doc.extractError)}">${escapeHtml(String(doc.extractError).slice(0, 80))}</span>`
@@ -1518,7 +1518,7 @@ function renderDraftOutline(sections) {
       <div class="ol-btns">
         <button class="btn-xs" onclick="moveOutline('${jsStr(s.sectionKey)}',-1)" ${i === 0 ? "disabled" : ""} title="위로">↑</button>
         <button class="btn-xs" onclick="moveOutline('${jsStr(s.sectionKey)}',1)" ${i === arr.length - 1 ? "disabled" : ""} title="아래로">↓</button>
-        <button class="btn-xs btn-danger" onclick="removeOutline('${jsStr(s.sectionKey)}')" title="삭제">✕</button>
+        <button class="btn-xs btn-danger" onclick="removeOutline('${jsStr(s.sectionKey)}')" title="삭제">${Icons.svg('x')}</button>
       </div>
     </div>`;
   }).join("");
@@ -3138,7 +3138,7 @@ async function generatePublication() {
   const caseIds = Array.from(document.querySelectorAll('#pubCaseList .pub-case-cb:checked'))
     .map(cb => Number(cb.value)).filter(n => n > 0);
 
-  // ★ R41 Q2-052: 연타로 인한 중복 draft 생성 방지 — 진행 중이면 무시
+  // R41 Q2-052: 연타로 인한 중복 draft 생성 방지 — 진행 중이면 무시
   if (pubGenBusy) return;
   pubGenBusy = true;
   const btn = document.getElementById("pubGenBtn");
@@ -3495,7 +3495,7 @@ async function saveExternalSettings() {
       whitelistDomains: toLines("extWhitelistDomains"),
     });
     if (res && res.ok) {
-      if (msg) msg.textContent = "저장되었습니다 ✓";
+      if (msg) msg.textContent = "저장되었습니다";
       toast("자동 수집 설정을 저장했습니다", "success");
     } else {
       toast((res && res.error) || "설정 저장 실패", "error");

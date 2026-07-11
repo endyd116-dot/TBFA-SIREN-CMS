@@ -259,7 +259,7 @@ async function handleSuccess(target: BillingTarget, logId: number, result: Charg
     .set({ lastChargedAt: new Date(), nextChargeAt: nextDate, consecutiveFailCount: 0, lastFailureReason: null } as any)
     .where(eq(billingKeys.id, target.billingKeyId));
 
-  console.log(`[cron-kicc-billing] ✅ 성공: 회원 #${target.memberId} (${target.memberName}) — ${target.amount.toLocaleString()}원`);
+  console.log(`[cron-kicc-billing] 성공: 회원 #${target.memberId} (${target.memberName}) — ${target.amount.toLocaleString()}원`);
 
   dispatch({
     event: NotifyEvent.BILLING_SUCCESS,
@@ -310,7 +310,7 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
 
     await db.execute(sql`UPDATE members SET next_billing_date = NULL, updated_at = NOW() WHERE id = ${target.memberId}`);
 
-    console.log(`[cron-kicc-billing] ⛔ 자동해지: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode}`);
+    console.log(`[cron-kicc-billing] 자동해지: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode}`);
 
     dispatch({
       event: NotifyEvent.BILLING_CANCELED,
@@ -335,14 +335,14 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
     const nextRetry = target.attemptNumber === 1 ? addDays(new Date(), 1) : addDays(new Date(), 3);
     const nextRetryStr = `${nextRetry.getFullYear()}-${String(nextRetry.getMonth() + 1).padStart(2, "0")}-${String(nextRetry.getDate()).padStart(2, "0")}`;
 
-    /* ★ R41 Q1-001 FIX: 재시도일을 next_billing_date에 쓰지 않는다 (이전엔 여기서 덮어썼음).
+    /* R41 Q1-001 FIX: 재시도일을 next_billing_date에 쓰지 않는다 (이전엔 여기서 덮어썼음).
        덮으면 다음날 collectScheduledTargets가 이 회원을 '정기(attempt 1)'로 재포착하고
        dedup이 retry(attempt 2)를 버려 → 시도횟수가 영원히 1에 고정 → 1/3일 에스컬레이션·
        3회 자동해지가 작동 안 함(무한 일일 재청구). 재시도는 billing_logs.next_retry_at +
        collectRetryTargets 경로로만 처리한다. next_billing_date는 성공 시(다음달)·자동해지 시(NULL)에만 변경.
        (billing_retry_count·billing_last_failed_at은 위 분기 이전 UPDATE에서 이미 갱신됨) */
 
-    console.log(`[cron-kicc-billing] ⚠️ 실패: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode} (재시도 ${nextRetryStr})`);
+    console.log(`[cron-kicc-billing] 실패: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode} (재시도 ${nextRetryStr})`);
 
     dispatch({
       event: NotifyEvent.BILLING_FAILED,

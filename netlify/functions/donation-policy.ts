@@ -1,5 +1,5 @@
 // netlify/functions/donation-policy.ts
-// ★ Phase M-4 + 2026-05: 후원 정책 조회 (공개 API)
+// Phase M-4 + 2026-05: 후원 정책 조회 (공개 API)
 // - 효성 카운트다운 메시지/초수 응답 추가
 
 import type { Context } from "@netlify/functions";
@@ -16,10 +16,10 @@ const FALLBACK_POLICY = {
   bankGuideText: "입금 확인까지 1~3일 이내 소요될 수 있습니다. 입금자명을 정확히 입력해 주세요.",
   hyosungUrl: "https://ap.hyosungcmsplus.co.kr/external/shorten/20240709hAxVVDFECf",
   hyosungGuideText: "효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.",
-  /* ★ 2026-05 신규 */
+  /* 2026-05 신규 */
   hyosungCountdownMessage: "자동이체를 위해 외부페이지로 이동합니다.",
   hyosungCountdownSeconds: 5,
-  modalTitle: "🎗 후원 동참하기",
+  modalTitle: "후원 동참하기",
   modalSubtitle: "여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.",
 };
 
@@ -84,7 +84,7 @@ export default async (req: Request, _ctx: Context) => {
       bankGuideText: row.bankGuideText || FALLBACK_POLICY.bankGuideText,
       hyosungUrl: row.hyosungUrl || FALLBACK_POLICY.hyosungUrl,
       hyosungGuideText: row.hyosungGuideText || FALLBACK_POLICY.hyosungGuideText,
-      /* ★ 2026-05 신규 */
+      /* 2026-05 신규 */
       hyosungCountdownMessage: row.hyosungCountdownMessage || FALLBACK_POLICY.hyosungCountdownMessage,
       hyosungCountdownSeconds: safeCdSec,
       modalTitle: row.modalTitle || FALLBACK_POLICY.modalTitle,

@@ -1,5 +1,5 @@
 // netlify/functions/public-nav-menus.ts
-// ★ Phase B: 공개 메뉴 API (어드민 미리보기는 ?preview=1 + 어드민 쿠키)
+// Phase B: 공개 메뉴 API (어드민 미리보기는 ?preview=1 + 어드민 쿠키)
 // 인증 불필요 (preview=1 제외) — 캐싱 5분
 //
 // GET /api/public/nav-menus?location=header           — 트리 (운영 적용된 값)

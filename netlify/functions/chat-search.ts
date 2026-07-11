@@ -6,7 +6,7 @@
  *
  * 응답: { ok, messages: [{ id, content, senderRole, createdAt }] }
  *
- * ★ schema.ts의 is_deleted 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
+ * schema.ts의 is_deleted 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
  */
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";

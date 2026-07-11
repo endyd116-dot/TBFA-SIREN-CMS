@@ -113,7 +113,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonStepErr("select_old", err);
   }
 
-  /* ★ fix: 출퇴근 시각을 수정하면 업무시간(working_mins)·야근시간(overtime_mins)도 재계산.
+  /* fix: 출퇴근 시각을 수정하면 업무시간(working_mins)·야근시간(overtime_mins)도 재계산.
      (기존엔 시각만 바꾸고 파생 시간은 그대로라 표에 반영 안 됐음) — 양쪽 시각이 다 있을 때만. */
   let recalcWorkingMins: number | undefined;
   let recalcOvertimeMins: number | undefined;
@@ -127,7 +127,7 @@ export default async function handler(req: Request, _ctx: Context) {
       try {
         const policy = await getDefaultPolicy();
         if (policy) {
-          /* ★ 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
+          /* 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
           let calcIn = new Date(effIn);
           const wm = newWorkMode !== undefined ? newWorkMode : old.work_mode;
           if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
@@ -261,7 +261,7 @@ async function createRecord(req: Request, auth: any, body: any) {
     try {
       const policy = await getDefaultPolicy();
       if (policy) {
-        /* ★ 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
+        /* 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
         let calcIn = new Date(effIn);
         if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
           const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());

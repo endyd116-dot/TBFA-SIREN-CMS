@@ -20,7 +20,7 @@
   var _sdkLoadPromise = null;
   var _configPromise = null;
 
-  /* ★ 위치보기 fix: site-config(KAKAO_JS_APP_KEY) 미설정 시 about.html과 동일한
+  /* 위치보기 fix: site-config(KAKAO_JS_APP_KEY) 미설정 시 about.html과 동일한
      도메인 등록 카카오 JS 키로 폴백(클라이언트 키·도메인 제한·비밀 아님) → env 없이도 지도 동작. */
   var FALLBACK_KAKAO_JS_KEY = '6082d30d107baf30d2fd17f14a2f48e7';
 
@@ -91,7 +91,7 @@
       '<div style="background:#fff;border-radius:12px;width:min(720px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.25)">'
       +   '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e5e7eb">'
       +     '<strong style="font-size:15px">' + esc(opts.title || '출퇴근 위치') + '</strong>'
-      +     '<button id="attMapClose" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6b7280">✕</button>'
+      +     '<button id="attMapClose" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6b7280">' + Icons.svg('x') + '</button>'
       +   '</div>'
       +   '<div id="attMapInfo" style="padding:10px 18px;font-size:12.5px;color:#374151;background:#f8fafc;border-bottom:1px solid #e5e7eb"></div>'
       +   '<div id="attMapCanvas" style="flex:1;min-height:380px;background:#f3f4f6"></div>'
@@ -140,7 +140,7 @@
     if (!appKey) {
       canvas.innerHTML =
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;color:#6b7280;font-size:13px;line-height:1.7">'
-        + '🛈 카카오 지도 키가 없습니다.<br><br>'
+        + Icons.svg('info') + ' 카카오 지도 키가 없습니다.<br><br>'
         + '<a href="https://map.kakao.com/?q=' + encodeURIComponent(userLat + ',' + userLng) + '" target="_blank" style="color:#2563eb;text-decoration:underline">'
         + '카카오맵에서 좌표 확인하기 </a>'
         + '</div>';
@@ -206,7 +206,7 @@
       + (dist != null ? ' &nbsp;·&nbsp; 거점 거리 <strong>' + fmtDist(dist) + '</strong>' : '');
   }
 
-  /* ★ 전체보기: 여러 직원의 출퇴근 좌표를 한 지도에 모두 표시.
+  /* 전체보기: 여러 직원의 출퇴근 좌표를 한 지도에 모두 표시.
      opts.points = [{ name, lat, lng, type:'in'|'out', workMode }] */
   async function showAll(opts) {
     opts = opts || {};

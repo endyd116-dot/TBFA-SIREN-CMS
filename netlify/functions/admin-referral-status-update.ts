@@ -101,7 +101,7 @@ export default async (req: Request, _ctx: Context) => {
             recipientType: "admin",
             category: "support",
             severity: "info",
-            title: `🏢 외부기관 인계 상태: ${STATUS_LABEL[status] || status}`,
+            title: `외부기관 인계 상태: ${STATUS_LABEL[status] || status}`,
             message: `[${ref.source_no}] ${ref.agency_name} 인계 건이 '${STATUS_LABEL[status] || status}'(으)로 변경되었습니다.${statusMemo ? ` — ${String(statusMemo).slice(0, 100)}` : ""}`,
             link: `/admin.html#${ref.source_type}-reports`,
             refTable: "referral_logs",

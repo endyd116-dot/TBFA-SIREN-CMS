@@ -116,7 +116,7 @@
         const cat  = CAT_LABEL[r.category] || r.category || "-";
         const chCls = "badge badge-" + (r.channel || "inapp");
         const inactive = r.isActive === false;
-        /* ★ 2026-05-16: 카카오 전용 라벨 + 심사 상태 라벨 */
+        /* 2026-05-16: 카카오 전용 라벨 + 심사 상태 라벨 */
         const isKakaoOnly = !!r.isKakaoOnly || (r.channel === "kakao" && r.alimtalkTemplateCode);
         const kakaoBadge = isKakaoOnly
           ? `<span class="badge" style="margin-left:4px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:10.5px">카카오 전용</span>`

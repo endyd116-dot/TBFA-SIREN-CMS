@@ -95,12 +95,12 @@
         '<button type="button" data-star="' + i + '" ' +
           'style="background:none;border:none;font-size:32px;padding:2px;cursor:pointer;' +
           'color:#d1d5db;transition:color 0.1s;line-height:1" ' +
-          'aria-label="' + i + '점">★</button>';
+          'aria-label="' + i + '점">' + Icons.svg('star') + '</button>';
     }
     return html;
   }
 
-  var RATING_LABELS = ['', '매우 불만족', '불만족', '보통', '만족', '매우 만족 ★'];
+  var RATING_LABELS = ['', '매우 불만족', '불만족', '보통', '만족', '매우 만족'];
 
   /* ─── 별점 하이라이트 갱신 ─── */
   function updateStarDisplay(hoverVal) {

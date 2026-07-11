@@ -85,7 +85,7 @@
     document.getElementById('mtDates').textContent = dates;
     document.getElementById('mtTribute').textContent = t.tributeLine || '';
 
-    /* 약력 (관리자/AI 작성 HTML) — ★ R41 Q2-048: script·이벤트핸들러·javascript: 경량 제거 */
+    /* 약력 (관리자/AI 작성 HTML) — R41 Q2-048: script·이벤트핸들러·javascript: 경량 제거 */
     if (t.bioHtml) {
       var safeBio = String(t.bioHtml)
         .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -181,9 +181,9 @@
       '<span class="mt-msg-date">' + fmtDate(m.createdAt) + '</span></div>' +
       '<div class="mt-msg-body">' + esc(m.content) + '</div>' +
       '<div class="mt-msg-actions">' +
-        '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">♡ <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
+        '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">' + Icons.svg('heart') + ' <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
         '<button type="button" class="act-report">신고</button>' +
-        /* ★US-028: 본인 글이면 삭제 버튼 노출 */
+        /* US-028: 본인 글이면 삭제 버튼 노출 */
         (m.isMine ? '<button type="button" class="act-delete">삭제</button>' : '') +
       '</div>';
     wrap.querySelector('.act-like').addEventListener('click', function () { likeMsg(m.id, wrap); });
@@ -194,7 +194,7 @@
     }
     return wrap;
   }
-  /* ★US-028: 본인 추모 메시지 삭제 */
+  /* US-028: 본인 추모 메시지 삭제 */
   function deleteMsg(id, wrap) {
     if (!confirm('이 추모 메시지를 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.')) return;
     api('/api/memorial-messages?action=delete&id=' + id, { method: 'POST' }).then(function (res) {
@@ -254,7 +254,7 @@
           var msg = unwrap(res, 'message');
           var listEl = document.getElementById('mtMsgList');
           var empty = document.getElementById('mtMsgEmpty');
-          /* ★US-029: AI 검토 보류(pendingReview) 글은 비공개라 목록에 넣지 않음(새로고침 시 사라지는 혼란 방지) */
+          /* US-029: AI 검토 보류(pendingReview) 글은 비공개라 목록에 넣지 않음(새로고침 시 사라지는 혼란 방지) */
           if (msg && msg.pendingReview) {
             toast('등록되었습니다. 검토 후 공개되며, 부적절 판정 시 비공개될 수 있습니다.');
           } else if (msg) {
@@ -279,7 +279,7 @@
       '<div class="mt-letter-meta">' + esc(l.authorName || '익명') + ' · ' + fmtDate(l.createdAt) + '</div>' +
       '<div class="mt-letter-body">' + esc(l.content) + '</div>' +
       '<button type="button" class="mt-letter-toggle" style="display:none">더 보기 ▾</button>' +
-      /* ★US-028: 본인 편지면 삭제 버튼 노출 */
+      /* US-028: 본인 편지면 삭제 버튼 노출 */
       (l.isMine ? '<button type="button" class="mt-letter-delete" style="margin-left:8px;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12.5px">삭제</button>' : '');
     var body = wrap.querySelector('.mt-letter-body');
     var toggle = wrap.querySelector('.mt-letter-toggle');
@@ -297,7 +297,7 @@
     }
     return wrap;
   }
-  /* ★US-028: 본인 기억의 편지 삭제 */
+  /* US-028: 본인 기억의 편지 삭제 */
   function deleteLetter(id, wrap) {
     if (!confirm('이 편지를 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.')) return;
     api('/api/memorial-letters?action=delete&id=' + id, { method: 'POST' }).then(function (res) {
@@ -343,7 +343,7 @@
           var letter = unwrap(res, 'letter');
           var listEl = document.getElementById('mtLetterList');
           var empty = document.getElementById('mtLetterEmpty');
-          /* ★US-029: 보류된 편지는 비공개라 목록에 넣지 않음 */
+          /* US-029: 보류된 편지는 비공개라 목록에 넣지 않음 */
           if (letter && letter.pendingReview) {
             toast('등록되었습니다. 검토 후 공개되며, 부적절 판정 시 비공개될 수 있습니다.');
           } else if (letter) {

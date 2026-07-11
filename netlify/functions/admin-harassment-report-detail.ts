@@ -1,5 +1,5 @@
 // netlify/functions/admin-harassment-report-detail.ts
-// ★ M-10: 악성민원 신고 상세 + 답변 등록
+// M-10: 악성민원 신고 상세 + 답변 등록
 
 import type { Context } from "@netlify/functions";
 import { eq, inArray } from "drizzle-orm";
@@ -66,7 +66,7 @@ export default async (req: Request, _ctx: Context) => {
         responder = resp || null;
       }
 
-      /* ★ R41 Q2-002: 익명 신고는 신원(회원명·이메일·전화) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
+      /* R41 Q2-002: 익명 신고는 신원(회원명·이메일·전화) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
       const anon = !!r.isAnonymous;
 
       return ok({
@@ -169,8 +169,8 @@ export default async (req: Request, _ctx: Context) => {
             category: "support",
             severity: "info",
             title: adminResponse
-              ? "⚠️ 악성민원 신고에 답변이 등록되었습니다"
-              : `⚠️ 악성민원 신고 처리 상태: ${STATUS_LABEL[status] || status}`,
+              ? "악성민원 신고에 답변이 등록되었습니다"
+              : `악성민원 신고 처리 상태: ${STATUS_LABEL[status] || status}`,
             message: (row as any).title,
             link: `/mypage.html#support`,
             refTable: "harassment_reports",

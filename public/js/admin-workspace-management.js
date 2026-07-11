@@ -248,7 +248,7 @@
     document.getElementById('awmScheduleMode')?.addEventListener('change', (e) => {
       const hybrid = document.getElementById('awmHybridConfig');
       const wpWrap = document.getElementById('awmScheduleWorkplaceWrap');
-      /* ★ 2026-06-25 FIX: '.awm-schedule-hybrid'는 CSS에 display:none이 걸려 있어
+      /* 2026-06-25 FIX: '.awm-schedule-hybrid'는 CSS에 display:none이 걸려 있어
          style.display=''(인라인 제거)면 CSS none으로 되돌아가 영영 안 보임 → 'block' 명시.
          (혼합 선택 시 요일별 재택/사무실 선택 UI가 통합 후 사라진 원인) */
       if (hybrid) hybrid.style.display = e.target.value === 'HYBRID' ? 'block' : 'none';
@@ -384,7 +384,7 @@
 
     let hybridConfig = null;
     if (mode === 'HYBRID') {
-      /* ★ R33-FIX H-G1: 체크박스 value "1"~"7" → 서버 키 "MON"~"SUN" 변환 (att-utils.getScheduledWorkMode 기대 형식) */
+      /* R33-FIX H-G1: 체크박스 value "1"~"7" → 서버 키 "MON"~"SUN" 변환 (att-utils.getScheduledWorkMode 기대 형식) */
       const DAY_MAP = { "1":"MON", "2":"TUE", "3":"WED", "4":"THU", "5":"FRI", "6":"SAT", "7":"SUN" };
       const days = {};
       document.querySelectorAll('[name="hybridDay"]:checked').forEach(cb => {
@@ -1758,7 +1758,7 @@
   var _liveTimer = null;
   var _liveMembersById = {}; // 직원 uid → { name, email, role }
   var _liveWorkplacesById = {}; // 거점 id → { name, lat, lng }
-  var _liveOrderedRows = []; // ★ 전체보기용 — 오늘 출근 기록 행(좌표 포함)
+  var _liveOrderedRows = []; // 전체보기용 — 오늘 출근 기록 행(좌표 포함)
 
   async function loadLiveMembersAndPlaces() {
     // 직원 목록 1회 로드 후 캐싱
@@ -1819,7 +1819,7 @@
 
     // 출근 중 → 퇴근 완료 순 정렬, 미출근은 아래
     const ordered = working.concat(done);
-    _liveOrderedRows = ordered;   // ★ 전체보기용 저장
+    _liveOrderedRows = ordered;   // 전체보기용 저장
 
     if (ordered.length === 0 && absent.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="att-empty">오늘 등록된 직원이 없습니다</td></tr>';
@@ -1884,7 +1884,7 @@
     });
   };
 
-  /** ★ 전체보기 — 좌표가 기록된 모든 직원의 출퇴근 위치를 한 지도에 표시 */
+  /** 전체보기 — 좌표가 기록된 모든 직원의 출퇴근 위치를 한 지도에 표시 */
   window.awmShowAllLocations = function () {
     if (!window.AttMap || !window.AttMap.showAll) { alert('지도 헬퍼 로드 실패'); return; }
     const points = [];
@@ -1897,7 +1897,7 @@
     window.AttMap.showAll({ title: '전체 출퇴근 위치 — ' + toDateStr(), points: points });
   };
 
-  /** ★ 실시간 현황에서 직원 이름 클릭 → '출퇴근 기록' 탭으로 이동 + 해당 직원 자동 조회 */
+  /** 실시간 현황에서 직원 이름 클릭 → '출퇴근 기록' 탭으로 이동 + 해당 직원 자동 조회 */
   window.awmGoToMemberRecords = async function (memberUid) {
     const uid = String(memberUid);
     const tabBtn = document.querySelector('.att-tab[data-tab="monthrecords"]');
@@ -1999,7 +1999,7 @@
       const statusBadge = r.status === 'SUBMITTED'
         ? '<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600">제출완료</span>'
         : '<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600">임시저장</span>';
-      const star = r.isStarred ? '' : '☆';
+      const star = r.isStarred ? '' : Icons.svg('star');
       const score = r.qualityScore != null ? r.qualityScore : '—';
       return '<tr>'
         + '<td style="font-family:Inter;font-size:13px">' + escHtml(r.date || '—') + '</td>'
@@ -2098,7 +2098,7 @@
 
   /* ─── 초기화 ─── */
   async function init() {
-    /* ★ 2026-06-02 fix(탭 깜빡임): 그룹 필터를 인증·데이터 API 대기 '전에' 즉시 적용.
+    /* 2026-06-02 fix(탭 깜빡임): 그룹 필터를 인증·데이터 API 대기 '전에' 즉시 적용.
        기존엔 checkAuth/initRecordsTab/initLiveStatus(수 초)를 다 기다린 뒤 필터해서
        그동안 ops+config 탭이 전부 보이다가 뒤늦게 걸러지는 깜빡임 발생. */
     setupTabs();

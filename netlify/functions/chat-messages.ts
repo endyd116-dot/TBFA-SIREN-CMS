@@ -5,8 +5,8 @@
  * PATCH /api/chat/messages                       — 사용자 측 읽음 처리
  *                                                  body: { roomId }
  *
- * ★ STEP H-1: 응답에 attachment 객체 합쳐서 전달
- * ★ 6순위 #8: expert_1on1 룸 — canEnterExpertRoom 가드 추가
+ * STEP H-1: 응답에 attachment 객체 합쳐서 전달
+ * 6순위 #8: expert_1on1 룸 — canEnterExpertRoom 가드 추가
  */
 import { eq, and, gt, asc, inArray, sql, ne } from "drizzle-orm";
 import { db, chatRooms, chatMessages, chatBlacklist, chatAttachments, members } from "../../db";
@@ -88,7 +88,7 @@ export default async (req: Request) => {
 
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
 
-      /* ★ expert_1on1 룸 — 사용자·전문가·어드민만 입장 가능 */
+      /* expert_1on1 룸 — 사용자·전문가·어드민만 입장 가능 */
       if (room.roomType === ROOM_TYPE_EXPERT) {
         if (!canEnterExpertRoom(room as any, viewerMemberId, isAdmin)) {
           return forbidden("접근 권한이 없습니다");
@@ -155,7 +155,7 @@ export default async (req: Request) => {
 
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
 
-      /* ★ expert_1on1 룸 권한 */
+      /* expert_1on1 룸 권한 */
       if (room.roomType === ROOM_TYPE_EXPERT) {
         if (!canEnterExpertRoom(room as any, viewerMemberId, isAdmin)) {
           return forbidden("접근 권한이 없습니다");
@@ -176,7 +176,7 @@ export default async (req: Request) => {
         if (!att || att.roomId !== roomId) return badRequest("유효하지 않은 첨부입니다");
       }
 
-      /* ★ senderRole 결정 — 어드민·전문가·일반 사용자 분기 */
+      /* senderRole 결정 — 어드민·전문가·일반 사용자 분기 */
       let senderRole: string = senderBaseRole;
       if (!isAdmin && room.roomType === ROOM_TYPE_EXPERT && room.expertId === viewerMemberId) {
         senderRole = "expert";
@@ -211,7 +211,7 @@ export default async (req: Request) => {
 
       const preview = (content || "[이미지]").slice(0, 200);
 
-      /* ★ 읽음 카운터 — 보낸 역할에 따라 상대방 카운터 증가 */
+      /* 읽음 카운터 — 보낸 역할에 따라 상대방 카운터 증가 */
       const isUserSender = senderRole === "user";
       /* OP-065: 미읽음 카운터를 SQL 원자 증감으로 — 기존 read-modify-write는 동시 발신 시 경합으로 어긋남 */
       const updateMeta: any = {
@@ -250,7 +250,7 @@ export default async (req: Request) => {
 
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
 
-      /* ★ expert_1on1 룸 권한 */
+      /* expert_1on1 룸 권한 */
       if (room.roomType === ROOM_TYPE_EXPERT) {
         if (!canEnterExpertRoom(room as any, viewerMemberId, isAdmin)) {
           return forbidden("접근 권한이 없습니다");

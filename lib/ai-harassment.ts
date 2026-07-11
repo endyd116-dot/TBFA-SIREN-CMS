@@ -1,5 +1,5 @@
 // lib/ai-harassment.ts
-// ★ Phase M-6: 악성민원 신고 AI 분석
+// Phase M-6: 악성민원 신고 AI 분석
 // - 분류 + 심각도 + 즉각대처 + 법적검토 + 심리지원
 
 import { callGeminiJSON } from "./ai-gemini";

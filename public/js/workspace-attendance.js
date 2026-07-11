@@ -608,7 +608,7 @@
       }
     });
 
-    // ★ 2026-06-27: 표시 중인 달 총 근무시간 요약 (통계 탭과 동일 집계 재사용)
+    // 2026-06-27: 표시 중인 달 총 근무시간 요약 (통계 탭과 동일 집계 재사용)
     try {
       const sres = await api(`/api/att-my-stats?year=${yr}&month=${mo}`);
       const mm = (sres.data?.data || sres.data || {}).monthly || {};
@@ -884,7 +884,7 @@
       body: {
         targetDate: date,
         correctionType: CORRECTION_TYPE[type] || type,
-        requestedCheckIn:  ci ? `${date}T${ci}:00+09:00` : null,   // ★ KST 오프셋 명시(서버 UTC 오해석 방지)
+        requestedCheckIn:  ci ? `${date}T${ci}:00+09:00` : null,   // KST 오프셋 명시(서버 UTC 오해석 방지)
         requestedCheckOut: co ? `${date}T${co}:00+09:00` : null,
         reason,
       },
@@ -946,7 +946,7 @@
     if (statusText) statusText.textContent = '보고서 상태를 불러오는 중...';
 
     const res = await api('/api/att/remote-report?date=' + dateStr);
-    // ★ 빈 응답(envelope {ok:true,data:null})을 draft로 오인하지 않도록 정확히 추출
+    // 빈 응답(envelope {ok:true,data:null})을 draft로 오인하지 않도록 정확히 추출
     const report = (res.data && Object.prototype.hasOwnProperty.call(res.data, 'data'))
       ? (res.data.data ?? null)
       : (res.data ?? null);

@@ -224,7 +224,7 @@
         window.dispatchEvent(new CustomEvent('wmm:saved', { detail: { body } }));
 
         // WorkspaceSync 브로드캐스트 (다른 탭 동기화) — 성공 흐름을 깨지 않도록 방어
-        // ★ fix: 존재하지 않는 emit() 호출로 TypeError→거짓 실패 토스트 나던 버그. notify가 올바른 메서드.
+        // fix: 존재하지 않는 emit() 호출로 TypeError→거짓 실패 토스트 나던 버그. notify가 올바른 메서드.
         if (window.WorkspaceSync && typeof WorkspaceSync.notify === 'function') {
           try { WorkspaceSync.notify('memo:created', {}); } catch (_) {}
         }

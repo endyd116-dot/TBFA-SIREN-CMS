@@ -1,5 +1,5 @@
 // lib/ai-legal.ts
-// ★ Phase M-7 + v3.5: 법률 상담 AI 1차 자문 (PDF 첨부 분석 강화)
+// Phase M-7 + v3.5: 법률 상담 AI 1차 자문 (PDF 첨부 분석 강화)
 // - 분야/긴급도/관련법령/1차의견/변호사 전문분야
 
 import { callGeminiJSON } from "./ai-gemini";
@@ -141,7 +141,7 @@ ${text}
   try {
     const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
 
-    /* ★ v3.5: instructionPrefix를 프롬프트 맨 앞에 강제 주입 */
+    /* v3.5: instructionPrefix를 프롬프트 맨 앞에 강제 주입 */
     const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
 
     const result = await callGeminiJSON<any>(fullPrompt, {

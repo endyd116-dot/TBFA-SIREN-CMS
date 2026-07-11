@@ -8,7 +8,7 @@
   const CHANNEL_ICONS = { email: "", sms: "", kakao: "", inapp: "" };
 
   let templates = [];
-  /* ★ 2026-05-17: 발송 작업용 이미지 상태 — 템플릿 로드 시 templateImages로 초기화.
+  /* 2026-05-17: 발송 작업용 이미지 상태 — 템플릿 로드 시 templateImages로 초기화.
      사용자가 수정하면 isDirty=true → 등록 시 imagesOverride로 전송. */
   let jobImages = [];
   let jobImagesDirty = false;
@@ -71,7 +71,7 @@
       $("fTemplate").innerHTML = `<option value="">(활성 템플릿 없음)</option>`;
       return;
     }
-    /* ★ 2026-05-16: 최초 로드 시점에 채널이 아직 안 정해졌으니 일단 카카오 전용
+    /* 2026-05-16: 최초 로드 시점에 채널이 아직 안 정해졌으니 일단 카카오 전용
        제외한 일반 템플릿만 표시. 채널 선택 시 refreshTemplateOptions가 재필터. */
     refreshTemplateOptions();
   }
@@ -116,7 +116,7 @@
     }
     currentTemplate = tpl;
     editorDirty = false;
-    /* ★ 2026-05-17: 템플릿의 이미지를 발송 작업용으로 초기 로드. isDirty=false */
+    /* 2026-05-17: 템플릿의 이미지를 발송 작업용으로 초기 로드. isDirty=false */
     jobImages = Array.isArray(tpl.images) ? tpl.images.map(i => Object.assign({}, i)) : [];
     jobImagesDirty = false;
     renderEditArea();
@@ -125,7 +125,7 @@
     applyImagesCardVisibility();
   }
 
-  /* ★ 2026-05-17: 발송 작업용 이미지 업로드·편집 (admin-template-edit과 유사) */
+  /* 2026-05-17: 발송 작업용 이미지 업로드·편집 (admin-template-edit과 유사) */
   async function uploadJobImage(file) {
     const statusEl = $('jobImageUploadStatus');
     if (jobImages.length >= 20) {
@@ -165,7 +165,7 @@
         order: jobImages.length, alt: '',
       });
       jobImagesDirty = true;
-      statusEl.textContent = '✓ 업로드 완료';
+      statusEl.textContent = '업로드 완료';
       statusEl.style.color = '#166534';
       renderJobImagesList();
     } catch (err) {
@@ -307,7 +307,7 @@
     if (firstActive) switchPreviewTab(firstActive);
   }
 
-  /* ★ 2026-05-17: 발송 미리보기 — 채널별 분기 렌더링 */
+  /* 2026-05-17: 발송 미리보기 — 채널별 분기 렌더링 */
   async function refreshSendPreview() {
     if (!currentTemplate) {
       ['email', 'sms', 'kakao', 'inapp'].forEach(ch => {
@@ -428,7 +428,7 @@
       ? `<div class="form-hint">사용 가능 변수: ${vars.map(v => `<code>{{${escapeHtml(v.key)}}}</code>`).join(", ")}</div>`
       : `<div class="form-hint">정의된 변수 없음</div>`;
 
-    /* ★ 2026-05-16: 카카오 전용 템플릿은 본문 read-only. 알리고 심사 통과 본문을
+    /* 2026-05-16: 카카오 전용 템플릿은 본문 read-only. 알리고 심사 통과 본문을
        글자 한 자라도 바꾸면 발송 거부되므로 편집 차단 + 안내 + 변수만 회원 데이터로
        치환됨을 명시. */
     const isKakaoOnly = !!t.isKakaoOnly || (t.channel === 'kakao' && t.alimtalkTemplateCode);
@@ -504,7 +504,7 @@
     refreshTemplateOptions();
   }
 
-  /* ★ 2026-05-16: 카카오는 다른 채널과 동시 선택 불가. 알리고 알림톡은 등록된
+  /* 2026-05-16: 카카오는 다른 채널과 동시 선택 불가. 알리고 알림톡은 등록된
      본문·변수만 정확히 일치할 때 발송 가능해 다중 채널과 워크플로우가 달라짐. */
   function uncheckNonKakao() {
     let removed = [];
@@ -542,14 +542,14 @@
           }
           refreshTemplateOptions();
           applyImagesCardVisibility();
-          /* ★ 2026-05-16: 이메일 옵션 영역 표시/숨김 */
+          /* 2026-05-16: 이메일 옵션 영역 표시/숨김 */
           applyEmailOptionsVisibility();
         }, 0);
       });
     });
   }
 
-  /* ★ 2026-05-16: 이메일 채널 체크 시에만 "이메일 전용 옵션" 영역 표시 */
+  /* 2026-05-16: 이메일 채널 체크 시에만 "이메일 전용 옵션" 영역 표시 */
   function applyEmailOptionsVisibility() {
     const row = document.getElementById('emailOptionsRow');
     if (!row) return;
@@ -557,7 +557,7 @@
     row.style.display = channels.includes('email') ? '' : 'none';
   }
 
-  /* ★ 2026-05-16: 현재 선택된 채널이 카카오 단독이면 카카오 전용 템플릿만,
+  /* 2026-05-16: 현재 선택된 채널이 카카오 단독이면 카카오 전용 템플릿만,
      아니면 카카오 전용은 제외하고 표시. 카카오 전용 옵션엔 '(카카오 전용)·
      (검수상태)' 라벨 + 미승인 옵션은 회색·비활성화. */
   function refreshTemplateOptions() {
@@ -744,12 +744,12 @@
     const channels = getSelectedChannels();
     if (!channels.length) return { ok: false, msg: "발송 채널을 1개 이상 선택해 주세요." };
 
-    /* ★ 2026-05-16: 카카오 + 다른 채널 동시 선택 차단 (UI에서 막혔지만 안전망) */
+    /* 2026-05-16: 카카오 + 다른 채널 동시 선택 차단 (UI에서 막혔지만 안전망) */
     if (channels.includes('kakao') && channels.length > 1) {
       return { ok: false, msg: "카카오는 다른 채널과 동시 발송할 수 없습니다. 카카오 단독으로 선택해 주세요." };
     }
 
-    /* ★ 2026-05-16: 카카오 단독 + 미승인 템플릿 차단 */
+    /* 2026-05-16: 카카오 단독 + 미승인 템플릿 차단 */
     if (channels.length === 1 && channels[0] === 'kakao' && currentTemplate) {
       const isKakaoOnly = !!currentTemplate.isKakaoOnly || (currentTemplate.channel === 'kakao' && currentTemplate.alimtalkTemplateCode);
       if (!isKakaoOnly) {
@@ -790,13 +790,13 @@
       }
     }
 
-    /* ★ 2026-05-17: 이미지 override — 이메일 채널이고 사용자가 수정한 경우만 전송 */
+    /* 2026-05-17: 이미지 override — 이메일 채널이고 사용자가 수정한 경우만 전송 */
     let imagesOverride;
     if (channels.includes('email') && jobImagesDirty) {
       imagesOverride = jobImages;
     }
 
-    /* ★ 2026-05-16: 이메일 전용 옵션 — wrapEmail + attachments */
+    /* 2026-05-16: 이메일 전용 옵션 — wrapEmail + attachments */
     const wrapEmail = document.getElementById('fWrapEmail')?.checked === true;
     const attachmentBlobIds = Array.isArray(window._sendJobAttachmentIds) ? window._sendJobAttachmentIds.filter(n => Number.isInteger(n)) : [];
 
@@ -818,7 +818,7 @@
     };
   }
 
-  /* ★ 2026-05-16: 첨부파일 업로드 — fAttachments change 시 R2 업로드 + blob_id 누적 */
+  /* 2026-05-16: 첨부파일 업로드 — fAttachments change 시 R2 업로드 + blob_id 누적 */
   function bindAttachmentUpload() {
     const fileInput = document.getElementById('fAttachments');
     const listEl = document.getElementById('fAttachmentList');
@@ -1051,7 +1051,7 @@
     });
     $("btnSubmit").addEventListener("click", submit);
 
-    /* ★ 2026-05-17: 발송 작업 이미지 — 업로드·원본 복원 버튼 */
+    /* 2026-05-17: 발송 작업 이미지 — 업로드·원본 복원 버튼 */
     $('btnJobImageUpload')?.addEventListener('click', () => $('fJobImageFile')?.click());
     $('fJobImageFile')?.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
@@ -1068,11 +1068,11 @@
       if (st) { st.textContent = '↺ 템플릿 원본으로 복원'; st.style.color = '#9a3412'; }
     });
 
-    /* ★ 2026-05-17: 발송 미리보기 새로고침 + 탭 */
+    /* 2026-05-17: 발송 미리보기 새로고침 + 탭 */
     $('btnSendPreview')?.addEventListener('click', refreshSendPreview);
     bindPreviewTabs();
 
-    /* ★ 2026-05-18: 파일함 모달 */
+    /* 2026-05-18: 파일함 모달 */
     bindFilePickerModal();
   }
 

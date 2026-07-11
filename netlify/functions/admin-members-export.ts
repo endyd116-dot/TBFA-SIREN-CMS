@@ -1,5 +1,5 @@
 // netlify/functions/admin-members-export.ts
-// ★ Phase M-12: 회원 목록 CSV 추출 (Excel 호환)
+// Phase M-12: 회원 목록 CSV 추출 (Excel 호환)
 // GET /api/admin/members-export?type=&category=&status=&q=&source=
 
 import { eq, and, or, like, sql, inArray } from "drizzle-orm";

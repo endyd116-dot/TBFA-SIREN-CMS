@@ -40,7 +40,7 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   const { admin, member } = auth.ctx;
-  /* ★ R41 Q2-054: 내보내기 쓰기 권한 게이트 (미정의 키면 admin 허용 기본) */
+  /* R41 Q2-054: 내보내기 쓰기 권한 게이트 (미정의 키면 admin 허용 기본) */
   if (!(await canAccess(member.role ?? "", PUB_EXPORT_FEATURE))) return roleForbidden("operator");
 
   let body: any;

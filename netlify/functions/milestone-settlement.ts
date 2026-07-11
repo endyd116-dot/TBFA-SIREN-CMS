@@ -6,7 +6,7 @@ import { notifyAllSuperAdmins } from "../../lib/notify";
 
 export const config = { path: "/api/milestone-settlement*" };
 
-/* ★ R35-GAP-P2-M5: 사용자 입력 오류(400)와 시스템 오류(500) 구분용 */
+/* R35-GAP-P2-M5: 사용자 입력 오류(400)와 시스템 오류(500) 구분용 */
 class SettlementBadRequest extends Error {
   constructor(message: string) { super(message); this.name = "SettlementBadRequest"; }
 }
@@ -31,10 +31,10 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── GET 내 결산 ──
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
-    /* ★ R29-GAP-P2-M3: memberId 파라미터 수용 (본인 결산 강제 — 다른 id는 무시) */
+    /* R29-GAP-P2-M3: memberId 파라미터 수용 (본인 결산 강제 — 다른 id는 무시) */
     const memberIdQ = url.searchParams.get("memberId");
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params)는 drizzle에서 파라미터 바인딩 미지원 →
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params)는 drizzle에서 파라미터 바인딩 미지원 →
          sql 템플릿 합성으로 변경 (member_id·quarterId 안전 바인딩) */
       let baseSql = sql`
         SELECT qs.*, q.year, q.quarter, q.status as quarter_status
@@ -46,7 +46,7 @@ export default async function handler(req: Request, _ctx: Context) {
       baseSql = sql`${baseSql} ORDER BY q.year DESC, q.quarter DESC LIMIT 10`;
       const rows = await db.execute(baseSql);
       const settlements = ((rows as any).rows || (rows as any[])).map(formatSettle);
-      /* ★ R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키 추가 */
+      /* R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키 추가 */
       let settlement: any = null;
       const memberIdMatch = !memberIdQ || Number(memberIdQ) === Number(admin.id);
       if (quarterId && memberIdMatch) {
@@ -68,7 +68,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const result = await calcSettlement(admin.id, Number(quarterId));
       return Response.json({ ok: true, data: result });
     } catch (err) {
-      /* ★ R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
+      /* R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
       if (err instanceof SettlementBadRequest) {
         return Response.json({ ok: false, error: err.message }, { status: 400 });
       }
@@ -100,12 +100,12 @@ export default async function handler(req: Request, _ctx: Context) {
       `);
       const ex = (existing as any).rows?.[0] || existing[0];
 
-      /* ★ R34-P1-B-7: HOLD(자료 보완 요청) 상태에서도 재제출 허용 */
+      /* R34-P1-B-7: HOLD(자료 보완 요청) 상태에서도 재제출 허용 */
       if (ex && !["DRAFT", "REJECTED", "HOLD"].includes(ex.status)) {
         return Response.json({ ok: false, error: `현재 상태(${ex.status})에서는 재제출 불가입니다` }, { status: 400 });
       }
 
-      /* ★ R34-P1-B-8: UPSERT 원자화 — ON CONFLICT로 race 차단 (더블 클릭·동시 호출 시 UNIQUE 위반 500 방지) */
+      /* R34-P1-B-8: UPSERT 원자화 — ON CONFLICT로 race 차단 (더블 클릭·동시 호출 시 UNIQUE 위반 500 방지) */
       const snapshot = JSON.stringify(calc);
       await db.execute(sql`
         INSERT INTO quarterly_settlements
@@ -137,7 +137,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
       return Response.json({ ok: true, data: calc });
     } catch (err) {
-      /* ★ R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
+      /* R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
       if (err instanceof SettlementBadRequest) {
         return Response.json({ ok: false, error: err.message }, { status: 400 });
       }
@@ -153,7 +153,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
   const mRows = await db.execute(sql`SELECT milestone_role FROM members WHERE id = ${memberId}`);
   const milestoneRole = ((mRows as any).rows?.[0] || mRows[0])?.milestone_role;
 
-  /* ★ R29-MS-GAP1-F: 분기 시작일·종료일 기준 정의 격리.
+  /* R29-MS-GAP1-F: 분기 시작일·종료일 기준 정의 격리.
      분기 중간에 정의가 변경되어도 해당 분기 결산에는 기존 공식 적용.
      - effectiveFrom <= 분기시작일 AND (effectiveTo IS NULL OR effectiveTo >= 분기시작일)
      - effectiveFrom/To 모두 NULL인 정의는 "항상 유효"로 처리 */
@@ -188,7 +188,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
     sharedGroups[m.shared_threshold_group].items.push({ milestone: m, amount: amt });
   }
 
-  /* ★ R35-GAP-P2-🟡B: SI 공유 임계점 첫 항목을 milestone.id 오름차순으로 명시 정렬 (sort_order 변경 시 디버깅 혼란 차단) */
+  /* R35-GAP-P2-B: SI 공유 임계점 첫 항목을 milestone.id 오름차순으로 명시 정렬 (sort_order 변경 시 디버깅 혼란 차단) */
   for (const grp of Object.values(sharedGroups)) {
     grp.items.sort((a, b) => Number(a.milestone.id) - Number(b.milestone.id));
   }
@@ -227,7 +227,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
     ORDER BY nra.selection_order
   `);
   const selected = (nrRows as any).rows || (nrRows as any[]);
-  /* ★ R35-GAP-P2-M5: 사용자 입력 오류(400) 분기 — outer try/catch에서 status:400 분기 */
+  /* R35-GAP-P2-M5: 사용자 입력 오류(400) 분기 — outer try/catch에서 status:400 분기 */
   if (selected.length > NON_REVENUE_MAX_PER_QUARTER) {
     throw new SettlementBadRequest(`선택된 비매출 항목이 ${NON_REVENUE_MAX_PER_QUARTER}개를 초과합니다 (마이페이지에서 다시 선택해주세요)`);
   }
@@ -240,7 +240,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
     nonRevenueBreakdown.push({ code: r.code, name: r.milestone_name, bonus, selectionOrder: r.selection_order });
   }
 
-  /* ★ v4 폴리시 P2: 캡 값을 DB에서 동적 로드 (null이면 무캡). 하드코딩 ROLE_CAPS 제거. */
+  /* v4 폴리시 P2: 캡 값을 DB에서 동적 로드 (null이면 무캡). 하드코딩 ROLE_CAPS 제거. */
   let revenueCap: number | null = null;
   let nonRevenueCap: number | null = null;
   let capLoadError = false;
@@ -295,7 +295,7 @@ function applyFormula(formula: any, thresholdEnabled: boolean, thrVal: number, c
         .find(b => current >= b.min && (b.max == null || current <= b.max));
       return matched ? matched.amount : 0;
     }
-    /* ★ R33-FIX H2: EVENT_RANGE — 어드민이 결정한 amount 그대로 인센티브 처리 */
+    /* R33-FIX H2: EVENT_RANGE — 어드민이 결정한 amount 그대로 인센티브 처리 */
     case "EVENT_RANGE": return Math.floor(current);
     default: return 0;
   }
@@ -322,7 +322,7 @@ function formatSettle(r: any) {
     nonRevenueTotal: r.non_revenue_total, totalBonus: r.total_bonus,
     calculationSnapshot: r.calculation_snapshot,
     selfEvaluation: r.self_evaluation, status: r.status,
-    /* ★ R35-GAP-P2-M1: 반려·HOLD 사유 응답에 포함 (UI 표시용) */
+    /* R35-GAP-P2-M1: 반려·HOLD 사유 응답에 포함 (UI 표시용) */
     reviewNote: r.review_note, holdReason: r.hold_reason,
     submittedAt: r.submitted_at, approvedAt: r.approved_at, paidAt: r.paid_at,
   };

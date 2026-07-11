@@ -1,5 +1,5 @@
 // netlify/functions/public-stats.ts
-// ★ Phase A + B: 공개 통계 API + 어드민 미리보기 지원
+// Phase A + B: 공개 통계 API + 어드민 미리보기 지원
 // 인증 불필요 — 캐싱 5분
 //
 // GET /api/public/stats              — 운영 적용된 값 (일반 사용자)
@@ -17,7 +17,7 @@ export default async (req: Request) => {
     const url = new URL(req.url);
     const preview = url.searchParams.get("preview") === "1";
 
-    /* ★ Phase B: preview=1 + 어드민 토큰 검증 → Draft 우선 */
+    /* Phase B: preview=1 + 어드민 토큰 검증 → Draft 우선 */
     let useDraft = false;
     if (preview) {
       const admin = authenticateAdmin(req);
@@ -59,13 +59,13 @@ export default async (req: Request) => {
       transparency: {
         grade: stats["transparency.grade"] || "—",
       },
-      /* ★ Phase B: 미리보기 모드 메타 */
+      /* Phase B: 미리보기 모드 메타 */
       _meta: useDraft ? { mode: "draft" } : { mode: "published" },
     };
 
     const response = ok(data);
 
-    /* ★ Phase B: Draft 모드는 캐싱 안 함 (실시간 반영) */
+    /* Phase B: Draft 모드는 캐싱 안 함 (실시간 반영) */
     if (useDraft) {
       response.headers.set("Cache-Control", "no-store");
     } else {

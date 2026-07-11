@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-home-quickmenu.js (★ Phase B Step 6-E)
+   SIREN — admin-home-quickmenu.js (Phase B Step 6-E)
    메인 화면 편집 → 퀵메뉴 (6개 박스) 편집 모듈
    ========================================================= */
 (function () {

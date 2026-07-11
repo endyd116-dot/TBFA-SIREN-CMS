@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { ok, badRequest, notFound, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 
-/* ★ 게이미피케이션 라우팅 fix: 클라이언트가 /api/admin-badge-definitions/{code}(경로 세그먼트)로
+/* 게이미피케이션 라우팅 fix: 클라이언트가 /api/admin-badge-definitions/{code}(경로 세그먼트)로
    PATCH·DELETE 호출 → base + 와일드카드 둘 다 매칭. code는 쿼리 또는 경로에서 추출. */
 export const config = { path: ["/api/admin-badge-definitions", "/api/admin-badge-definitions/*"] };
 

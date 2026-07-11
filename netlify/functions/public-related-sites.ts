@@ -1,5 +1,5 @@
 // netlify/functions/public-related-sites.ts
-// ★ Phase B: 공개 관련사이트 API
+// Phase B: 공개 관련사이트 API
 // 인증 불필요 — 캐싱 5분
 //
 // GET /api/public/related-sites

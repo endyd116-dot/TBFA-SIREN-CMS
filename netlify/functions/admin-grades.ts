@@ -1,6 +1,6 @@
 // netlify/functions/admin-grades.ts
-// ★ Phase M-19-1: 회원 등급 마스터 CRUD
-// ★ Pass 1-C 패치: schema.ts 정합화 (color → colorHex, benefits 제거, description 추가)
+// Phase M-19-1: 회원 등급 마스터 CRUD
+// Pass 1-C 패치: schema.ts 정합화 (color → colorHex, benefits 제거, description 추가)
 //
 // GET    /api/admin/grades         — 전체 등급 5개 + 회원 수 (운영자)
 // GET    /api/admin/grades/public  — 공개 등급 정보 (마이페이지)
@@ -33,10 +33,10 @@ export default async (req: Request) => {
           nameEn: memberGrades.nameEn,
           minTotalAmount: memberGrades.minTotalAmount,
           minRegularMonths: memberGrades.minRegularMonths,
-          colorHex: memberGrades.colorHex,    // ★ Pass 1-C: color → colorHex
+          colorHex: memberGrades.colorHex,    // Pass 1-C: color → colorHex
           icon: memberGrades.icon,
           sortOrder: memberGrades.sortOrder,
-          description: memberGrades.description,  // ★ Pass 1-C: 추가
+          description: memberGrades.description,  // Pass 1-C: 추가
         })
         .from(memberGrades)
         .orderBy(asc(memberGrades.sortOrder));
@@ -117,7 +117,7 @@ export default async (req: Request) => {
         updatePayload.minRegularMonths = Math.max(0, Number(body.minRegularMonths));
         changedFields.push("minRegularMonths");
       }
-      /* ★ Pass 1-C: color → colorHex 변경 (#RRGGBB 또는 #RRGGBBAA 검증) */
+      /* Pass 1-C: color → colorHex 변경 (#RRGGBB 또는 #RRGGBBAA 검증) */
       if (typeof body.colorHex === "string" && /^#[0-9a-f]{3,8}$/i.test(body.colorHex)) {
         updatePayload.colorHex = body.colorHex;
         changedFields.push("colorHex");
@@ -126,7 +126,7 @@ export default async (req: Request) => {
         updatePayload.icon = body.icon.trim().slice(0, 10);
         changedFields.push("icon");
       }
-      /* ★ Pass 1-C: description 추가 (schema에 존재) */
+      /* Pass 1-C: description 추가 (schema에 존재) */
       if (typeof body.description === "string") {
         updatePayload.description = body.description.trim().slice(0, 500);
         changedFields.push("description");
@@ -139,7 +139,7 @@ export default async (req: Request) => {
         updatePayload.isActive = body.isActive;
         changedFields.push("isActive");
       }
-      /* ★ Pass 1-C: benefits 제거 (schema에 없음 — DB legacy 컬럼) */
+      /* Pass 1-C: benefits 제거 (schema에 없음 — DB legacy 컬럼) */
 
       if (changedFields.length === 0) {
         return badRequest("변경할 항목이 없습니다");

@@ -33,20 +33,20 @@ export default async (_req: Request) => {
 
     /* 1) 월 한도 초과 (차단 상태) */
     if (!budget.ok && !sentToday.budgetExceeded) {
-      messages.push(`🚨 <strong>월 AI 비용 한도 초과</strong>: $${stats.month.cost.toFixed(4)} / $${stats.limit.toFixed(2)} (한도 도달). 모든 AI 호출이 차단됐습니다.`);
+      messages.push(`<strong>월 AI 비용 한도 초과</strong>: $${stats.month.cost.toFixed(4)} / $${stats.limit.toFixed(2)} (한도 도달). 모든 AI 호출이 차단됐습니다.`);
       await markAlertSent("budget_exceeded");
     }
     /* 2) 경고 임계 도달 */
     else if (budget.warn && !sentToday.warnReached) {
       const pct = ((stats.month.cost / stats.limit) * 100).toFixed(1);
-      messages.push(`⚠️ <strong>월 AI 비용 경고</strong>: $${stats.month.cost.toFixed(4)} / $${stats.limit.toFixed(2)} (${pct}%) — 한도 임박. 일부 기능 사용을 줄이거나 한도(AI_MONTHLY_BUDGET_USD) 상향을 검토하세요.`);
+      messages.push(`<strong>월 AI 비용 경고</strong>: $${stats.month.cost.toFixed(4)} / $${stats.limit.toFixed(2)} (${pct}%) — 한도 임박. 일부 기능 사용을 줄이거나 한도(AI_MONTHLY_BUDGET_USD) 상향을 검토하세요.`);
       await markAlertSent("warn_reached");
     }
 
     /* 3) 이상 패턴 감지 — 어제 비용이 그 전 7일 평균의 3배 이상 */
     const surge = await detectCostSurge();
     if (surge && !sentToday.surgeDetected) {
-      messages.push(`📈 <strong>비용 급증 감지</strong>: 어제 비용 $${surge.yesterdayCost.toFixed(4)} (직전 7일 평균 $${surge.avgCost.toFixed(4)}의 <strong>${surge.ratio.toFixed(1)}배</strong>). 비정상 트리거 또는 무한 루프 가능성. /admin-ai-cost.html에서 기능별 사용량 확인을 권장합니다.`);
+      messages.push(`<strong>비용 급증 감지</strong>: 어제 비용 $${surge.yesterdayCost.toFixed(4)} (직전 7일 평균 $${surge.avgCost.toFixed(4)}의 <strong>${surge.ratio.toFixed(1)}배</strong>). 비정상 트리거 또는 무한 루프 가능성. /admin-ai-cost.html에서 기능별 사용량 확인을 권장합니다.`);
       await markAlertSent("surge_detected");
     }
 

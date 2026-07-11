@@ -1,5 +1,5 @@
 // lib/ai-attachments.ts
-// ★ B-9 v2: 첨부 파일을 Gemini AI에 전달하기 위한 변환 헬퍼
+// B-9 v2: 첨부 파일을 Gemini AI에 전달하기 위한 변환 헬퍼
 
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
@@ -20,9 +20,9 @@ export interface LoadResult {
   files: InlineFile[];
   skipped: { id: number; reason: string }[];
   summary: string;
-  /* ★ v2: AI 프롬프트 맨 앞에 강제 주입할 인스트럭션 */
+  /* v2: AI 프롬프트 맨 앞에 강제 주입할 인스트럭션 */
   instructionPrefix: string;
-  /* ★ v2: 파일 인덱싱 정보 (AI가 "1번 파일", "2번 파일"로 참조 가능) */
+  /* v2: 파일 인덱싱 정보 (AI가 "1번 파일", "2번 파일"로 참조 가능) */
   fileIndex: { idx: number; mimeType: string; sizeKB: number; filename?: string }[];
 }
 
@@ -59,7 +59,7 @@ export async function loadAttachmentsForAI(attachmentIds: number[]): Promise<Loa
         skipped.push({ id, reason: "합계 크기 초과 (30MB)" });
         continue;
       }
-      /* ★ v2: failed/deleted만 차단 (pending도 R2 시도 — confirm 지연 대응) */
+      /* v2: failed/deleted만 차단 (pending도 R2 시도 — confirm 지연 대응) */
       if (blob.uploadStatus === "failed" || blob.uploadStatus === "deleted") {
         skipped.push({ id, reason: `업로드 상태 비정상 (${blob.uploadStatus})` });
         continue;
@@ -89,7 +89,7 @@ export async function loadAttachmentsForAI(attachmentIds: number[]): Promise<Loa
     console.error("[ai-attachments] 조회 실패:", e);
   }
 
-  /* ★ v2: 진단 로그 */
+  /* v2: 진단 로그 */
   console.info("[ai-attachments] 로드 결과:", {
     요청된IDs: attachmentIds,
     성공한_파일수: files.length,
@@ -97,7 +97,7 @@ export async function loadAttachmentsForAI(attachmentIds: number[]): Promise<Loa
     파일별_정보: fileIndex,
   });
 
-  /* ★ v2: 프롬프트 맨 앞에 강제 주입할 인스트럭션 */
+  /* v2: 프롬프트 맨 앞에 강제 주입할 인스트럭션 */
   let instructionPrefix = "";
   if (files.length > 0) {
     const fileList = fileIndex.map(f =>

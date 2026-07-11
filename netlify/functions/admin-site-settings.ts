@@ -1,5 +1,5 @@
 // netlify/functions/admin-site-settings.ts
-// ★ 2026-05: 어드민 site-settings CRUD + Draft/Publish
+// 2026-05: 어드민 site-settings CRUD + Draft/Publish
 //
 // GET    /api/admin/site-settings              — 전체 (또는 ?scope=stats)
 // PATCH  /api/admin/site-settings              — Draft 저장 (body: { id, valueText?, valueJson?, valueBlobId? })

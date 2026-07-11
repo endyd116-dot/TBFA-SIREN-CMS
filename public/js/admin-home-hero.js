@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-home-hero.js (★ Phase B Step 6-D)
+   SIREN — admin-home-hero.js (Phase B Step 6-D)
    메인 화면 편집 → 히어로 배너 편집 모듈
    - site_settings의 home.hero.* 키들을 CRUD
    - admin-stats-edit.js와 동일 패턴 (Draft → Publish)

@@ -93,7 +93,7 @@ async function predictChurn() {
         and(
           eq(donations.memberId, d.memberId),
           eq(donations.status, "completed"),
-          /* ★ Q12: 실제 결제일 기준 — 효성 늦장 업로드로 신호가 묻히지 않게 */
+          /* Q12: 실제 결제일 기준 — 효성 늦장 업로드로 신호가 묻히지 않게 */
           sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}) >= ${ninetyDaysAgo.toISOString()}`
         )
       )
@@ -174,7 +174,7 @@ export default async (req: Request) => {
   }
 };
 
-/* ★ 2026-05 패치: 와일드카드 제거 → 3개 액션만 명시
+/* 2026-05 패치: 와일드카드 제거 → 3개 액션만 명시
    다른 admin-ai-*.ts (reply-draft, reply-draft-v2, expert-match, similar-cases)와의 path 충돌 방지 */
 export const config = {
   path: ["/api/admin/ai/match", "/api/admin/ai/churn", "/api/admin/ai/distribution"],

@@ -298,7 +298,7 @@ async function _updateLog(id: number, fields: Record<string, any>): Promise<void
 }
 
 /* =========================================================
-   ★ 2026-05-16: 자동 발송 통합 CMS (B안) — 어드민이 편집한 템플릿 로드
+   2026-05-16: 자동 발송 통합 CMS (B안) — 어드민이 편집한 템플릿 로드
 
    어댑터들이 발송 직전 호출:
      const tpl = await loadEventTemplate({ event, channel, params });

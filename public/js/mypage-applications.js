@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — mypage-applications.js (★ Phase M-9 + v11 묶음 B-3 + B-11)
+   SIREN — mypage-applications.js (Phase M-9 + v11 묶음 B-3 + B-11)
    - 마이페이지 "신청 내역" 통합 탭
    - 4개 서브탭: family / incident / harassment / legal
    - v11: family 탭에 상세/삭제/보완제출 기능 추가
@@ -229,7 +229,7 @@
       const catBadge = category
         ? `<span>${escapeHtml(categoryLabel(category, tabKey))}</span>`
         : '';
-      const responseFlag = hasResponse ? '<span style="color:var(--brand);font-weight:700">✓ 답변</span>' : '';
+      const responseFlag = hasResponse ? '<span style="color:var(--brand);font-weight:700">' + Icons.svg('check') + ' 답변</span>' : '';
 
       let extraFlag = '';
       if (tabKey === 'incident' || tabKey === 'harassment' || tabKey === 'legal') {
@@ -244,12 +244,12 @@
         ? `<button type="button" class="btn-delete" data-act="delete" data-id="${id}" data-no="${escapeHtml(no)}">삭제</button>`
         : '';
 
-      /* ★ v11 묶음 B-11: family + supplement 상태일 때 보완 제출 버튼 노출 */
+      /* v11 묶음 B-11: family + supplement 상태일 때 보완 제출 버튼 노출 */
       const supplementBtn = (tabKey === 'family' && status === 'supplement')
         ? `<button type="button" class="btn-detail" data-act="supplement-open" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#c47a00;border-color:#c47a00">보완 제출</button>`
         : '';
 
-      /* ★ round8: family submitted 상태일 때 수정 버튼 (B 머지 전 mock 사용) */
+      /* round8: family submitted 상태일 때 수정 버튼 (B 머지 전 mock 사용) */
       const editBtn = (tabKey === 'family' && status === 'submitted')
         ? `<button type="button" class="btn-detail" data-act="edit" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#1a56db;border-color:#1a56db;color:#fff">수정</button>`
         : '';
@@ -297,11 +297,11 @@
     pane.querySelectorAll('[data-act="delete"]').forEach((btn) => {
       btn.addEventListener('click', () => deleteItem(tabKey, Number(btn.dataset.id), btn.dataset.no));
     });
-    /* ★ v11 묶음 B-11: 보완 제출 버튼 (목록에서) */
+    /* v11 묶음 B-11: 보완 제출 버튼 (목록에서) */
     pane.querySelectorAll('[data-act="supplement-open"]').forEach((btn) => {
       btn.addEventListener('click', () => openSupplementModal(Number(btn.dataset.id), btn.dataset.no));
     });
-    /* ★ round8: 유가족 지원 수정 버튼 */
+    /* round8: 유가족 지원 수정 버튼 */
     pane.querySelectorAll('[data-act="edit"]').forEach((btn) => {
       btn.addEventListener('click', () => openSupportEditModal(tabKey, Number(btn.dataset.id)));
     });
@@ -412,7 +412,7 @@
           </div>
         `;
       }
-      /* ★ v11 묶음 B-11: supplement 상태면 보완 제출 액션 박스 */
+      /* v11 묶음 B-11: supplement 상태면 보완 제출 액션 박스 */
       if (item.status === 'supplement') {
         html += `
           <div style="text-align:center;padding:18px;background:linear-gradient(135deg,#fef3c7,#fff);border:2px solid #fbbf24;border-radius:8px;margin-top:14px">
@@ -470,7 +470,7 @@
           html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">${escapeHtml(a.originalName || '첨부파일')}</a></div>`;
         } else if (typeof a === 'string') {
           const fileName = a.split('/').pop() || a;
-          /* ★ US-023: 본인 신청 첨부는 support-download(소유자 허용·key 검증)로 직접 다운로드 가능.
+          /* US-023: 본인 신청 첨부는 support-download(소유자 허용·key 검증)로 직접 다운로드 가능.
              서버 권한·attachments 포함 검증을 이미 하므로 보안 추가비용 없이 끝단만 연결. */
           if (item.id) {
             const dlUrl = '/api/support/download?key=' + encodeURIComponent(a) + '&id=' + encodeURIComponent(item.id);
@@ -539,7 +539,7 @@
   }
 
   /* =========================================================
-     ★ v11 묶음 B-11: 보완 제출 모달
+     v11 묶음 B-11: 보완 제출 모달
      ========================================================= */
   let _supplementUploadingCount = 0;
   let _supplementAttachmentIds = [];  // 업로드 완료된 R2 blob ID들
@@ -811,7 +811,7 @@
   }
 
   /* =========================================================
-     ★ round8: 유가족 지원 신청 수정 모달
+     round8: 유가족 지원 신청 수정 모달
      ========================================================= */
   async function openSupportEditModal(tabKey, id) {
     const cfg = TYPES[tabKey];

@@ -1,5 +1,5 @@
 // netlify/functions/donate-bank-intent.ts
-// ★ Phase M-4: 직접 계좌이체 일시후원 신청
+// Phase M-4: 직접 계좌이체 일시후원 신청
 // - 사용자가 "직접 계좌이체 선택 → 입금자명 입력 → 제출" 시 호출
 // - donations.status = 'pending_bank'
 // - 관리자가 은행 거래내역 확인 후 수동으로 'completed' 전환 (M-15)
@@ -56,7 +56,7 @@ export default async (req: Request) => {
     /* DB 저장 (pending_bank 상태) */
     const transactionId = generateTransactionId();
    // netlify/functions/donate-bank-intent.ts — insertData 부근 교체
-    /* ★ M-19-2: 캠페인 연결 (선택) */
+    /* M-19-2: 캠페인 연결 (선택) */
     const campaignId = body.campaignId && Number.isFinite(Number(body.campaignId))
       ? Number(body.campaignId) : null;
 
@@ -74,7 +74,7 @@ export default async (req: Request) => {
       isAnonymous,
       receiptRequested: true,
       bankDepositorName: depositorName,
-      campaignId,  // ★ M-19-2
+      campaignId,  // M-19-2
     };
 
     const [record] = await db.insert(donations).values(insertData).returning();
@@ -92,13 +92,13 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "🏦 직접 계좌이체 신청 접수",
+        title: "직접 계좌이체 신청 접수",
         message: `${depositorName}님의 ${amount.toLocaleString()}원 계좌이체 신청. 입금 확인 후 승인 필요.`,
         link: "/admin.html#donations",
         refTable: "donations",
         refId: (record as any).id,
       }, {
-        /* ★ M-15: donation 담당 운영자 + super_admin에게만 발송 */
+        /* M-15: donation 담당 운영자 + super_admin에게만 발송 */
         category: "donation",
       });
     } catch (e) {

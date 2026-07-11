@@ -101,8 +101,8 @@ JSON만 응답하세요.`;
       mode: "pro",
       featureKey: "martyrdom_ai",
       inlineFiles: [{ data: cleanBase64, mimeType }],
-      maxOutputTokens: 1536, // ★ 설명 섞여도 JSON 안 잘리게(512→1536)
-      timeoutMs: 90000, // ★ background Vision 분류 — 8초 기본은 짧음
+      maxOutputTokens: 1536, // 설명 섞여도 JSON 안 잘리게(512→1536)
+      timeoutMs: 90000, // background Vision 분류 — 8초 기본은 짧음
       internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     });
 
@@ -135,8 +135,8 @@ JSON만 응답하세요.`;
     {
       mode: "flash",
       featureKey: "martyrdom_ai",
-      maxOutputTokens: 1536, // ★ 설명 섞여도 JSON 안 잘리게(512→1536)
-      timeoutMs: 30000, // ★ background 텍스트 분류 — 8초 기본 상향
+      maxOutputTokens: 1536, // 설명 섞여도 JSON 안 잘리게(512→1536)
+      timeoutMs: 30000, // background 텍스트 분류 — 8초 기본 상향
       internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     }
   );
@@ -295,7 +295,7 @@ JSON 스키마:
       mode: "pro",
       featureKey: "martyrdom_ai",
       maxOutputTokens: 4096,
-      timeoutMs: 120000, // ★ background 사건 구조 추출(대용량 입력·4096 출력) — 8초 기본 상향
+      timeoutMs: 120000, // background 사건 구조 추출(대용량 입력·4096 출력) — 8초 기본 상향
       internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     }
   );
@@ -321,7 +321,7 @@ JSON 스키마:
 
 /* =========================================================
    P2 — 분석·요건·준비도·학습 (§P2.2 계약 키 고정)
-   ⚠️ 응답 JSON 키는 §P2.2 계약과 1:1(A mock 동일). 1글자도 변경 금지.
+   응답 JSON 키는 §P2.2 계약과 1:1(A mock 동일). 1글자도 변경 금지.
    모든 AI 호출: featureKey 'martyrdom_ai' · internalBulk true · timeoutMs 넉넉히 · 정량 % 금지.
    ========================================================= */
 
@@ -774,7 +774,7 @@ export async function learnFromClosedCase(caseId: number): Promise<{ ok: boolean
 
 /* =========================================================
    P3 — 서면 생성 (④유족급여신청서 초안·§P3.2 계약 키 고정)
-   ⚠️ 응답 JSON 키는 §P3.2 계약과 1:1(A mock 동일). 1글자도 변경 금지.
+   응답 JSON 키는 §P3.2 계약과 1:1(A mock 동일). 1글자도 변경 금지.
    draftOutline(목차) / draftSection(섹션 본문) / indexApprovedReport(인정 보고서 형식 모델 색인).
    모든 AI 호출: featureKey 'martyrdom_ai' · internalBulk · temperature 0.4 · 정량 % 금지.
    ========================================================= */
@@ -833,7 +833,7 @@ JSON 스키마:
   const userPrompt = `[사건 구조]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략 핵심]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, keyIssues: strategy.keyIssues, counterArguments: strategy.counterArguments }).slice(0, 3000) : "(전략 없음)"}\n\n[인정 요건]\n${criteria && Array.isArray(criteria.items) ? criteria.items.map((c: any) => `- ${c.title} (${c.status})`).join("\n").slice(0, 2000) : "(요건 대조 없음)"}\n\n[인정 보고서 형식 모델]\n${exemplarText.slice(0, 5000)}\n\n위 사건에 맞는 신청서 목차를 JSON으로 제안하세요.`;
 
   const res = await callGeminiJSON<DraftOutlineJson>(`${systemPrompt}\n\n${userPrompt}`, {
-    // ★ 2026-05-28 Swain 요청: 초안 분량 2배 — 목차도 8192로 늘려 섹션 수·intent 풍부화 → 전체 초안 분량↑
+    // 2026-05-28 Swain 요청: 초안 분량 2배 — 목차도 8192로 늘려 섹션 수·intent 풍부화 → 전체 초안 분량↑
     mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 8192, timeoutMs: 120000, internalBulk: true,
   });
 
@@ -924,7 +924,7 @@ export async function draftSection(
   const userPrompt = `[작성할 섹션]\n제목: ${title}\n의도: ${intent || "(미지정)"}\n\n[앞서 작성된 섹션 제목(중복 서술 방지)]\n${priorTitles.length ? priorTitles.join(", ") : "(없음)"}\n\n━━━ 본 사건 자료 (사실·정황의 1차 출처·이 영역에서만 사실 인용) ━━━\n\n[본 사건 자료 원문]\n${caseDocText.slice(0, 5000)}\n\n[사건 구조 — 본 사건 자료에서 추출]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략·마스터 타임라인·예상 반론 — 본 사건 자료 기반 분석]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, masterTimeline: strategy.masterTimeline, counterArguments: strategy.counterArguments, causalChain: strategy.causalChain }).slice(0, 5000) : "(전략 없음)"}\n\n━━━ 분석 기법·법령 코퍼스 (형식·법령 인용만 참고·다른 사건 사실 인용 금지) ━━━\n\n[인정 보고서 모델 — 분석 기법·전개·법령 인용 참고]\n${exemplarText.slice(0, 4000)}\n\n[법령 근거]\n${lawText.slice(0, 3000)}\n\n위 섹션의 본문을 작성하세요.`;
 
   const res = await callGemini(`${systemPrompt}\n\n${userPrompt}`, {
-    // ★ 2026-05-28 Swain 요청: 초안 섹션 분량 2배 (4096 → 8192). Gemini 3-flash 출력 한도 내.
+    // 2026-05-28 Swain 요청: 초안 섹션 분량 2배 (4096 → 8192). Gemini 3-flash 출력 한도 내.
     //   사례 누적 시 RAG exemplar가 풍부해도 4096 토큰에서 잘리던 문제 해소.
     mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 8192, timeoutMs: 120000, internalBulk: true,
   });
@@ -1400,10 +1400,10 @@ ${selfSection}${ragSection}
 - 1000자~2000자 분량
 - 공무원재해보상법 기반 최근 심의 동향·인정 요건 트렌드 분석
 - 구체적 수치나 날짜 주장 시 "추정" 또는 "일반적으로" 표현 사용
-- ⚠️ AI·인공지능·Gemini 등 생성 도구나 작성 비율(%)을 본문에 절대 언급하지 말 것 — 외부 발간용 협회 연구 자료로 서술`;
+- AI·인공지능·Gemini 등 생성 도구나 작성 비율(%)을 본문에 절대 언급하지 말 것 — 외부 발간용 협회 연구 자료로 서술`;
 }
 
-/* ★ R41 Q2-053: HTML 이스케이프 — 자체조사·RAG 텍스트를 본문에 raw 삽입하지 않도록 감쌈
+/* R41 Q2-053: HTML 이스케이프 — 자체조사·RAG 텍스트를 본문에 raw 삽입하지 않도록 감쌈
    (AI 동향분석 섹션 aiSection은 의도적 HTML이므로 제외) */
 function escHtml(v: unknown): string {
   return String(v ?? "")
@@ -1445,7 +1445,7 @@ ${aiSection}` : "";
 <p class="pub-meta">(사)교사유가족협의회 · 비식별화 처리 완료</p>
 ${selfHtml}${ragHtml}${aiHtml}
 <hr>
-<p class="disclaimer">⚠️ 본 보고서는 (사)교사유가족협의회의 내부 데이터를 바탕으로 작성된 초안입니다. 외부 발간 전 반드시 법률 전문가 검수를 받으시기 바랍니다.</p>
+<p class="disclaimer">본 보고서는 (사)교사유가족협의회의 내부 데이터를 바탕으로 작성된 초안입니다. 외부 발간 전 반드시 법률 전문가 검수를 받으시기 바랍니다.</p>
 </article>`;
 }
 

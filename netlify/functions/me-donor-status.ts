@@ -1,5 +1,5 @@
 // netlify/functions/me-donor-status.ts
-// ★ 2026-05: 로그인 사용자의 후원 여부 + 누적 통계 조회 (사이렌 페이지에서 사전 차단용)
+// 2026-05: 로그인 사용자의 후원 여부 + 누적 통계 조회 (사이렌 페이지에서 사전 차단용)
 
 import type { Context } from "@netlify/functions";
 import { authenticateUser } from "../../lib/auth";

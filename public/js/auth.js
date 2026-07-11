@@ -740,10 +740,10 @@ document.addEventListener('change', async function (e) {
       if (!matchEl) return;
       if (!pw2) { matchEl.textContent = ''; return; }
       if (pw1 === pw2) {
-        matchEl.textContent = '✓ 일치합니다';
+        matchEl.textContent = '일치합니다';
         matchEl.style.color = '#10b981';
       } else {
-        matchEl.textContent = '✗ 일치하지 않습니다';
+        matchEl.textContent = '일치하지 않습니다';
         matchEl.style.color = '#dc2626';
       }
     });

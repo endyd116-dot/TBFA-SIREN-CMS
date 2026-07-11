@@ -1,5 +1,5 @@
 // netlify/functions/admin-content-pages.ts
-// ★ M-11: 협의회 소개 등 단일 페이지 콘텐츠 CRUD
+// M-11: 협의회 소개 등 단일 페이지 콘텐츠 CRUD
 
 import { eq, asc } from "drizzle-orm";
 import { db } from "../../db";

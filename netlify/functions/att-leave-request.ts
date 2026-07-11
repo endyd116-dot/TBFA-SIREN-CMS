@@ -93,7 +93,7 @@ export default async function handler(req: Request) {
       }
       days = 0.5;
     } else {
-      // ★ Q3-008 fix: 달력일 전체가 아니라 영업일(주말·att_holidays 제외)만 차감.
+      // Q3-008 fix: 달력일 전체가 아니라 영업일(주말·att_holidays 제외)만 차감.
       //   승인 시 att_records LEAVE 스탬프는 영업일에만 찍히므로(admin-att-leave-review),
       //   기존 달력일 계산은 금~월 등 주말 낀 휴가에서 연차를 과다 차감했다.
       let holidaySet = new Set<string>();
@@ -141,7 +141,7 @@ export default async function handler(req: Request) {
     } catch (err) {
       console.warn("[att-leave-request] 잔여 검증 실패:", err);
     }
-    /* ★ P1-13 fix: used_days는 승인 시점에만 증가 → 승인 대기(PENDING) 다건이 각각 통과해
+    /* P1-13 fix: used_days는 승인 시점에만 증가 → 승인 대기(PENDING) 다건이 각각 통과해
        잔여를 초과할 수 있음. 같은 연도·종류의 PENDING 합산을 잔여에서 차감해 막는다. */
     let pendingDays = 0;
     try {
@@ -276,7 +276,7 @@ export default async function handler(req: Request) {
         await notifyAllOperators({
           category: "system",
           severity: "info",
-          title: `🌴 휴가 결재 대기 — ${requesterName}`,
+          title: `휴가 결재 대기 — ${requesterName}`,
           message: `${periodText} (${days}일${isHalfDay === true ? `·반차 ${halfDayPeriod}` : ""})${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
           link: "/cms-tbfa.html#att-ops",
           refTable: "att_leave_requests",

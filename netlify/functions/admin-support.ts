@@ -15,7 +15,7 @@ import { logAdminAction } from "../../lib/audit";
 import { sendEmail, tplSupportAnsweredUser } from "../../lib/email";
 import { createNotification } from "../../lib/notify";
 
-/* ★ US-022: 유가족 지원 상태 한글 라벨 (인앱 알림 문구용) */
+/* US-022: 유가족 지원 상태 한글 라벨 (인앱 알림 문구용) */
 const SUPPORT_STATUS_LABEL: Record<string, string> = {
   submitted: "접수", reviewing: "검토 중", supplement: "보완 요청",
   matched: "담당 배정", in_progress: "진행 중", completed: "완료", rejected: "반려",
@@ -192,7 +192,7 @@ const { admin } = guard.ctx;
           detail: { newStatus: body.status },
         });
 
-        /* ★ US-022: 인라인 단계 변경에도 신청자에게 인앱 알림 (특히 '보완 요청'을 모르고 방치되던 문제).
+        /* US-022: 인라인 단계 변경에도 신청자에게 인앱 알림 (특히 '보완 요청'을 모르고 방치되던 문제).
            자격변경(admin-eligibility-review)은 항상 알림을 적재하는데 지원만 비대칭으로 빠져 있었음. */
         if (updated.memberId) {
           try {
@@ -234,7 +234,7 @@ const { admin } = guard.ctx;
 
       if (data.status === "completed") updateData.completedAt = new Date();
 
-      /* ★ adminNote가 채워지면 답변자/시간 자동 기록 */
+      /* adminNote가 채워지면 답변자/시간 자동 기록 */
       if (data.adminNote && String(data.adminNote).trim().length > 0) {
         updateData.answeredBy = admin.uid;
         updateData.answeredAt = new Date();
@@ -288,7 +288,7 @@ const { admin } = guard.ctx;
         detail: { newStatus: data.status, emailSent, emailError, hasNote: !!data.adminNote },
       });
 
-      /* ★ US-022: 신청자에게 인앱 알림 (메일은 옵트인이라 끄면 통지 0이던 문제 보완 — 인앱은 기본 발송) */
+      /* US-022: 신청자에게 인앱 알림 (메일은 옵트인이라 끄면 통지 0이던 문제 보완 — 인앱은 기본 발송) */
       if (updated.memberId) {
         try {
           const label = SUPPORT_STATUS_LABEL[data.status] || data.status;

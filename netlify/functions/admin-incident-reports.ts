@@ -1,6 +1,6 @@
 // netlify/functions/admin-incident-reports.ts
-// ★ M-10: 사건 제보 관리자 목록 조회
-// ★ 2026-05 패치: db.execute() 결과 처리 표준화 (stats.rows || stats)
+// M-10: 사건 제보 관리자 목록 조회
+// 2026-05 패치: db.execute() 결과 처리 표준화 (stats.rows || stats)
 
 import type { Context } from "@netlify/functions";
 import { eq, and, desc, count, or, like, sql } from "drizzle-orm";
@@ -77,11 +77,11 @@ export default async (req: Request, _ctx: Context) => {
       .limit(limit)
       .offset((page - 1) * limit);
 
-    /* ★ R41 Q2-002: 익명 신고는 신원(회원명) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
+    /* R41 Q2-002: 익명 신고는 신원(회원명) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
     // R45 CLUSTER-2(OP-007): 익명 신고는 회원명 + 작성자 입력 신원(reporter*) 모두 마스킹
     const maskedList = list.map((r: any) => (r.isAnonymous ? { ...r, memberName: null, reporterName: null, reporterPhone: null, reporterEmail: null } : r));
 
-    /* 통계 — ★ 패치: drizzle.execute 결과 표준 처리 */
+    /* 통계 — 패치: drizzle.execute 결과 표준 처리 */
     const statsResult: any = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (WHERE status = 'submitted')::int  AS "submittedCount",

@@ -104,7 +104,7 @@ export default async (_req: Request, _ctx: Context) => {
             sourceId: h.taskId,
             notifType: "overdue",
             channel: "bell",
-            title: `⚠️ 지연 위험 ${h.score}점: ${h.title}`,
+            title: `지연 위험 ${h.score}점: ${h.title}`,
             body: `AI가 지연 가능성을 ${h.score}/100점으로 평가했습니다. 마감 일정을 점검해 주세요.`,
             actionUrl: `/workspace-kanban.html#task=${h.taskId}`,
           });

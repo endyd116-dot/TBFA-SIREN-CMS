@@ -33,7 +33,7 @@ function calcNextRunAt(cronExpr: string): Date {
   }
 
   // 특정 시각(0 21 * * * 등) — cron 시각을 KST로 해석해 UTC next_run_at 계산 (시스템 전반 KST 기준).
-  // ★ Q3-050 fix: 기존 setHours(컨테이너 로컬=UTC) → KST 의도와 9시간 어긋남. setUTCHours로 KST 벽시계 적용.
+  // Q3-050 fix: 기존 setHours(컨테이너 로컬=UTC) → KST 의도와 9시간 어긋남. setUTCHours로 KST 벽시계 적용.
   // (요일/일 필드는 미지원 — 매일로 처리. 정밀 cron은 별도 라이브러리 필요 — P3 범위 외.)
   if (parts.length >= 2) {
     const minute = parseInt(parts[0], 10);
@@ -146,6 +146,6 @@ export default async (_req: Request, _ctx: Context) => {
 };
 
 export const config = {
-  // ★ 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬). AI 예약 명령 1시간 지연 무해.
+  // 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬). AI 예약 명령 1시간 지연 무해.
   schedule: "0 * * * *",
 };

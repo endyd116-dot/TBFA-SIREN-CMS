@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-incidents-crud.js (★ B-3)
+   SIREN — admin-incidents-crud.js (B-3)
    사건 게시글 CRUD (관리자 탭)
    ========================================================= */
 (function () {
@@ -79,7 +79,7 @@
       <div style="background:#fff;border-radius:12px;max-width:680px;width:100%;padding:28px 32px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
           <h3 class="serif" style="margin:0">${title}</h3>
-          <button type="button" id="icModalClose" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-3)">✕</button>
+          <button type="button" id="icModalClose" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-3)">${Icons.svg('x')}</button>
         </div>
         <form id="icEditForm">
           <input type="hidden" id="icEditId" value="${id || ''}">
@@ -168,7 +168,7 @@
       const target = tab.dataset.ictab;
       document.querySelectorAll('#adm-siren-incidents .ct-tab[data-ictab]').forEach(t => t.classList.remove('on'));
       tab.classList.add('on');
-      /* ★ 7번 수정: 부모 ID 셀렉터 제거 + setProperty로 important 덮기 */
+      /* 7번 수정: 부모 ID 셀렉터 제거 + setProperty로 important 덮기 */
       document.querySelectorAll('.ic-tab-pane[data-ictab-pane]').forEach(p => {
         if (p.dataset.ictabPane === target) {
           p.style.setProperty('display', 'block', 'important');

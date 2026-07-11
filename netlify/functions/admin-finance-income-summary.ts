@@ -31,7 +31,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const paidAt = sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})`;
 
     // pgProvider + type 기준 채널별 집계
-    // ★ 버그픽스2 #7·#8: 기존엔 provider 만으로 집계해 토스 정기(CMS)·토스 일시가
+    // 버그픽스2 #7·#8: 기존엔 provider 만으로 집계해 토스 정기(CMS)·토스 일시가
     //   한 칸에 뭉쳐 4채널(효성정기·CMS정기·일시직접계좌·일시토스) 분해가 불가능했음.
     //   provider 와 함께 type(regular/onetime) 도 묶어 4채널 분해 가능하게 한다.
     let channelRows: { provider: string | null; type: string | null; count: number; amount: number }[] = [];
@@ -117,7 +117,7 @@ export default async function handler(req: Request, _ctx: Context) {
       bank: { count: 0, amount: 0 },
       other: { count: 0, amount: 0 },
     };
-    // ★ 버그픽스2 #7·#8: 4채널 분해 — 효성정기·CMS정기(토스 정기)·일시토스·일시직접계좌.
+    // 버그픽스2 #7·#8: 4채널 분해 — 효성정기·CMS정기(토스 정기)·일시토스·일시직접계좌.
     //   효성은 정기/일시 구분 없이 hyosung 으로, 그 외는 정기=토스빌링(CMS), 일시=토스/계좌로 분해.
     const fourChannel = {
       hyosungRegular: { count: 0, amount: 0 },   // 효성 CMS+ 정기
@@ -130,7 +130,7 @@ export default async function handler(req: Request, _ctx: Context) {
     for (const row of channelRows) {
       const p = (row.provider ?? "").toLowerCase();
       const isRegular = row.type === "regular";
-      /* ★ 2026-05-16 fix: IBK 통과 'ibk_bank'·신청 'manual'·옛 'bank' 모두 계좌이체 채널로 정규화.
+      /* 2026-05-16 fix: IBK 통과 'ibk_bank'·신청 'manual'·옛 'bank' 모두 계좌이체 채널로 정규화.
          이전엔 'ibk_bank'가 'bank' 와 정확히 같지 않아 모두 'other'로 떨어졌음 → 수입 현황에서
          IBK 입금이 '기타'로 잡히던 회귀. */
       const isBankLike = p === "bank" || p.includes("ibk") || p === "manual";
@@ -174,7 +174,7 @@ export default async function handler(req: Request, _ctx: Context) {
           totalAmount,
           totalCount,
           byChannel: channelMap,
-          // ★ 버그픽스2 #7: 금월 결제금액 4채널 분해 + 합계 (프론트가 그대로 사용)
+          // 버그픽스2 #7: 금월 결제금액 4채널 분해 + 합계 (프론트가 그대로 사용)
           fourChannel,
           fourChannelTotal:
             fourChannel.hyosungRegular.amount +

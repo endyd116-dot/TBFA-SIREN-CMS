@@ -67,7 +67,7 @@ export default async function handler(req: Request, _ctx: Context) {
       recipientType: "user",
       category:      "system",
       severity:      "warning",
-      title:         `📨 ${adminName} 님의 출퇴근 확인 요청 (${rec.date})`,
+      title:         `${adminName} 님의 출퇴근 확인 요청 (${rec.date})`,
       message:       message,
       link:          "/workspace-attendance.html",
       refTable:      "att_records",

@@ -4,7 +4,7 @@
  * - 토큰 없거나 만료 → 401
  * - 토큰 유효 → 회원 정보 + 후원 통계 반환
  *
- * ★ K-2 패치: emailVerified 필드 응답에 추가
+ * K-2 패치: emailVerified 필드 응답에 추가
  *   - mypage.html의 이메일 인증 배너 갱신용
  */
 import { eq, sql, and } from "drizzle-orm";
@@ -18,7 +18,7 @@ import { profileUpdateSchema } from "../../lib/validation";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
-  if (req.method === "PATCH") return handlePatch(req);   /* ★ US-007: 회원정보 저장 */
+  if (req.method === "PATCH") return handlePatch(req);   /* US-007: 회원정보 저장 */
   if (req.method !== "GET") return methodNotAllowed();
 
   try {
@@ -34,10 +34,10 @@ export default async (req: Request) => {
         name: members.name,
         phone: members.phone,
         type: members.type,
-        role: members.role,                     /* ★ 슈퍼어드민·관리자 식별 */
-        milestoneRole: members.milestoneRole,   /* ★ 성과 담당 역할 SM/PM/SI */
+        role: members.role,                     /* 슈퍼어드민·관리자 식별 */
+        milestoneRole: members.milestoneRole,   /* 성과 담당 역할 SM/PM/SI */
         status: members.status,
-        emailVerified: members.emailVerified,  /* ★ K-2 추가 */
+        emailVerified: members.emailVerified,  /* K-2 추가 */
         agreeEmail: members.agreeEmail,
         agreeSms: members.agreeSms,
         agreeMail: members.agreeMail,
@@ -81,11 +81,11 @@ export default async (req: Request) => {
         name: user.name,
         phone: user.phone,
         type: user.type,
-        role: user.role,                       /* ★ 'super_admin'·'admin'·기타 */
-        milestoneRole: user.milestoneRole,     /* ★ SM/PM/SI 또는 null */
-        operatorActive: user.operatorActive,   /* ★ 운영자 토글 (workspace 진입 판정용) */
+        role: user.role,                       /* 'super_admin'·'admin'·기타 */
+        milestoneRole: user.milestoneRole,     /* SM/PM/SI 또는 null */
+        operatorActive: user.operatorActive,   /* 운영자 토글 (workspace 진입 판정용) */
         status: user.status,
-        emailVerified: user.emailVerified,  /* ★ K-2 추가 */
+        emailVerified: user.emailVerified,  /* K-2 추가 */
         agreeEmail: user.agreeEmail,
         agreeSms: user.agreeSms,
         agreeMail: user.agreeMail,
@@ -107,7 +107,7 @@ export default async (req: Request) => {
   }
 };
 
-/* ★ US-007: 마이페이지 회원정보(이름·연락처·알림동의) 저장
+/* US-007: 마이페이지 회원정보(이름·연락처·알림동의) 저장
    기존엔 PATCH 핸들러가 없어 mypage의 PATCH /api/auth/me 가 항상 405였음(죽은 기능). */
 async function handlePatch(req: Request) {
   try {

@@ -261,7 +261,7 @@
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
-    /* ★ 버그픽스 20260515-2차 (#7): 응답 래핑 단계가 바뀌어도 list/stats/pagination을
+    /* 버그픽스 20260515-2차 (#7): 응답 래핑 단계가 바뀌어도 list/stats/pagination을
        정확히 풀도록 공용 unwrap 사용 (없으면 기존 res.data.data 경로 폴백) */
     const _uw = window._cmsUnwrap ||
       ((d, m) => (d && d.data && typeof d.data === 'object' && m.some(k => d.data[k] !== undefined)) ? d.data : (d || {}));
@@ -272,7 +272,7 @@
 
     const kpis = panel.querySelectorAll('.kpi-value');
     if (kpis[0]) kpis[0].textContent = fmtMoney(stats.today ?? stats.todayTotal ?? 0);
-    /* ★ #7: 금월 결제금액 = 효성정기+CMS정기+일시(직접계좌)+일시(토스) 4채널 합산.
+    /* #7: 금월 결제금액 = 효성정기+CMS정기+일시(직접계좌)+일시(토스) 4채널 합산.
        B가 추가하는 합계 필드명을 알 수 없어 다중 fallback (§6.2) */
     if (kpis[1]) kpis[1].textContent = fmtMoney(
       stats.month ?? stats.monthTotal ?? stats.monthAll ?? stats.monthAllChannels ?? stats.thisMonth ?? 0

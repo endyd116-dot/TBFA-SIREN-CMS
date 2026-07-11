@@ -35,7 +35,7 @@ function renderStory(story) {
     document.getElementById('ytEmbed').style.display = '';
   }
 
-  /* ★ R41 Q2-048: 관리자/AI 작성 HTML — script·이벤트핸들러·javascript: 경량 제거 */
+  /* R41 Q2-048: 관리자/AI 작성 HTML — script·이벤트핸들러·javascript: 경량 제거 */
   var safeDetail = String(story.detailHtml || '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')

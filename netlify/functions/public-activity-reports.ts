@@ -1,5 +1,5 @@
 // netlify/functions/public-activity-reports.ts
-// ★ Phase M-19-3 + C안: 발행된 활동보고서 공개 API
+// Phase M-19-3 + C안: 발행된 활동보고서 공개 API
 //
 // GET /api/public/activity-reports                — 발행된 보고서 목록 (최신순)
 // GET /api/public/activity-reports?year=2025      — 연도 필터

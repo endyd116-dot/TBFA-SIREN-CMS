@@ -1,5 +1,5 @@
 // netlify/functions/cron-workspace-trash-cleanup.ts
-// ★ Phase 3-extra Step 8: 매일 KST 03:00 휴지통 30일 경과 자동 영구삭제
+// Phase 3-extra Step 8: 매일 KST 03:00 휴지통 30일 경과 자동 영구삭제
 //
 // Schedule: "0 18 * * *" (UTC 18:00 = KST 03:00 다음날 새벽)
 //   → 결과적으로 매일 KST 03:00에 1회 실행
@@ -148,7 +148,7 @@ export default async (req: Request, context: Context) => {
         userId: null,
         userType: "system",
         action: "CRON_WORKSPACE_TRASH_CLEANUP",
-        target: "workspace_trash",   // ★ Q3-023 fix: logAudit 실제 필드(userId·target)로 교정 (시스템 작업 userId=null)
+        target: "workspace_trash",   // Q3-023 fix: logAudit 실제 필드(userId·target)로 교정 (시스템 작업 userId=null)
         detail: {
           cutoffDate: cutoffISO,
           retentionDays: RETENTION_DAYS,

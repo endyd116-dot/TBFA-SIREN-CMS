@@ -87,7 +87,7 @@ export default async (req: Request, _ctx: Context) => {
       await notifyAllOperators({
         category: "support",
         severity: "warning",
-        title: `🚨 새 악성민원 신고: ${reportNo}`,
+        title: `새 악성민원 신고: ${reportNo}`,
         message: `방금 악성민원(괴롭힘) 신고가 접수됐어요. "${title}" — 확인이 필요해요.`,
         link: `/admin.html#harassment-reports`,
         refTable: "harassment_reports",

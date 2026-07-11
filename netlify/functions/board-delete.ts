@@ -1,5 +1,5 @@
 // netlify/functions/board-delete.ts
-// ★ Phase M-8: 게시글 삭제 (본인만 — 관리자는 별도 admin API)
+// Phase M-8: 게시글 삭제 (본인만 — 관리자는 별도 admin API)
 
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";

@@ -1,7 +1,7 @@
 /**
  * netlify/functions/cron-donor-status-sync.ts
- * ★ Phase 2 (마일스톤 #16 단계 C): 후원 분류 야간 동기화
- * ★ Phase 3 (마일스톤 #16 단계 D) 정교화: hyosung_contracts.contract_status 직접 동기화 선행
+ * Phase 2 (마일스톤 #16 단계 C): 후원 분류 야간 동기화
+ * Phase 3 (마일스톤 #16 단계 D) 정교화: hyosung_contracts.contract_status 직접 동기화 선행
  *
  * 매일 KST 03:00 (UTC 18:00) 실행 — 안전망:
  *   Step 1 (D5 추가): hyosung_contracts 테이블에서 최신 contract_status를

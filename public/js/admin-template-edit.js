@@ -16,7 +16,7 @@
   const editId = params.get("id");
   let isEdit = !!editId;
 
-  /* ★ 2026-05-17: 이미지 첨부 상태 — 템플릿 저장 시 페이로드에 포함 */
+  /* 2026-05-17: 이미지 첨부 상태 — 템플릿 저장 시 페이로드에 포함 */
   let templateImages = [];
 
   /* ── api 헬퍼 ── */
@@ -46,7 +46,7 @@
     setTimeout(() => el.classList.remove("show"), 3500);
   }
 
-  /* ★ 2026-05-17: 자주 쓰는 변수 카테고리별 카탈로그.
+  /* 2026-05-17: 자주 쓰는 변수 카테고리별 카탈로그.
      운영자가 키·라벨·샘플을 직접 입력하지 않고 클릭 한 번에 추가.
      알리고 카카오 변수 표기(#{회원이름})와 우리 시스템({{회원이름}}) 둘 다
      지원되도록 한글 키 그대로 채택. */
@@ -142,7 +142,7 @@
   }
   function closeVarPresetModal() { $("varPresetModal").style.display = "none"; }
 
-  /* ★ 2026-05-17: 이미지 첨부 — 업로드·미리보기·크기/정렬/위치/순서 조절 */
+  /* 2026-05-17: 이미지 첨부 — 업로드·미리보기·크기/정렬/위치/순서 조절 */
   async function uploadTemplateImage(file) {
     const statusEl = $("imageUploadStatus");
     if (templateImages.length >= 20) {
@@ -169,7 +169,7 @@
         body: fd,
       });
       const raw = await res.json().catch(() => ({}));
-      /* ★ 2026-05-17: blob-upload는 ok() 헬퍼로 wrap → {ok, message, data:{url, blobKey, ...}}.
+      /* 2026-05-17: blob-upload는 ok() 헬퍼로 wrap → {ok, message, data:{url, blobKey, ...}}.
          data.data.url을 우선 + data.url을 fallback (다른 응답 형태 안전망). */
       const payload = raw?.data ?? raw ?? {};
       const relativeUrl = payload.url || raw.url || "";
@@ -179,7 +179,7 @@
         statusEl.style.color = "#b91c1c";
         return;
       }
-      /* ★ 2026-05-17: 이메일에 박힐 때 절대 URL이어야 외부에서 접근 가능 →
+      /* 2026-05-17: 이메일에 박힐 때 절대 URL이어야 외부에서 접근 가능 →
          상대 경로면 window.location.origin과 결합. */
       const absoluteUrl = relativeUrl.startsWith("http")
         ? relativeUrl
@@ -194,7 +194,7 @@
         order: templateImages.length,
         alt: "",
       });
-      statusEl.textContent = "✓ 업로드 완료";
+      statusEl.textContent = "업로드 완료";
       statusEl.style.color = "#166534";
       renderImagesList();
     } catch (err) {
@@ -312,10 +312,10 @@
     const subjectCard = $("subjectCard");
     const charCounter = $("charCounter");
     const kakaoNotice = $("kakaoNotice");
-    const alimtalkCard = $("alimtalkCard"); /* ★ 2026-05-16 */
-    const imagesCard = $("imagesCard");     /* ★ 2026-05-17 */
+    const alimtalkCard = $("alimtalkCard"); /* 2026-05-16 */
+    const imagesCard = $("imagesCard");     /* 2026-05-17 */
 
-    /* ★ 2026-05-17: SIREN 레이아웃 카드 — 이메일 채널만 노출 */
+    /* 2026-05-17: SIREN 레이아웃 카드 — 이메일 채널만 노출 */
     const sirenCard = $("sirenLayoutCard");
     if (sirenCard) sirenCard.style.display = (ch === "email") ? "" : "none";
 
@@ -388,13 +388,13 @@
       bodyTemplate,
       variables,
     };
-    /* ★ 2026-05-17: 이메일 채널이면 templateImages 페이로드에 포함 */
+    /* 2026-05-17: 이메일 채널이면 templateImages 페이로드에 포함 */
     if (channel === "email") {
       payload.images = templateImages;
       payload.useSirenLayout = $("fUseSirenLayout")?.checked || false;
     }
 
-    /* ★ 2026-05-16: 카카오 채널이면 알리고 전용 필드 함께 페이로드에 포함 */
+    /* 2026-05-16: 카카오 채널이면 알리고 전용 필드 함께 페이로드에 포함 */
     if (channel === "kakao") {
       payload.alimtalkTemplateCode = ($("fAlimtalkTemplateCode")?.value || "").trim();
       payload.alimtalkReviewStatus = $("fAlimtalkReviewStatus")?.value || "";
@@ -430,7 +430,7 @@
       const list = undef.map(k => "{{" + k + "}}").join(", ");
       return "본문에 정의되지 않은 변수가 있습니다: " + list;
     }
-    /* ★ 2026-05-16: 카카오 채널 추가 검증 */
+    /* 2026-05-16: 카카오 채널 추가 검증 */
     if (payload.channel === "kakao") {
       if (!payload.alimtalkTemplateCode) {
         return "카카오 알림톡은 알리고 템플릿 코드(예: UH_7533)가 필요합니다.";
@@ -545,7 +545,7 @@
     const warnings = data.warnings ?? res.data?.warnings ?? [];
 
     $("pvSubject").textContent = preview.subject || "(제목 없음)";
-    /* ★ 2026-05-17: 이메일 채널이고 이미지가 있으면 본문 위/아래에 inject. textContent 대신 innerHTML. */
+    /* 2026-05-17: 이메일 채널이고 이미지가 있으면 본문 위/아래에 inject. textContent 대신 innerHTML. */
     const pvBodyEl = $("pvBody");
     const useSiren = payload.channel === "email" && $("fUseSirenLayout")?.checked;
     if (payload.channel === "email" && (Array.isArray(templateImages) && templateImages.length > 0 || useSiren)) {
@@ -649,13 +649,13 @@
       vars.forEach(v => addVarRow(v));
     }
 
-    /* ★ 2026-05-17: 이미지·SIREN 레이아웃 필드 복원 */
+    /* 2026-05-17: 이미지·SIREN 레이아웃 필드 복원 */
     templateImages = Array.isArray(t.images) ? t.images.slice() : [];
     renderImagesList();
     const sirenCb = $("fUseSirenLayout");
     if (sirenCb) sirenCb.checked = !!t.useSirenLayout;
 
-    /* ★ 2026-05-16: 카카오 전용 필드 복원 */
+    /* 2026-05-16: 카카오 전용 필드 복원 */
     if (t.channel === "kakao") {
       const codeEl = $("fAlimtalkTemplateCode");
       const reviewEl = $("fAlimtalkReviewStatus");
@@ -676,14 +676,14 @@
   /* ── 이벤트 ── */
   function bindEvents() {
     $("btnAddVar").addEventListener("click", () => addVarRow());
-    /* ★ 2026-05-17: 변수 프리셋 모달 트리거 + 닫기 */
+    /* 2026-05-17: 변수 프리셋 모달 트리거 + 닫기 */
     $("btnAddVarPreset")?.addEventListener("click", openVarPresetModal);
     $("varPresetClose")?.addEventListener("click", closeVarPresetModal);
     $("varPresetModal")?.addEventListener("click", (e) => {
       if (e.target === $("varPresetModal")) closeVarPresetModal();
     });
 
-    /* ★ 2026-05-17: 이미지 업로드 — file input + button */
+    /* 2026-05-17: 이미지 업로드 — file input + button */
     $("btnImageUpload")?.addEventListener("click", () => $("fImageFile")?.click());
     $("fImageFile")?.addEventListener("change", (e) => {
       const file = e.target.files && e.target.files[0];

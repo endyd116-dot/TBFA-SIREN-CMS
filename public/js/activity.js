@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — activity.js (★ Phase M-11)
+   SIREN — activity.js (Phase M-11)
    - /activities.html: 앨범 목록 + 필터 + 페이징
    - /activity.html?slug=xxx: 게시글 상세
    ========================================================= */

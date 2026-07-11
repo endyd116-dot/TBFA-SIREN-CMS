@@ -60,7 +60,7 @@ export default async (req: Request, _ctx: Context) => {
       .limit(1);
     if (!task) return jsonError(404, "select_task", "작업을 찾을 수 없습니다");
 
-    /* ★ Q3-004 fix: 작업 접근 권한 검증 (메인 PATCH와 동일 — 소유/담당/지시/super) */
+    /* Q3-004 fix: 작업 접근 권한 검증 (메인 PATCH와 동일 — 소유/담당/지시/super) */
     const meId = auth.ctx.member.id as number;
     const isSuperAdmin = (auth.ctx.member as any).role === "super_admin";
     // [감사#33] 토스받은 담당자면 편집 허용(assignedBy 무관·Swain 결정)

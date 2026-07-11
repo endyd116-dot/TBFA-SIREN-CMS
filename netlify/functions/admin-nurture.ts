@@ -21,11 +21,11 @@ function err(step: string, e: any, status = 500) {
 }
 function rows(r: any): any[] { return (r?.rows ?? r ?? []) as any[]; }
 
-/* ★ A검증 #1 fix: SQL 주입 차단 — 채널·주기는 반드시 화이트리스트만 저장 (엔진이 sql.raw에 인터폴레이션). */
+/* A검증 #1 fix: SQL 주입 차단 — 채널·주기는 반드시 화이트리스트만 저장 (엔진이 sql.raw에 인터폴레이션). */
 const VALID_CHANNELS = ["email", "sms", "kakao", "inapp"];
 const VALID_CADENCES = ["monthly", "quarterly", "anniversary", "yearend"];
 
-/* ★ 2026-06-26: 문자 내용 인라인 CRUD — 카드에서 작성한 본문(bodyText)을 템플릿에 upsert.
+/* 2026-06-26: 문자 내용 인라인 CRUD — 카드에서 작성한 본문(bodyText)을 템플릿에 upsert.
    id 있으면 그 템플릿 수정, 없으면 신규 생성. 본문 비면 기존 templateId 유지. */
 async function upsertTpl(opts: { id: number | null; channel: string; subject: string | null; body: string; label: string | null; imageUrl?: string | null; hasImageKey?: boolean }): Promise<number | null> {
   const bodyText = String(opts.body || "").trim();
@@ -98,9 +98,9 @@ export default async function handler(req: Request) {
       case "saveStep": {
         const journeyId = Number(body.journeyId);
         const dayOffset = Math.max(0, Math.min(365, Number(body.dayOffset)));
-        const channel = String(body.channel || "sms"); // ★ 문자 1차 기본
+        const channel = String(body.channel || "sms"); // 문자 1차 기본
         let templateId = body.templateId ? Number(body.templateId) : null;
-        const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null; // ★ 보조 메일
+        const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null; // 보조 메일
         const label = body.label ? String(body.label).slice(0, 120) : null;
         const isActive = body.isActive !== false;
         const conditions = body.conditions && typeof body.conditions === "object" ? JSON.stringify(body.conditions) : "{}";
@@ -129,7 +129,7 @@ export default async function handler(req: Request) {
       case "saveEvergreen": {
         const journeyId = Number(body.journeyId);
         const cadence = String(body.cadence || "quarterly");
-        const channel = String(body.channel || "sms"); // ★ 문자 1차 기본
+        const channel = String(body.channel || "sms"); // 문자 1차 기본
         let templateId = body.templateId ? Number(body.templateId) : null;
         const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null;
         const label = body.label ? String(body.label).slice(0, 120) : null;

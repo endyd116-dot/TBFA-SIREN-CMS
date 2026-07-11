@@ -20,7 +20,7 @@ export default async (req: Request) => {
     twelveMonthsAgo.setDate(1);
     twelveMonthsAgo.setHours(0, 0, 0, 0);
 
-    /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+    /* Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
     const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
 
     const monthlyRows = await db

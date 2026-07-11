@@ -234,7 +234,7 @@
           <span class="aiw-title-sub">베타 — 콘텐츠·관리</span>
         </div>
         <div>
-          <button class="aiw-fullscreen" title="전체화면">⛶</button>
+          <button class="aiw-fullscreen" title="전체화면">${Icons.svg('square')}</button>
           <button class="aiw-close" title="닫기">×</button>
         </div>
       </div>
@@ -598,7 +598,7 @@
             if (hints.length > 0) {
               var last = hints[hints.length - 1];
               var errMsg = !ev.data.ok && ev.data.error ? ' — ' + String(ev.data.error).slice(0, 120) : '';
-              last.textContent = '' + ev.data.name + (ev.data.ok ? ' ✓' : ' ✗') + (ev.data._cached ? ' (캐시)' : '') + errMsg;
+              last.textContent = '' + ev.data.name + (ev.data.ok ? ' 완료' : ' 실패') + (ev.data._cached ? ' (캐시)' : '') + errMsg;
             }
           } else if (ev.event === 'approval') {
             appendPendingApproval(ev.data);

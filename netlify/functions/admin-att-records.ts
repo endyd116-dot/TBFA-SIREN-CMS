@@ -127,7 +127,7 @@ export default async function handler(req: Request) {
       .where(whereConditions)
       .orderBy(attRecords.memberUid);
 
-    /* ★ 2026-06-02 fix(출퇴근 기록 빈칸): member_uid(=members.id 문자열)로 이름 매핑 +
+    /* 2026-06-02 fix(출퇴근 기록 빈칸): member_uid(=members.id 문자열)로 이름 매핑 +
        프런트가 읽는 키(memberName/mode/checkinAt/checkoutAt)로 별칭 부여.
        기존엔 원본 행만 반환해 직원·근무형태·출퇴근시각이 전부 '—'로 표시됐다. */
     let recNameMap: Record<string, string> = {};

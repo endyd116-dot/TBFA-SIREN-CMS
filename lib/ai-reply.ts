@@ -1,5 +1,5 @@
 /**
- * AI 답변 초안 생성 — STEP E-4b + ★ M-10 + 2026-05 C-2 운영자 요청사항
+ * AI 답변 초안 생성 — STEP E-4b + M-10 + 2026-05 C-2 운영자 요청사항
  */
 import { callGemini } from "./ai-gemini";
 
@@ -27,7 +27,7 @@ export interface ReplyDraftInput {
   content: string;
   priority?: string;
   currentStatus: string;
-  /* ★ C-2: 운영자가 입력하는 답변 요청사항 */
+  /* C-2: 운영자가 입력하는 답변 요청사항 */
   instruction?: string;
 }
 
@@ -43,9 +43,9 @@ export async function generateReplyDraft(
   const categoryKr = CATEGORY_LABEL[input.category] || input.category;
   const guide = CATEGORY_GUIDE[input.category] || "검토 후 안내";
 
-  /* ★ C-2: 운영자 요청사항이 있으면 시스템 인스트럭션에 포함 */
+  /* C-2: 운영자 요청사항이 있으면 시스템 인스트럭션에 포함 */
   const operatorInstructionBlock = input.instruction && input.instruction.trim()
-    ? `\n\n# ⭐ 운영자 요청사항 (가장 중요)
+    ? `\n\n# 운영자 요청사항 (가장 중요)
 ${input.instruction.trim()}
 
 위 운영자 요청사항을 반드시 답변 본문에 반영해 주세요. 운영자가 명시한 결정/방향성을 우선시합니다.`
@@ -77,7 +77,7 @@ ${input.instruction.trim()}
 - 카테고리: ${categoryKr}
 - 제목: ${input.title}
 - 현재 처리 상태: ${input.currentStatus}
-${input.priority === "urgent" ? "- ⚠️ AI 긴급 분석: 우선 대응 필요" : ""}
+${input.priority === "urgent" ? "- AI 긴급 분석: 우선 대응 필요" : ""}
 
 # 신청 내용
 ${input.content.slice(0, 1500)}${input.content.length > 1500 ? "..." : ""}
@@ -108,7 +108,7 @@ ${input.content.slice(0, 1500)}${input.content.length > 1500 ? "..." : ""}
 }
 
 /* ═══════════════════════════════════════════════════
-   ★ M-10 NEW: 사이렌 관리 통합 답변 초안 (4종 카테고리) + C-2 요청사항
+   M-10 NEW: 사이렌 관리 통합 답변 초안 (4종 카테고리) + C-2 요청사항
    ═══════════════════════════════════════════════════ */
 export type UniversalCategory =
   | "incident"      // 사건 제보
@@ -125,7 +125,7 @@ export interface UniversalReplyInput {
   aiSummary?: string;
   aiSuggestion?: string;
   currentStatus?: string;
-  /* ★ C-2: 운영자가 입력하는 답변 요청사항 */
+  /* C-2: 운영자가 입력하는 답변 요청사항 */
   instruction?: string;
 }
 
@@ -157,9 +157,9 @@ export async function generateUniversalReplyDraft(
   const guide = UNIVERSAL_GUIDE[input.category];
   const tone = UNIVERSAL_TONE[input.category];
 
-  /* ★ C-2: 운영자 요청사항이 있으면 가장 중요한 지시로 포함 */
+  /* C-2: 운영자 요청사항이 있으면 가장 중요한 지시로 포함 */
   const operatorInstructionBlock = input.instruction && input.instruction.trim()
-    ? `\n\n# ⭐ 운영자 요청사항 (반드시 반영)
+    ? `\n\n# 운영자 요청사항 (반드시 반영)
 ${input.instruction.trim()}
 
 위 운영자 요청사항을 답변 본문에 반드시 반영하여 작성해 주세요. 운영자의 결정/방향성이 일반적인 가이드보다 우선합니다.`

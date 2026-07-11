@@ -84,7 +84,7 @@ export default async function handler(req: Request) {
       await notifyAllOperators({
         category: "system",
         severity: "info",
-        title: `🕒 근태 정정 결재 대기 — ${actorName}`,
+        title: `근태 정정 결재 대기 — ${actorName}`,
         message: `${targetDate} 출퇴근 정정 요청 접수${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
         link: "/cms-tbfa.html#att-ops",
         refTable: "att_corrections",

@@ -90,14 +90,14 @@ export default async function handler(req: Request, _ctx: Context) {
     : [];
   const excludedJson = JSON.stringify(excludedMemberIds);
 
-  /* ★ 2026-05-16: 이메일 전용 옵션 — 웹 감싸기 + 첨부파일 */
+  /* 2026-05-16: 이메일 전용 옵션 — 웹 감싸기 + 첨부파일 */
   const wrapEmailWithLayout = body?.wrapEmailWithLayout === true;
   const attachmentBlobIds: number[] = Array.isArray(body?.attachmentBlobIds)
     ? body.attachmentBlobIds.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
     : [];
   const attachmentJson = JSON.stringify(attachmentBlobIds);
 
-  /* ★ 2026-05-17: 이미지 override — 발송 시점에 템플릿 이미지를 임시 수정.
+  /* 2026-05-17: 이미지 override — 발송 시점에 템플릿 이미지를 임시 수정.
      NULL이면 템플릿의 images 그대로 사용. 빈 배열 []이면 이미지 모두 제거. */
   const imagesOverride = Array.isArray(body?.imagesOverride) ? body.imagesOverride.slice(0, 20) : null;
   const imagesOverrideJson = imagesOverride ? JSON.stringify(imagesOverride) : null;
@@ -212,7 +212,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("insert_job_no_id", lastInsertError || "INSERT는 성공했으나 id를 받지 못함");
   }
 
-  /* ★ 2026-06-25 즉시 발송 = 이벤트 기반: "지금 발송" 작업은 발송 큐 적재 직후
+  /* 2026-06-25 즉시 발송 = 이벤트 기반: "지금 발송" 작업은 발송 큐 적재 직후
      백그라운드 드레이너를 즉시 fire(지연 0). 예약 발송은 도래 시 30분 안전망 크론이 처리.
      fire 실패해도 안전망 크론이 줍게 이중화 → 발송 누락 0(여기서 throw 금지). */
   let dispatch: { ok: boolean; status: number; error?: string } | null = null;

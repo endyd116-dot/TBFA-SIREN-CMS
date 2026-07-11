@@ -29,9 +29,9 @@ export default async function handler(req: Request, _ctx: Context) {
     const role = url.searchParams.get("role");   // SM|PM|SI
     const cat  = url.searchParams.get("category"); // REVENUE_LINKED|NON_REVENUE
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       let baseSql = sql`SELECT * FROM milestone_definitions WHERE 1=1`;
-      /* ★ R29-MS-GAP1-A: 운영자(super_admin 외)는 본인 milestoneRole 기준으로 강제 필터.
+      /* R29-MS-GAP1-A: 운영자(super_admin 외)는 본인 milestoneRole 기준으로 강제 필터.
          role 파라미터를 본인 외 값으로 보내도 본인 것만 반환. */
       if (!isSuperAdmin) {
         if (!admin?.milestoneRole) {
@@ -90,9 +90,9 @@ export default async function handler(req: Request, _ctx: Context) {
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     try {
-      /* ★ R32-P0-MS-C3 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → drizzle update().set() ORM
-         ★ R34-P2-B-2: null·typeof 검증 추가 (NOT NULL constraint 위반 + jsonb 파싱 오류 사전 차단)
-         ★ R34-P2-B-3: history INSERT 추가 (admin-milestone-definitions와 변경 이력 일관성 확보) */
+      /* R32-P0-MS-C3 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → drizzle update().set() ORM
+         R34-P2-B-2: null·typeof 검증 추가 (NOT NULL constraint 위반 + jsonb 파싱 오류 사전 차단)
+         R34-P2-B-3: history INSERT 추가 (admin-milestone-definitions와 변경 이력 일관성 확보) */
       const allowed = ["name","thresholdEnabled","thresholdValue","thresholdUnit","bonusFormula",
                        "quarterApplicable","isActive","effectiveFrom","effectiveTo","sortOrder","businessUnit","revenueSource"];
       const patch: Record<string, any> = {};
@@ -198,7 +198,7 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── DELETE /:id — ?hard=1 영구삭제(이력 없을 때만) / 기본 비활성화(소프트삭제) ──
   if (req.method === "DELETE") {
     if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
-    /* ★ R32-P0-FIX-1: ?id= query fallback */
+    /* R32-P0-FIX-1: ?id= query fallback */
     const id = url.searchParams.get("id") || url.pathname.split("/").pop();
     if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
     const hard = url.searchParams.get("hard") === "1";

@@ -1,5 +1,5 @@
 // netlify/functions/notifications-mine.ts
-// ★ Phase M-3: 사용자/관리자 통합 알림 조회
+// Phase M-3: 사용자/관리자 통합 알림 조회
 // GET /api/notifications/mine?limit=20&unreadOnly=1
 // - 사용자(siren_token) → 본인 알림만
 // - 관리자(siren_admin_token) → 본인(member.id) 알림 + recipientType='admin' 추가 가능

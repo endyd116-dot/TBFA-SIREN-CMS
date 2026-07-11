@@ -1,5 +1,5 @@
 // netlify/functions/incident-report-confirm.ts
-// ★ M-5 (B안): 사용자가 AI 답변을 본 후 사이렌 정식 접수 여부 결정
+// M-5 (B안): 사용자가 AI 답변을 본 후 사이렌 정식 접수 여부 결정
 // - sirenReportRequested = true → 운영자 알림 발송 + status='reviewing'
 // - sirenReportRequested = false → AI 답변만 받고 종료 (status='closed')
 
@@ -21,7 +21,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
-  /* ★ R41 Q2-043: 차단(블랙) 사용자 차단 — requireActiveUser 패턴 */
+  /* R41 Q2-043: 차단(블랙) 사용자 차단 — requireActiveUser 패턴 */
   const _r = await requireActiveUser(req);
   if (!_r.ok) return (_r as { ok: false; res: Response }).res;
   const user = _r.user;
@@ -42,7 +42,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!row) return notFound("제보를 찾을 수 없습니다");
 
-    /* ★ R41 Q2-046: select→update 비원자 경합 제거 — siren_report_requested IS NULL 조건으로 원자적 갱신.
+    /* R41 Q2-046: select→update 비원자 경합 제거 — siren_report_requested IS NULL 조건으로 원자적 갱신.
        이미 결정된 건이면 affected 0 (RETURNING 비어있음) → 중복 처리 차단 */
     const updateData: any = {
       sirenReportRequested: requested,
@@ -72,20 +72,20 @@ export default async (req: Request, _ctx: Context) => {
         await notifyAllOperators({
           category: "support",
           severity: isCritical ? "critical" : (isHigh ? "warning" : "info"),
-          title: `${isCritical ? "🚨" : isHigh ? "⚠️" : "📋"} 사건 제보 정식 접수: ${(row as any).reportNo}`,
+          title: `사건 제보 정식 접수: ${(row as any).reportNo}`,
           message: `${(row as any).title} (위급도: ${severity.toUpperCase()})`,
           link: `/admin.html#incident-reports`,
           refTable: "incident_reports",
           refId: reportId,
         }, {
-          /* ★ M-15: incident 담당 운영자 + super_admin에게만 발송 */
+          /* M-15: incident 담당 운영자 + super_admin에게만 발송 */
           category: "incident",
         });
       } catch (e) {
         console.warn("[incident-report-confirm] 알림 실패", e);
       }
 
-      /* ★ US-021: 신고자 본인에게도 '정식 접수·검토 시작' 1회 통지 (기존엔 운영자에게만 알림이 가서
+      /* US-021: 신고자 본인에게도 '정식 접수·검토 시작' 1회 통지 (기존엔 운영자에게만 알림이 가서
          신고자는 운영자가 단계를 수동으로 바꾸기 전까지 진행 통지를 못 받았음). */
       try {
         await createNotification({
@@ -105,7 +105,7 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 감사 로그 */
     try {
-      /* ★ R41 Q2-044: 행위자 표기를 리터럴 "user" 대신 실제 회원명으로 */
+      /* R41 Q2-044: 행위자 표기를 리터럴 "user" 대신 실제 회원명으로 */
       await logUserAction(req, user.uid, user.name || "user", "incident_report_confirm", {
         target: (row as any).reportNo,
         detail: { sirenReportRequested: requested },

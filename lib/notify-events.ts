@@ -11,7 +11,7 @@ export enum NotifyEvent {
   BILLING_FAILED              = "billing.failed",
   BILLING_CANCELED            = "billing.canceled",
   CARD_EXPIRING               = "card.expiring",
-  /* ★ 2026-05-23 솔라피 알림톡 4종 신규(출금예정·연간영수증·후원정보변경) — 출금완료는 BILLING_SUCCESS 재사용 */
+  /* 2026-05-23 솔라피 알림톡 4종 신규(출금예정·연간영수증·후원정보변경) — 출금완료는 BILLING_SUCCESS 재사용 */
   BILLING_UPCOMING            = "billing.upcoming",
   DONATION_RECEIPT_ANNUAL     = "donation.receipt_annual",
   DONOR_INFO_CHANGED          = "donor.info_changed",
@@ -34,7 +34,7 @@ export type ChannelName = "inapp" | "email" | "sms" | "kakao";
 /* =========================================================
    기본 채널 정책 (Phase 8)
    - sms: 현재 미사용 (Phase 9 에서 추가 예정)
-   - kakao '✓ (placeholder)': 발송 로그 기록만 됨, 실제 메시지 외부 전달 X
+   - kakao '(placeholder)': 발송 로그 기록만 됨, 실제 메시지 외부 전달 X
      Phase 9에서 카카오 알림톡 API 어댑터로 교체.
    ========================================================= */
 

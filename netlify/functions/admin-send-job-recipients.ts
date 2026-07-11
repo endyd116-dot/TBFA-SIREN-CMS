@@ -86,7 +86,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("select_recipients", err);
   }
 
-  /* ★ 2026-05-17: 작업이 'pending'이면 cron이 아직 수신자 스냅샷을 INSERT하지
+  /* 2026-05-17: 작업이 'pending'이면 cron이 아직 수신자 스냅샷을 INSERT하지
      않은 상태 → recipients 0건 → 화면이 텅 비어 누구한테 보내는지 확인 불가.
      pending 상태일 때만 그룹 criteria로 미리보기 멤버 목록을 즉시 resolve해
      동일 형식으로 반환. isPreview=true 플래그로 클라이언트 식별 가능. */

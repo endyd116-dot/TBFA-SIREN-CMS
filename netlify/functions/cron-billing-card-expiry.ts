@@ -1,11 +1,11 @@
 // netlify/functions/cron-billing-card-expiry.ts
-// ★ Phase 2 Step 4-C: 카드 만료 사전 알림 Scheduled Function
+// Phase 2 Step 4-C: 카드 만료 사전 알림 Scheduled Function
 // - 매일 KST 오전 9시 (UTC 00:00) 실행
 // - 30일 전 + 14일 전 만료 예정 카드 감지
 // - card_expiry_alerts 중복 발송 방지
 // - 이메일 + SMS + 알림톡 통보 (Phase 8 Stub)
 //
-// ⚠️ R40 KICC 제약(2026-05-23 운영 전 검수 P1-3): KICC 빌키발급 응답(cardInfo)에는
+// R40 KICC 제약(2026-05-23 운영 전 검수 P1-3): KICC 빌키발급 응답(cardInfo)에는
 //    카드 "만료월"이 포함되지 않는다(빌키·발급사·마스킹번호·카드종류만 회신 — docs/kicc.md cardInfo).
 //    따라서 KICC 빌키는 billing_keys.card_expiry_month가 NULL이라 본 cron의 사전 알림 대상에
 //    "잡히지 않는다"(만료 데이터 자체가 없음 → 사전 알림 불가). 이는 코드 결함이 아니라 PG 제약.
@@ -22,7 +22,7 @@ import {
   type NewCardExpiryAlert,
 } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-// ★ Phase 8: 통합 알림 디스패처
+// Phase 8: 통합 알림 디스패처
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
 
@@ -278,7 +278,7 @@ async function processExpiryTarget(
     if (target.memberEmail) channels.push("email");
     channels.push("kakao");
 
-    console.log(`[cron-card-expiry] 📧 알림: 회원 #${target.memberId} (${target.memberName}) — ${target.alertType} (${target.cardExpiryMonth})`);
+    console.log(`[cron-card-expiry] 알림: 회원 #${target.memberId} (${target.memberName}) — ${target.alertType} (${target.cardExpiryMonth})`);
 
     // 이력 기록
     await db.insert(cardExpiryAlerts).values({

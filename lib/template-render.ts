@@ -15,7 +15,7 @@ export interface RenderResult {
  * - {{key}} 외 블록·조건문 미지원
  * - HTML 이스케이프 X (이메일 HTML 본문에서 raw 사용 의도)
  *
- * ★ 2026-05-16: 진짜 발송 시 sample fallback 사용하면 미리보기 예시값(예: "홍길동")이
+ * 2026-05-16: 진짜 발송 시 sample fallback 사용하면 미리보기 예시값(예: "홍길동")이
  * 실제 메일에 그대로 박혀버림. options.useSampleFallback 기본값을 false로 두고,
  * 미리보기 화면에서만 명시적으로 true 전달하도록 변경.
  */
@@ -34,7 +34,7 @@ export function renderTemplate(
   const varMap = new Map(variables.map((v) => [v.key, v]));
   const allowSample = options.useSampleFallback === true;
 
-  /* ★ 2026-05-16: \w+는 ASCII 단어 문자만 매칭 → 한글 변수명({{회원이름}})은
+  /* 2026-05-16: \w+는 ASCII 단어 문자만 매칭 → 한글 변수명({{회원이름}})은
      치환 안 되고 그대로 남던 결함. [^{}]+로 확장해 한글·공백 포함 변수명 지원.
      키 trim 추가로 {{ 회원이름 }} 같은 공백 입력도 안전 처리. */
   const rendered = template.replace(/\{\{([^{}]+)\}\}/g, (_, rawKey: string) => {

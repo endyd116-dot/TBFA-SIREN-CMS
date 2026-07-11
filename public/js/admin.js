@@ -63,7 +63,7 @@
     admin: '관리자',
   };
 
-  /* ★ M-12: 회원 분류 라벨 */
+  /* M-12: 회원 분류 라벨 */
   const MEMBER_CATEGORY_LABEL = {
     sponsor: '후원회원',
     regular: '일반회원',
@@ -79,7 +79,7 @@
     counselor: '심리전문가',
   };
 
-  /* ★ I-3: 채팅 카테고리 라벨 (회원 모달의 채팅 메모 목록용) */
+  /* I-3: 채팅 카테고리 라벨 (회원 모달의 채팅 메모 목록용) */
   const CHAT_CAT_LABEL = {
     support_donation: '후원 문의',
     support_homepage: '홈페이지',
@@ -87,7 +87,7 @@
     support_other: '기타',
   };
 
-  /* ★ I-4: 회원 정렬 — type 그룹 우선순위 (작은 값 먼저) */
+  /* I-4: 회원 정렬 — type 그룹 우선순위 (작은 값 먼저) */
   const MEMBER_TYPE_PRIORITY = {
     admin: 1,      // 관리자 먼저
     family: 2,     // 유가족
@@ -95,7 +95,7 @@
     volunteer: 4,  // 봉사자
   };
 
-  /* ★ I-4: 회원 정렬 — status 그룹 우선순위 */
+  /* I-4: 회원 정렬 — status 그룹 우선순위 */
   const MEMBER_STATUS_PRIORITY = {
     active: 1,      // 정상 먼저
     pending: 2,     // 승인대기
@@ -107,7 +107,7 @@
   let CURRENT_KPI = null;
   let _kpiPollTimer = null;
 
-  /* ★ I-4: 회원 목록 캐시 + 정렬 상태 */
+  /* I-4: 회원 목록 캐시 + 정렬 상태 */
   let _currentMembers = [];
   let _currentMembersTotal = 0;
   let _memberSort = { field: null, dir: 'asc' };  // field: 'id'|'name'|'type'|'createdAt'|'lastLoginAt'|'status'|null
@@ -123,7 +123,7 @@
   }
 // public/js/admin.js — 상수 정의 영역에 추가 (MEMBER_STATUS_PRIORITY 다음)
 
-  /* ★ M-15: 운영자 담당 카테고리 정의 */
+  /* M-15: 운영자 담당 카테고리 정의 */
 const OPERATOR_CATEGORIES = [
   { code: 'incident',   label: '사건 제보',    emoji: '' },
   { code: 'harassment', label: '악성민원',     emoji: '' },
@@ -131,7 +131,7 @@ const OPERATOR_CATEGORIES = [
   { code: 'board',      label: '자유게시판',   emoji: '' },
   { code: 'donation',   label: '후원',         emoji: '' },
   { code: 'support',    label: '유가족 지원',  emoji: '' },
-  /* ★ 2026-05: 콘텐츠 + 통계 편집 권한 추가 */
+  /* 2026-05: 콘텐츠 + 통계 편집 권한 추가 */
   { code: 'content',    label: '콘텐츠 / 통계', emoji: '' },
   { code: 'stats_management', label: '통계 전용', emoji: '' },
 ];
@@ -331,7 +331,7 @@ const OPERATOR_CATEGORIES = [
 
 // public/js/admin.js — fmtMoney 함수 전체 교체
   /**
-   * ★ M-18: 한국식 금액 포맷터
+   * M-18: 한국식 금액 포맷터
    * - 10,000원 미만: "₩ 5,000원"
    * - 10,000원 ~ 99,999,999원: "₩ 1,234만원"
    * - 100,000,000원 이상: "₩ 1억 2,340만원" (만원 단위 0이면 "1억" 만 표기)
@@ -361,7 +361,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /**
-   * ★ M-18: 차트/뱃지용 짧은 표기 (단위 콤팩트)
+   * M-18: 차트/뱃지용 짧은 표기 (단위 콤팩트)
    * - "1,234만" / "1.2억" / "1.23억"
    */
   function fmtMoneyShort(n) {
@@ -376,7 +376,7 @@ const OPERATOR_CATEGORIES = [
     return eok.toFixed(1) + '억';
   }
 
-  /* ★ M-18: 차트 등 외부 모듈에서 사용할 수 있도록 노출 */
+  /* M-18: 차트 등 외부 모듈에서 사용할 수 있도록 노출 */
   window.SIREN_FMT = window.SIREN_FMT || {};
   window.SIREN_FMT.money = fmtMoney;
   window.SIREN_FMT.moneyShort = fmtMoneyShort;
@@ -441,12 +441,12 @@ const OPERATOR_CATEGORIES = [
         renderDashboardKPI();
         if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
       }
-      /* ★ L-8: 효성 대기 건수 뱃지 갱신 (관리자 페이지 밖에 있어도 표시) */
+      /* L-8: 효성 대기 건수 뱃지 갱신 (관리자 페이지 밖에 있어도 표시) */
       fetchHyosungPendingBadge().catch(() => {});
     }, 60000);
   }
 
-  /* ★ L-8: 효성 대기 건수만 가볍게 조회 */
+  /* L-8: 효성 대기 건수만 가볍게 조회 */
   async function fetchHyosungPendingBadge() {
     try {
       const res = await api('/api/admin/hyosung?status=pending&limit=1&page=1');
@@ -480,21 +480,21 @@ const OPERATOR_CATEGORIES = [
     if (window.SIREN_CHARTS && typeof window.SIREN_CHARTS.initDashboardWithData === 'function') {
       setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 150);
     }
-    fetchHyosungPendingBadge().catch(() => {});  /* ★ L-8: 첫 로그인 시 뱃지 표시 */
-    /* ★ M-19-11 V2: 회원 자격 관리 뱃지 prefetch */
+    fetchHyosungPendingBadge().catch(() => {});  /* L-8: 첫 로그인 시 뱃지 표시 */
+    /* M-19-11 V2: 회원 자격 관리 뱃지 prefetch */
     if (window.SIREN_ADMIN_APPROVALS) window.SIREN_ADMIN_APPROVALS.refreshBadge();
-    /* ★ M-10: 사이렌 관리 4개 사이드바 뱃지 갱신 */
+    /* M-10: 사이렌 관리 4개 사이드바 뱃지 갱신 */
     if (window.SIREN_ADMIN_SIREN && typeof window.SIREN_ADMIN_SIREN.refreshBadgesOnly === 'function') {
       window.SIREN_ADMIN_SIREN.refreshBadgesOnly().catch(() => {});
     }
 
-    /* ★ M-16: super_admin 전용 메뉴 가시성 토글 */
+    /* M-16: super_admin 전용 메뉴 가시성 토글 */
     applyRoleVisibility();
 
     startKpiPolling();
   }
 
-  /* ★ M-16: 역할 기반 사이드바 가시성 */
+  /* M-16: 역할 기반 사이드바 가시성 */
   function applyRoleVisibility() {
     const isSuperAdmin = CURRENT_ADMIN && CURRENT_ADMIN.role === 'super_admin';
     document.querySelectorAll('[data-super-only]').forEach((el) => {
@@ -502,7 +502,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ============ 대시보드 KPI (★ 2026-05-16 재구성: SIREN 플랫폼 중심) ============
+  /* ============ 대시보드 KPI (2026-05-16 재구성: SIREN 플랫폼 중심) ============
      기존: 금월 후원금 / 신규 정기 후원 / 대기 중 지원 / 전체 회원
      변경: 사이렌 웹 가입자 / 대기 중 지원 / 활성 매칭 / 최근 7일 신고
      - 회원 통계는 가입경로='siren' 필터(webonly=1) — 효성·수기·이벤트 제외
@@ -588,7 +588,7 @@ const OPERATOR_CATEGORIES = [
     }).join('');
   }
 
-  /* ============ ★ I-4 + K-7: 회원 관리 ============ */
+  /* ============ I-4 + K-7: 회원 관리 ============ */
   let _mmSearchTimer = null;
 
     async function loadMembers() {
@@ -598,7 +598,7 @@ const OPERATOR_CATEGORIES = [
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
-    /* ★ M-12: 가입경로 셀렉트 자동 채우기 (1회만) */
+    /* M-12: 가입경로 셀렉트 자동 채우기 (1회만) */
     await populateSourceSelect();
 
     /* 필터 수집 */
@@ -614,7 +614,7 @@ const OPERATOR_CATEGORIES = [
     if (s) params.set('status', s);
     if (cat) params.set('category', cat);
     if (sub) params.set('subtype', sub);
-    /* ★ 2026-05-11: 싸이렌 어드민 가입회원 관리는 '홈페이지(siren) 가입자'만 표시.
+    /* 2026-05-11: 싸이렌 어드민 가입회원 관리는 '홈페이지(siren) 가입자'만 표시.
        효성·수기·이벤트 등 외부 가입자는 교유협 통합 CMS(/cms-tbfa.html)에서 관리.
        사용자 선택과 무관하게 source='siren'으로 강제. */
     params.set('source', 'siren');
@@ -629,7 +629,7 @@ const OPERATOR_CATEGORIES = [
     _currentMembersTotal = res.data.data.pagination ? res.data.data.pagination.total : 0;
     const categoryCounts = res.data.data.categoryCounts || {};
 
-    /* ★ M-12: 4분류 KPI */
+    /* M-12: 4분류 KPI */
     const setKpi = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = (n || 0).toLocaleString() + ' 명'; };
     setKpi('mmKpiSponsor', categoryCounts.sponsor || 0);
     setKpi('mmKpiRegular', categoryCounts.regular || 0);
@@ -650,7 +650,7 @@ const OPERATOR_CATEGORIES = [
     renderMemberTable();
   }
 
-  /* ★ M-12: 가입경로 셀렉트 채우기 (캐시) */
+  /* M-12: 가입경로 셀렉트 채우기 (캐시) */
   let _sourceSelectFilled = false;
   async function populateSourceSelect() {
     if (_sourceSelectFilled) return;
@@ -672,7 +672,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /**
-   * ★ I-4: 회원 정렬 비교 함수
+   * I-4: 회원 정렬 비교 함수
    * @param list - 회원 배열
    * @param field - 'id'|'name'|'type'|'createdAt'|'lastLoginAt'|'status'|null
    * @param dir   - 'asc'|'desc'
@@ -732,7 +732,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /**
-   * ★ I-4: 회원 테이블 헤더에 정렬 가능 표시 (한 번만 호출)
+   * I-4: 회원 테이블 헤더에 정렬 가능 표시 (한 번만 호출)
    */
   function decorateMemberHeaders() {
     const panel = document.getElementById('adm-members');
@@ -771,7 +771,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /**
-   * ★ I-4: 헤더 화살표만 갱신 (라벨은 유지)
+   * I-4: 헤더 화살표만 갱신 (라벨은 유지)
    */
   function updateSortArrows() {
     const panel = document.getElementById('adm-members');
@@ -793,7 +793,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /**
-   * ★ I-4: 회원 테이블 본문 렌더 (정렬 적용)
+   * I-4: 회원 테이블 본문 렌더 (정렬 적용)
    */
     function renderMemberTable() {
     const panel = document.getElementById('adm-members');
@@ -834,7 +834,7 @@ const OPERATOR_CATEGORIES = [
         actionBtns += '<button class="btn-link" data-member-action="approve" data-id="' + m.id + '">정상화</button>';
       }
 
-      /* ★ M-12: 분류 / 가입경로 셀 */
+      /* M-12: 분류 / 가입경로 셀 */
       const categoryLabel = MEMBER_CATEGORY_LABEL[m.memberCategory] || '<span style="color:var(--text-3);font-size:11px">미분류</span>';
       const subtypeLabel = m.memberSubtype
         ? `<div style="font-size:10.5px;color:var(--text-3);margin-top:2px">${escapeHtml(MEMBER_SUBTYPE_LABEL[m.memberSubtype] || m.memberSubtype)}</div>`
@@ -859,7 +859,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /**
-   * ★ I-4: 컬럼 헤더 클릭 → 정렬 전환 (이벤트 위임)
+   * I-4: 컬럼 헤더 클릭 → 정렬 전환 (이벤트 위임)
    */
   function setupMemberSort() {
     document.addEventListener('click', (e) => {
@@ -880,7 +880,7 @@ const OPERATOR_CATEGORIES = [
       renderMemberTable();
     });
   }
-  /* ★ K-7: 회원 관리 검색/필터 디바운스 */
+  /* K-7: 회원 관리 검색/필터 디바운스 */
     function setupMemberSearch() {
     const qInput = document.getElementById('mmFilterQ');
     if (qInput) {
@@ -889,13 +889,13 @@ const OPERATOR_CATEGORIES = [
         _mmSearchTimer = setTimeout(loadMembers, 400);
       });
     }
-    /* ★ M-12: 신규 필터 추가 */
+    /* M-12: 신규 필터 추가 */
     ['mmFilterType', 'mmFilterStatus', 'mmFilterCategory', 'mmFilterSubtype', 'mmFilterSource'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', loadMembers);
     });
 
-    /* ★ 4순위 #1: 회원 내역 내보내기 (효성 CMS+ 계약정보 22컬럼 .xlsx) */
+    /* 4순위 #1: 회원 내역 내보내기 (효성 CMS+ 계약정보 22컬럼 .xlsx) */
     const exportBtn = document.getElementById('btnExportMembers');
     if (exportBtn) {
       exportBtn.addEventListener('click', async (e) => {
@@ -932,7 +932,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ============ ★ K-9: 관리자 비밀번호 변경 ============ */
+  /* ============ K-9: 관리자 비밀번호 변경 ============ */
   function calcPasswordStrength(pw) {
     let score = 0;
     if (pw.length >= 8) score++;
@@ -974,7 +974,7 @@ const OPERATOR_CATEGORIES = [
           const matchEl = document.getElementById('apMatch');
           if (matchEl) {
             const match = pw === pw2El.value;
-            matchEl.textContent = match ? '✓ 일치합니다' : '✗ 일치하지 않습니다';
+            matchEl.textContent = match ? '일치합니다' : '일치하지 않습니다';
             matchEl.style.color = match ? '#10b981' : '#dc2626';
           }
         }
@@ -987,7 +987,7 @@ const OPERATOR_CATEGORIES = [
         if (!matchEl) return;
         if (!pw2) { matchEl.textContent = ''; return; }
         const match = pw === pw2;
-        matchEl.textContent = match ? '✓ 일치합니다' : '✗ 일치하지 않습니다';
+        matchEl.textContent = match ? '일치합니다' : '일치하지 않습니다';
         matchEl.style.color = match ? '#10b981' : '#dc2626';
       }
     });
@@ -1056,7 +1056,7 @@ const OPERATOR_CATEGORIES = [
 
   // public/js/admin.js — setupAdminPasswordForm 함수 다음에 추가
 
-  /* ============ ★ M-15 Part 3-B: 후원 정책 관리 ============ */
+  /* ============ M-15 Part 3-B: 후원 정책 관리 ============ */
 
   /**
    * 콤마 구분 문자열 → 정수 배열 (정렬+중복제거)
@@ -1282,7 +1282,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ============ ★ K-5: 콘텐츠 관리 (공지/FAQ CRUD) ============ */
+  /* ============ K-5: 콘텐츠 관리 (공지/FAQ CRUD) ============ */
   let _cmNoticeSearchTimer = null;
   let _cmFaqSearchTimer = null;
 
@@ -1585,7 +1585,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-    /* ============ ★ L-8: 효성 CMS+ 관리 ============ */
+    /* ============ L-8: 효성 CMS+ 관리 ============ */
   let _hySearchTimer = null;
   let _hyCurrentList = [];
 
@@ -1670,7 +1670,7 @@ const OPERATOR_CATEGORIES = [
           : '') +
         '</div>';
 
-            /* ★ L-9: 효성 회원번호 표시 (있으면 배지, 없으면 경고) */
+            /* L-9: 효성 회원번호 표시 (있으면 배지, 없으면 경고) */
       const hyosungBadge = r.hyosungMemberNo
         ? '<span style="font-family:Inter;font-size:11px;background:#e7f7ec;color:#1a5e2c;padding:2px 7px;border-radius:8px;font-weight:600">#' + String(r.hyosungMemberNo).padStart(8, '0') + '</span>'
         : (r.status === 'pending'
@@ -1720,7 +1720,7 @@ const OPERATOR_CATEGORIES = [
 
   // public/js/admin.js — setupHyosungDetailActions 함수 정의 끝 다음에 삽입
 
-  /* ============ ★ M-19-1: 후원자 이탈 위험 ============ */
+  /* ============ M-19-1: 후원자 이탈 위험 ============ */
   let _churnSearchTimer = null;
   let _churnCurrentList = [];
 
@@ -2097,8 +2097,8 @@ const OPERATOR_CATEGORIES = [
     }
   }
   /* 행 액션 (상세/완료/해지) */
-    /* ★ L-8 + L-9: 효성 CMS+ 통합 액션 핸들러 */
-    /* ★ L-8 + L-9 + M-13: 효성 CMS+ 통합 액션 핸들러 */
+    /* L-8 + L-9: 효성 CMS+ 통합 액션 핸들러 */
+    /* L-8 + L-9 + M-13: 효성 CMS+ 통합 액션 핸들러 */
   function setupHyosungActions() {
     /* ─── 행 액션 (상세/완료/해지) ─── */
     document.addEventListener('click', (e) => {
@@ -2136,7 +2136,7 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
-      /* ─── ★ M-13: CSV 업로드 (자동 회원 생성 옵션 추가) ─── */
+      /* ─── M-13: CSV 업로드 (자동 회원 생성 옵션 추가) ─── */
       var importBtn = e.target.closest('[data-demo-action="hyosung-csv-import"]');
       if (importBtn) {
         e.preventDefault();
@@ -2176,7 +2176,7 @@ const OPERATOR_CATEGORIES = [
               return;
             }
 
-            /* ★ M-13: 2단계 — 매칭 실패 시 자동 회원 생성 옵션 */
+            /* M-13: 2단계 — 매칭 실패 시 자동 회원 생성 옵션 */
             var createMembers = confirm(
               '매칭 실패 행에 대해 회원을 자동 생성하시겠습니까?\n\n' +
               '[확인] = 자동 생성 ON (권장)\n' +
@@ -2210,15 +2210,15 @@ const OPERATOR_CATEGORIES = [
                 var d = data.data || {};
                 toast(data.message || '처리 완료');
 
-                /* ★ M-13: 결과 표시 강화 */
+                /* M-13: 결과 표시 강화 */
                 var resultMsg = '효성 CSV 업로드 결과\n\n' +
                   '파일: ' + (d.fileName || file.name) + '\n' +
                   '전체 행: ' + (d.totalRows || 0) + '건\n' +
                   '─────────────────────\n' +
-                  '✓ 매칭 성공: ' + (d.matched || 0) + '건\n' +
-                  '✓ 후원 생성: ' + (d.created || 0) + '건\n' +
+                  '매칭 성공: ' + (d.matched || 0) + '건\n' +
+                  '후원 생성: ' + (d.created || 0) + '건\n' +
                   '스킵 (중복): ' + (d.skipped || 0) + '건\n' +
-                  '✗ 실패: ' + (d.failed || 0) + '건\n';
+                  '실패: ' + (d.failed || 0) + '건\n';
 
                 if (d.createMembersOption) {
                   resultMsg += '─────────────────────\n' +
@@ -2436,7 +2436,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   /* 효성 빠른 완료 처리 (행에서 클릭) */
-    /* 효성 빠른 완료 처리 (행에서 클릭) — ★ L-9: 번호 입력 */
+    /* 효성 빠른 완료 처리 (행에서 클릭) — L-9: 번호 입력 */
   async function openHyosungQuickComplete(id, name) {
     const safeName = name || '후원자';
 
@@ -2530,7 +2530,7 @@ const OPERATOR_CATEGORIES = [
       }
 
       /* 모달 내 완료 처리 (사유 포함) */
-            /* 모달 내 완료 처리 (★ L-9: 효성 회원번호 필수) */
+            /* 모달 내 완료 처리 (L-9: 효성 회원번호 필수) */
       const completeBtn = e.target.closest('[data-hy-complete]');
       if (completeBtn) {
         e.preventDefault();
@@ -2578,7 +2578,7 @@ const OPERATOR_CATEGORIES = [
         }
         return;
       }
-      /* ★ L-9: 효성 정보 수정 표시/숨김 토글 */
+      /* L-9: 효성 정보 수정 표시/숨김 토글 */
       const editInfoBtn = e.target.closest('[data-hy-edit-info]');
       if (editInfoBtn) {
         e.preventDefault();
@@ -2589,7 +2589,7 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
-      /* ★ L-9: 효성 정보 저장 */
+      /* L-9: 효성 정보 저장 */
       const saveInfoBtn = e.target.closest('[data-hy-save-info]');
       if (saveInfoBtn) {
         e.preventDefault();
@@ -2837,7 +2837,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ============ ★ STEP H-2d-3: 영수증 설정 ============ */
+  /* ============ STEP H-2d-3: 영수증 설정 ============ */
     async function loadReceiptSettings() {
     const form = document.getElementById('receiptSettingsForm');
     if (!form) return;
@@ -2874,7 +2874,7 @@ const OPERATOR_CATEGORIES = [
 
     renderFooterNotes(Array.isArray(s.footerNotes) ? s.footerNotes : []);
 
-    /* ★ M-14: 직인 정보 표시 */
+    /* M-14: 직인 정보 표시 */
     const stampBlobIdEl = document.getElementById('rsStampBlobId');
     const stampPreviewEl = document.getElementById('rsStampPreview');
     const stampPlaceholderEl = document.getElementById('rsStampPlaceholder');
@@ -2889,7 +2889,7 @@ const OPERATOR_CATEGORIES = [
       }
       if (stampPlaceholderEl) stampPlaceholderEl.style.display = 'none';
       if (stampInfoEl) {
-        stampInfoEl.innerHTML = `<strong style="color:var(--success)">✓ 직인 등록됨</strong><br />` +
+        stampInfoEl.innerHTML = `<strong style="color:var(--success)">${Icons.svg('check')} 직인 등록됨</strong><br />` +
           `<span style="font-size:11.5px;color:var(--text-3)">${escapeHtml(s.stampOriginalName || '직인 이미지')}</span>`;
       }
       if (stampClearBtn) stampClearBtn.style.display = 'inline-block';
@@ -2921,7 +2921,7 @@ const OPERATOR_CATEGORIES = [
       const safeVal = String(note || '').replace(/"/g, '&quot;');
       return '<div class="rs-footer-row" data-rs-idx="' + idx + '">' +
         '<input type="text" value="' + safeVal + '" placeholder="• 안내문 내용..." maxlength="200">' +
-        '<button type="button" data-rs-remove="' + idx + '" title="삭제">✕</button>' +
+        '<button type="button" data-rs-remove="' + idx + '" title="삭제">' + Icons.svg('x') + '</button>' +
         '</div>';
     }).join('');
   }
@@ -3003,7 +3003,7 @@ const OPERATOR_CATEGORIES = [
         newRow.dataset.rsIdx = String(currentRows);
         newRow.innerHTML =
           '<input type="text" value="" placeholder="• 안내문 내용..." maxlength="200">' +
-          '<button type="button" data-rs-remove="' + currentRows + '" title="삭제">✕</button>';
+          '<button type="button" data-rs-remove="' + currentRows + '" title="삭제">' + Icons.svg('x') + '</button>';
         list.appendChild(newRow);
         newRow.querySelector('input')?.focus();
         return;
@@ -3036,14 +3036,14 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
-      /* ★ M-14: 직인 업로드 버튼 */
+      /* M-14: 직인 업로드 버튼 */
       if (e.target.closest('#rsStampUploadBtn')) {
         e.preventDefault();
         document.getElementById('rsStampFileInput')?.click();
         return;
       }
 
-      /* ★ M-14: 직인 제거 버튼 */
+      /* M-14: 직인 제거 버튼 */
       if (e.target.closest('#rsStampClearBtn')) {
         e.preventDefault();
         if (!confirm('직인을 제거하시겠습니까?\n\n제거 후 발급되는 영수증은 빨간 원형 표식으로 대체됩니다.\n기존 발급된 영수증은 영향받지 않습니다.')) return;
@@ -3063,7 +3063,7 @@ const OPERATOR_CATEGORIES = [
       }
     });
 
-    /* ★ M-14: 직인 파일 선택 핸들러 (R2 직접 업로드 → blob_id 저장) */
+    /* M-14: 직인 파일 선택 핸들러 (R2 직접 업로드 → blob_id 저장) */
     const stampInput = document.getElementById('rsStampFileInput');
     if (stampInput && !stampInput.dataset.bound) {
       stampInput.dataset.bound = '1';
@@ -3131,7 +3131,7 @@ const OPERATOR_CATEGORIES = [
     setupReceiptSettingsActions();
   }
 
-  /* ============ ★ 지원 관리 (STEP E-2 개선) ============ */
+  /* ============ 지원 관리 (STEP E-2 개선) ============ */
   async function loadSupport() {
     const panel = document.getElementById('adm-support');
     if (!panel) return;
@@ -3287,7 +3287,7 @@ const OPERATOR_CATEGORIES = [
     document.getElementById('replyNote').value = '';
     document.getElementById('replySendEmail').checked = false;
 
-    /* ★ K-3: 새 입력칸 초기화 */
+    /* K-3: 새 입력칸 초기화 */
     const expertEl = document.getElementById('replyAssignedExpert');
     const supplementEl = document.getElementById('replySupplement');
     const reportEl = document.getElementById('replyReport');
@@ -3331,7 +3331,7 @@ const OPERATOR_CATEGORIES = [
       }
     }
 
-    /* ★ K-3: 첨부파일을 다운로드 링크로 렌더링 */
+    /* K-3: 첨부파일을 다운로드 링크로 렌더링 */
     const attachEl = document.getElementById('detail-attachments');
     if (attachEl) {
       let attaches = [];
@@ -3377,12 +3377,12 @@ const OPERATOR_CATEGORIES = [
     document.getElementById('replyStatus').value = r.status || 'submitted';
     document.getElementById('replyNote').value = r.adminNote || '';
 
-    /* ★ K-3: 기존 값 채우기 */
+    /* K-3: 기존 값 채우기 */
     if (expertEl) expertEl.value = r.assignedExpertName || '';
     if (supplementEl) supplementEl.value = r.supplementNote || '';
     if (reportEl) reportEl.value = r.reportContent || '';
 
-    /* ★ K-3: 상태에 따라 입력칸 표시/숨김 */
+    /* K-3: 상태에 따라 입력칸 표시/숨김 */
     toggleSupportConditionalFields(r.status || 'submitted');
 
     injectAiDraftButton();
@@ -3478,7 +3478,7 @@ const OPERATOR_CATEGORIES = [
       const recs = res.data.data.recommendations;
       const cardsHtml = recs.map((r, idx) => {
         const scoreColor = r.score >= 85 ? '#1a8b46' : r.score >= 70 ? '#c47a00' : '#8a8a8a';
-        /* ★ K-3: "이 전문가로 배정" 버튼 추가 */
+        /* K-3: "이 전문가로 배정" 버튼 추가 */
         const safeName = String(r.name).replace(/"/g, '&quot;');
         const safeRole = String(r.role).replace(/"/g, '&quot;');
         const expertLabel = `${r.name} ${r.role}`;
@@ -3494,7 +3494,7 @@ const OPERATOR_CATEGORIES = [
           '<span style="background:' + scoreColor + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">' +
           '매칭 ' + r.score + '%</span>' +
           '<button type="button" class="k3-assign-btn" data-k3-assign="' + safeLabel + '">' +
-          '✓ 이름 입력(참고용)' +
+          '이름 입력(참고용)' +
           '</button>' +
           '</div>' +
           '</div>' +
@@ -3518,7 +3518,7 @@ const OPERATOR_CATEGORIES = [
     }
   }
 
-  /* ★ C-2: AI 초안 생성 + 운영자 요청사항 영역 삽입 */
+  /* C-2: AI 초안 생성 + 운영자 요청사항 영역 삽입 */
   function injectAiDraftButton() {
     const note = document.getElementById('replyNote');
     if (!note) return;
@@ -3557,7 +3557,7 @@ const OPERATOR_CATEGORIES = [
         const id = Number(document.getElementById('replyId').value);
         if (!id) return toast('신청을 먼저 선택하세요');
 
-        /* ★ C-2: 운영자 요청사항 수집 */
+        /* C-2: 운영자 요청사항 수집 */
         const instructionEl = document.getElementById('supportInstruction');
         const instruction = instructionEl ? instructionEl.value.trim() : '';
 
@@ -3608,7 +3608,7 @@ const OPERATOR_CATEGORIES = [
     const form = document.getElementById('supportReplyForm');
     if (!form) return;
 
-    /* ★ K-3: 상태 변경 시 보완/완료 입력칸 표시/숨김 */
+    /* K-3: 상태 변경 시 보완/완료 입력칸 표시/숨김 */
     const statusEl = document.getElementById('replyStatus');
     if (statusEl) {
       statusEl.addEventListener('change', (e) => {
@@ -3624,7 +3624,7 @@ const OPERATOR_CATEGORIES = [
       const adminNote = (document.getElementById('replyNote').value || '').trim();
       const sendEmail = document.getElementById('replySendEmail')?.checked === true;
 
-      /* ★ K-3: 새 필드 수집 */
+      /* K-3: 새 필드 수집 */
       const assignedExpertName = (document.getElementById('replyAssignedExpert')?.value || '').trim();
       const supplementNote = (document.getElementById('replySupplement')?.value || '').trim();
       const reportContent = (document.getElementById('replyReport')?.value || '').trim();
@@ -3634,7 +3634,7 @@ const OPERATOR_CATEGORIES = [
         return toast('메일 발송 시 답변 내용을 입력해 주세요');
       }
 
-      /* ★ K-3: 상태별 필수 입력 검증 */
+      /* K-3: 상태별 필수 입력 검증 */
       if (status === 'supplement' && !supplementNote) {
         return toast('보완 요청 시 보완 안내 내용을 입력해 주세요');
       }
@@ -3651,7 +3651,7 @@ const OPERATOR_CATEGORIES = [
       }
 
       try {
-        /* ★ K-3: 새 필드를 PATCH body에 포함 */
+        /* K-3: 새 필드를 PATCH body에 포함 */
         const body = {
           id,
           status,
@@ -3687,7 +3687,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-    /* ★ K-3: 상태별 입력칸 표시/숨김 */
+    /* K-3: 상태별 입력칸 표시/숨김 */
   function toggleSupportConditionalFields(status) {
     const supplementGroup = document.getElementById('replySupplementGroup');
     const reportGroup = document.getElementById('replyReportGroup');
@@ -3700,7 +3700,7 @@ const OPERATOR_CATEGORIES = [
     }
   }
 
-  /* ★ K-3: AI 추천 전문가 → 배정 입력칸 자동 입력 */
+  /* K-3: AI 추천 전문가 → 배정 입력칸 자동 입력 */
   function setupExpertAssignClick() {
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-k3-assign]');
@@ -3713,10 +3713,10 @@ const OPERATOR_CATEGORIES = [
         expertEl.focus();
         /* 시각적 피드백 */
         btn.classList.add('assigned');
-        btn.textContent = '✓ 입력됨';
+        btn.textContent = '입력됨';
         setTimeout(() => {
           btn.classList.remove('assigned');
-          btn.textContent = '✓ 이름 입력(참고용)';
+          btn.textContent = '이름 입력(참고용)';
         }, 2000);
         toast('참고용 이름이 입력되었습니다. 실제 매칭·채팅은 "전문가 배정"을 사용하세요.');
       }
@@ -3738,7 +3738,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ============ ★ 회원 정보 팝업 (★ I-3 블랙/메모 + ★ K-7 메모/잠금/인증) ============ */
+  /* ============ 회원 정보 팝업 (I-3 블랙/메모 + K-7 메모/잠금/인증) ============ */
   async function openMemberInfoModal(memberId) {
     const modal = document.getElementById('memberInfoModal');
     const body = document.getElementById('memberInfoBody');
@@ -3777,7 +3777,7 @@ const OPERATOR_CATEGORIES = [
       withdrawn: '<span class="badge b-mute">탈퇴</span>',
     };
 
-    /* ★ K-7: 잠금 상태 박스 */
+    /* K-7: 잠금 상태 박스 */
     const isLocked = lockedUntil && new Date(lockedUntil) > new Date();
     const lockedBlock = isLocked
       ? '<div class="mi-locked-box">' +
@@ -3787,12 +3787,12 @@ const OPERATOR_CATEGORIES = [
         '</div>'
       : '';
 
-    /* ★ K-7: 미인증 안내 박스 */
+    /* K-7: 미인증 안내 박스 */
     const unverifiedBlock = !emailVerified
       ? '<div class="mi-unverified-box">' +
           '<span style="font-size:18px"></span>' +
           '<span style="flex:1">이메일 미인증 상태입니다</span>' +
-          '<button type="button" class="mi-action-row button success" data-mi-k7="verify-email" data-mi-id="' + member.id + '" style="padding:5px 12px;font-size:11.5px;background:#e7f7ec;color:#1a5e2c;border:1px solid #a3d9b4;border-radius:5px;cursor:pointer;font-weight:600">✓ 강제 인증</button>' +
+          '<button type="button" class="mi-action-row button success" data-mi-k7="verify-email" data-mi-id="' + member.id + '" style="padding:5px 12px;font-size:11.5px;background:#e7f7ec;color:#1a5e2c;border:1px solid #a3d9b4;border-radius:5px;cursor:pointer;font-weight:600">' + Icons.svg('check') + ' 강제 인증</button>' +
         '</div>'
       : '';
 
@@ -3871,7 +3871,7 @@ const OPERATOR_CATEGORIES = [
 
       '<div class="member-info-grid">' +
       '<div>이름</div><div><strong>' + escapeHtml(member.name) + '</strong> ' + (typeBadge[member.type] || member.type) + ' ' + (statusBadge[member.status] || member.status) + '</div>' +
-      '<div>이메일</div><div>' + escapeHtml(member.email) + (emailVerified ? ' <span style="color:var(--success);font-size:11px">✓ 인증됨</span>' : ' <span style="color:var(--text-3);font-size:11px">미인증</span>') + '</div>' +
+      '<div>이메일</div><div>' + escapeHtml(member.email) + (emailVerified ? ' <span style="color:var(--success);font-size:11px">' + Icons.svg('check') + ' 인증됨</span>' : ' <span style="color:var(--text-3);font-size:11px">미인증</span>') + '</div>' +
       '<div>연락처</div><div>' + escapeHtml(member.phone || '—') + '</div>' +
       '<div>가입일</div><div>' + formatDate(member.createdAt) + '</div>' +
       '<div>최종 로그인</div><div>' + formatDateTime(member.lastLoginAt) + '</div>' +
@@ -3898,7 +3898,7 @@ const OPERATOR_CATEGORIES = [
 
       chatMemoBlock +
 
-      /* ★ K-7: 관리자 메모 입력 */
+      /* K-7: 관리자 메모 입력 */
       '<div class="mi-section">' +
         '<h5>관리자 메모 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(회원에게 노출되지 않음)</span></h5>' +
         '<textarea id="miMemoInput" class="mi-memo-textarea" maxlength="2000" placeholder="이 회원에 대한 메모를 입력하세요...">' + safeMemo + '</textarea>' +
@@ -3908,11 +3908,11 @@ const OPERATOR_CATEGORIES = [
             ? '<button type="button" class="warn" data-mi-k7="unlock" data-mi-id="' + member.id + '">잠금 해제</button>'
             : '') +
           (member.status === 'pending' && !isAdminType
-            ? '<button type="button" class="success" data-mi-k7="approve" data-mi-id="' + member.id + '">✓ 승인 (정상으로 변경)</button>'
+            ? '<button type="button" class="success" data-mi-k7="approve" data-mi-id="' + member.id + '">' + Icons.svg('check') + ' 승인 (정상으로 변경)</button>'
             : '') +
-          /* ★ 5순위 #1: 블랙 처리/해제 (관리자 계정 제외) */
+          /* 5순위 #1: 블랙 처리/해제 (관리자 계정 제외) */
           (!isAdminType && member.status === 'suspended'
-            ? '<button type="button" class="success" data-mi-blacklist="remove" data-mi-id="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="background:#16a34a;color:#fff;border-color:#16a34a">✓ 블랙 해제</button>'
+            ? '<button type="button" class="success" data-mi-blacklist="remove" data-mi-id="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="background:#16a34a;color:#fff;border-color:#16a34a">' + Icons.svg('check') + ' 블랙 해제</button>'
             : '') +
           (!isAdminType && (member.status === 'active' || member.status === 'pending')
             ? '<button type="button" class="warn" data-mi-blacklist="add" data-mi-id="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="background:#dc2626;color:#fff;border-color:#dc2626">블랙 처리</button>'
@@ -3964,7 +3964,7 @@ const OPERATOR_CATEGORIES = [
             '<textarea id="miEligReasonInput_' + member.id + '" maxlength="500" rows="2" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box" placeholder="변경 사유를 입력하세요..."></textarea>' +
           '</div>' +
           '<div style="display:flex;gap:8px">' +
-            '<button type="button" style="flex:1;padding:7px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600" data-mi-elig="confirm" data-mi-id="' + member.id + '">✓ 변경 확정</button>' +
+            '<button type="button" style="flex:1;padding:7px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600" data-mi-elig="confirm" data-mi-id="' + member.id + '">' + Icons.svg('check') + ' 변경 확정</button>' +
             '<button type="button" style="padding:7px 14px;background:#fff;border:1px solid var(--line);border-radius:6px;font-size:13px;cursor:pointer" data-mi-elig="cancel" data-mi-id="' + member.id + '">취소</button>' +
           '</div>' +
         '</div>' +
@@ -4032,7 +4032,7 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
-      /* ★ K-7: 메모 저장 / 잠금 해제 / 강제 인증 / 승인 */
+      /* K-7: 메모 저장 / 잠금 해제 / 강제 인증 / 승인 */
       const k7Btn = e.target.closest('[data-mi-k7]');
       if (k7Btn) {
         e.preventDefault();
@@ -4188,7 +4188,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-    /* ★ K-7: 회원 추가 모달 */
+    /* K-7: 회원 추가 모달 */
   function setupAddMemberModal() {
     /* + 회원 추가 버튼 클릭 → 모달 오픈 */
     document.addEventListener('click', (e) => {
@@ -4253,7 +4253,7 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ★ K-7: 임시 비밀번호 결과 모달 */
+  /* K-7: 임시 비밀번호 결과 모달 */
   function showTempPasswordModal(member, tempPassword) {
     const modal = document.getElementById('tempPasswordModal');
     if (!modal) return;
@@ -4272,7 +4272,7 @@ const OPERATOR_CATEGORIES = [
     modal.classList.add('show');
   }
 
-  /* ★ K-7: 임시 비번 복사 버튼 */
+  /* K-7: 임시 비번 복사 버튼 */
   function setupTempPasswordCopy() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('#tpCopyBtn');
@@ -4286,7 +4286,7 @@ const OPERATOR_CATEGORIES = [
       try {
         await navigator.clipboard.writeText(pw);
         btn.classList.add('copied');
-        btn.textContent = '✓ 복사됨';
+        btn.textContent = '복사됨';
         toast('임시 비밀번호가 클립보드에 복사되었습니다');
         setTimeout(() => {
           btn.classList.remove('copied');
@@ -4303,7 +4303,7 @@ const OPERATOR_CATEGORIES = [
       }
     });
   }
-    /* ============ ★ K-4: 감사 로그 ============ */
+    /* ============ K-4: 감사 로그 ============ */
   let _auditPage = 1;
   const _auditLimit = 50;
   let _auditTotalPages = 1;
@@ -4435,8 +4435,8 @@ const OPERATOR_CATEGORIES = [
           : '<span style="color:var(--text-3)">—</span>';
       const ip = row.ipAddress ? escapeHtml(row.ipAddress) : '—';
       const successIcon = row.success
-        ? '<span class="audit-status-icon success">✓</span>'
-        : '<span class="audit-status-icon fail">✗</span>';
+        ? '<span class="audit-status-icon success">' + Icons.svg('check') + '</span>'
+        : '<span class="audit-status-icon fail">' + Icons.svg('x') + '</span>';
 
       return `<tr data-au-detail-id="${row.id}">
         <td class="col-time">${time}</td>
@@ -4471,7 +4471,7 @@ const OPERATOR_CATEGORIES = [
       }
 
 
-      /* ★ M-16: CSV 추출 버튼 */
+      /* M-16: CSV 추출 버튼 */
       if (e.target.closest('#auBtnExport')) {
         e.preventDefault();
         const params = new URLSearchParams();
@@ -4546,7 +4546,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   // public/js/admin.js — openAuditDetailModal 함수 전체 교체
-  /* ★ M-16: 단건 GET API 활용으로 detail JSON 전체 + User-Agent 까지 표시 */
+  /* M-16: 단건 GET API 활용으로 detail JSON 전체 + User-Agent 까지 표시 */
   async function openAuditDetailModal(id) {
     const modal = document.getElementById('auditDetailModal');
     const body = document.getElementById('auditDetailBody');
@@ -4555,7 +4555,7 @@ const OPERATOR_CATEGORIES = [
     body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
     modal.classList.add('show');
 
-    /* ★ M-16: 단건 GET 호출 */
+    /* M-16: 단건 GET 호출 */
     const res = await api('/api/admin/audit?id=' + id);
     if (!res.ok || !res.data?.data?.log) {
       body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">로그 조회 실패</div>';
@@ -4629,7 +4629,7 @@ const OPERATOR_CATEGORIES = [
       ${uaBlock}
     `;
   }
-  /* ============ ★ 운영자 관리 (STEP F-2) ============ */
+  /* ============ 운영자 관리 (STEP F-2) ============ */
   let _promoteSelectedMember = null;
 
   // public/js/admin.js — loadOperators 함수 전체 교체
@@ -4667,7 +4667,7 @@ const OPERATOR_CATEGORIES = [
         ? '<span class="badge b-danger">슈퍼 관리자</span>'
         : '<span class="badge b-info">운영자</span>';
 
-      /* ★ M-15: 카테고리 뱃지 (역할 컬럼 아래에 표시) */
+      /* M-15: 카테고리 뱃지 (역할 컬럼 아래에 표시) */
       const catBadges = renderCategoryBadges(op.assignedCategories, op.role);
 
       const notifyToggle = `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
@@ -4678,7 +4678,7 @@ const OPERATOR_CATEGORIES = [
         ? '<span class="badge b-success">활성</span>'
         : '<span class="badge b-mute">비활성</span>';
 
-      /* ★ M-15: 편집 버튼 추가 */
+      /* M-15: 편집 버튼 추가 */
       const actionBtns =
         `<div class="op-row-actions">` +
         `<button type="button" class="edit" data-op-action="open-edit" data-op-id="${op.id}">편집</button>` +
@@ -4768,7 +4768,7 @@ const OPERATOR_CATEGORIES = [
     const btn = document.getElementById('promoteConfirmBtn');
     if (!btn) return;
 
-    /* ★ M-15: 역할 변경 시 카테고리 영역 재렌더 */
+    /* M-15: 역할 변경 시 카테고리 영역 재렌더 */
     const roleSel = document.getElementById('promoteRole');
     if (roleSel) {
       roleSel.addEventListener('change', () => {
@@ -4782,7 +4782,7 @@ const OPERATOR_CATEGORIES = [
       const role = document.getElementById('promoteRole').value;
       const notify = document.getElementById('promoteNotify').checked;
 
-      /* ★ M-15: 선택된 카테고리 수집 */
+      /* M-15: 선택된 카테고리 수집 */
       const assignedCategories = collectSelectedCategories('promoteCatGroup');
 
       /* operator인데 카테고리 미선택 시 경고 */
@@ -4806,7 +4806,7 @@ const OPERATOR_CATEGORIES = [
           memberId: _promoteSelectedMember.id,
           role,
           notifyOnSupport: notify,
-          assignedCategories,  // ★ M-15
+          assignedCategories,  // M-15
         },
       });
 
@@ -4828,7 +4828,7 @@ const OPERATOR_CATEGORIES = [
   }
 
   // public/js/admin.js — setupPromoteConfirm 다음에 추가
-  /* ★ M-15: 운영자 편집 모달 오픈 */
+  /* M-15: 운영자 편집 모달 오픈 */
   let _opEditCurrent = null;
 
   async function openOperatorEditModal(opId) {
@@ -4869,7 +4869,7 @@ const OPERATOR_CATEGORIES = [
     modal.classList.add('show');
   }
 
-  /* ★ M-15: 운영자 편집 모달 핸들러 */
+  /* M-15: 운영자 편집 모달 핸들러 */
   function setupOperatorEditModal() {
     /* 역할 변경 시 카테고리 영역 재렌더 */
     const roleSel = document.getElementById('opEditRole');
@@ -4962,7 +4962,7 @@ const OPERATOR_CATEGORIES = [
       const promoteBtn = e.target.closest('[data-op-action="open-promote"]');
       if (promoteBtn) {
         e.preventDefault();
-        /* ★ M-15: 모달 열 때 카테고리 초기화 */
+        /* M-15: 모달 열 때 카테고리 초기화 */
         const modal = document.getElementById('promoteOperatorModal');
         if (modal) modal.classList.add('show');
         document.getElementById('promoteSearchInput')?.focus();
@@ -4971,7 +4971,7 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
-      /* ★ M-15: 편집 모달 오픈 */
+      /* M-15: 편집 모달 오픈 */
       const editBtn = e.target.closest('[data-op-action="open-edit"]');
       if (editBtn) {
         e.preventDefault();
@@ -5126,7 +5126,7 @@ const OPERATOR_CATEGORIES = [
       switchAdminPage(link.dataset.page, link);
     });
   }
-  /* ★ M-19-11 V2: 회원 관리 페이지 내 탭 (회원 목록 회원 자격 관리) */
+  /* M-19-11 V2: 회원 관리 페이지 내 탭 (회원 목록 회원 자격 관리) */
   function setupMemberTabs() {
     document.addEventListener('click', (e) => {
       const tab = e.target.closest('#memberSubTabs .ct-tab[data-mtab]');
@@ -5157,7 +5157,7 @@ const OPERATOR_CATEGORIES = [
       }
     });
 
-    /* ★ 5순위 #1: 블랙 관리 탭 핸들러 */
+    /* 5순위 #1: 블랙 관리 탭 핸들러 */
     document.addEventListener('click', async (e) => {
       const refreshBtn = e.target.closest('#btnRefreshBlacklist');
       if (refreshBtn) { e.preventDefault(); loadBlacklist(); return; }
@@ -5234,7 +5234,7 @@ const OPERATOR_CATEGORIES = [
           '<td>' + (m.email || '') + '</td>' +
           '<td>' + (m.phone || '') + '</td>' +
           '<td style="white-space:pre-wrap;word-break:break-all">' + reason + '</td>' +
-          '<td><button class="btn-sm btn-sm-ghost" data-blk-remove="' + m.id + '" data-name="' + (m.name || '') + '" type="button" onclick="event.stopPropagation()">✓ 해제</button></td>' +
+          '<td><button class="btn-sm btn-sm-ghost" data-blk-remove="' + m.id + '" data-name="' + (m.name || '') + '" type="button" onclick="event.stopPropagation()">' + Icons.svg('check') + ' 해제</button></td>' +
           '</tr>';
       }).join('');
 
@@ -5382,7 +5382,7 @@ const OPERATOR_CATEGORIES = [
         setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 100);
       }
     } else if (page === 'members') {
-      /* ★ M-19-11 V2: 활성 탭 확인 후 해당 데이터 로드 */
+      /* M-19-11 V2: 활성 탭 확인 후 해당 데이터 로드 */
       const activeMTab = document.querySelector('#memberSubTabs .ct-tab.on');
       const activeTab = activeMTab ? activeMTab.dataset.mtab : 'list';
       if (activeTab === 'approvals') {
@@ -5406,13 +5406,13 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'campaigns') {
       if (window.SIREN_ADMIN_CAMPAIGNS) window.SIREN_ADMIN_CAMPAIGNS.loadCampaigns();
 
-    /* ★ M-12: 가입 경로 관리 */
+    /* M-12: 가입 경로 관리 */
     } else if (page === 'signup-sources') {
       if (window.SIREN_ADMIN_SIGNUP_SOURCES) window.SIREN_ADMIN_SIGNUP_SOURCES.loadList();
 
-    /* ★ M-10: 사이렌 관리 4개 페이지 */
+    /* M-10: 사이렌 관리 4개 페이지 */
 
-    /* ★ M-10: 사이렌 관리 4개 페이지 */
+    /* M-10: 사이렌 관리 4개 페이지 */
     } else if (page === 'siren-incidents') {
       if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('incident');
     } else if (page === 'siren-harassment') {
@@ -5429,16 +5429,16 @@ const OPERATOR_CATEGORIES = [
 // public/js/admin.js — switchAdminPage 내부, 'ai' 분기에 1줄 추가
     } else if (page === 'ai') {
       loadAI();
-      loadChurnRisks();   /* ★ M-19-1 추가 */
+      loadChurnRisks();   /* M-19-1 추가 */
     } else if (page === 'activity-report') {
-      /* ★ C안 Step 2: AI 활동보고서 메뉴 진입점 (Step 3에서 모듈 연결) */
+      /* C안 Step 2: AI 활동보고서 메뉴 진입점 (Step 3에서 모듈 연결) */
       if (window.SIREN_ADMIN_ACTIVITY_REPORT_LIST && window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.load) {
         window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.load();
       } else {
         console.log('[activity-report] 모듈 로드 대기 중 (Step 3에서 활성화)');
       }
     } else if (page === 'settings') {
-      /* ★ M-15 Part 3-B: 시스템 설정 진입 시 후원 정책 로드 */
+      /* M-15 Part 3-B: 시스템 설정 진입 시 후원 정책 로드 */
       loadDonationPolicy();
     } else if (page === 'eligibility') {
       /* 6순위 #6: 교원 자격 변경 심사 */
@@ -5517,7 +5517,7 @@ const OPERATOR_CATEGORIES = [
     setupDemoActions();
     setupMemberActions();
     setupMemberSort();
-    setupMemberTabs();   /* ★ M-19-11 V2 */
+    setupMemberTabs();   /* M-19-11 V2 */
     setupSupportActions();
     setupSupportReplyForm();
     setupInlineStatusChange();
@@ -5527,9 +5527,9 @@ const OPERATOR_CATEGORIES = [
     setupPromoteConfirm();
 // public/js/admin.js — init() 내부, setupOperatorActions 다음에 1줄 추가
     setupOperatorActions();
-    setupOperatorEditModal();    /* ★ M-15 */
+    setupOperatorEditModal();    /* M-15 */
     setupReceiptSettings();
-    setupExpertAssignClick();  /* ★ K-3 추가 */
+    setupExpertAssignClick();  /* K-3 추가 */
     setupContentActions();     /* K-5 */
     setupNoticeEditForm();     /* K-5 */
     setupFaqEditForm();        /* K-5 */
@@ -5537,11 +5537,11 @@ const OPERATOR_CATEGORIES = [
     setupAddMemberModal();     /* K-7 */
     setupTempPasswordCopy();   /* K-7 */
     setupAdminPasswordForm();  /* K-9 */
-    setupDonationPolicy();     /* ★ M-15 Part 3-B */
+    setupDonationPolicy();     /* M-15 Part 3-B */
 // public/js/admin.js — init() 내부, setupHyosungDetailActions 다음 줄에 1줄 추가
-    setupHyosungActions();       /* ★ L-8 추가 */
-    setupHyosungDetailActions(); /* ★ L-8 추가 */
-    setupChurnActions();         /* ★ M-19-1 추가 */
+    setupHyosungActions();       /* L-8 추가 */
+    setupHyosungDetailActions(); /* L-8 추가 */
+    setupChurnActions();         /* M-19-1 추가 */
 
     const isLogged = await fetchAdminMe();
 

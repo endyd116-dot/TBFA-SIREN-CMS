@@ -345,7 +345,7 @@
   function renderActions(r) {
     if (r.status === 'confirmed') {
       if (r.source === 'hyosung_contracts') {
-        return `<span style="color:#0a8a4f;font-size:11.5px">✓ 회원 등록됨</span>`;
+        return `<span style="color:#0a8a4f;font-size:11.5px">${Icons.svg('check')} 회원 등록됨</span>`;
       }
       return `<a href="#" data-action="open-donation" data-id="${r.confirmedDonationId || ''}" style="color:#1a5ec4;font-size:11.5px">후원 보기</a>`;
     }

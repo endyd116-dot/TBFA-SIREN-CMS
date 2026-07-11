@@ -185,7 +185,7 @@
         return;
       }
       const d = res.data?.data || res.data;
-      /* ★ 2026-06-03: 대상 0명이면 원인(연봉 미설정) 안내 — 빈 결과의 진짜 이유 */
+      /* 2026-06-03: 대상 0명이면 원인(연봉 미설정) 안내 — 빈 결과의 진짜 이유 */
       if ((d.candidateCount || 0) === 0) {
         toast('재집계 대상 0명 — 연봉(기본급)이 설정된 직원이 없습니다. 회원 상세 → 기본연봉 설정 후 다시 시도하세요.', 'err');
       } else {
@@ -225,13 +225,13 @@
     $('aiAnomalies').innerHTML = an.length
       ? '<div style="margin-top:14px;font-weight:700;color:#b91c1c">이상치 ' + an.length + '건</div>'
         + an.map(a => '<div style="padding:6px 0;border-bottom:1px dashed #eee;font-size:13px">· <strong>' + esc(a.name) + '</strong> <span style="color:#b91c1c">[' + esc(a.type) + ']</span> ' + esc(a.detail) + '</div>').join('')
-      : '<div style="margin-top:14px;color:#16a34a;font-size:13px">✓ 이상치 없음</div>';
+      : '<div style="margin-top:14px;color:#16a34a;font-size:13px">' + Icons.svg('check') + ' 이상치 없음</div>';
 
     const ck = Array.isArray(d.checklist) ? d.checklist : [];
     $('aiChecklist').innerHTML = ck.length
       ? '<div style="margin-top:14px;font-weight:700;color:#b45309">점검 ' + ck.length + '건</div>'
         + ck.map(c => '<div style="padding:6px 0;border-bottom:1px dashed #eee;font-size:13px">· <strong>' + esc(c.type) + '</strong>: ' + esc(c.detail) + '</div>').join('')
-      : '<div style="margin-top:14px;color:#16a34a;font-size:13px">✓ 점검 항목 없음</div>';
+      : '<div style="margin-top:14px;color:#16a34a;font-size:13px">' + Icons.svg('check') + ' 점검 항목 없음</div>';
   }
 
   /* ── 일괄 발송 ── */
@@ -417,7 +417,7 @@
         (slip.perfectAttendance ? '<strong style="color:#16a34a">만근</strong>' : '아님') +
       '</dd>' +
 
-      /* ★ 2026-06-03: 출근일 기반 일급 산정 근거 */
+      /* 2026-06-03: 출근일 기반 일급 산정 근거 */
       (function () {
         var dv = (slip.calculationSnapshot && slip.calculationSnapshot.derived) || {};
         if (dv.dailyWage == null) return '';

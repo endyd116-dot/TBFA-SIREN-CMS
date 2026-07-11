@@ -1,7 +1,7 @@
 /**
  * admin-martyrdom-generate-background — AI 산출물 생성 (INTERNAL·Background)
  *
- * ⚠️ 백그라운드 함수(-background)는 config.path 금지 (2026-05-26 자동체인 멈춤 근본 원인).
+ * 백그라운드 함수(-background)는 config.path 금지 (2026-05-26 자동체인 멈춤 근본 원인).
  *
  * POST { caseId, type, outputId?, secret }
  *   type = 'strategy' (③+⑨+⑩+⑪ 1콜 통합) | 'golden' (①) | 'criteria' (②)

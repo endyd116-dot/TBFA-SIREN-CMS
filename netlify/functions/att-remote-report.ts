@@ -65,7 +65,7 @@ export default async function handler(req: Request) {
         ))
         .limit(1);
       const report = rows[0] ?? null;
-      /* ★ R33-FIX H-G3: wbsCardIds → workspace_tasks title JOIN으로 wbsCards: [{id, title}] 응답 */
+      /* R33-FIX H-G3: wbsCardIds → workspace_tasks title JOIN으로 wbsCards: [{id, title}] 응답 */
       let wbsCards: Array<{ id: number; title: string }> = [];
       if (report && Array.isArray((report as any).wbsCardIds) && (report as any).wbsCardIds.length > 0) {
         try {

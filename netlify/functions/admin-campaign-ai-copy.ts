@@ -1,5 +1,5 @@
 // netlify/functions/admin-campaign-ai-copy.ts
-// ★ Phase M-19-2: AI 캠페인 카피 생성 (Gemini)
+// Phase M-19-2: AI 캠페인 카피 생성 (Gemini)
 //
 // POST /api/admin/campaign-ai-copy
 //   body: {

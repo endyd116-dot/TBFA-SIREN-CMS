@@ -22,7 +22,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (req.method === "GET") {
     try {
-      /* ★ R29-MS-GAP1-A: super_admin은 전체, 그 외(운영자/일반어드민)는 ACTIVE+UPCOMING만 */
+      /* R29-MS-GAP1-A: super_admin은 전체, 그 외(운영자/일반어드민)는 ACTIVE+UPCOMING만 */
       const rows = isSuperAdmin
         ? await db.execute(sql`SELECT * FROM quarters ORDER BY year DESC, quarter DESC LIMIT 20`)
         : await db.execute(sql`SELECT * FROM quarters WHERE status IN ('ACTIVE', 'UPCOMING', 'ENDED') ORDER BY year DESC, quarter DESC LIMIT 20`);
@@ -64,7 +64,7 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "유효하지 않은 상태값" }, { status: 400 });
     }
     try {
-      /* ★ R32-P0-MS-C2 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      /* R32-P0-MS-C2 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       if (!status && !settlementDate) {
         return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
       }

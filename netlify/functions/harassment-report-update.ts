@@ -32,11 +32,11 @@ export default async (req: Request, _ctx: Context) => {
 
     /* validate */
     const title = body.title !== undefined ? String(body.title).trim().slice(0, 200) : undefined;
-    /* ★ P1-6 fix: 프론트가 본문을 content 키로 보냄 → contentHtml 우선, content 폴백(미반영 데이터손실 해소) */
+    /* P1-6 fix: 프론트가 본문을 content 키로 보냄 → contentHtml 우선, content 폴백(미반영 데이터손실 해소) */
     const _content = body.contentHtml !== undefined ? body.contentHtml : body.content;
     const contentHtml = _content !== undefined ? String(_content).trim() : undefined;
     const category = body.category !== undefined ? String(body.category).trim() : undefined;
-    /* ★ R41 Q2-011: 클라가 보내는 발생빈도(frequency)·발생일(occurredAt) 반영 */
+    /* R41 Q2-011: 클라가 보내는 발생빈도(frequency)·발생일(occurredAt) 반영 */
     const VALID_FREQUENCIES = ["once", "recurring", "ongoing"];
     const frequency = body.frequency !== undefined ? String(body.frequency).trim() : undefined;
     let occurredAt: Date | undefined;
@@ -58,7 +58,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!row) return notFound("신고를 찾을 수 없습니다");
 
-    /* check_status — ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정 허용 */
+    /* check_status — R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정 허용 */
     if (row.status !== "submitted" && row.status !== "ai_analyzed" && row.status !== "rejected") {
       return new Response(
         JSON.stringify({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
@@ -67,12 +67,12 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     const updateData: any = { updatedAt: new Date() };
-    /* ★ 2026-06-27: 반려된 신고를 본인이 수정하면 재제출(접수 상태로 복귀) */
+    /* 2026-06-27: 반려된 신고를 본인이 수정하면 재제출(접수 상태로 복귀) */
     if (row.status === "rejected") updateData.status = "submitted";
     if (title !== undefined) updateData.title = title;
     if (contentHtml !== undefined) updateData.contentHtml = contentHtml;
     if (category !== undefined && category) updateData.category = category;
-    /* ★ R41 Q2-011: 발생빈도·발생일 반영 */
+    /* R41 Q2-011: 발생빈도·발생일 반영 */
     if (frequency !== undefined && frequency) updateData.frequency = frequency;
     if (occurredAt !== undefined) updateData.occurredAt = occurredAt;
 

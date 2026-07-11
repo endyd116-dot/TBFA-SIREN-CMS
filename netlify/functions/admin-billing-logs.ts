@@ -1,5 +1,5 @@
 // netlify/functions/admin-billing-logs.ts
-// ★ Phase 2 Step 5-A: 빌링 로그 관리 API
+// Phase 2 Step 5-A: 빌링 로그 관리 API
 // GET ?list=1   : 로그 목록 (status/memberId/type 필터 + 페이지네이션)
 // GET ?stats=1  : 빌링 통계 (최근 30일 성공률, 실패 사유 분포)
 // POST action=retry      : 수동 재시도 (next_retry_at = NOW)
@@ -223,5 +223,5 @@ export default async (req: Request, _ctx: Context) => {
   }
 };
 
-/* ★ P1-2 fix: 라우팅 경로 누락 → 클라이언트(/api/admin/billing-logs) 404 복구 */
+/* P1-2 fix: 라우팅 경로 누락 → 클라이언트(/api/admin/billing-logs) 404 복구 */
 export const config = { path: "/api/admin/billing-logs" };

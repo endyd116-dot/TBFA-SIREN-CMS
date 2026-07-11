@@ -1,5 +1,5 @@
 // lib/site-settings.ts
-// ★ 2026-05 Phase A + B: 메인 화면 관리 시스템 — 헬퍼 라이브러리
+// 2026-05 Phase A + B: 메인 화면 관리 시스템 — 헬퍼 라이브러리
 // - 공개/관리자 양쪽에서 사용
 // - 캐싱은 호출 측에서 처리
 //
@@ -60,7 +60,7 @@ export async function getPublishedSettings(scope?: string): Promise<Record<strin
 }
 
 /**
- * ★ Phase B: Draft 우선 (어드민 미리보기용)
+ * Phase B: Draft 우선 (어드민 미리보기용)
  * preferDraft=true 인 경우 draft 값이 있으면 그것을, 없으면 운영 값
  */
 export async function getDraftSettings(scope?: string): Promise<Record<string, Record<string, any>>> {
@@ -222,7 +222,7 @@ function parseSettingValue(row: {
 }
 
 /* =========================================================
-   ★ Phase B: nav_menu_items 헬퍼
+   Phase B: nav_menu_items 헬퍼
    ========================================================= */
 
 export interface MenuItem {
@@ -488,7 +488,7 @@ export async function countMenuDrafts(location?: string): Promise<number> {
 }
 
 /* =========================================================
-   ★ Phase B: related_sites 헬퍼 (Draft 시스템 없음 — 즉시 반영)
+   Phase B: related_sites 헬퍼 (Draft 시스템 없음 — 즉시 반영)
    ========================================================= */
 
 export async function getRelatedSites(activeOnly = true): Promise<any[]> {

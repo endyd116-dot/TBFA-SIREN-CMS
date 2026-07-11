@@ -1,5 +1,5 @@
 // netlify/functions/incident-report-detail.ts
-// ★ M-5: 본인 제보 상세 조회
+// M-5: 본인 제보 상세 조회
 
 import type { Context } from "@netlify/functions";
 import { eq, and, inArray } from "drizzle-orm";

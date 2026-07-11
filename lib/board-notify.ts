@@ -1,5 +1,5 @@
 // lib/board-notify.ts
-// ★ US-036/037: 게시글 새 댓글 시 구독자 알림 발송 (직접 구독 + 게시판 카테고리 구독).
+// US-036/037: 게시글 새 댓글 시 구독자 알림 발송 (직접 구독 + 게시판 카테고리 구독).
 //   기존엔 발송 함수(admin-notify-subscribers)가 어디서도 호출되지 않아 구독 기능이 죽어 있었고,
 //   링크도 존재하지 않는 /board-post.html 이라 눌러도 404였다. 이 lib을 댓글 작성 직후 직접 호출한다.
 //   - 댓글이 해당 게시글 소속·미숨김·작성자 본인(callerUid)인지 검증(사칭/스팸 차단).
@@ -51,7 +51,7 @@ export async function notifyPostSubscribers(postId: number, commentId: number, c
       .filter((id) => id != null && id !== callerUid);
 
     let notified = 0;
-    const link = `/board-view.html?id=${postId}`;   /* ★US-037: 실제 게시글 보기 페이지 */
+    const link = `/board-view.html?id=${postId}`;   /* US-037: 실제 게시글 보기 페이지 */
     for (const recipientId of recipientIds) {
       try {
         await createNotification({

@@ -1,5 +1,5 @@
 // netlify/functions/cron-grade-recalc.ts
-// ★ Phase M-19-1: 매일 새벽 03:30 KST 회원 등급 일괄 재계산
+// Phase M-19-1: 매일 새벽 03:30 KST 회원 등급 일괄 재계산
 //
 // 스케줄: netlify.toml에서 schedule = "30 18 * * *" (UTC 18:30 = KST 03:30)
 //

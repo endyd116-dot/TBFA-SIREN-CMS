@@ -1,5 +1,5 @@
 // netlify/functions/incidents.ts
-// ★ M-5: 사건 목록/상세 공개 조회
+// M-5: 사건 목록/상세 공개 조회
 
 import type { Context } from "@netlify/functions";
 import { eq, and, asc, desc } from "drizzle-orm";

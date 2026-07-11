@@ -24,7 +24,7 @@ export default async (req: Request) => {
       return badRequest("올바른 rewardId를 입력해주세요");
     }
 
-    /* ★US-059/060: 단일 트랜잭션 + 회원별 advisory lock(잔액 동시성 TOCTOU 차단) +
+    /* US-059/060: 단일 트랜잭션 + 회원별 advisory lock(잔액 동시성 TOCTOU 차단) +
        재고 원자적 조건부 차감(RETURNING으로 경합 감지). 기존엔 재고 무차감(0개도 무한교환) +
        비트랜잭션 SELECT-then-INSERT라 동시요청 시 음수 잔액(이중 차감)이 가능했음. */
     const result: any = await db.transaction(async (tx) => {

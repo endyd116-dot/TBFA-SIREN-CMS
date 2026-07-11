@@ -1,5 +1,5 @@
 // lib/donation-matcher.ts
-// ★ 6순위 #15: 후원 자동 매칭 룰 엔진
+// 6순위 #15: 후원 자동 매칭 룰 엔진
 // pending_donations 행 → members(+ 직전 donations) 후보 추출 → 점수 계산
 //
 // 룰: name_exact / name_partial / amount_exact / date_window / account_tail4

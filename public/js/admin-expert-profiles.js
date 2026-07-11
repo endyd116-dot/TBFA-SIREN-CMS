@@ -43,9 +43,9 @@
     var half = (avg - full) >= 0.5;
     var html = '';
     for (var i = 1; i <= 5; i++) {
-      if (i <= full) html += '<span style="color:#f59e0b">★</span>';
-      else if (i === full + 1 && half) html += '<span style="color:#f59e0b">☆</span>';
-      else html += '<span style="color:#d1d5db">★</span>';
+      if (i <= full) html += '<span style="color:#f59e0b">' + Icons.svg('star') + '</span>';
+      else if (i === full + 1 && half) html += '<span style="color:#f59e0b;opacity:.5">' + Icons.svg('star') + '</span>';
+      else html += '<span style="color:#d1d5db">' + Icons.svg('star') + '</span>';
     }
     return html + ' <span style="font-size:12px;color:var(--text-3)">' + avg.toFixed(1) + '</span>';
   }

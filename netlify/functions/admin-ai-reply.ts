@@ -4,7 +4,7 @@
  * 응답: { ok, draft }
  *
  * 지정한 지원 신청 ID에 대한 AI 답변 초안 생성
- * ★ 2026-05 C-2: 운영자 요청사항(instruction) 반영
+ * 2026-05 C-2: 운영자 요청사항(instruction) 반영
  */
 import { eq } from "drizzle-orm";
 import { db, supportRequests, members } from "../../db";
@@ -29,7 +29,7 @@ export default async (req: Request) => {
     const id = Number(body.id);
     if (!Number.isFinite(id)) return badRequest("유효하지 않은 ID");
 
-    /* ★ C-2: 운영자 요청사항 (선택, 최대 1000자) */
+    /* C-2: 운영자 요청사항 (선택, 최대 1000자) */
     const instruction = typeof body.instruction === "string"
       ? body.instruction.trim().slice(0, 1000)
       : "";

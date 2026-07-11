@@ -23,7 +23,7 @@ export default async (req: Request) => {
     const offset = Number(url.searchParams.get("offset") || 0);
 
     /* 1. 후원 목록
-       ★ Q12: 마이페이지에 표시되는 후원 날짜는 실제 결제일 (효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt) */
+       Q12: 마이페이지에 표시되는 후원 날짜는 실제 결제일 (효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt) */
     const list = await db
       .select({
         id: donations.id,
@@ -32,8 +32,8 @@ export default async (req: Request) => {
         payMethod: donations.payMethod,
         status: donations.status,
         receiptIssued: donations.receiptIssued,
-        receiptNumber: donations.receiptNumber,           // ★ STEP H-2c 신규
-        receiptIssuedAt: donations.receiptIssuedAt,       // ★ STEP H-2c 신규
+        receiptNumber: donations.receiptNumber,           // STEP H-2c 신규
+        receiptIssuedAt: donations.receiptIssuedAt,       // STEP H-2c 신규
         campaignTag: donations.campaignTag,
         createdAt: donations.createdAt,
         hyosungPaidDate: donations.hyosungPaidDate,
@@ -69,10 +69,10 @@ export default async (req: Request) => {
         payMethod: d.payMethod,
         status: d.status,
         receiptIssued: d.receiptIssued,
-        receiptNumber: d.receiptNumber,                   // ★ STEP H-2c 신규
-        receiptIssuedAt: d.receiptIssuedAt,               // ★ STEP H-2c 신규
+        receiptNumber: d.receiptNumber,                   // STEP H-2c 신규
+        receiptIssuedAt: d.receiptIssuedAt,               // STEP H-2c 신규
         campaignTag: d.campaignTag,
-        /* ★ Q12: paidDate는 표시용 결제일 (효성은 자료의 실제 결제일, 그 외는 createdAt) */
+        /* Q12: paidDate는 표시용 결제일 (효성은 자료의 실제 결제일, 그 외는 createdAt) */
         paidDate: (d as any).hyosungPaidDate ?? d.createdAt,
         createdAt: d.createdAt,
       })),

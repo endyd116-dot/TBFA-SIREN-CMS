@@ -4,7 +4,7 @@
  * KICC 정기 후원 1단계 — 빌키 등록창(webpay, clientTypeCode=81).
  * - 회원 1인당 활성 빌키 1개 (중복 차단)
  * - customerKey(KICC 비종속 내부 회원-스코프 식별자) 생성
- * - donations 에 pending(type=regular) 선저장 → ★ 승인 시 서버 금액 기준
+ * - donations 에 pending(type=regular) 선저장 → 승인 시 서버 금액 기준
  * - KICC 거래등록 → authPageUrl(등록창) 반환
  *
  * Body: { name, phone, email, amount, isAnonymous? }

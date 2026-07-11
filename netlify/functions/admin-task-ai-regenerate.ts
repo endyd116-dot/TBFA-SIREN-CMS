@@ -3,7 +3,7 @@
  *
  * POST /api/admin-task-ai-regenerate?id=N&type=summary|risk|completion
  *
- * 어드민 인증 후 동기 호출. 사용자가 칸반 카드 모달에서 "🔄 재생성" 버튼 누르면 호출.
+ * 어드민 인증 후 동기 호출. 사용자가 칸반 카드 모달에서 "재생성" 버튼 누르면 호출.
  * 동기 실행이라 5~15초 정도 걸릴 수 있음 (UI에서 로딩 표시 권장).
  */
 import type { Context } from "@netlify/functions";

@@ -1,7 +1,7 @@
 /* =========================================================
    SIREN — chat-user.js (STEP G-3 + H-1)
    사용자측 1:1 채팅 (마이페이지 내 모달)
-   ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
+   H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
    ========================================================= */
 (function () {
   'use strict';
@@ -64,7 +64,7 @@
     return (d.getMonth() + 1) + '/' + d.getDate();
   }
 
-  /* ============ ★ H-1: 라이트박스 ============ */
+  /* ============ H-1: 라이트박스 ============ */
   function openLightbox(attId, originalName) {
     /* 기존 라이트박스 제거 */
     const existing = document.querySelector('.lightbox-overlay');
@@ -76,7 +76,7 @@
     overlay.innerHTML = `
       <div class="lightbox-controls">
         <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드"></button>
-        <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">✕</button>
+        <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">${Icons.svg('x')}</button>
       </div>
       <img class="lightbox-img" src="/api/chat/image?id=${encodeURIComponent(attId)}" alt="${safeName}" />
     `;
@@ -368,9 +368,9 @@
     }
   }
 
-  /* ============ ★ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
+  /* ============ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
   function buildMessageBody(m) {
-    /* ★ R9: 삭제된 메시지 */
+    /* R9: 삭제된 메시지 */
     if (m.isDeleted) {
       return `<div class="msg-bubble msg-deleted" style="color:#94a3b8;font-style:italic">삭제된 메시지입니다</div>`;
     }
@@ -397,7 +397,7 @@
     return `<div class="msg-bubble" data-msg-text="1">${escapeHtml(m.content || '').replace(/\n/g, '<br />')}</div>`;
   }
 
-  /* ★ R9: 5분 이내 수정 가능 여부 */
+  /* R9: 5분 이내 수정 가능 여부 */
   function isEditableByTime(createdAt) {
     if (!createdAt) return false;
     const diff = Date.now() - new Date(createdAt).getTime();
@@ -427,11 +427,11 @@
       const isMine = m.senderId === myUid;
       const time = formatTime(m.createdAt);
       const body = buildMessageBody(m);
-      /* ★ R9: editedAt 표시 */
+      /* R9: editedAt 표시 */
       const editedTag = (m.editedAt && !m.isDeleted) ? ' <span class="msg-edited" style="color:#94a3b8;font-size:11px">(수정됨)</span>' : '';
       const meta = `<span class="msg-meta">${time}${editedTag}</span>`;
 
-      /* ★ R9: 본인 메시지(삭제·시스템 제외) 액션 메뉴 */
+      /* R9: 본인 메시지(삭제·시스템 제외) 액션 메뉴 */
       const showActions = isMine && !m.isDeleted;
       const actionsBtn = showActions
         ? `<button type="button" class="msg-actions-btn" data-msg-id="${m.id}" data-msg-created="${escapeHtml(m.createdAt || '')}" data-msg-content="${escapeHtml(m.content || '')}" aria-label="메시지 메뉴" style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:2px 6px;font-size:14px">⋯</button>`
@@ -448,7 +448,7 @@
     }
   }
 
-  /* ============ ★ H-1: 이미지 클릭 → 라이트박스 ============ */
+  /* ============ H-1: 이미지 클릭 → 라이트박스 ============ */
   function setupImageClick() {
     document.addEventListener('click', (e) => {
       const img = e.target.closest('.chat-msg-image');
@@ -655,7 +655,7 @@
     }
   }
 
-  /* ============ ★ R9: 메시지 수정/삭제 메뉴 ============ */
+  /* ============ R9: 메시지 수정/삭제 메뉴 ============ */
 
   function closeMsgMenu() {
     const menu = document.getElementById('chatMsgMenu');
@@ -817,7 +817,7 @@
     }
   }
 
-  /* ============ ★ R9: 채팅 검색 ============ */
+  /* ============ R9: 채팅 검색 ============ */
   function injectSearchUI() {
     const modal = document.getElementById('chatWindowModal');
     if (!modal || modal.querySelector('#chatSearchBar')) return;
@@ -934,16 +934,16 @@
     setupModalClose();
     setupSend();
     setupImageUpload();
-    setupImageClick(); // ★ H-1
-    setupMessageActions(); // ★ R9
-    injectSearchUI(); // ★ R9: 채팅 검색
+    setupImageClick(); // H-1
+    setupMessageActions(); // R9
+    injectSearchUI(); // R9: 채팅 검색
   }
 
   /* 전역 노출 */
   window.SIREN_CHAT = {
     loadRooms,
     openChatWindow,
-    openLightbox, // ★ H-1: 외부에서도 호출 가능
+    openLightbox, // H-1: 외부에서도 호출 가능
   };
 
   /* SIREN_PAGE_INIT 훅 */

@@ -1,5 +1,5 @@
 // lib/ai-report-generator.ts
-// ★ Phase M-19-3: Gemini 심층 분석 기반 활동보고서 자동 생성
+// Phase M-19-3: Gemini 심층 분석 기반 활동보고서 자동 생성
 // - Q69(b) 심층: 인사말 + 핵심 성과 + 트렌드 분석 + 다음 분기 예측 + 총평
 // - 출력: 약 3,000자 HTML
 // - 비용: 회당 ~$0.02 (gemini-2.0-flash, 출력 ~3500 토큰)
@@ -114,7 +114,7 @@ ${dataText}
   "conclusion": "<p>전체를 마무리하는 진심 어린 감사 메시지 (200~300자, 따뜻한 어조)</p>"
 }
 
-# 작성 원칙 (★ 매우 중요)
+# 작성 원칙 (매우 중요)
 1. **존엄과 진정성**: 교사 유가족의 존엄을 최우선으로. 자극적/선정적 표현 절대 금지.
 2. **객관적 분석**: 숫자는 정확히 인용. 추측이나 미확인 사실 금지.
 3. **따뜻한 어조**: 통계 보고서이지만 NPO의 진심이 묻어나도록.
@@ -137,32 +137,32 @@ function buildFullHtml(parts: Omit<GeneratedReport, "fullHtml" | "generatedAt" |
   </header>
 
   <section class="ar-section ar-greeting">
-    <h2>📜 인사말</h2>
+    <h2>인사말</h2>
     ${parts.greeting}
   </section>
 
   <section class="ar-section ar-highlights">
-    <h2>✨ 핵심 성과</h2>
+    <h2>핵심 성과</h2>
     ${parts.highlights}
   </section>
 
   <section class="ar-section ar-detail">
-    <h2>📊 상세 분석</h2>
+    <h2>상세 분석</h2>
     ${parts.detailedAnalysis}
   </section>
 
   <section class="ar-section ar-trend">
-    <h2>📈 트렌드 분석</h2>
+    <h2>트렌드 분석</h2>
     ${parts.trendAnalysis}
   </section>
 
   <section class="ar-section ar-future">
-    <h2>🎯 향후 계획</h2>
+    <h2>향후 계획</h2>
     ${parts.futureOutlook}
   </section>
 
   <section class="ar-section ar-conclusion">
-    <h2>🙏 마치며</h2>
+    <h2>마치며</h2>
     ${parts.conclusion}
   </section>
 

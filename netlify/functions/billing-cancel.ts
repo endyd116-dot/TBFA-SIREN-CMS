@@ -19,9 +19,9 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
-// ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
+// Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
 import { safeReevaluate } from "../../lib/donor-status";
-// ★ R40: KICC 빌키 삭제
+// R40: KICC 빌키 삭제
 import { removeBillingKey } from "../../lib/kicc";
 
 const cancelSchema = z.object({
@@ -128,7 +128,7 @@ export default async (req: Request) => {
       },
     });
 
-    /* ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
+    /* Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
      * 토스 채널 제거 → 다른 채널(효성) 있으면 regular 유지, 없으면 prospect/cancelled */
     await safeReevaluate(user.id, "billing-cancel");
 

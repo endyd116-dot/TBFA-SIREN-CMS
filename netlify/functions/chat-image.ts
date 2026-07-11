@@ -48,7 +48,7 @@ export default async (req: Request, _ctx: Context) => {
         .limit(1);
 
       if (!room) return new Response("Not Found", { status: 404 });
-      // ★ Q3-038 fix: expert_1on1 룸은 배정 전문가도 접근 허용 (메시지 경로와 동일 canEnterExpertRoom 정책)
+      // Q3-038 fix: expert_1on1 룸은 배정 전문가도 접근 허용 (메시지 경로와 동일 canEnterExpertRoom 정책)
       if ((room as any).roomType === ROOM_TYPE_EXPERT) {
         if (!canEnterExpertRoom(room as any, user.uid, false)) return new Response("Forbidden", { status: 403 });
       } else if (room.memberId !== user.uid) {

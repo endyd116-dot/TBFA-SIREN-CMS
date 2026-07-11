@@ -1,5 +1,5 @@
 // netlify/functions/incident-report-delete.ts
-// ★ M-5: 본인 제보 삭제 (soft delete: status='closed')
+// M-5: 본인 제보 삭제 (soft delete: status='closed')
 // - 사이렌 정식 접수된 건은 관리자만 삭제 가능 (여기서는 거부)
 
 import type { Context } from "@netlify/functions";

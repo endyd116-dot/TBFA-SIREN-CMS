@@ -654,7 +654,7 @@ function pickServiceAssignField(kind: ServiceKind): string {
 }
 
 function pickClosedStatus(kind: ServiceKind): string {
-  /* ★ Q3-002 fix: 4종 enum 별 종결 상태 — incident/harassment/legal enum에는 'completed'가 없고
+  /* Q3-002 fix: 4종 enum 별 종결 상태 — incident/harassment/legal enum에는 'completed'가 없고
      'closed'만 존재(schema.ts incident/harassment/legalConsultationStatusEnum). 'completed'는
      supportStatusEnum 전용. 기존엔 전부 'completed'를 반환해 신고 3종은 Postgres가 거부 → 종결 실패. */
   switch (kind) {

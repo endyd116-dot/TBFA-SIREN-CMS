@@ -1,9 +1,9 @@
 /* =========================================================
-   SIREN — admin-chat.js (★ K-9 핫픽스 v2 — DOM 기반 영구 차단)
+   SIREN — admin-chat.js (K-9 핫픽스 v2 — DOM 기반 영구 차단)
    관리자측 채팅 관리 (좌우 분할 레이아웃)
-   ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
-   ★ I-3: 보관함(archived) 액션
-   ★ K-9 v2:
+   H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
+   I-3: 보관함(archived) 액션
+   K-9 v2:
      1. 모든 메시지 ID를 String()으로 정규화
      2. DOM 검증 (querySelector data-msg-id)
      3. selectRoom 토큰으로 stale 요청 차단
@@ -13,7 +13,7 @@
 (function () {
   'use strict';
 
-  /* ★ 중복 init 방지 */
+  /* 중복 init 방지 */
   if (window.__SIREN_ADMIN_CHAT_LOADED__) return;
   window.__SIREN_ADMIN_CHAT_LOADED__ = true;
 
@@ -28,9 +28,9 @@
   let _currentRoom = null;
   let _pollTimer = null;
   let _lastMsgAt = null;
-  /* ★ ID는 항상 String으로 저장 */
+  /* ID는 항상 String으로 저장 */
   let _seenMessageIds = new Set();
-  /* ★ selectRoom stale 요청 차단 */
+  /* selectRoom stale 요청 차단 */
   let _selectRoomToken = 0;
 
   /* ============ API ============ */
@@ -58,13 +58,13 @@
   function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0'); }
   function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2400); }
 
-  /* ★ K-9 v2: ID 정규화 */
+  /* K-9 v2: ID 정규화 */
   function normalizeId(id) {
     if (id == null) return null;
     return String(id);
   }
 
-  /* ★ K-9 v2: DOM 셀렉터 안전 이스케이프 */
+  /* K-9 v2: DOM 셀렉터 안전 이스케이프 */
   function safeAttrSelector(value) {
     /* CSS.escape이 있으면 사용, 없으면 직접 처리 */
     if (typeof CSS !== 'undefined' && CSS.escape) {
@@ -73,7 +73,7 @@
     return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
   }
 
-  /* ★ K-9 v2: 통합 헬퍼 — 메시지를 안전하게 DOM에 추가 (이중 검증)
+  /* K-9 v2: 통합 헬퍼 — 메시지를 안전하게 DOM에 추가 (이중 검증)
      - Set 검증 + DOM 검증으로 중복 방지
      - 이미 있으면 무시, 새로운 것만 렌더
      - 사용처: 초기 로드, 폴링, 송신 모두 동일 */
@@ -118,7 +118,7 @@
     return trulyNew.length;
   }
 
-  /* ============ ★ H-1: 라이트박스 ============ */
+  /* ============ H-1: 라이트박스 ============ */
   function openLightbox(attId, originalName) {
     const existing = document.querySelector('.lightbox-overlay');
     if (existing) existing.remove();
@@ -129,7 +129,7 @@
     overlay.innerHTML = `
       <div class="lightbox-controls">
         <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드"></button>
-        <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">✕</button>
+        <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">${Icons.svg('x')}</button>
       </div>
       <img class="lightbox-img" src="/api/chat/image?id=${encodeURIComponent(attId)}" alt="${safeName}" />
     `;
@@ -255,7 +255,7 @@
     }).join('');
   }
 
-  /* ============ ★ I-3: 상태별 액션 버튼 빌더 ============ */
+  /* ============ I-3: 상태별 액션 버튼 빌더 ============ */
   function buildActionButtons(room, blacklist, memberName) {
     const safeName = esc(memberName || '회원');
     const status = room.status;
@@ -279,7 +279,7 @@
 
   /* ============ 채팅방 선택 → 대화 로드 ============ */
   async function selectRoom(roomId) {
-    /* ★ K-9 v2: 토큰으로 stale 요청 차단 */
+    /* K-9 v2: 토큰으로 stale 요청 차단 */
     const myToken = ++_selectRoomToken;
 
     stopPoll();
@@ -292,7 +292,7 @@
     detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">로딩 중...</div>';
 
     const roomRes = await api('/api/admin/chat/rooms?id=' + roomId);
-    /* ★ stale 요청 검증 — 다른 방을 클릭했으면 중단 */
+    /* stale 요청 검증 — 다른 방을 클릭했으면 중단 */
     if (myToken !== _selectRoomToken) return;
 
     if (!roomRes.ok || !roomRes.data?.data) {
@@ -303,12 +303,12 @@
     _currentRoom = room;
 
     const msgRes = await api('/api/admin/chat/messages?roomId=' + roomId);
-    /* ★ stale 요청 재검증 */
+    /* stale 요청 재검증 */
     if (myToken !== _selectRoomToken) return;
 
     const messages = msgRes.data?.data?.messages || [];
 
-    /* ★ K-9 v2: 초기 메시지 ID 미리 등록 (innerHTML 직전에) */
+    /* K-9 v2: 초기 메시지 ID 미리 등록 (innerHTML 직전에) */
     messages.forEach(m => {
       const idStr = normalizeId(m.id);
       if (idStr) _seenMessageIds.add(idStr);
@@ -362,7 +362,7 @@
       ${isActive ? `
       <div style="padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:flex-end;background:#fff">
         <textarea id="acMsgInput" rows="1" placeholder="관리자 메시지 입력 (Enter: 전송)" style="flex:1;border:1px solid var(--line);border-radius:18px;padding:10px 16px;font-size:13px;resize:none;font-family:inherit;max-height:100px"></textarea>
-        <button id="acMsgSendBtn" style="background:var(--brand);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:16px;flex-shrink:0">➤</button>
+        <button id="acMsgSendBtn" style="background:var(--brand);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:16px;flex-shrink:0">${Icons.svg('send')}</button>
       </div>` : (isArchived
         ? '<div style="padding:14px;text-align:center;color:#8a6a00;font-size:13px;background:#fff8ec;border-top:1px solid #f0e3c4">보관된 채팅방입니다</div>'
         : '<div style="padding:14px;text-align:center;color:var(--text-3);font-size:13px;background:#f8f8f8;border-top:1px solid var(--line)">종료된 채팅방입니다</div>')}
@@ -497,7 +497,7 @@
       const area = document.getElementById('acMsgArea');
       if (area) {
         const msg = res.data.data.message;
-        /* ★ K-9 v2: 통합 헬퍼로 안전 추가 */
+        /* K-9 v2: 통합 헬퍼로 안전 추가 */
         appendMessagesIfNew(area, [msg], _currentRoom.memberId);
       }
     } else {
@@ -519,7 +519,7 @@
     });
   }
 
-  /* ============ ★ I-3: 통합 액션 ============ */
+  /* ============ I-3: 통합 액션 ============ */
   function setupActions() {
     document.addEventListener('click', async (e) => {
       const statusBtn = e.target.closest('[data-ac-action="status-change"]');
@@ -581,11 +581,11 @@
     });
   }
 
-  /* ============ ★ K-9 v2: 폴링 (토큰 + DOM 검증) ============ */
+  /* ============ K-9 v2: 폴링 (토큰 + DOM 검증) ============ */
   function startPoll(roomId, ownerToken) {
     stopPoll();
     _pollTimer = setInterval(async () => {
-      /* ★ stale 토큰 검사 — selectRoom이 새로 호출되면 즉시 중단 */
+      /* stale 토큰 검사 — selectRoom이 새로 호출되면 즉시 중단 */
       if (ownerToken !== undefined && ownerToken !== _selectRoomToken) {
         stopPoll();
         return;
@@ -603,7 +603,7 @@
 
       const area = document.getElementById('acMsgArea');
       if (area && msgs.length > 0) {
-        /* ★ 통합 헬퍼로 안전 추가 (Set + DOM 이중 검증) */
+        /* 통합 헬퍼로 안전 추가 (Set + DOM 이중 검증) */
         appendMessagesIfNew(area, msgs, _currentRoom.memberId);
       }
 

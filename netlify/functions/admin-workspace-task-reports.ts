@@ -187,8 +187,8 @@ export default async (req: Request, _ctx: Context) => {
             notifType: type === "completion" ? "completed" : "status_changed",
             channel: "bell",
             title: type === "completion"
-              ? `📊 완료 보고: ${task.title}`
-              : `📊 중간 보고: ${task.title}`,
+              ? `완료 보고: ${task.title}`
+              : `중간 보고: ${task.title}`,
             body: (title ? `${title} — ` : "") + content.slice(0, 150),
             actionUrl: `/workspace-kanban.html#task=${taskId}`,
           });
@@ -260,8 +260,8 @@ export default async (req: Request, _ctx: Context) => {
               notifType: reviewStatus === "approved" ? "approved" : "rejected",
               channel: "bell",
               title: reviewStatus === "approved"
-                ? `✅ 보고서 승인: ${task?.title || "작업"}`
-                : `❌ 보고서 반려: ${task?.title || "작업"}`,
+                ? `보고서 승인: ${task?.title || "작업"}`
+                : `보고서 반려: ${task?.title || "작업"}`,
               body: reviewReason || "",
               actionUrl: `/workspace-kanban.html#task=${report.taskId}`,
             });

@@ -18,7 +18,7 @@ export default async (req: Request, _ctx: Context) => {
       return serverError("Google OAuth 환경변수 미설정 (GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI)", null);
     }
 
-    // ★ Q3-021 fix: CSRF 방지용 state nonce 발급 → httpOnly 쿠키 저장, 콜백에서 대조.
+    // Q3-021 fix: CSRF 방지용 state nonce 발급 → httpOnly 쿠키 저장, 콜백에서 대조.
     const state = (globalThis.crypto?.randomUUID?.() || (Math.random().toString(36).slice(2) + Date.now().toString(36)));
     const params = new URLSearchParams({
       client_id: clientId,

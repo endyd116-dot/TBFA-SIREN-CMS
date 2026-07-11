@@ -10,7 +10,7 @@
  *     items[]                                   — JOIN으로 회원명·이메일·전화 포함
  *     counts: { pending, approved, rejected }   — 사이드바 뱃지용
  *
- *  ⚠️ leftJoin 체인은 안정성 위험(CLAUDE.md §6.3) → 별도 SELECT + JS Map 매칭.
+ *  leftJoin 체인은 안정성 위험(CLAUDE.md §6.3) → 별도 SELECT + JS Map 매칭.
  */
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";

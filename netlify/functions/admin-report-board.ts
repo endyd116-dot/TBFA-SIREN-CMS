@@ -151,7 +151,7 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 3. SIREN 신고 집계 ── */
   let siren: any;
   try {
-    /* ★ R41 Q2-036: 신고 3종 enum엔 'resolved' 없음 → 처리완료를 실제 종결 enum값으로 집계.
+    /* R41 Q2-036: 신고 3종 enum엔 'resolved' 없음 → 처리완료를 실제 종결 enum값으로 집계.
        (responded/closed/rejected = 처리·종결, 그 외 = 미처리. report-collector의 open=NOT IN('closed','rejected')와 의미 통일) */
     const sirenRes = await db.execute(sql`
       SELECT

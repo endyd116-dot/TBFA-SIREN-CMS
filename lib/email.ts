@@ -5,12 +5,12 @@ import { fmtKSTSimple, fmtKSTDate } from "./datetime";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const FROM_EMAIL = process.env.EMAIL_FROM || "SIREN <onboarding@resend.dev>";
 
-/* 사이트 기본 URL — 메일 내 링크에 사용. ★US-010: 미설정 시 공식 도메인으로 폴백
+/* 사이트 기본 URL — 메일 내 링크에 사용. US-010: 미설정 시 공식 도메인으로 폴백
    (운영은 Netlify 환경변수 SITE_URL=https://tbfa.co.kr 설정 필수) */
 const SITE_URL = process.env.SITE_URL || "https://tbfa.co.kr";
 
 /* ───────────────────── 공용 발송 함수 (디버그 강화) ───────────────────── */
-/* ───────────────────── 공용 발송 함수 (★ 임시 redirect 모드) ─────────────────────
+/* ───────────────────── 공용 발송 함수 (임시 redirect 모드) ─────────────────────
    - RESEND_TEST_RECIPIENT 환경변수가 설정되면 모든 메일을 그 주소로 redirect
    - 도메인 검증 완료 후 환경변수만 삭제하면 정상 모드로 자동 복귀
    - 코드 변경 없이 운영 모드 전환 가능
@@ -22,7 +22,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
     ? RESEND_API_KEY.slice(0, 6) + "..." + RESEND_API_KEY.slice(-4)
     : "(비어있음)";
 
-  /* ★ 임시 모드: 모든 메일을 본인 이메일로 redirect + 원래 수신자 표시 */
+  /* 임시 모드: 모든 메일을 본인 이메일로 redirect + 원래 수신자 표시 */
   let actualTo = opts.to;
   let actualSubject = opts.subject;
   let actualHtml = opts.html;
@@ -33,7 +33,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
     actualSubject = `[TEST → ${opts.to}] ${opts.subject}`;
     actualHtml = `
       <div style="background:#fff8ec;border:2px solid #f0e3c4;padding:16px 20px;margin-bottom:20px;font-family:'Noto Sans KR',Arial,sans-serif;border-radius:8px;">
-        <div style="font-weight:700;color:#c47a00;margin-bottom:8px;font-size:14px;">⚠️ 도메인 검증 전 — 테스트 redirect 모드</div>
+        <div style="font-weight:700;color:#c47a00;margin-bottom:8px;font-size:14px;">도메인 검증 전 — 테스트 redirect 모드</div>
         <div style="font-size:13px;color:#525252;line-height:1.7;">
           이 메일은 Resend 도메인 검증 전 임시 모드로 발송되었습니다.<br />
           • 원래 수신자: <strong style="color:#0f0f0f;">${opts.to}</strong><br />
@@ -54,7 +54,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
   console.log("[Email] API Key:", apiKeyMasked);
 
   if (!RESEND_API_KEY) {
-    console.error("[Email] ❌ RESEND_API_KEY 환경변수 미설정");
+    console.error("[Email] RESEND_API_KEY 환경변수 미설정");
     return { ok: false, error: "RESEND_API_KEY not configured" };
   }
 
@@ -69,21 +69,21 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
     });
 
     if (error) {
-      console.error("[Email] ❌ Resend 응답 에러:");
+      console.error("[Email] Resend 응답 에러:");
       console.error("[Email]", JSON.stringify(error, null, 2));
       return { ok: false, error };
     }
 
-    console.log("[Email] ✅ 발송 성공:", data?.id, "→", actualTo);
+    console.log("[Email] 발송 성공:", data?.id, "→", actualTo);
     return { ok: true, id: data?.id };
   } catch (err: any) {
-    console.error("[Email] ❌ 예외:", err?.message);
+    console.error("[Email] 예외:", err?.message);
     return { ok: false, error: err };
   }
 }
 
 /* ───────────────────── 공용 레이아웃 ───────────────────── */
-/* ★ 2026-05-17: 발송 템플릿이 SIREN 깔끔한 레이아웃을 사용할 수 있게 export.
+/* 2026-05-17: 발송 템플릿이 SIREN 깔끔한 레이아웃을 사용할 수 있게 export.
    dispatcher가 use_siren_layout=true 템플릿의 본문을 이 함수로 wrap. */
 export function baseLayout(opts: { title: string; bodyHtml: string; ctaText?: string; ctaUrl?: string }) {
   const { title, bodyHtml, ctaText, ctaUrl } = opts;
@@ -470,7 +470,7 @@ export function tplSupportAnsweredUser(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
                 border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
-      🔒 <strong>보안 안내</strong> · 답변 내용은 본인 확인을 위해 마이페이지 로그인 후에만
+      <strong>보안 안내</strong> · 답변 내용은 본인 확인을 위해 마이페이지 로그인 후에만
       열람하실 수 있습니다.
     </div>
   `;
@@ -487,7 +487,7 @@ export function tplSupportAnsweredUser(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   템플릿 3. 유저에게 — 후원 완료 감사 메일 (★ STEP H-3)
+   템플릿 3. 유저에게 — 후원 완료 감사 메일 (STEP H-3)
    ═══════════════════════════════════════════════════════ */
 export function tplDonationThanks(opts: {
   donorName: string;
@@ -522,7 +522,7 @@ export function tplDonationThanks(opts: {
     <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
                 border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-        📄 기부금 영수증 발급 안내
+        기부금 영수증 발급 안내
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:14px;">
         후원해 주신 금액에 대한 <strong>기부금 영수증</strong>은 마이페이지에서 즉시 PDF로 발급받으실 수 있습니다.<br />
@@ -538,7 +538,7 @@ export function tplDonationThanks(opts: {
     <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
                 border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-        📄 기부금 영수증 발급 안내
+        기부금 영수증 발급 안내
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;">
         기부금 영수증은 <strong>회원가입 후</strong> 마이페이지에서 발급받으실 수 있습니다.<br />
@@ -559,7 +559,7 @@ export function tplDonationThanks(opts: {
     </p>
     <p style="margin:0 0 20px;color:#525252;">
       ${esc(donorName)} 님께서 보내주신 따뜻한 마음 <strong style="color:#7a1f2b;">₩${amount.toLocaleString()}</strong>을<br />
-      감사한 마음으로 받았습니다. 🎗
+      감사한 마음으로 받았습니다.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -567,7 +567,7 @@ export function tplDonationThanks(opts: {
       <tr>
         <td style="padding:18px 20px;">
           <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-            📋 후원 내역
+            후원 내역
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
@@ -611,7 +611,7 @@ export function tplDonationThanks(opts: {
                 border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
                   font-family:'Noto Serif KR',serif;">
-        ✨ 후원금은 이렇게 사용됩니다
+        후원금은 이렇게 사용됩니다
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 유가족 심리 상담 지원<br />
@@ -628,12 +628,12 @@ export function tplDonationThanks(opts: {
     <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
       ${esc(donorName)} 님의 따뜻한 마음이 유가족분들께<br />
       큰 위로와 힘이 되어 전해질 수 있도록 정성을 다하겠습니다.<br /><br />
-      다시 한 번 깊이 감사드립니다. 🙏
+      다시 한 번 깊이 감사드립니다.
     </p>
   `;
 
   return {
-    subject: `[SIREN] ${donorName}님, 따뜻한 후원에 감사드립니다 🎗`,
+    subject: `[SIREN] ${donorName}님, 따뜻한 후원에 감사드립니다`,
     html: baseLayout({
       title: "따뜻한 후원에 감사드립니다",
       bodyHtml,
@@ -644,7 +644,7 @@ export function tplDonationThanks(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   템플릿 4. 유저에게 — 지원 신청 접수 확인 (★ STEP H-4)
+   템플릿 4. 유저에게 — 지원 신청 접수 확인 (STEP H-4)
    결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가
    ═══════════════════════════════════════════════════════ */
 export function tplSupportReceiptUser(opts: {
@@ -669,7 +669,6 @@ export function tplSupportReceiptUser(opts: {
                 background:linear-gradient(135deg,#fdecec,#fff5f5);
                 border:2px solid #c5293a;border-radius:8px;">
       <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="font-size:24px;line-height:1;flex-shrink:0;">🔴</div>
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:6px;">
             긴급 신청으로 분류되었습니다
@@ -685,17 +684,17 @@ export function tplSupportReceiptUser(opts: {
     <div style="margin:20px 0;padding:14px 18px;background:#f0f5fc;
                 border:1px solid #cee0f2;border-radius:6px;
                 font-size:13px;color:#1a5ec4;line-height:1.6;">
-      💼 담당자가 신청 내용을 확인 후 <strong>영업일 기준 1~3일 이내</strong>에<br />
+      담당자가 신청 내용을 확인 후 <strong>영업일 기준 1~3일 이내</strong>에<br />
       마이페이지 및 이메일로 답변드리겠습니다.
     </div>`;
 
-  /* ★ 결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가 */
+  /* 결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가 */
   const chatNoticeHtml = isUrgent
     ? `
     <div style="margin:20px 0 0;padding:18px 20px;
                 background:#fff8ec;border:1px solid #f0e3c4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:8px;">
-        ⚡ 더 빠른 상담이 필요하신가요?
+        더 빠른 상담이 필요하신가요?
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:12px;">
         긴급한 도움이 필요하시면 <strong>1:1 실시간 채팅 상담</strong>을 이용해 보세요.<br />
@@ -704,7 +703,7 @@ export function tplSupportReceiptUser(opts: {
       <a href="${SITE_URL}/mypage.html#consult" target="_blank"
          style="display:inline-block;padding:10px 18px;background:#c5293a;color:#ffffff;
                 text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
-        💬 1:1 채팅 상담 시작 →
+        1:1 채팅 상담 시작 →
       </a>
     </div>`
     : "";
@@ -715,7 +714,7 @@ export function tplSupportReceiptUser(opts: {
     </p>
     <p style="margin:0 0 20px;color:#525252;">
       ${esc(applicantName)} 님의 <strong style="color:#7a1f2b;">${esc(categoryKr)}</strong> 지원 신청이<br />
-      정상적으로 접수되었습니다. 🎗
+      정상적으로 접수되었습니다.
     </p>
 
     ${priorityNoticeHtml}
@@ -725,7 +724,7 @@ export function tplSupportReceiptUser(opts: {
       <tr>
         <td style="padding:18px 20px;">
           <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-            📋 접수 정보
+            접수 정보
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
@@ -752,7 +751,7 @@ export function tplSupportReceiptUser(opts: {
                 <span style="display:inline-block;padding:3px 10px;
                              background:${isUrgent ? "#c5293a" : "#1a5ec4"};
                              color:#ffffff;border-radius:3px;font-size:12px;font-weight:600;">
-                  ${isUrgent ? "🔴 긴급 처리 중" : "접수됨"}
+                  ${isUrgent ? "긴급 처리 중" : "접수됨"}
                 </span>
               </td>
             </tr>
@@ -767,7 +766,7 @@ export function tplSupportReceiptUser(opts: {
                 border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
                   font-family:'Noto Serif KR',serif;">
-        🤝 처리 절차 안내
+        처리 절차 안내
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         <div style="margin-bottom:6px;"><strong style="color:#0f0f0f;">1단계.</strong> 신청 내용 검토 (현재 단계)</div>
@@ -783,12 +782,12 @@ export function tplSupportReceiptUser(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
                 border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
-      🔒 <strong>개인정보 보호</strong> · 신청 내용은 담당자만 열람할 수 있으며,<br />
+      <strong>개인정보 보호</strong> · 신청 내용은 담당자만 열람할 수 있으며,<br />
       관련 법령에 따라 안전하게 관리됩니다.
     </div>
   `;
 
-  const subjectPrefix = isUrgent ? "🔴 긴급 - " : "";
+  const subjectPrefix = isUrgent ? "긴급 - " : "";
   return {
     subject: `[SIREN] ${subjectPrefix}${applicantName}님, 지원 신청이 접수되었습니다`,
     html: baseLayout({
@@ -801,7 +800,7 @@ export function tplSupportReceiptUser(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ★ K-1: 템플릿 5. 유저에게 — 비밀번호 재설정 링크
+   K-1: 템플릿 5. 유저에게 — 비밀번호 재설정 링크
    ═══════════════════════════════════════════════════════ */
 export function tplPasswordReset(opts: {
   userName: string;
@@ -831,7 +830,7 @@ export function tplPasswordReset(opts: {
     <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
                 border:1px solid #e8e6e3;border-radius:8px;">
       <div style="font-size:13px;color:#525252;line-height:1.7;">
-        <strong style="color:#0f0f0f;">⚠️ 본인이 요청하지 않으셨다면</strong><br />
+        <strong style="color:#0f0f0f;">본인이 요청하지 않으셨다면</strong><br />
         이 메일을 무시하셔도 됩니다. 비밀번호는 변경되지 않습니다.<br /><br />
         만약 본인이 아닌데 반복적으로 이 메일을 받으신다면,<br />
         계정 보안을 위해 즉시 협회에 알려 주세요.
@@ -840,7 +839,7 @@ export function tplPasswordReset(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
-      🔒 <strong>보안 안내</strong><br />
+      <strong>보안 안내</strong><br />
       • 이 링크는 ${esc(userName)} 님 메일함을 통해서만 사용 가능합니다.<br />
       • 누구에게도 이 링크를 공유하지 마세요.<br />
       • 협회는 절대 비밀번호를 메일/전화로 묻지 않습니다.
@@ -865,7 +864,7 @@ export function tplPasswordReset(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ★ K-2: 템플릿 6. 유저에게 — 이메일 인증 링크 (NEW)
+   K-2: 템플릿 6. 유저에게 — 이메일 인증 링크 (NEW)
    - 가입 직후 자동 발송 / 사용자 요청 시 재발송
    - 24시간 유효
    ═══════════════════════════════════════════════════════ */
@@ -891,7 +890,7 @@ export function tplEmailVerify(opts: {
                 border:1px solid #f0e0d4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:8px;
                   font-family:'Noto Serif KR',serif;">
-        ✉️ 이메일 인증이 필요한 이유
+        이메일 인증이 필요한 이유
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;">
         • 본인 명의의 이메일 주소를 확인하기 위해 필요합니다<br />
@@ -911,7 +910,7 @@ export function tplEmailVerify(opts: {
     <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
                 border:1px solid #e8e6e3;border-radius:8px;">
       <div style="font-size:13px;color:#525252;line-height:1.7;">
-        <strong style="color:#0f0f0f;">📌 인증을 완료하지 않아도 가입은 유효합니다</strong><br />
+        <strong style="color:#0f0f0f;">인증을 완료하지 않아도 가입은 유효합니다</strong><br />
         하지만 일부 보안 기능(비밀번호 찾기 등)은 인증 후에만 정상 작동합니다.<br />
         가능한 빨리 인증을 완료해 주세요.
       </div>
@@ -919,7 +918,7 @@ export function tplEmailVerify(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
-      🔒 <strong>보안 안내</strong><br />
+      <strong>보안 안내</strong><br />
       • 회원가입을 하지 않으셨다면 이 메일을 무시하셔도 됩니다<br />
       • 다른 사람의 메일 주소가 잘못 입력된 경우일 수 있습니다<br />
       • 협회는 절대 비밀번호를 메일/전화로 묻지 않습니다
@@ -933,7 +932,7 @@ export function tplEmailVerify(opts: {
   `;
 
   return {
-    subject: `[SIREN] 이메일 인증을 완료해 주세요 ✉️`,
+    subject: `[SIREN] 이메일 인증을 완료해 주세요`,
     html: baseLayout({
       title: "이메일 인증",
       bodyHtml,
@@ -945,7 +944,7 @@ export function tplEmailVerify(opts: {
 
 
 /* ═══════════════════════════════════════════════════════
-   ★ K-2: 템플릿 7. 유저에게 — 회원 탈퇴 확인 (NEW)
+   K-2: 템플릿 7. 유저에게 — 회원 탈퇴 확인 (NEW)
    - 탈퇴 처리 직후 발송
    - 30일 이내 복구 안내 (정책 결정 사항이므로 안내만 표시)
    ═══════════════════════════════════════════════════════ */
@@ -964,7 +963,7 @@ export function tplWithdrawConfirm(opts: {
     </p>
     <p style="margin:0 0 20px;color:#525252;">
       회원 탈퇴가 정상적으로 처리되었습니다.<br />
-      그동안 교사유가족협의회와 함께해 주셔서 진심으로 감사드립니다. 🙏
+      그동안 교사유가족협의회와 함께해 주셔서 진심으로 감사드립니다.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -972,7 +971,7 @@ export function tplWithdrawConfirm(opts: {
       <tr>
         <td style="padding:18px 20px;">
           <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-            📋 탈퇴 정보
+            탈퇴 정보
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
@@ -994,7 +993,7 @@ export function tplWithdrawConfirm(opts: {
                 border:1px solid #e8e6e3;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
                   font-family:'Noto Serif KR',serif;">
-        🔒 개인정보 처리 안내
+        개인정보 처리 안내
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 회원 정보는 즉시 비활성화되며, 더 이상 로그인하실 수 없습니다<br />
@@ -1008,7 +1007,7 @@ export function tplWithdrawConfirm(opts: {
     <div style="margin:24px 0;padding:18px 20px;background:#fff8ec;
                 border:1px solid #f0e3c4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:8px;">
-        💝 다시 함께해 주실 수 있다면
+        다시 함께해 주실 수 있다면
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;">
         ${esc(userName)} 님과 함께한 모든 순간이 협회에 큰 힘이 되었습니다.<br />
@@ -1020,7 +1019,7 @@ export function tplWithdrawConfirm(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
-      📞 <strong>문의 안내</strong><br />
+      <strong>문의 안내</strong><br />
       • 탈퇴 즉시 이름·연락처·이메일은 영구 삭제되어 <strong>복구가 불가능</strong>합니다<br />
       • 법령에 따라 보관 중인 후원 내역 등의 열람·정정·삭제 요청은<br />
         &nbsp;&nbsp;<strong>contact@siren-org.kr</strong>로 가능합니다
@@ -1038,7 +1037,7 @@ export function tplWithdrawConfirm(opts: {
   };
 }
 /* ═══════════════════════════════════════════════════════
-   ★ Phase L-5: 템플릿 8. 정기 후원 결제 성공 알림 (NEW)
+   Phase L-5: 템플릿 8. 정기 후원 결제 성공 알림 (NEW)
    - 매월 자동 결제 성공 시 발송
    ═══════════════════════════════════════════════════════ */
 export function tplBillingChargeSuccess(opts: {
@@ -1067,7 +1066,7 @@ export function tplBillingChargeSuccess(opts: {
     </p>
     <p style="margin:0 0 20px;color:#525252;">
       ${esc(donorName)} 님의 정기 후원 <strong style="color:#7a1f2b;">₩${amount.toLocaleString()}</strong>이<br />
-      정상적으로 결제되었습니다. 매월 보내주시는 따뜻한 마음에 깊이 감사드립니다. 🎗
+      정상적으로 결제되었습니다. 매월 보내주시는 따뜻한 마음에 깊이 감사드립니다.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -1075,7 +1074,7 @@ export function tplBillingChargeSuccess(opts: {
       <tr>
         <td style="padding:18px 20px;">
           <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-            📋 결제 내역
+            결제 내역
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
@@ -1112,7 +1111,7 @@ export function tplBillingChargeSuccess(opts: {
     <div style="margin:20px 0;padding:16px 20px;background:#fef9f5;
                 border:1px solid #f0e0d4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:8px;">
-        📄 기부금 영수증
+        기부금 영수증
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;">
         ${isMember
@@ -1124,7 +1123,7 @@ export function tplBillingChargeSuccess(opts: {
     <div style="margin:20px 0;padding:14px 16px;background:#f0f5fc;
                 border:1px solid #cee0f2;border-radius:6px;
                 font-size:12.5px;color:#1a5ec4;line-height:1.7;">
-      💡 <strong>정기 후원 관리 안내</strong><br />
+      <strong>정기 후원 관리 안내</strong><br />
       • 결제 카드 변경/해지: 마이페이지 → 후원 내역에서 가능합니다<br />
       • 카드 만료 등으로 결제 실패 시 별도 안내 메일을 보내드립니다<br />
       • 매월 자동 결제일 약 5~10일 전에 결제 예정 안내를 보내드립니다
@@ -1133,7 +1132,7 @@ export function tplBillingChargeSuccess(opts: {
     <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
       ${esc(donorName)} 님의 따뜻한 마음으로<br />
       유가족분들이 더 단단히 일어설 수 있습니다.<br /><br />
-      늘 감사합니다. 🙏
+      늘 감사합니다.
     </p>
   `;
 
@@ -1149,7 +1148,7 @@ export function tplBillingChargeSuccess(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ★ Phase L-5: 템플릿 9. 정기 후원 결제 실패 알림 (NEW)
+   Phase L-5: 템플릿 9. 정기 후원 결제 실패 알림 (NEW)
    - 매월 자동 결제 실패 시 발송
    - 1회/2회/3회(자동해지)별로 다른 메시지
    ═══════════════════════════════════════════════════════ */
@@ -1182,7 +1181,6 @@ export function tplBillingChargeFailed(opts: {
                 background:linear-gradient(135deg,#fdecec,#fff5f5);
                 border:2px solid #c5293a;border-radius:8px;">
       <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="font-size:24px;line-height:1;flex-shrink:0;">🛑</div>
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:6px;">
             정기 후원이 자동 해지되었습니다
@@ -1199,7 +1197,6 @@ export function tplBillingChargeFailed(opts: {
     <div style="margin:20px 0;padding:16px 20px;
                 background:#fff8ec;border:2px solid #f0e3c4;border-radius:8px;">
       <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="font-size:24px;line-height:1;flex-shrink:0;">⚠️</div>
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:6px;">
             연속 2회 결제 실패 — 1회 더 실패 시 자동 해지
@@ -1215,7 +1212,7 @@ export function tplBillingChargeFailed(opts: {
     <div style="margin:20px 0;padding:14px 18px;
                 background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;
                 font-size:13px;color:#8a6a00;line-height:1.6;">
-      💡 결제 실패가 발생했습니다.${retryStr ? `<br />다음 자동 재시도: <strong>${esc(retryStr)}</strong>` : ""}
+      결제 실패가 발생했습니다.${retryStr ? `<br />다음 자동 재시도: <strong>${esc(retryStr)}</strong>` : ""}
     </div>`;
 
   const bodyHtml = `
@@ -1232,14 +1229,14 @@ export function tplBillingChargeFailed(opts: {
     <div style="margin:20px 0;padding:14px 16px;background:#fafaf8;
                 border:1px solid #e8e6e3;border-radius:6px;font-size:12.5px;
                 color:#525252;line-height:1.7;">
-      <strong style="color:#0f0f0f;">⚠️ 실패 사유</strong><br />
+      <strong style="color:#0f0f0f;">실패 사유</strong><br />
       ${esc(failureReason || "카드 결제가 거절되었습니다")}
     </div>
 
     <div style="margin:20px 0;padding:16px 20px;background:#f0f5fc;
                 border:1px solid #cee0f2;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#1a5ec4;margin-bottom:10px;">
-        💡 해결 방법
+        해결 방법
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 카드 한도 또는 잔액을 확인해 주세요<br />
@@ -1255,9 +1252,9 @@ export function tplBillingChargeFailed(opts: {
   `;
 
   const subjectPrefix = isFinal
-    ? "🛑 [SIREN] 정기 후원 자동 해지 안내"
+    ? "[SIREN] 정기 후원 자동 해지 안내"
     : isWarning
-    ? "⚠️ [SIREN] 정기 후원 결제 실패 (2회 연속)"
+    ? "[SIREN] 정기 후원 결제 실패 (2회 연속)"
     : "[SIREN] 정기 후원 결제 실패 안내";
 
   return {
@@ -1272,7 +1269,7 @@ export function tplBillingChargeFailed(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ★ Phase M-10: 사이렌 관리 답변 알림 메일 4종
+   Phase M-10: 사이렌 관리 답변 알림 메일 4종
    ═══════════════════════════════════════════════════════ */
 
 /* ───────────────────────────────────────────────────────
@@ -1335,7 +1332,7 @@ export function tplIncidentResponseUser(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
                 border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
-      🔒 <strong>보안 안내</strong> · 답변 내용은 본인 확인을 위해 마이페이지 로그인 후에만
+      <strong>보안 안내</strong> · 답변 내용은 본인 확인을 위해 마이페이지 로그인 후에만
       열람하실 수 있습니다.
     </div>
   `;
@@ -1383,7 +1380,7 @@ export function tplHarassmentResponseUser(opts: {
     <div style="margin:18px 0;padding:14px 18px;background:#f0f5fc;
                 border:1px solid #cee0f2;border-radius:6px;
                 font-size:13px;color:#1a5ec4;line-height:1.6;">
-      💗 혼자 견디지 마세요. 사이렌이 함께합니다.
+      혼자 견디지 마세요. 사이렌이 함께합니다.
     </div>
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -1417,7 +1414,7 @@ export function tplHarassmentResponseUser(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
                 border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
-      🔒 <strong>비밀 보장</strong> · 신고 내용과 답변은 본인 외에 열람할 수 없습니다.
+      <strong>비밀 보장</strong> · 신고 내용과 답변은 본인 외에 열람할 수 없습니다.
     </div>
   `;
 
@@ -1460,7 +1457,7 @@ export function tplLegalResponseUser(opts: {
     <div style="margin:18px 0;padding:14px 18px;background:#f8f7fc;
                 border:2px solid #5a4d8c;border-radius:6px;">
       <div style="font-size:13px;font-weight:700;color:#5a4d8c;margin-bottom:4px;">
-        👨‍⚖️ 매칭된 변호사
+        매칭된 변호사
       </div>
       <div style="font-size:14px;color:#0f0f0f;font-family:'Noto Serif KR',serif;font-weight:600;">
         ${esc(assignedLawyerName)}
@@ -1509,7 +1506,7 @@ export function tplLegalResponseUser(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
                 border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.7;">
-      ⚠️ <strong>면책 안내</strong> · 사이렌이 제공하는 답변은 1차 자문 안내이며 법률 자문이 아닙니다.<br />
+      <strong>면책 안내</strong> · 사이렌이 제공하는 답변은 1차 자문 안내이며 법률 자문이 아닙니다.<br />
       정확한 법적 판단은 매칭된 변호사와의 상담을 통해 받으시기 바랍니다.
     </div>
   `;
@@ -1580,7 +1577,7 @@ export function tplBoardResponseUser(opts: {
 }
 // lib/email.ts — 파일 맨 끝 tplBoardResponseUser 다음에 추가
 /* ═══════════════════════════════════════════════════════
-   ★ Phase M-19-1: 템플릿 14. 회원 등급 상승 축하 (NEW)
+   Phase M-19-1: 템플릿 14. 회원 등급 상승 축하 (NEW)
    - recalculateGrade() 에서 등급 상승 감지 시 자동 발송
    - members.agreeEmail=true 인 경우만 (정책 준수)
    ═══════════════════════════════════════════════════════ */
@@ -1599,7 +1596,7 @@ export function tplGradeUpgrade(opts: {
     </p>
     <p style="margin:0 0 20px;color:#525252;">
       ${esc(userName)} 님의 따뜻한 동행에 진심으로 감사드립니다.<br />
-      회원 등급이 <strong style="color:#7a1f2b;">${esc(gradeIcon)} ${esc(gradeName)}</strong> 등급으로 상승하였습니다. 🎉
+      회원 등급이 <strong style="color:#7a1f2b;">${esc(gradeIcon)} ${esc(gradeName)}</strong> 등급으로 상승하였습니다.
     </p>
 
     <div style="margin:24px 0;padding:24px;
@@ -1620,7 +1617,7 @@ export function tplGradeUpgrade(opts: {
       <tr>
         <td style="padding:18px 20px;">
           <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-            📊 동행 기록
+            동행 기록
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
@@ -1644,7 +1641,7 @@ export function tplGradeUpgrade(opts: {
     <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
       ${esc(userName)} 님과 같은 분들이 계시기에<br />
       유가족분들이 한 걸음씩 일상을 회복해 갈 수 있습니다.<br /><br />
-      앞으로도 변함없는 따뜻한 동행 부탁드립니다. 🎗
+      앞으로도 변함없는 따뜻한 동행 부탁드립니다.
     </p>
   `;
 
@@ -1661,7 +1658,7 @@ export function tplGradeUpgrade(opts: {
 // lib/email.ts — 파일 맨 끝 tplGradeUpgrade 함수 다음에 추가
 
 /* ═══════════════════════════════════════════════════════
-   ★ Phase M-19-1: 템플릿 15. 후원자 재참여 유도 메일 (NEW)
+   Phase M-19-1: 템플릿 15. 후원자 재참여 유도 메일 (NEW)
    - 어드민이 churn risk가 있는 회원에게 수동/AI로 발송
    - members.agreeEmail=true 인 회원만 (정책 준수)
    - 7일 내 중복 발송 방지 (admin-churn-reengage.ts에서 처리)
@@ -1681,14 +1678,14 @@ export function tplChurnReengage(opts: {
                 background:linear-gradient(135deg,#fef9f5,#fff8ec);
                 border:1px solid #f0e0d4;border-radius:8px;text-align:center;">
       <div style="font-size:13px;color:#8a8a8a;margin-bottom:6px;">
-        💝 ${esc(memberName)} 님과 함께한 동행
+        ${esc(memberName)} 님과 함께한 동행
       </div>
       <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;
                   color:#7a1f2b;letter-spacing:-0.5px;">
         누적 후원 ₩${totalDonationAmount.toLocaleString()}
       </div>
       <div style="font-size:12px;color:#a08568;margin-top:6px;">
-        교사 유가족분들에게 큰 힘이 되어주셨습니다 🎗
+        교사 유가족분들에게 큰 힘이 되어주셨습니다
       </div>
     </div>`
     : "";
@@ -1710,7 +1707,7 @@ export function tplChurnReengage(opts: {
                 border:1px solid #e8e6e3;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
                   font-family:'Noto Serif KR',serif;">
-        🎗 사이렌은 지금 이런 활동을 하고 있습니다
+        사이렌은 지금 이런 활동을 하고 있습니다
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 유가족 심리 상담 및 법률 자문 매칭<br />
@@ -1726,19 +1723,19 @@ export function tplChurnReengage(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
-      📬 <strong>이 메일을 받으신 이유</strong><br />
+      <strong>이 메일을 받으신 이유</strong><br />
       ${esc(memberName)} 님은 사이렌의 소중한 후원 회원이십니다.<br />
       알림 메일을 받지 않으시려면 마이페이지 → 알림 설정에서 변경하실 수 있습니다.
     </div>
 
     <p style="margin:20px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
       언제 어디서든 ${esc(memberName)} 님의 마음 곁에서<br />
-      함께 걷고 있겠습니다. 🙏
+      함께 걷고 있겠습니다.
     </p>
   `;
 
   return {
-    subject: `[SIREN] ${memberName}님, 사이렌이 안부를 전합니다 🎗`,
+    subject: `[SIREN] ${memberName}님, 사이렌이 안부를 전합니다`,
     html: baseLayout({
       title: "사이렌이 안부를 전합니다",
       bodyHtml,
@@ -1751,7 +1748,7 @@ export function tplChurnReengage(opts: {
 // lib/email.ts — 파일 끝에 추가
 
 /* ============================================================
-   ★ M-19-7: 기념일 축하 메일 템플릿 5종
+   M-19-7: 기념일 축하 메일 템플릿 5종
    ============================================================ */
 
 
@@ -1814,7 +1811,7 @@ export function tplAnniversarySignup1Month(opts: { memberName: string }): { subj
     </p>
   `;
   return {
-    subject: `🌱 ${opts.memberName}님, 함께한 한 달을 기념합니다`,
+    subject: `${opts.memberName}님, 함께한 한 달을 기념합니다`,
     html: buildAnniversaryEmailShell({
       heroEmoji: "🌱",
       heroTitle: "함께한 한 달, 감사합니다",
@@ -1839,14 +1836,14 @@ export function tplAnniversarySignup1Year(opts: { memberName: string }): { subje
       <em style="color:#888;font-size:13px">"혼자가 아니라는 말 한 마디, 1년의 동행이 만들어낸 기적입니다."</em>
     </p>
     <div style="background:#fef9f5;border-left:3px solid #7a1f2b;padding:14px 18px;border-radius:6px;margin:20px 0">
-      <p style="margin:0;font-size:13px;color:#7a1f2b;font-weight:600">💝 1주년 기념 혜택</p>
+      <p style="margin:0;font-size:13px;color:#7a1f2b;font-weight:600">1주년 기념 혜택</p>
       <p style="margin:6px 0 0;font-size:12.5px;color:#666;line-height:1.6">
         연간 활동보고서를 가장 먼저 받아보실 수 있는 권한이 부여되었습니다.
       </p>
     </div>
   `;
   return {
-    subject: `🎉 ${opts.memberName}님, 함께한 1주년을 축하드립니다`,
+    subject: `${opts.memberName}님, 함께한 1주년을 축하드립니다`,
     html: buildAnniversaryEmailShell({
       heroEmoji: "🎉",
       heroTitle: "함께한 1주년을 축하드립니다",
@@ -1873,7 +1870,7 @@ export function tplFirstDonation1Year(opts: { memberName: string }): { subject: 
     </p>
   `;
   return {
-    subject: `🎗 ${opts.memberName}님, 첫 후원 1주년을 기념합니다`,
+    subject: `${opts.memberName}님, 첫 후원 1주년을 기념합니다`,
     html: buildAnniversaryEmailShell({
       heroEmoji: "🎗",
       heroTitle: "첫 후원, 1주년을 기념합니다",
@@ -1912,7 +1909,7 @@ export function tplDonationMilestone(opts: {
     </p>
   `;
   return {
-    subject: `💎 ${opts.memberName}님, 누적 후원 ${milestoneText} 달성을 축하드립니다`,
+    subject: `${opts.memberName}님, 누적 후원 ${milestoneText} 달성을 축하드립니다`,
     html: buildAnniversaryEmailShell({
       heroEmoji: "💎",
       heroTitle: `${milestoneText} 달성`,
@@ -1962,7 +1959,7 @@ export function tplRegularDonationAnniversary(opts: {
 // lib/email.ts — 파일 맨 끝에 추가 (M-19-11 V2 회원 승인 시스템)
 
 /* ═══════════════════════════════════════════════════════
-   ★ Phase M-19-11 V2: 템플릿 22. 회원 승인 완료 알림 (NEW)
+   Phase M-19-11 V2: 템플릿 22. 회원 승인 완료 알림 (NEW)
    - 유가족/교원/변호사/심리상담사 회원이 운영자에게 승인되었을 때
    - members.agreeEmail=true 인 경우만 발송
    ═══════════════════════════════════════════════════════ */
@@ -1989,7 +1986,7 @@ export function tplMemberApproved(opts: {
     </p>
     <p style="margin:0 0 20px;color:#525252;">
       ${esc(userName)} 님의 <strong style="color:${subtypeInfo.color};">${subtypeInfo.icon} ${esc(subtypeInfo.label)}</strong> 회원 가입이<br />
-      운영진의 검토를 거쳐 <strong style="color:#1a8b46;">정상 승인</strong>되었습니다. 🎉
+      운영진의 검토를 거쳐 <strong style="color:#1a8b46;">정상 승인</strong>되었습니다.
     </p>
 
     <div style="margin:24px 0;padding:24px;
@@ -2029,7 +2026,7 @@ export function tplMemberApproved(opts: {
                 border:1px solid #e8e6e3;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
                   font-family:'Noto Serif KR',serif;">
-        🚀 이제 이용하실 수 있습니다
+        이제 이용하실 수 있습니다
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         ${memberSubtype === "family" ? `
@@ -2053,7 +2050,7 @@ export function tplMemberApproved(opts: {
 
     <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
       ${esc(userName)} 님과 함께 더 따뜻한 동행을 만들어가겠습니다.<br />
-      앞으로 잘 부탁드립니다. 🙏
+      앞으로 잘 부탁드립니다.
     </p>
   `;
 
@@ -2069,7 +2066,7 @@ export function tplMemberApproved(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ★ Phase M-19-11 V2: 템플릿 23. 회원 승인 반려 알림 (NEW)
+   Phase M-19-11 V2: 템플릿 23. 회원 승인 반려 알림 (NEW)
    - 운영자가 자격증 검토 후 반려한 경우
    - 반려 사유 명시 + 재신청 안내
    ═══════════════════════════════════════════════════════ */
@@ -2106,7 +2103,7 @@ export function tplMemberRejected(opts: {
                 background:linear-gradient(135deg,#fdecec,#fff5f5);
                 border:2px solid #f0c4c4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:10px;">
-        📋 반려 사유
+        반려 사유
       </div>
       <div style="font-size:13.5px;color:#7a1f1f;line-height:1.85;
                   background:#ffffff;padding:14px 16px;border-radius:6px;">
@@ -2135,7 +2132,7 @@ export function tplMemberRejected(opts: {
     <div style="margin:24px 0;padding:18px 20px;background:#fff8ec;
                 border:1px solid #f0e3c4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:10px;">
-        💡 재신청을 원하신다면
+        재신청을 원하신다면
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 위 사유를 확인하시고 보완 가능한 증빙 서류를 준비해 주세요<br />
@@ -2146,14 +2143,14 @@ export function tplMemberRejected(opts: {
 
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
-      📞 <strong>문의 안내</strong><br />
+      <strong>문의 안내</strong><br />
       • 본인 확인이 필요한 경우: contact@siren-org.kr<br />
       • 일반 가입 안내: 협회 홈페이지의 "회원 가입" 메뉴
     </div>
 
     <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
       ${esc(userName)} 님께 도움이 되지 못해 죄송합니다.<br />
-      추가 문의 사항이 있으시면 언제든 협회로 연락 주세요. 🙏
+      추가 문의 사항이 있으시면 언제든 협회로 연락 주세요.
     </p>
   `;
 
@@ -2168,7 +2165,7 @@ export function tplMemberRejected(opts: {
   };
 }
 /* ============================================================
-   ★ M-19-7: 기념일 축하 메일 템플릿 5종
+   M-19-7: 기념일 축하 메일 템플릿 5종
    - 1. 가입 1개월
    - 2. 가입 1주년
    - 3. 첫 후원 1주년

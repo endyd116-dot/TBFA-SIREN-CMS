@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — my-subscriptions.js (★ Phase 11 멘션·구독)
+   SIREN — my-subscriptions.js (Phase 11 멘션·구독)
    - 구독 게시글 목록 + 구독 알림 목록 관리
    ========================================================= */
 (function () {
@@ -185,7 +185,7 @@
               <div class="sub-notif-text">${msg}</div>
               <div class="sub-notif-meta">${fmtDate(n.createdAt)}</div>
             </div>
-            ${!n.isRead ? `<button class="sub-notif-read-btn" title="읽음 처리" onclick="markRead(${n.id}, this)">✓</button>` : ''}
+            ${!n.isRead ? `<button class="sub-notif-read-btn" title="읽음 처리" onclick="markRead(${n.id}, this)">${Icons.svg('check')}</button>` : ''}
           </div>
         `;
       });

@@ -51,7 +51,7 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const periodParam = url.searchParams.get("period") || "30d";
   const days = PERIOD_MAP[periodParam] ?? 30;
-  /* ★ 2026-05-16: 싸이렌 어드민 대시보드는 SIREN 웹 가입자만 집계. 효성·수기·
+  /* 2026-05-16: 싸이렌 어드민 대시보드는 SIREN 웹 가입자만 집계. 효성·수기·
      이벤트 등으로 확보된 회원은 통합 CMS에서 보므로 ?webonly=1 옵션으로 필터.
      필터 조건: signup_sources.code='website' (사이렌 웹 가입). */
   const webOnly = url.searchParams.get("webonly") === "1";
@@ -59,7 +59,7 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 1. 후원 KPI ── */
   let donation: any;
   try {
-    /* ★ R41 Q1-007 FIX: prev_donors 서브쿼리 제거 — 조건(>=N일전 AND <2N일전)이 상호배타라
+    /* R41 Q1-007 FIX: prev_donors 서브쿼리 제거 — 조건(>=N일전 AND <2N일전)이 상호배타라
        항상 0이었고 응답에도 미사용(죽은·잘못된 코드). 신규 후원자는 아래 newDonorRes로 별도 계산. */
     const donationRes = await db.execute(sql`
       SELECT
@@ -150,9 +150,9 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 2. 회원 KPI ── */
   let member: any;
   try {
-    /* ★ 2026-05-16: webonly=1 시 가입경로 'website'(웹) 회원만 집계. 효성·수기·
+    /* 2026-05-16: webonly=1 시 가입경로 'website'(웹) 회원만 집계. 효성·수기·
        이벤트 등은 제외 — 싸이렌 어드민 대시보드는 SIREN 플랫폼 가입자만 본다.
-       ★ 2026-05-26 FIX: DB 가입경로 코드는 'website'. 'siren'은 API enum 표기일 뿐
+       2026-05-26 FIX: DB 가입경로 코드는 'website'. 'siren'은 API enum 표기일 뿐
        signup_sources에는 없어 서브쿼리가 NULL→웹 회원이 항상 0집계되던 버그 수정. */
     const webFilter = webOnly
       ? sql`AND m.signup_source_id = (SELECT id FROM signup_sources WHERE code = 'website' LIMIT 1)`
@@ -192,7 +192,7 @@ export default async (req: Request, _ctx: Context) => {
       withdrawnCount: Number(r.withdrawn_count),
     }));
 
-    /* ★ 2026-05-16: 회원 유형별 분포 (도넛 차트용). webonly 필터 동일 적용. */
+    /* 2026-05-16: 회원 유형별 분포 (도넛 차트용). webonly 필터 동일 적용. */
     const byTypeRes = await db.execute(sql`
       SELECT type, COUNT(*)::int AS cnt
       FROM members m
@@ -245,7 +245,7 @@ export default async (req: Request, _ctx: Context) => {
     }
     const resolvedRate = totalNew > 0 ? Math.round((totalResolved / totalNew) * 100) / 100 : 0;
 
-    /* ★ 2026-05-16: 최근 12주 신고 추이 (라인 차트용) — 사건·악성·법률 합계 주별 카운트 */
+    /* 2026-05-16: 최근 12주 신고 추이 (라인 차트용) — 사건·악성·법률 합계 주별 카운트 */
     const weeklyRes = await db.execute(sql`
       SELECT
         TO_CHAR(DATE_TRUNC('week', created_at), 'MM-DD') AS week,

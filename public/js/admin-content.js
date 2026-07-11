@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-content.js (★ Phase M-11)
+   SIREN — admin-content.js (Phase M-11)
    콘텐츠 관리 통합 모듈
    - 5개 탭: notices / faqs / about / activity / media
    - notices/faqs는 기존 admin.js 핸들러 유지 (탭 전환만 처리)
@@ -217,7 +217,7 @@
     const tbody = document.getElementById('apTbody');
     if (!tbody) return;
 
-    /* ★ C안 Step 3-B: AI 활동보고서 요약 카드 로드 (병렬) */
+    /* C안 Step 3-B: AI 활동보고서 요약 카드 로드 (병렬) */
     loadActivityReportSummary().catch((e) => console.error('[ar-summary]', e));
 
 
@@ -268,7 +268,7 @@
     populateYearSelect(years);
   }
 
-  /* ★ C안 Step 3-B: AI 활동보고서 요약 카드 로드 */
+  /* C안 Step 3-B: AI 활동보고서 요약 카드 로드 */
   async function loadActivityReportSummary() {
     const listEl = document.getElementById('arSummaryList');
     if (!listEl) return;
@@ -329,7 +329,7 @@
     }
   }
 
-  /* ★ C안 Step 3-B: "전체 보기" 버튼 → 사이드바 메뉴 전환 */
+  /* C안 Step 3-B: "전체 보기" 버튼 → 사이드바 메뉴 전환 */
   document.addEventListener('click', function(e) {
     if (e.target && (e.target.id === 'arGoToFullBtn' || (e.target.closest && e.target.closest('#arGoToFullBtn')))) {
       e.preventDefault();

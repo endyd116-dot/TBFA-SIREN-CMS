@@ -1,5 +1,5 @@
 // netlify/functions/admin-workspace-events.ts
-// ★ Phase 3 Step 2-A — 워크스페이스 Event CRUD API
+// Phase 3 Step 2-A — 워크스페이스 Event CRUD API
 //
 // GET ?list=1&from=YYYY-MM-DD&to=YYYY-MM-DD  : 기간 조회 (필수)
 // GET ?list=1&mine=1                          : 내가 만든 이벤트
@@ -152,7 +152,7 @@ export default async (req: Request, _ctx: Context) => {
           .where(eq(members.id, ev.memberId))
           .limit(1);
 
-        // ★ Q3-006 fix: RSVP 응답은 workspace_event_rsvps 단일 출처에서 조회 (attendees JSONB는 초대 명단 전용).
+        // Q3-006 fix: RSVP 응답은 workspace_event_rsvps 단일 출처에서 조회 (attendees JSONB는 초대 명단 전용).
         //   미응답 = 초대됐으나 rsvps에 행 없는 사람.
         let rsvpMap: Record<number, string> = {};
         try {
@@ -353,7 +353,7 @@ export default async (req: Request, _ctx: Context) => {
           sourceId: newEvent.id,
           notifType: "invited",
           channel: "bell",
-          title: `📅 새 일정 초대: ${newEvent.title}`,
+          title: `새 일정 초대: ${newEvent.title}`,
           body: `${startDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} · ${body.location || "장소 미정"}`,
           actionUrl: `/workspace-calendar.html`,  // [감사#29] 죽은 해시 → 캘린더
         });
@@ -380,7 +380,7 @@ export default async (req: Request, _ctx: Context) => {
       if (!ev) return notFound("이벤트를 찾을 수 없습니다");
 
       /* ─── action=rsvp (참석 응답) ─── */
-      // ★ Q3-006 fix: 응답은 workspace_event_rsvps 단일 출처에 upsert (attendees JSONB는 초대 명단 전용으로 보존).
+      // Q3-006 fix: 응답은 workspace_event_rsvps 단일 출처에 upsert (attendees JSONB는 초대 명단 전용으로 보존).
       //   기존엔 응답을 attendees JSONB에 써서 캘린더 UI(workspace-event-rsvp)의 rsvps 테이블과 이원화됐다.
       if (action === "rsvp") {
         /* OP-037: 초대 여부 검증 — 주최자이거나 attendees에 포함된 사람만 응답 가능(주최자 알림 스팸 방지). */
@@ -528,7 +528,7 @@ export default async (req: Request, _ctx: Context) => {
           sourceId: id,
           notifType: "rejected",
           channel: "bell",
-          title: `❌ 일정이 취소되었습니다: ${ev.title}`,
+          title: `일정이 취소되었습니다: ${ev.title}`,
           body: new Date(ev.startAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
         });
       }

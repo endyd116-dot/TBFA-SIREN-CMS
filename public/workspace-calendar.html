@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -124,7 +124,7 @@
   <div class="wk-modal-dialog wk-modal-sm">
     <header class="wk-modal-header">
       <h2 id="wcEventModalTitle">일정</h2>
-      <button class="wk-modal-close" data-close-modal="wcEventModal" type="button">✕</button>
+      <button class="wk-modal-close" data-close-modal="wcEventModal" type="button"><span data-icon="x" aria-hidden="true"></span></button>
     </header>
     <div class="wk-modal-body">
       <div id="wcEventContent">
@@ -136,7 +136,7 @@
         <p style="font-size:12px;color:#6b7280;margin:0 0 8px">참석 여부</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="wcRsvpYes" class="wk-btn-secondary" type="button" data-rsvp="yes">✓ 참석 예정</button>
-          <button id="wcRsvpNo" class="wk-btn-secondary" type="button" data-rsvp="no">✗ 불참</button>
+          <button id="wcRsvpNo" class="wk-btn-secondary" type="button" data-rsvp="no"><span data-icon="x" aria-hidden="true"></span> 불참</button>
           <button id="wcRsvpMaybe" class="wk-btn-secondary" type="button" data-rsvp="maybe">? 미정</button>
         </div>
         <p id="wcRsvpSummary" style="font-size:12px;color:#6b7280;margin:8px 0 0"></p>
@@ -158,7 +158,7 @@
   <div class="wk-modal-dialog wk-modal-sm">
     <header class="wk-modal-header">
       <h2 id="wcEventEditTitle">새 일정</h2>
-      <button class="wk-modal-close" data-close-modal="wcEventEditModal" type="button">✕</button>
+      <button class="wk-modal-close" data-close-modal="wcEventEditModal" type="button"><span data-icon="x" aria-hidden="true"></span></button>
     </header>
     <div class="wk-modal-body">
       <input type="hidden" id="wcEventEditId">
@@ -196,16 +196,16 @@
 <script id="wcFcScript" src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <script src="/js/lib-kst.js?v=1"></script>
-<script src="/js/auth.js?v=17"></script>
-<script src="/js/common.js?v=3-navicon"></script>
+<script src="/js/auth.js?v=20260712-noemoji"></script>
+<script src="/js/common.js?v=20260712-noemoji"></script>
 <script src="/js/workspace-sync-channel.js?v=2" defer></script>
-<script src="/js/workspace-task-modal.js?v=5" defer></script>
-<script src="/js/workspace-memo-modal.js?v=4-notify" defer></script>
-<script src="/js/workspace-calendar.js?v=20260712-m1" defer></script>
+<script src="/js/workspace-task-modal.js?v=20260712-noemoji" defer></script>
+<script src="/js/workspace-memo-modal.js?v=20260712-noemoji" defer></script>
+<script src="/js/workspace-calendar.js?v=20260712-noemoji" defer></script>
 <script src="/js/quick-jump.js?v=20260707-door"></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
-<script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
+<script src="/js/ai-agent-widget.js?v=20260712-noemoji"></script>
 
 </body>
 </html>

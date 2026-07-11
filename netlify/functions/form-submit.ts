@@ -112,7 +112,7 @@ export default async (req: Request, _ctx: Context) => {
     const fieldErrors: Record<string, string> = {};
 
     for (const f of fields) {
-      /* ★ US-025: 파일 첨부는 미지원이라 필수/패턴 검증에서 제외 — 막다른 길(required 파일로 제출 영구 차단) 방지 */
+      /* US-025: 파일 첨부는 미지원이라 필수/패턴 검증에서 제외 — 막다른 길(required 파일로 제출 영구 차단) 방지 */
       if (f.type === "file") continue;
       const v = data[f.field_key];
       const isEmpty = v === undefined || v === null || String(v).trim() === "" || (Array.isArray(v) && v.length === 0);
@@ -160,7 +160,7 @@ export default async (req: Request, _ctx: Context) => {
           event: NotifyEvent.WORKSPACE_ACTIVITY,
           target: { type: "admin", id: Number(form.created_by) },
           params: {
-            title: `📋 새 응답 — ${form.title}`,
+            title: `새 응답 — ${form.title}`,
             message: `응답 #${submissionId} 도착 (총 ${Number(form.response_count) + 1}건)`,
             link: `/admin-form-submissions.html?formId=${form.id}`,
             category: "form",

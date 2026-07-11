@@ -1,5 +1,5 @@
 // netlify/functions/incident-report-create.ts
-// ★ M-5: 사건 제보 생성 + AI 자동 분석
+// M-5: 사건 제보 생성 + AI 자동 분석
 // - 로그인 필수 (A안)
 // - DB 저장 후 Gemini 자동 분석 → AI 결과 응답
 // - 사이렌 정식 접수 여부는 후속 confirm API에서 결정 (B안)
@@ -95,7 +95,7 @@ export default async (req: Request, _ctx: Context) => {
       await notifyAllOperators({
         category: "support",
         severity: "warning",
-        title: `🚨 새 사건 제보: ${reportNo}`,
+        title: `새 사건 제보: ${reportNo}`,
         message: `방금 사건 제보가 접수됐어요. "${title}" — 확인이 필요해요.`,
         link: `/admin.html#incident-reports`,
         refTable: "incident_reports",
@@ -135,7 +135,7 @@ export default async (req: Request, _ctx: Context) => {
       console.error("[incident-report-create] AI 분석 예외:", aiErr);
     }
 
-    /* ★ Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
+    /* Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
     try {
       const { createWorkspaceTaskFromService } = await import("../../lib/workspace-sync");
       const reporterDisplay = isAnonymous ? "익명" : (reporterName || "회원");
@@ -167,7 +167,7 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 감사 로그 */
 // netlify/functions/incident-report-create.ts — 감사 로그 + return 블록 교체
-    /* ★ M-17: 후원자 검증 — AI 결과 응답 제한 */
+    /* M-17: 후원자 검증 — AI 결과 응답 제한 */
     const donorCheck = await hasAnyCompletedDonation(user.uid);
 
     /* 감사 로그 */
@@ -185,7 +185,7 @@ export default async (req: Request, _ctx: Context) => {
       });
     } catch (_) {}
 
-    /* ★ M-17: AI 결과는 DB에는 항상 저장하되, 응답에서는 후원자에게만 제공 */
+    /* M-17: AI 결과는 DB에는 항상 저장하되, 응답에서는 후원자에게만 제공 */
     return created({
       reportId,
       reportNo,

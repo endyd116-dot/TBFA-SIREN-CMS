@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-/* ★ R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator (operatorActive=true 일반 회원도 매출 입력) */
+/* R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator (operatorActive=true 일반 회원도 매출 입력) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -8,7 +8,7 @@ import { createNotification } from "../../lib/notify";
 export const config = { path: "/api/milestone-revenue*" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  /* ★ R35-GAP-P1-B-H1: operator+admin 모두 허용 (명세 §0 정합).
+  /* R35-GAP-P1-B-H1: operator+admin 모두 허용 (명세 §0 정합).
      본인 milestoneRole 기준 필터로 권한 분리. super_admin은 전체 우회. */
   const auth = await requireOperator(req);
   if (operatorGuardFailed(auth)) return auth.res;
@@ -26,7 +26,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성
          + milestone_definitions.amount_unit 컬럼 부재(threshold_unit만 존재)로 인한 SELECT 오류 제거.
          default_unit alias는 사용처 없음 → 안전 삭제. */
       let baseSql = sql`
@@ -59,7 +59,7 @@ export default async function handler(req: Request, _ctx: Context) {
       if (!qStatus) return Response.json({ ok: false, error: "존재하지 않는 분기" }, { status: 404 });
       if (qStatus !== "ACTIVE") return Response.json({ ok: false, error: "활성 분기에만 입력 가능합니다" }, { status: 400 });
 
-      /* ★ R29-MS-GAP1-J/GAP2-H: 결산이 이미 SUBMITTED/APPROVED/PAID이면 매출 입력 차단 */
+      /* R29-MS-GAP1-J/GAP2-H: 결산이 이미 SUBMITTED/APPROVED/PAID이면 매출 입력 차단 */
       const settleRows = await db.execute(sql`
         SELECT status FROM quarterly_settlements
         WHERE quarter_id = ${Number(quarterId)} AND member_id = ${member.id}
@@ -84,13 +84,13 @@ export default async function handler(req: Request, _ctx: Context) {
         return Response.json({ ok: false, error: "본인 담당 마일스톤에만 입력 가능합니다" }, { status: 403 });
       }
 
-      /* ★ R29-MS-GAP1-H: sm-001(직접 모집)은 후원자 경유 강제 false */
+      /* R29-MS-GAP1-H: sm-001(직접 모집)은 후원자 경유 강제 false */
       let finalCampaignRouted = isCampaignRouted ?? false;
       if (md.code === "sm-001" && finalCampaignRouted === true) {
         return Response.json({ ok: false, error: "sm-001(직접 모집)은 후원자 경유 불가" }, { status: 400 });
       }
 
-      /* ★ R29-MS-GAP1-H: 동일 분기 + 동일 마일스톤 + 동일 날짜 + 동일 금액 중복 차단 (PENDING/VERIFIED) */
+      /* R29-MS-GAP1-H: 동일 분기 + 동일 마일스톤 + 동일 날짜 + 동일 금액 중복 차단 (PENDING/VERIFIED) */
       const dupRows = await db.execute(sql`
         SELECT id FROM revenue_entries
         WHERE milestone_definition_id = ${Number(milestoneDefinitionId)}

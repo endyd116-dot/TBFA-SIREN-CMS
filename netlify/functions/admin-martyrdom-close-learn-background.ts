@@ -1,7 +1,7 @@
 /**
  * admin-martyrdom-close-learn-background — 종결 학습 루프 (⑥·INTERNAL·Background)
  *
- * ⚠️ 백그라운드 함수(-background)는 config.path 금지.
+ * 백그라운드 함수(-background)는 config.path 금지.
  *
  * POST { caseId, secret }
  *   사건 종결(status='closed' + outcome) 시 admin-martyrdom-cases PATCH가 트리거.

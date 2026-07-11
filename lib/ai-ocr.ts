@@ -103,7 +103,7 @@ export async function extractDocText({
   }
 
   /* ── 1.9·1.10. 음성·영상 — Gemini Files API 전사(대용량 허용) ──
-     ★ 보통은 extract-background가 base64 변환 없이 bytes로 transcribeMedia를 직접 호출.
+     보통은 extract-background가 base64 변환 없이 bytes로 transcribeMedia를 직접 호출.
      이 분기는 base64 진입 시의 폴백(메모리 위해 디코드). */
   if (AUDIO_EXTS.has(ext) || mime.startsWith("audio/")) {
     return extractGeminiMediaBytes(Buffer.from(base64, "base64"), audioMimeCandidates(ext, mime), "audio");
@@ -500,7 +500,7 @@ export function isMediaFile(mimeType: string, fileName: string): boolean {
 }
 
 /* Gemini에 보낼 전사 mimeType 후보(첫 후보 실패 시 차례로 재시도).
-   ★ m4a: 브라우저/매핑이 audio/mp4를 주는데 Gemini가 거부하는 경우가 있어, m4a=AAC 코덱이므로 audio/aac로 폴백.
+   m4a: 브라우저/매핑이 audio/mp4를 주는데 Gemini가 거부하는 경우가 있어, m4a=AAC 코덱이므로 audio/aac로 폴백.
    wma·amr 등도 미지원 가능 → 마지막으로 audio/mp3 시도(컨테이너 디코드 운에 맡김). */
 function audioMimeCandidates(ext: string, mime: string): string[] {
   const primary = AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3");
@@ -596,7 +596,7 @@ async function extractGeminiOcr(base64: string, mimeType: string, fileName: stri
         featureKey: "martyrdom_ai",
         inlineFiles: [{ data: base64.replace(/^data:[^;]+;base64,/, ""), mimeType }],
         maxOutputTokens: 8192,
-        /* ★ 2026-05-26: 문서 전체 OCR은 8초 기본 타임아웃으로 자주 중단됨.
+        /* 2026-05-26: 문서 전체 OCR은 8초 기본 타임아웃으로 자주 중단됨.
            background(-background·15분) 호출이므로 넉넉히(대용량 스캔 PDF 여유 180초). */
         timeoutMs: 180000,
         internalBulk: true, // 일괄 추출 자기차단(surge) 방지

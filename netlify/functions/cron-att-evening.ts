@@ -109,7 +109,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     // 3. 주간 누적 근무시간 체크 (48시간 임박, 52시간 초과)
-    // ★ Q3-043 fix: 미퇴근일(check_in 있으나 working_mins NULL)을 8h(480분) 추정으로 보정 — 52h 경고 누락 방지.
+    // Q3-043 fix: 미퇴근일(check_in 있으나 working_mins NULL)을 8h(480분) 추정으로 보정 — 52h 경고 누락 방지.
     //   (경고용 추정치이며 급여 계산과 무관. 휴가·결근 등 check_in 없는 날은 0.)
     const weeklyRows: any = await db.execute(sql`
       SELECT member_uid,

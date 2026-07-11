@@ -1,5 +1,5 @@
 // public/js/admin-resources.js
-// ★ Phase M-19-8: 자료실 어드민 관리 모듈
+// Phase M-19-8: 자료실 어드민 관리 모듈
 // - 자료 CRUD (목록/편집/삭제)
 // - 카테고리 CRUD
 // - 파일 업로드 (R2 via SirenEditor)

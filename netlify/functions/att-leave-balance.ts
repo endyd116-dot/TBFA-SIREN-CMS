@@ -56,7 +56,7 @@ export default async function handler(req: Request) {
       ORDER BY lt.display_order, lt.id
     `);
 
-    /* ★ R34-P1-C BUG fix: db.execute()의 결과 형태가 driver/환경별로 다름 (rows 속성 vs 배열 자체).
+    /* R34-P1-C BUG fix: db.execute()의 결과 형태가 driver/환경별로 다름 (rows 속성 vs 배열 자체).
        R34-P1-A에서 어드민 fallback이 도입되면서 처음으로 어드민 쿠키 호출 → undefined.map 500 노출. */
     const rawRows = ((result as any).rows ?? (result as any[]) ?? []) as any[];
     const rows = rawRows.map(r => ({

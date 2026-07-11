@@ -229,7 +229,7 @@ export default async function handler(req: Request) {
         eq(attLeaveRequests.status, "APPROVED"),
         sql`${attLeaveRequests.startDate} <= ${today}::date AND ${attLeaveRequests.endDate} >= ${today}::date`,
       )).limit(1);
-      // ★ Q3-028: 반차(isHalfDay)는 종일 휴가가 아니라 출근 허용 + PARTIAL_LEAVE 기록. 전일 휴가만 LEAVE로 차단.
+      // Q3-028: 반차(isHalfDay)는 종일 휴가가 아니라 출근 허용 + PARTIAL_LEAVE 기록. 전일 휴가만 LEAVE로 차단.
       if (leaves.length > 0) {
         if ((leaves[0] as any).isHalfDay) isHalfDayLeave = true;
         else isLeave = true;
@@ -270,7 +270,7 @@ export default async function handler(req: Request) {
     coreEndTime: policy.coreEndTime ? String(policy.coreEndTime) : null,
     flexEnabled: policy.flexEnabled, flexRangeMins,
   }, isLeave, isHoliday, workMode.mode);
-  // ★ Q3-028: 반차일은 출근을 허용하되 상태를 PARTIAL_LEAVE로 기록 (지각/조퇴 판정 대신 — 오전/오후 반차 근무).
+  // Q3-028: 반차일은 출근을 허용하되 상태를 PARTIAL_LEAVE로 기록 (지각/조퇴 판정 대신 — 오전/오후 반차 근무).
   if (isHalfDayLeave) status = "PARTIAL_LEAVE";
 
   const firstSession: AttSession = { in: now.toISOString(), out: null, inLat: inLatStr, inLng: inLngStr, workplaceId };

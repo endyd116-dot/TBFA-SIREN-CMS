@@ -85,7 +85,7 @@ function monthRange(year: number, month: number): { first: string; last: string 
   return { first, last };
 }
 
-/** ★ 2026-06-03 Swain 모델: 그 달의 '영업일수'(분모) — 월~금(주말 제외), 공휴일은 빼지 않고 포함.
+/** 2026-06-03 Swain 모델: 그 달의 '영업일수'(분모) — 월~금(주말 제외), 공휴일은 빼지 않고 포함.
  *  일급 = (월급여) ÷ 이 값. 공휴일은 분모에 있지만 근무 안 하므로 자동 무급(5인 미만).
  *  예) 연봉 3,500 → 월급 ≈ 291.7만 ÷ 그달영업일수 = 일급. 실제 출근일 × 일급 = 지급액.
  *  (주6일 등 근무요일이 다르면 정책 확정 후 이 함수 조정) */
@@ -182,7 +182,7 @@ export async function calculatePayrollForMonth(
       const paidLeaveDays = Number(leave.paid_days || 0);
       const unpaidLeaveDays = Number(leave.unpaid_days || 0);
 
-      // ★ Swain 2026-05-24: 급여 명세 대상 = 기본급 + 그달 근무실적 둘 다.
+      // Swain 2026-05-24: 급여 명세 대상 = 기본급 + 그달 근무실적 둘 다.
       // 기본급만 있고 해당 월 출퇴근·야근·휴가가 전혀 없으면 명세서 생성/갱신 제외
       // (운영 전 0원·무의미 명세서 방지). 기존 명세서가 있으면 보존(건드리지 않음).
       const hasActivity = workingDays > 0 || overtimeMins > 0 || paidLeaveDays > 0 || unpaidLeaveDays > 0;
@@ -208,7 +208,7 @@ export async function calculatePayrollForMonth(
       const qs = ((qsRows as any).rows || (qsRows as any[]))[0] || {};
       const quarterTotalBonus = Number(qs.total_bonus || 0);
 
-      // 3. 급여 구성 계산 — ★ 2026-06-03 출근일 기반 일급제 (Swain 결정, 5인 미만 무급 공휴일)
+      // 3. 급여 구성 계산 — 2026-06-03 출근일 기반 일급제 (Swain 결정, 5인 미만 무급 공휴일)
       //   일급 = (연봉 ÷ 12) ÷ 월 표준근무일(payroll_settings.monthlyWorkDays).
       //   기본급 = (실제 출근일 + 유급휴가일) × 일급.  유급휴가는 지급일에 포함.
       //   공휴일·결근·무급휴가는 '출근일'이 아니므로 자동으로 미지급(무급) — 월급제 일할(proration) 불필요.
@@ -217,8 +217,8 @@ export async function calculatePayrollForMonth(
       const dailyWage = (baseSalary / 12) / (monthBusinessDays || settings.monthlyWorkDays);
       const paidDays = workingDays + paidLeaveDays;
       const baseSalaryMonth = paidDays * dailyWage;
-      const hourly = 0;                                      // ★ 2026-06-03: 야근시스템 없음 — 시급/야근단가 미사용
-      const overtimePay = 0;                                 // ★ 야근수당 미운영(항상 0)
+      const hourly = 0;                                      // 2026-06-03: 야근시스템 없음 — 시급/야근단가 미사용
+      const overtimePay = 0;                                 // 야근수당 미운영(항상 0)
       const deductionUnpaid = 0;                              // 일급제: 무급일은 출근일에서 제외돼 자동 미지급(별도 공제 라인 없음)
       const performanceBonus = quarterTotalBonus / 3;         // 분기 3개월 균등 안분
       const perfectBonus = 0;                                 // 만근 보너스 정책 미정의 (이번 범위 외)
@@ -252,7 +252,7 @@ export async function calculatePayrollForMonth(
           deductionUnpaid: r2(deductionUnpaid),
           performanceBonus: r2(performanceBonus),
           perfectBonus,
-          /* ★ R41 Q3-052: force 재집계 시 조정분(ADD/DEDUCT)·기타공제를 스냅샷에 기록(기본 0).
+          /* R41 Q3-052: force 재집계 시 조정분(ADD/DEDUCT)·기타공제를 스냅샷에 기록(기본 0).
              아래 force 분기에서 실제값으로 덮어써 저장 컬럼(grossPayFinal/netPayFinal)과 정합 유지. */
           adjustmentAdd: 0,
           adjustmentDeduct: 0,
@@ -292,7 +292,7 @@ export async function calculatePayrollForMonth(
           result.slipIds.push(Number(existingRow.id));
           continue;
         }
-        /* ★ P1-16 fix: force 재집계가 기본 구성요소만 다시 계산하고 어드민이 추가한 조정라인
+        /* P1-16 fix: force 재집계가 기본 구성요소만 다시 계산하고 어드민이 추가한 조정라인
            (adjustments)·기타공제(other_deduction)는 컬럼에 남겨두면서 gross/net 합계엔 반영 안 해
            "라인은 보이는데 세전·실수령엔 빠진" 모순이 생긴다. 편집 공식(admin-payroll.ts)과 동일하게
            기존 조정분을 합계에 접어 넣어 일관성 유지(조정라인·기타공제 컬럼은 그대로 보존). */
@@ -303,7 +303,7 @@ export async function calculatePayrollForMonth(
         const grossPayFinal = grossPay + _adjAdd - _adjDeduct;
         const totalDeductionFinal = totalDeduction + _otherDeduction;
         const netPayFinal = grossPayFinal - totalDeductionFinal;
-        /* ★ Q3-052 fix: 저장 컬럼(gross_pay/net_pay)은 조정분 반영(Final)인데 snapshot.derived는 조정 전 값이라
+        /* Q3-052 fix: 저장 컬럼(gross_pay/net_pay)은 조정분 반영(Final)인데 snapshot.derived는 조정 전 값이라
            둘이 어긋났다. 스냅샷의 합계를 실제 저장값과 일치시키고 조정분도 함께 기록(감사 추적 정합). */
         snapshot.derived.adjustmentAdd = r2(_adjAdd);
         snapshot.derived.adjustmentDeduct = r2(_adjDeduct);

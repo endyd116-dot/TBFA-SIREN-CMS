@@ -25,7 +25,7 @@ export interface SitemapUrl {
 }
 
 /** 고정 페이지 목록 — 실재하는 public/*.html만 포함.
- *  ★ R42-fix: 이전 25개 중 14개가 dead 파일(donate/signup/login/campaign-list/about-history/
+ *  R42-fix: 이전 25개 중 14개가 dead 파일(donate/signup/login/campaign-list/about-history/
  *  about-team/contact/media/family-support 4종/report-incident/report-legal) → sitemap dead link 노출 위험.
  *  동적 콘텐츠 페이지(campaign·incident·activity·board-view·family-story·memorial-teacher)는
  *  builder가 DB 발행분만 자동 추가하므로 여기에 안 넣음(빈 템플릿 URL 검색 노출 방지).

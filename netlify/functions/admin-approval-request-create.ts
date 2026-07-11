@@ -160,7 +160,7 @@ export default async function handler(req: Request, _ctx: Context) {
         recipientType: "operator",
         category: "system",
         severity: "warning",
-        title: "🧾 새 지출 결재 요청",
+        title: "새 지출 결재 요청",
         message: `${drafterName}님이 ${amount.toLocaleString()}원 지출 결재를 올렸어요. "${title}" — 결재가 필요해요.`,
         link: "/cms-tbfa.html#approval-inbox",
         refTable: "approval_requests",

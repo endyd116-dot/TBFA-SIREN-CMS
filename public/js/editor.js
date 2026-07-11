@@ -1,7 +1,7 @@
 // public/js/editor.js
-// ★ Phase M-1 + 2026-05 v3 패치
+// Phase M-1 + 2026-05 v3 패치
 // - Toast UI Editor v3.2.2 (CDN, lazy-load)
-// - ★ NEW: 3-tier CDN fallback (jsdelivr → unpkg → uicdn.toast.com)
+// - NEW: 3-tier CDN fallback (jsdelivr → unpkg → uicdn.toast.com)
 // - color-syntax 플러그인 완전 옵셔널화
 // - 이미지 자동 압축 + R2 직접 업로드
 
@@ -12,7 +12,7 @@
   const COLOR_VER = '3.1.0';
   const COLORPICKER_VER = '2.0.3';
 
-  /* ★ 2026-05 v3: 3-tier CDN fallback 시스템
+  /* 2026-05 v3: 3-tier CDN fallback 시스템
      순서: jsdelivr → unpkg → uicdn.toast.com (공식)
      하나라도 성공하면 진행 */
   const CDN_FALLBACKS = {
@@ -84,7 +84,7 @@
     });
   }
 
-  /* ★ 2026-05 v3: fallback 시도 — 첫 번째 성공한 URL 사용 */
+  /* 2026-05 v3: fallback 시도 — 첫 번째 성공한 URL 사용 */
   async function loadCssWithFallback(urls, label) {
     for (let i = 0; i < urls.length; i++) {
       try {
@@ -133,7 +133,7 @@
         throw new Error('Toast UI Editor JS를 모든 CDN에서 로드할 수 없습니다');
       }
 
-      /* ★ 2026-05 v3.1: colorSyntax는 picker JS 의존
+      /* 2026-05 v3.1: colorSyntax는 picker JS 의존
          → picker가 실제 window.tui.colorPicker로 노출돼야만 colorSyntax 로드 */
       const pickerJsOk = await loadJsWithFallback(CDN_FALLBACKS.pickerJs, 'colorPicker.js');
       const pickerReady = pickerJsOk && window.tui && window.tui.colorPicker;
@@ -331,7 +331,7 @@
       },
     });
 
-    /* ★ 2026-05: WYSIWYG 모드만 사용 — markdown 컨테이너 강제 숨김 */
+    /* 2026-05: WYSIWYG 모드만 사용 — markdown 컨테이너 강제 숨김 */
     setTimeout(() => {
       const mdContainer = el.querySelector('.toastui-editor-md-container');
       if (mdContainer) mdContainer.style.display = 'none';

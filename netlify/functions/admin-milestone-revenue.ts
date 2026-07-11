@@ -20,7 +20,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const pathParts = url.pathname.split("/").filter(Boolean);
   const last = pathParts[pathParts.length - 1]; // verify | reject | or id
   const prev = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : null;
-  /* ★ R29-MS-GAP1-I: PUT /:id 라우팅에서 마지막 세그먼트가 숫자 id면 그 id로,
+  /* R29-MS-GAP1-I: PUT /:id 라우팅에서 마지막 세그먼트가 숫자 id면 그 id로,
      아니면 기존 액션 라우팅(/:id/verify, /:id/reject) 적용 */
   const lastIsNum = last && !isNaN(Number(last));
   const action = lastIsNum ? null : last;
@@ -31,7 +31,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const quarterId = url.searchParams.get("quarterId");
     const status = url.searchParams.get("status") || "PENDING";
     try {
-      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      /* R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       let baseSql = sql`
         SELECT re.*, md.code, md.name as milestone_name, md.target_milestone_role,
                md.category as milestone_category, md.bonus_formula,
@@ -126,7 +126,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   // ── PUT /:id — EVENT_RANGE 금액 결정 저장 ──
   if (req.method === "PUT" && id && !isNaN(Number(id))) {
-    /* ★ R29-MS-GAP1-A: EVENT_RANGE 금액 결정은 super_admin 전용 */
+    /* R29-MS-GAP1-A: EVENT_RANGE 금액 결정은 super_admin 전용 */
     if (admin.role !== "super_admin") {
       return Response.json({ ok: false, error: "EVENT_RANGE 금액 결정은 슈퍼어드민 전용입니다" }, { status: 403 });
     }
@@ -135,7 +135,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const { eventRangeAmount } = body;
     if (eventRangeAmount == null) return Response.json({ ok: false, error: "eventRangeAmount 필수" }, { status: 400 });
     try {
-      /* ★ R29-MS-GAP1-I: bonus_formula의 minAmount~maxAmount 범위 검증 */
+      /* R29-MS-GAP1-I: bonus_formula의 minAmount~maxAmount 범위 검증 */
       const mdRows = await db.execute(sql`
         SELECT md.bonus_formula, md.name FROM revenue_entries re
         JOIN milestone_definitions md ON md.id = re.milestone_definition_id
@@ -150,7 +150,7 @@ export default async function handler(req: Request, _ctx: Context) {
         const maxA = Number(formula.maxAmount ?? formula.max ?? 0);
         const amt  = Number(eventRangeAmount);
         if (maxA > 0 && (amt < minA || amt > maxA)) {
-          /* ★ R34-P1-B-1: DB 단위는 원, 표시만 만원 변환 */
+          /* R34-P1-B-1: DB 단위는 원, 표시만 만원 변환 */
           return Response.json({
             ok: false,
             error: `범위 내 금액을 입력하세요 (${(minA/10000).toLocaleString()}~${(maxA/10000).toLocaleString()}만원)`
@@ -174,7 +174,7 @@ function formatEntry(r: any) {
     id: r.id, milestoneDefinitionId: r.milestone_definition_id,
     milestoneCode: r.code, milestoneName: r.milestone_name,
     milestoneRole: r.target_milestone_role,
-    /* ★ R29-GAP-P1-H4: EVENT_RANGE UI 분기 + 범위 라벨 노출 */
+    /* R29-GAP-P1-H4: EVENT_RANGE UI 분기 + 범위 라벨 노출 */
     milestoneCategory: r.milestone_category,
     bonusFormula: r.bonus_formula,
     quarterId: r.quarter_id, enteredBy: r.entered_by,

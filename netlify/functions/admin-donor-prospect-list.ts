@@ -1,7 +1,7 @@
 /**
  * GET /api/admin/donor-prospect-list
  *
- * ★ Phase 2 (마일스톤 #16 단계 C / DESIGN_PHASE2.md §6.3): 잠재 후원자 조회 + 분류 필터
+ * Phase 2 (마일스톤 #16 단계 C / DESIGN_PHASE2.md §6.3): 잠재 후원자 조회 + 분류 필터
  *
  * Query:
  *   subtype?:  'onetime' | 'cancelled' | 'all'   (default 'all')

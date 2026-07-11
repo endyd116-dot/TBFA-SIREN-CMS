@@ -60,7 +60,7 @@ export const config = { path: "/api/admin-ai-agent" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-/* ★ 비용 최적화 정책 — 의도별 모델 체인 분리 (2026-05-13 업데이트)
+/* 비용 최적화 정책 — 의도별 모델 체인 분리 (2026-05-13 업데이트)
  *
  * HIGH (변경 CRUD·복잡 작업) — 정확도 우선
  *   1) gemini-3.5-flash       (최신·최고 성능, 2026-06-01 추가)
@@ -106,19 +106,19 @@ function pickModelChain(userMessage: string): string[] {
   return LOW_MODEL_CHAIN;
 }
 
-/* ★ 무한루프·비용 폭발 방지 한도 (적정 수준 — 보수치 ×1.5~2) */
+/* 무한루프·비용 폭발 방지 한도 (적정 수준 — 보수치 ×1.5~2) */
 const MAX_STEPS = 4;                /* 멀티스텝 최대 횟수 — 검색→상세→수정 3단계 + 보고 1단계 여유 */
 const MAX_TOOLS_PER_CONV = 20;      /* 대화당 누적 도구 호출 상한 */
 const MAX_SAME_TOOL_CONSECUTIVE = 2;/* 같은 도구 연속 호출 차단 */
 const MAX_OUTPUT_TOKENS = 1500;     /* 응답당 토큰 — 회원·작업 목록 잘림 방지 */
 const MAX_MESSAGES_KEEP = 30;       /* 대화 이력 유지 메시지 수 (앞쪽 트리밍) */
 
-/* ★ 비용 폭탄 방지 — 대화당 누적 input 토큰 한도 (estimate)
+/* 비용 폭탄 방지 — 대화당 누적 input 토큰 한도 (estimate)
    초과 시 새 대화 강제. 메시지 누적·도구 결과 누적 모두 통제 */
 const MAX_INPUT_TOKENS_PER_CONV = 100_000;
 const WARN_INPUT_TOKENS_PER_CONV = 80_000;
 
-/* ★ 도구 결과 압축 임계 — 저장 시점에 큰 결과는 요약본으로 대체 */
+/* 도구 결과 압축 임계 — 저장 시점에 큰 결과는 요약본으로 대체 */
 const TOOL_RESULT_COMPRESS_THRESHOLD = 1200;  /* 문자 수 — 너무 작으면 본문 요약돼서 후속 답 빈약 */
 
 /* NOTE: 실제 시스템 프롬프트는 getSystemPrompt()로 DB 또는 FALLBACK에서 로드됨 (line 529).
@@ -139,7 +139,7 @@ interface GeminiContent {
 }
 
 /* === 입력 토큰 추정 (1 토큰 ≈ 3.5자 — 한·영 혼합 기준) === */
-/* ★ Q3-012: 스트리밍 핸들러(admin-ai-agent-stream)와 공유 — 단일 출처 유지 위해 export */
+/* Q3-012: 스트리밍 핸들러(admin-ai-agent-stream)와 공유 — 단일 출처 유지 위해 export */
 export function estimateInputTokens(messages: GeminiContent[], systemPrompt: string, toolDeclarations: any[]): number {
   let total = systemPrompt.length / 3.5;
   try { total += JSON.stringify(toolDeclarations).length / 3.5; } catch {}
@@ -376,12 +376,12 @@ const ORPHAN_TOOL_NAMES: string[] = (() => {
   const orphans = (TOOL_DECLARATIONS as any[])
     .map((t: any) => t?.name).filter((n: any): n is string => typeof n === "string" && !grouped.has(n));
   if (orphans.length > 0) {
-    console.warn(`[ai-agent] ⚠️ TOOL_GROUP 미분류 도구 ${orphans.length}개 — 항상 로드로 폴백: ${orphans.join(", ")}`);
+    console.warn(`[ai-agent] TOOL_GROUP 미분류 도구 ${orphans.length}개 — 항상 로드로 폴백: ${orphans.join(", ")}`);
   }
   return orphans;
 })();
 
-/* ★ Q3-013: 스트리밍 핸들러와 공유 — TOOL_GROUPS 중복 정의 방지 위해 export */
+/* Q3-013: 스트리밍 핸들러와 공유 — TOOL_GROUPS 중복 정의 방지 위해 export */
 export function selectRelevantTools(userMessage: string): string[] | null {
   const text = (userMessage || "").trim();
   /* 짧은 메시지(4자↓) 또는 인사·확인 → 도구 안 보냄.
@@ -444,7 +444,7 @@ async function callGeminiWithTools(
           generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
         };
 
-    /* ★ Gemini 호출 자체 timeout — Netlify 26초 한도 - 여유 마진 = 모델당 12초 */
+    /* Gemini 호출 자체 timeout — Netlify 26초 한도 - 여유 마진 = 모델당 12초 */
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12_000);
     try {
@@ -457,7 +457,7 @@ async function callGeminiWithTools(
       clearTimeout(timeoutId);
       if (r.ok) {
         const data = await r.json();
-        /* ★ 2026-05-14 B+ fix: 200 OK인데 빈 응답(STOP + parts 없음)이면 다음 모델로 폴백.
+        /* 2026-05-14 B+ fix: 200 OK인데 빈 응답(STOP + parts 없음)이면 다음 모델로 폴백.
            Gemini 2.5 flash가 Context Caching + 함수 declarations 다수 조합에서
            "할 말 없음"으로 정상 종료하는 패턴 발견 (debug log 2026-05-14 01:38).
            응답 토큰 0 → 사용자에겐 "(응답 없음)"으로 보임 → 다음 모델 시도. */
@@ -712,7 +712,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   /* 2.5. RAG 주입 — featureKey ai_rag_search ON 시 top-5 검색 결과를 사용자 메시지 앞에 삽입.
-     ★ 2026-06-03 fix: 발송·생성·수정·삭제 등 행동(HIGH intent) 요청엔 RAG 매뉴얼 주입을 생략한다.
+     2026-06-03 fix: 발송·생성·수정·삭제 등 행동(HIGH intent) 요청엔 RAG 매뉴얼 주입을 생략한다.
      매뉴얼에 "이메일은 발송 관리 메뉴에서 직접" 류 절차가 있어 RAG로 주입되면 모델이 도구(email_send 등)를
      호출하지 않고 "메뉴에서 하세요"라고 떠넘긴다(간헐적 도구 미실행의 근본 원인). RAG는 정보성 질문에만. */
   if (userMessage && modelChain !== HIGH_MODEL_CHAIN) {
@@ -739,7 +739,7 @@ export default async (req: Request, _ctx: Context) => {
           /* 비용 기록 (fire-and-forget) */
           void recordFeatureUsage({
             featureKey: "ai_rag_search",
-            model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",   // ★ Q3-049 fix: 실제 임베딩 모델명
+            model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",   // Q3-049 fix: 실제 임베딩 모델명
 
             inputTokens: Math.ceil(userMessage.length / 4),
             outputTokens: 0,
@@ -759,7 +759,7 @@ export default async (req: Request, _ctx: Context) => {
   let pendingApproval: any = null;
   let finalReply = "";
 
-  /* ★ 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
+  /* 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
   let totalToolCallsThisRequest = 0;
   const recentToolNames: string[] = [];  /* 같은 도구 연속 호출 차단용 */
 
@@ -837,7 +837,7 @@ export default async (req: Request, _ctx: Context) => {
       /* 누적 한도 초과 차단 */
       if (priorToolCount + totalToolCallsThisRequest + fnCalls.length > MAX_TOOLS_PER_CONV) {
         finalReply += (finalReply ? "\n\n" : "") +
-          `⚠️ 대화당 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)에 가까워 추가 호출을 중단했습니다. 새 대화를 시작해주세요.`;
+          `대화당 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)에 가까워 추가 호출을 중단했습니다. 새 대화를 시작해주세요.`;
         break;
       }
 
@@ -848,7 +848,7 @@ export default async (req: Request, _ctx: Context) => {
         const toolName = fc.functionCall?.name;
         const toolArgs = fc.functionCall?.args || {};
 
-        /* ★ 같은 도구 연속 호출 차단 — 동일 도구가 N회 연속이면 fake error 반환 */
+        /* 같은 도구 연속 호출 차단 — 동일 도구가 N회 연속이면 fake error 반환 */
         recentToolNames.push(toolName);
         if (recentToolNames.length > MAX_SAME_TOOL_CONSECUTIVE + 1) recentToolNames.shift();
         const consecutive = recentToolNames.filter(n => n === toolName).length;
@@ -931,7 +931,7 @@ export default async (req: Request, _ctx: Context) => {
     return jsonError("gemini_call", err);
   }
 
-  /* ★ 메시지 이력 트리밍 — 너무 길어지면 앞쪽 잘라냄 (토큰·비용 절감) */
+  /* 메시지 이력 트리밍 — 너무 길어지면 앞쪽 잘라냄 (토큰·비용 절감) */
   if (messages.length > MAX_MESSAGES_KEEP) {
     /* 첫 N개 잘라내되 user→model 페어를 유지 */
     const overflow = messages.length - MAX_MESSAGES_KEEP;
@@ -965,10 +965,10 @@ export default async (req: Request, _ctx: Context) => {
   let replyWithWarn = safeReply;
   if (budget.warn) replyWithWarn += `\n\n${budget.message}`;
   if (inputTokenWarn) {
-    replyWithWarn += `\n\n💡 이 대화의 누적 입력이 ${estimatedInputTokens.toLocaleString()} 토큰입니다 (한도 ${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()}). 새 대화를 시작하면 비용·속도가 개선됩니다.`;
+    replyWithWarn += `\n\n이 대화의 누적 입력이 ${estimatedInputTokens.toLocaleString()} 토큰입니다 (한도 ${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()}). 새 대화를 시작하면 비용·속도가 개선됩니다.`;
   }
   if (piiResult.redactCount > 0) {
-    replyWithWarn += `\n\n🔒 개인정보 ${piiResult.redactCount}건 자동 마스킹 처리됨 (주민번호·카드·계좌)`;
+    replyWithWarn += `\n\n개인정보 ${piiResult.redactCount}건 자동 마스킹 처리됨 (주민번호·카드·계좌)`;
   }
 
   return new Response(JSON.stringify({

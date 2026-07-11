@@ -64,7 +64,7 @@ export default async function handler(req: Request) {
       LIMIT 30
     `);
 
-    /* ★ R34-P1-C BUG fix: db.execute() 결과 형태 driver별 차이 (rows 속성 vs 배열). att-leave-balance와 동일 패턴. */
+    /* R34-P1-C BUG fix: db.execute() 결과 형태 driver별 차이 (rows 속성 vs 배열). att-leave-balance와 동일 패턴. */
     const rawRows = ((result as any).rows ?? (result as any[]) ?? []) as any[];
     const rows = rawRows.map(r => ({
       id:            Number(r.id),

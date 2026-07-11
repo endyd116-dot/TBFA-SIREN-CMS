@@ -1,5 +1,5 @@
 // netlify/functions/admin-campaign-stats.ts
-// ★ Phase M-19-2: 캠페인별 상세 통계
+// Phase M-19-2: 캠페인별 상세 통계
 //
 // GET /api/admin/campaign-stats?id=N           — 단일 캠페인 통계
 // GET /api/admin/campaign-stats?id=N&trend=1   — + 일별 추이 (최근 30일)

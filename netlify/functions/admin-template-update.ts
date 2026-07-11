@@ -143,7 +143,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const { name, channel, category, subject, bodyTemplate, variables } = body;
     const adminId = auth.ctx.admin.uid;
 
-    /* ★ 2026-05-16: 카카오 알림톡 전용 필드 처리 */
+    /* 2026-05-16: 카카오 알림톡 전용 필드 처리 */
     const isKakao = channel === "kakao";
     const alimtalkTemplateCode = isKakao && body.alimtalkTemplateCode
       ? String(body.alimtalkTemplateCode).trim().slice(0, 50)
@@ -164,7 +164,7 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
 
-    /* ★ 2026-05-17: images jsonb 컬럼 + 페이로드 처리 */
+    /* 2026-05-17: images jsonb 컬럼 + 페이로드 처리 */
     const imgCheck: any = await db.execute(sql`
       SELECT 1 AS ok FROM information_schema.columns
        WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
@@ -173,7 +173,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const imagesArr = Array.isArray(body.images) ? body.images.slice(0, 20) : [];
     const imagesJson = JSON.stringify(imagesArr);
 
-    /* ★ 2026-05-17: use_siren_layout 처리 */
+    /* 2026-05-17: use_siren_layout 처리 */
     const sirenChk: any = await db.execute(sql`
       SELECT 1 AS ok FROM information_schema.columns
        WHERE table_name = 'communication_templates' AND column_name = 'use_siren_layout' LIMIT 1

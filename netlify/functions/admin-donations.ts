@@ -1,9 +1,9 @@
 /**
  * GET   /api/admin/donations      — 기부 내역 목록 + 통계
- * GET   /api/admin/donations?id=N — 단건 상세 (★ K-8 신규)
+ * GET   /api/admin/donations?id=N — 단건 상세 (K-8 신규)
  * PATCH /api/admin/donations      — 영수증 일괄 발행 / 환불 / 취소 / 메모 / 일반 수정
  *
- * ★ K-8 PATCH 분기:
+ * K-8 PATCH 분기:
  * 1. body.ids[] 배열                 → 영수증 일괄 발행 (기존 호환)
  * 2. body.id + body.refundOne=true   → 단건 환불 (status=refunded)
  * 3. body.id + body.cancelOne=true   → 단건 취소 (status=cancelled)
@@ -43,7 +43,7 @@ export default async (req: Request) => {
       const url = new URL(req.url);
       const idStr = url.searchParams.get("id");
 
-      /* ★ K-8: 단건 상세 조회 */
+      /* K-8: 단건 상세 조회 */
       if (idStr) {
         const donationId = Number(idStr);
         if (!Number.isFinite(donationId)) return badRequest("유효하지 않은 ID");
@@ -183,7 +183,7 @@ export default async (req: Request) => {
 
       if (!existing) return notFound("후원 내역을 찾을 수 없습니다");
 
-      /* ───── 분기 2: ★ K-8 단건 환불 ───── */
+      /* ───── 분기 2: K-8 단건 환불 ───── */
       if (body.refundOne === true) {
         /* 환불 가능 상태: completed만 */
         if (existing.status !== "completed") {
@@ -236,7 +236,7 @@ export default async (req: Request) => {
           .set({
             status: "refunded",
             memo: newMemo,
-            /* ★ 2026-06-27: 환불 시 기부영수증 무효화(세무 정합) */
+            /* 2026-06-27: 환불 시 기부영수증 무효화(세무 정합) */
             receiptIssued: false,
             receiptNumber: null,
             receiptIssuedAt: null,
@@ -250,7 +250,7 @@ export default async (req: Request) => {
             donorName: donations.donorName,
           });
 
-        /* ★ 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(환불분 차감 반영) */
+        /* 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(환불분 차감 반영) */
         await recalcCampaignStatsSafe((existing as any).campaignId);
 
         await logAdminAction(req, admin.uid, admin.name, "donation_refund", {
@@ -272,7 +272,7 @@ export default async (req: Request) => {
         );
       }
 
-      /* ───── 분기 3: ★ K-8 단건 취소 ───── */
+      /* ───── 분기 3: K-8 단건 취소 ───── */
       if (body.cancelOne === true) {
         /* 취소 가능 상태: pending 또는 completed (관리자 강제 취소) */
         if (existing.status !== "pending" && existing.status !== "completed") {
@@ -298,7 +298,7 @@ export default async (req: Request) => {
           .set({
             status: "cancelled",
             memo: newMemo,
-            /* ★ 2026-06-27: 취소 시 기부영수증 무효화(세무 정합) */
+            /* 2026-06-27: 취소 시 기부영수증 무효화(세무 정합) */
             receiptIssued: false,
             receiptNumber: null,
             receiptIssuedAt: null,
@@ -312,7 +312,7 @@ export default async (req: Request) => {
             donorName: donations.donorName,
           });
 
-        /* ★ 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(취소분 차감 반영) */
+        /* 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(취소분 차감 반영) */
         await recalcCampaignStatsSafe((existing as any).campaignId);
 
         await logAdminAction(req, admin.uid, admin.name, "donation_cancel_admin", {
@@ -331,7 +331,7 @@ export default async (req: Request) => {
         );
       }
 
-      /* ───── 분기 4: ★ K-8 메모만 빠른 저장 ───── */
+      /* ───── 분기 4: K-8 메모만 빠른 저장 ───── */
       if (body.inlineMemoOnly === true) {
         const memo = typeof body.memo === "string" ? body.memo.slice(0, 2000) : "";
 
@@ -352,7 +352,7 @@ export default async (req: Request) => {
         return ok({ donation: updated }, "메모가 저장되었습니다");
       }
 
-      /* ───── 분기 5: ★ K-8 일반 PATCH (memo / campaignTag / isAnonymous) ───── */
+      /* ───── 분기 5: K-8 일반 PATCH (memo / campaignTag / isAnonymous) ───── */
       const updatePayload: any = { updatedAt: new Date() };
       const changedFields: string[] = [];
 

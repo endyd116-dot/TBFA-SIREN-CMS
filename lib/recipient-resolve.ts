@@ -74,7 +74,7 @@ function buildHardExcludeSql(channel?: string): ReturnType<typeof sql> {
   if (channel === "kakao") {
     conds.push(sql`kakao_marketing_consent_at IS NOT NULL`);
   }
-  /* ★ R41 후속: 이메일 대량발송은 수신 동의(agree_email)한 회원만 — 기존엔 탈퇴자만 제외돼
+  /* R41 후속: 이메일 대량발송은 수신 동의(agree_email)한 회원만 — 기존엔 탈퇴자만 제외돼
      이메일 수신거부(agree_email=false)가 무시됐음. 별도 컬럼 신설 없이 기존 동의 컬럼 재사용
      (구독해지=설정에서 agree_email off). 거래성(영수증 등)은 이 경로를 안 타므로 영향 없음. */
   if (channel === "email") {

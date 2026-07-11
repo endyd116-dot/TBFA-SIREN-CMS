@@ -1,5 +1,5 @@
 // netlify/functions/admin-task-due-changes.ts
-// ★ Phase 3 Step 2-B — 마감일 변경 요청 + 승인 흐름
+// Phase 3 Step 2-B — 마감일 변경 요청 + 승인 흐름
 //
 // 정책:
 //   - 본인 task (assignedBy IS NULL): /admin-workspace-tasks에서 직접 dueDate 변경 (미래 확장)
@@ -226,7 +226,7 @@ export default async (req: Request, _ctx: Context) => {
           sourceId: newRequest.id,
           notifType: "assigned",
           channel: "bell",
-          title: `📅 마감일 변경 요청: ${task.title}`,
+          title: `마감일 변경 요청: ${task.title}`,
           body: `${new Date(task.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })} → ${newDue.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}\n사유: ${body.reason}`,
           actionUrl: `/workspace-kanban.html#task=${taskId}`,  // [감사#29] 죽은 해시 → 작업 카드(승인권자 검토)
         });
@@ -352,8 +352,8 @@ export default async (req: Request, _ctx: Context) => {
         notifType: action === "approve" ? "approved" : "rejected",
         channel: "bell",
         title: action === "approve"
-          ? `✅ 마감일 변경 승인: ${task.title}`
-          : `❌ 마감일 변경 반려: ${task.title}`,
+          ? `마감일 변경 승인: ${task.title}`
+          : `마감일 변경 반려: ${task.title}`,
         body: action === "approve"
           ? `새 마감일: ${new Date(request.newDue).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}`
           : `사유: ${body.reviewNote || ""}`,

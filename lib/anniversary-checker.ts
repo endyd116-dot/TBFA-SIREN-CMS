@@ -1,5 +1,5 @@
 // lib/anniversary-checker.ts
-// ★ Phase M-19-7: 기념일 축하 메일 — 대상 검사 + 발송 관리
+// Phase M-19-7: 기념일 축하 메일 — 대상 검사 + 발송 관리
 //
 // 5가지 기념일 종류:
 // 1. signup_1month       - 가입 1개월

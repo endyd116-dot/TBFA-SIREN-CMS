@@ -1,9 +1,9 @@
 /**
- * POST|GET /api/billing-approve   ← ★ KICC returnUrl 핸들러 (정기 빌키 등록 복귀 지점)
+ * POST|GET /api/billing-approve   ← KICC returnUrl 핸들러 (정기 빌키 등록 복귀 지점)
  *
  * KICC 정기 후원 2단계 — 빌키 발급(approval) + 1회차 즉시결제(approval/batch).
  * - KICC가 빌키 등록창 인증 후 이 URL로 POST 복귀(authorizationId·shopOrderNo)
- * - register 때 저장한 pending(type=regular) 로드 → ★ 서버 금액 기준
+ * - register 때 저장한 pending(type=regular) 로드 → 서버 금액 기준
  * - 발급 승인 → 빌키 회신 → billing_keys 저장 → 빌키로 1회차 청구
  * - 영수증 + 감사 메일 + 등급 재계산 + donor_type 재평가
  * - 처리 후 302 redirect → /billing-success.html(성공) / /payment-fail.html(실패)
@@ -122,7 +122,7 @@ export default async (req: Request) => {
     const cardType = issue.cardType === "체크" ? "체크" : "신용";
 
     /* 2) 빌키로 1회차 즉시결제
-       ★ R41 Q1-002 FIX: 1회차 주문번호를 pending 주문(pgOrderNo) 기반 결정값으로.
+       R41 Q1-002 FIX: 1회차 주문번호를 pending 주문(pgOrderNo) 기반 결정값으로.
        이전엔 generateShopOrderNo(랜덤)이라 KICC 복귀(returnUrl) 중복 수신·재시도 시
        매번 다른 거래로 인식 → 첫 회차 이중청구 가능. 이제 같은 등록건은 같은
        shopOrderNo → KICC shopTransactionId 멱등으로 1회만 청구. */
@@ -171,7 +171,7 @@ export default async (req: Request) => {
         detail: { code: charge.errorCode, message: charge.errorMessage, amount },
         success: false,
       });
-      /* ★ US-014: 첫 회차 결제 실패 시 후원자·운영진 알림 (기존엔 알림 0·후속 안내 없음).
+      /* US-014: 첫 회차 결제 실패 시 후원자·운영진 알림 (기존엔 알림 0·후속 안내 없음).
          후원자는 정기후원이 시작됐는지 알 수 없었고 협회도 실패를 인지 못했음. */
       if (memberId) {
         try {
@@ -194,7 +194,7 @@ export default async (req: Request) => {
         await notifyAllSuperAdmins({
           category: "donation",
           severity: "warning",
-          title: "⚠️ 정기후원 첫 회차 결제 실패",
+          title: "정기후원 첫 회차 결제 실패",
           message: `${donation.donorName}님의 정기후원 첫 회차 결제가 실패했습니다 (${charge.errorMessage || "사유 미상"}).`,
           link: "/admin.html#donations",
           refTable: "donations",
@@ -206,7 +206,7 @@ export default async (req: Request) => {
 
     /* 3) billing_keys INSERT (활성) */
     const now = new Date();
-    /* ★ 2026-06-27 FIX: 월말(29~31일) 가입자 첫 정기청구가 한 달 건너뛰던 버그.
+    /* 2026-06-27 FIX: 월말(29~31일) 가입자 첫 정기청구가 한 달 건너뛰던 버그.
        단순 +1달(addMonth)은 1/31→3/3로 2월을 건너뜀 → 월말 보정된 calculateNextBillingDate 사용. */
     const nextCharge = calculateNextBillingDate(now.getDate(), now);
     let customerKey = "";
@@ -304,7 +304,7 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "🔔 새 정기후원",
+        title: "새 정기후원",
         message: `방금 새 정기후원이 시작됐어요. ${updated.donorName}님 월 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
         link: "/admin.html#donations",
         refTable: "donations",

@@ -15,7 +15,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/sso-on" };
 
 const SSO_SECRET = process.env.SIREN_SSO_SECRET || "";
-// ★ 2026-05-28: 함께워크 ON 커스텀 도메인 withon.tbfa.co.kr 컷오버.
+// 2026-05-28: 함께워크 ON 커스텀 도메인 withon.tbfa.co.kr 컷오버.
 //   env(HAMKKE_ON_URL)가 우선이지만, 코드 default도 새 도메인으로 정합 → env 누락 시도 안전.
 const TARGET = process.env.HAMKKE_ON_URL || "https://withon.tbfa.co.kr";
 

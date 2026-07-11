@@ -5,7 +5,7 @@
  *
  * 이벤트 종류:
  *   - 'start'        : { conversationId }
- *   - 'stage'        : { message } — "🔍 정보 조회 중..." 같은 상태
+ *   - 'stage'        : { message } — "정보 조회 중..." 같은 상태
  *   - 'tool_start'   : { name, args }
  *   - 'tool_done'    : { name, ok, _cached?, output? }
  *   - 'text'         : { text } — Gemini가 stream으로 보낸 텍스트 조각
@@ -22,7 +22,7 @@ import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
-/* ★ Q3-012/013: 비스트리밍(admin-ai-agent)의 동적 도구 로딩·입력 토큰 추정 헬퍼 재사용 (단일 출처) */
+/* Q3-012/013: 비스트리밍(admin-ai-agent)의 동적 도구 로딩·입력 토큰 추정 헬퍼 재사용 (단일 출처) */
 import { selectRelevantTools, estimateInputTokens } from "./admin-ai-agent";
 
 /* === Phase 1~4 비용 안전장치 === */
@@ -39,7 +39,7 @@ import { maskPII } from "../../lib/pii-mask";
 /* === SSE === */
 import { createSSEStream, sseHeaders, type SSEWrite } from "../../lib/sse-writer";
 import { streamGemini, fetchGenerateContent } from "../../lib/gemini-stream";
-/* ★ Q3-037: 비스트리밍과 동일한 RAG 격리 검색 주입 */
+/* Q3-037: 비스트리밍과 동일한 RAG 격리 검색 주입 */
 import { searchRag } from "../../lib/ai-embedding";
 
 export const config = { path: "/api/admin-ai-agent-stream" };
@@ -120,7 +120,7 @@ export default async (req: Request, _ctx: Context) => {
 
   const systemPrompt = await getSystemPrompt();
 
-  /* ★ Q3-013 fix: 동적 도구 로딩 — 의도 분류로 관련 도구만 전송 (비스트리밍과 동일).
+  /* Q3-013 fix: 동적 도구 로딩 — 의도 분류로 관련 도구만 전송 (비스트리밍과 동일).
      기존엔 매 호출 전체 도구(~131개) 선언을 보내 입력 토큰이 상시 폭증했다.
      selectRelevantTools: [] = 인사·단문(도구 0), null = 매칭없음(전체), string[] = 매칭 도구만. */
   const selectedToolNames = userMessage ? selectRelevantTools(userMessage) : null;
@@ -128,7 +128,7 @@ export default async (req: Request, _ctx: Context) => {
     ? (TOOL_DECLARATIONS as any[]).filter((t: any) => selectedToolNames.includes(t.name))
     : (TOOL_DECLARATIONS as any[]);
 
-  /* ★ Q3-012 fix: 대화당 비용 상한 — 진입 시 누적 도구 호출 수·입력 토큰 한도 차단.
+  /* Q3-012 fix: 대화당 비용 상한 — 진입 시 누적 도구 호출 수·입력 토큰 한도 차단.
      기존엔 MAX_TOOLS_PER_CONV·MAX_INPUT_TOKENS_PER_CONV 상수가 선언만 되고 적용 0이었다(비용 무제한). */
   const priorToolCount = messages.reduce((n, m) => {
     if (m.role === "user" && Array.isArray(m.parts)) {
@@ -154,7 +154,7 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 2026-06-01 504 fix: RAG 임베딩 검색을 첫 바이트 전송 이후로 이동(콜드스타트 504 방지).
        qna·manual 격리 검색 top-5 주입. 순직(martyr_*) 민감자료는 검색 제외(격리 필수).
-       ★ 2026-06-03 fix: 발송·생성·수정·삭제 등 행동(HIGH intent) 요청엔 RAG 매뉴얼 주입을 생략.
+       2026-06-03 fix: 발송·생성·수정·삭제 등 행동(HIGH intent) 요청엔 RAG 매뉴얼 주입을 생략.
        매뉴얼에 "이메일은 발송 관리 메뉴에서 직접" 같은 절차 안내가 있어 RAG로 주입되면
        모델이 도구(email_send 등)를 호출하지 않고 매뉴얼대로 "메뉴에서 하세요"라고 떠넘김(간헐적 도구 미실행의 근본 원인).
        RAG는 정보성 질문(LOW intent)에만 사용한다. */
@@ -215,7 +215,7 @@ export default async (req: Request, _ctx: Context) => {
             const reqBody: any = {
               contents: messages,
               systemInstruction: { parts: [{ text: systemPrompt }] },
-              /* ★ Q3-013: 동적 선택된 도구만 전송 (0개면 tools 생략 — 인사·단문 빠르게) */
+              /* Q3-013: 동적 선택된 도구만 전송 (0개면 tools 생략 — 인사·단문 빠르게) */
               ...(toolDeclarations.length > 0 ? { tools: [{ functionDeclarations: toolDeclarations }] } : {}),
               generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
             };
@@ -235,7 +235,7 @@ export default async (req: Request, _ctx: Context) => {
               }
               if (chunk.usageMetadata) usage = chunk.usageMetadata;
             }
-            /* ★ 2026-06-01 핵심 FIX: 이 Netlify 런타임에서 streamGenerateContent가
+            /* 2026-06-01 핵심 FIX: 이 Netlify 런타임에서 streamGenerateContent가
                빈 본문(0청크)을 반환하는 환경 이슈 발견 → 스트리밍이 비면 같은 모델로
                비스트리밍 generateContent 1회 구제. (비스트리밍은 34개 도구 검증 정상.) */
             if (chunkCount === 0 && stepText === "" && stepFnCalls.length === 0) {
@@ -252,7 +252,7 @@ export default async (req: Request, _ctx: Context) => {
                 }
               }
             }
-            /* ★ 빈 응답(텍스트·도구 0) — lite가 STOP/no-parts로 끝나는 패턴. 다음 모델로 폴백.
+            /* 빈 응답(텍스트·도구 0) — lite가 STOP/no-parts로 끝나는 패턴. 다음 모델로 폴백.
                (아직 아무것도 스트리밍 안 했으므로 재시도해도 클라이언트 중복 없음) */
             if (stepText === "" && stepFnCalls.length === 0 && !isLastModel) {
               lastError = `${usedModel} 빈 응답(STOP/no-parts)`;
@@ -303,9 +303,9 @@ export default async (req: Request, _ctx: Context) => {
 
         if (stepFnCalls.length === 0) break;
 
-        /* ★ Q3-012 fix: 대화당 누적 도구 호출 한도 — 초과 시 추가 호출 중단 */
+        /* Q3-012 fix: 대화당 누적 도구 호출 한도 — 초과 시 추가 호출 중단 */
         if (priorToolCount + totalToolCalls + stepFnCalls.length > MAX_TOOLS_PER_CONV) {
-          const warn = `⚠️ 대화당 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)에 가까워 추가 호출을 중단했습니다. 새 대화를 시작해주세요.`;
+          const warn = `대화당 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)에 가까워 추가 호출을 중단했습니다. 새 대화를 시작해주세요.`;
           write("text", { text: `\n\n${warn}` });
           finalReply += (finalReply ? "\n\n" : "") + warn;
           break;

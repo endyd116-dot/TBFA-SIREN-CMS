@@ -3,7 +3,7 @@
 
 import { buildSitemap } from "../../lib/sitemap-builder";
 
-// ★ P0 fix: Function v2의 config.path에서 ".xml" 확장자 경로가 라우팅 미동작 →
+// P0 fix: Function v2의 config.path에서 ".xml" 확장자 경로가 라우팅 미동작 →
 //   /api/sitemap 표준 경로로 변경. netlify.toml에서 /sitemap.xml → /api/sitemap rewrite.
 export const config = { path: "/api/sitemap" };
 

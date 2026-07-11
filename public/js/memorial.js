@@ -205,7 +205,7 @@
       }).then(function (res) {
         btn.disabled = false;
         if (res.ok) {
-          /* ★ R41 Q2-014: 응답 total은 통합(teacher_id IS NULL) 범위만의 합계라,
+          /* R41 Q2-014: 응답 total은 통합(teacher_id IS NULL) 범위만의 합계라,
              전체 합계 카운터를 덮어쓰면 숫자가 급감한다 → 1만 증가시킨다 */
           bumpCandle(1);
           toast('헌화해 주셔서 감사합니다.');
@@ -282,7 +282,7 @@
       '</div>' +
       '<div class="mem-msg-body">' + esc(m.content) + '</div>' +
       '<div class="mem-msg-actions">' +
-        '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">♡ <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
+        '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">' + Icons.svg('heart') + ' <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
         '<button type="button" class="act-report">신고</button>' +
       '</div>';
     wrap.querySelector('.act-like').addEventListener('click', function () { likeMsg(m.id, wrap); });

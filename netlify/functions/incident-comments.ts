@@ -1,5 +1,5 @@
 // netlify/functions/incident-comments.ts
-// ★ B-2: 사건 댓글 CRUD + 좋아요/싫어요 + 신고
+// B-2: 사건 댓글 CRUD + 좋아요/싫어요 + 신고
 
 import type { Context } from "@netlify/functions";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
@@ -93,7 +93,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ===== POST — 댓글 작성 / 투표 / 신고 ===== */
   if (req.method === "POST") {
-    /* ★ R41 Q2-043: 차단(블랙) 사용자 쓰기 차단 — requireActiveUser 패턴 */
+    /* R41 Q2-043: 차단(블랙) 사용자 쓰기 차단 — requireActiveUser 패턴 */
     const _r = await requireActiveUser(req);
     if (!_r.ok) return (_r as { ok: false; res: Response }).res;
     const user = _r.user;
@@ -154,7 +154,7 @@ export default async (req: Request, _ctx: Context) => {
         const existRows = Array.isArray(existing) ? existing : (existing?.rows || []);
         const prev = existRows[0];
 
-        /* ★ R41 Q2-003: 처리 후 갱신된 카운트를 응답에 포함 (프론트 즉시 반영) */
+        /* R41 Q2-003: 처리 후 갱신된 카운트를 응답에 포함 (프론트 즉시 반영) */
         const fetchCounts = async () => {
           const cRes: any = await db.execute(sql`SELECT like_count, dislike_count FROM incident_comments WHERE id = ${commentId}`);
           const cRows = Array.isArray(cRes) ? cRes : (cRes?.rows || []);
@@ -188,7 +188,7 @@ export default async (req: Request, _ctx: Context) => {
           } as any);
           const col = voteType === "like" ? sql`like_count` : sql`dislike_count`;
           await db.execute(sql`UPDATE incident_comments SET ${col} = ${col} + 1 WHERE id = ${commentId}`);
-          return ok({ action: "voted", voteType, ...(await fetchCounts()) }, voteType === "like" ? "👍" : "👎");
+          return ok({ action: "voted", voteType, ...(await fetchCounts()) }, voteType === "like" ? "공감했습니다" : "반대했습니다");
         }
       } catch (e: any) {
         console.error("[incident-comments POST vote]", e);

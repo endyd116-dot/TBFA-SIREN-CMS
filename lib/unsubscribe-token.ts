@@ -1,5 +1,5 @@
 // lib/unsubscribe-token.ts
-// ★ 2026-06-26 수신거부 토큰 — 발송 본문의 수신거부 링크 식별자(서명·위조 불가).
+// 2026-06-26 수신거부 토큰 — 발송 본문의 수신거부 링크 식별자(서명·위조 불가).
 //   토큰 = `${memberId}.${channel}.${sig}` (sig = HMAC-SHA256(memberId:channel, secret) base64url 24자)
 //   로그인 없이 클릭만으로 동작하되, 서명으로 위조/타인 거부 차단.
 

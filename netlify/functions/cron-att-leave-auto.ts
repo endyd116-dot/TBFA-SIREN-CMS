@@ -201,7 +201,7 @@ export default async (_req: Request, _ctx: Context) => {
             sourceId: 0,
             notifType: "reminder_3d" as any,
             channel: "bell" as any,
-            title: `입사 ${serviceYears}주년 🎉 연차 ${days}일`,
+            title: `입사 ${serviceYears}주년 연차 ${days}일`,
             body: `입사 ${serviceYears}주년을 축하합니다! 근속 연차 ${days}일이 부여되었습니다.`,
             actionUrl: "/workspace-attendance.html",
             category: "system" as any,

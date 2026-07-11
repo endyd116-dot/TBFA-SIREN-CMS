@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — legal.js (★ M-7 + 2026-05 + B-9 토스트 + 3-3 AI/일반 분리)
+   SIREN — legal.js (M-7 + 2026-05 + B-9 토스트 + 3-3 AI/일반 분리)
    ========================================================= */
 (function () {
   'use strict';
@@ -66,7 +66,7 @@
   let _initDone = false;
   let _donorStatusCache = null;
 
-  /* ★ 3-3: 후원자 상태 조회 */
+  /* 3-3: 후원자 상태 조회 */
   async function loadDonorStatus() {
     if (_donorStatusCache !== null) return _donorStatusCache;
     try {
@@ -136,7 +136,7 @@
     }
   }
 
-  /* ============ 폼 제출 (★ 3-3: skipAi 매개변수) ============ */
+  /* ============ 폼 제출 (3-3: skipAi 매개변수) ============ */
   async function handleSubmit(e, skipAi) {
     if (e && e.preventDefault) e.preventDefault();
     skipAi = !!skipAi;
@@ -154,7 +154,7 @@
       return;
     }
 
-    /* ★ 3-3: AI 분석 시도 시 후원자 검증 */
+    /* 3-3: AI 분석 시도 시 후원자 검증 */
     if (!skipAi) {
       const donorStatus = await loadDonorStatus();
       if (!donorStatus.isDonor) {
@@ -253,7 +253,7 @@
       const data = json.data || {};
       _lastConsultationId = data.consultationId;
 
-      /* ★ 3-3: skipAi=true면 STEP 3 직행 */
+      /* 3-3: skipAi=true면 STEP 3 직행 */
       if (skipAi) {
         const finalIcon = document.getElementById('legalFinalIcon');
         const finalTitle = document.getElementById('legalFinalTitle');
@@ -441,7 +441,7 @@
     const form = document.getElementById('legalForm');
     if (form) form.addEventListener('submit', (e) => handleSubmit(e, false));
 
-    /* ★ 3-3: 일반 상담 신청 버튼 */
+    /* 3-3: 일반 상담 신청 버튼 */
     const skipBtn = document.getElementById('legalSkipAiBtn');
     if (skipBtn) {
       skipBtn.addEventListener('click', (e) => {

@@ -1,7 +1,7 @@
 /* =========================================================
    SIREN — CMS TBFA (교유협 통합 관리)
    데모 데이터 기반, 향후 실 API 연동 가능하게 구조화
-   ★ STEP H-2d-4: 영수증 설정 메뉴 추가 (사이렌 관리자와 자동 동기화)
+   STEP H-2d-4: 영수증 설정 메뉴 추가 (사이렌 관리자와 자동 동기화)
    ========================================================= */
 (function() {
   'use strict';
@@ -46,7 +46,7 @@
       String(d.getDate()).padStart(2, '0');
   }
 
-  /* ★ STEP H-2d-4: 날짜+시간 포맷터 (영수증 설정용) */
+  /* STEP H-2d-4: 날짜+시간 포맷터 (영수증 설정용) */
   function formatDateTime(iso) {
     if (!iso) return '-';
     const d = new Date(iso);
@@ -66,7 +66,7 @@
 
   /* ============ 회원 명단 fetch (DESIGN_PHASE1.md §6.2) ============ */
   /* 응답 페이로드 unwrap — ok() 헬퍼 wrap이 1~2단계 중첩돼도 정확히 풀어낸다.
-     ★ 버그픽스 20260515-2차 (#2·#3·#4): 1차 unwrap이 한 단계만 보고 마커 검사가 느슨해
+     버그픽스 20260515-2차 (#2·#3·#4): 1차 unwrap이 한 단계만 보고 마커 검사가 느슨해
      이중 래핑(`{ ok, data:{ ...cached } }`)·배열 페이로드를 오해석 → donorType undefined,
      검증 대시보드 무한로딩. 아래 형태를 모두 정확히 처리:
        { ok, data: [...] }                        → 그 레벨 반환 (consumer가 .data로 배열 접근)
@@ -109,7 +109,7 @@
       page: payload.page ?? pg.page ?? 1,
       pageSize: payload.pageSize ?? pg.pageSize ?? 50,
       total: payload.total ?? pg.total ?? 0,
-      /* ★ 버그픽스 20260515-2차 (#1): 대시보드 KPI가 쓰는 전체 집계 필드 통과
+      /* 버그픽스 20260515-2차 (#1): 대시보드 KPI가 쓰는 전체 집계 필드 통과
          (B가 admin-members 응답에 typeCounts·donorTypeCounts 추가 — 응답 키 다중 fallback) */
       typeCounts: payload.typeCounts || payload.typeCount || pg.typeCounts || null,
       donorTypeCounts: payload.donorTypeCounts || payload.donorTypeCount || pg.donorTypeCounts || null,
@@ -135,7 +135,7 @@
     };
   }
 
-  /* ★ Phase 3 D3: 통합 회원 효성 계약 셀 렌더 (2줄 보강 — 약정일·결제수단·등록상태·계약상태·상품분류) */
+  /* Phase 3 D3: 통합 회원 효성 계약 셀 렌더 (2줄 보강 — 약정일·결제수단·등록상태·계약상태·상품분류) */
   function renderHyosungContractCell(m) {
     const hy = m.hyosung;
     if (!hy) return '<span style="color:#d0d0d0;font-size:12px">—</span>';
@@ -177,7 +177,7 @@
     none:     { icon: '—',  text: '비후원', cls: 'cms-b-mute' },
   };
 
-  /* ★ 버그픽스 20260515 (#2): 가입경로 enum 정규화.
+  /* 버그픽스 20260515 (#2): 가입경로 enum 정규화.
      서버가 signupSource enum을 안 줄 때 signupSourceLabel·signupSourceId로 폴백 추론. */
   function resolveSignupSource(member) {
     if (member.signupSource) return member.signupSource;
@@ -240,7 +240,7 @@
         document.querySelectorAll('.cms-menu a').forEach(x => x.classList.remove('on'));
         a.classList.add('on');
         
-        /* ★ 2026-05-16 안전망: CSS .cms-page{display:none}이 다른 인라인 스타일에
+        /* 2026-05-16 안전망: CSS .cms-page{display:none}이 다른 인라인 스타일에
            덮어쓰여 사이드바 중복(여러 page 동시 표시) 발생 의심. 명시적으로 모든
            .cms-page를 인라인 hide + 활성 페이지만 inline display 클리어 + show 추가. */
         document.querySelectorAll('.cms-page').forEach(p => {
@@ -317,10 +317,10 @@
         else if (tab === 'members') renderMembers();
         else if (tab === 'transfer') renderTransfer();
         else if (tab === 'tags') renderTags();
-        else if (tab === 'receipt-settings') loadReceiptSettings(); /* ★ STEP H-2d-4 */
-        else if (tab === 'hyosung') loadHyosungContracts(); /* ★ Phase 1 */
-        else if (tab === 'toss-billing') loadTbKeys(); /* ★ Phase 2 */
-        else if (tab === 'donor-regular') renderDonorRegular(); /* ★ Phase 2 C10 */
+        else if (tab === 'receipt-settings') loadReceiptSettings(); /* STEP H-2d-4 */
+        else if (tab === 'hyosung') loadHyosungContracts(); /* Phase 1 */
+        else if (tab === 'toss-billing') loadTbKeys(); /* Phase 2 */
+        else if (tab === 'donor-regular') renderDonorRegular(); /* Phase 2 C10 */
         else if (tab === 'donor-prospect') renderDonorProspect();
         else if (tab === 'donor-potential') renderPotentialDonor();
         else if (tab === 'nurture') renderNurture();
@@ -335,14 +335,14 @@
         else if (tab === 'notification-logs') _nfLoadIframe('page-notification-logs');
         else if (tab === 'kakao-templates') _nfLoadIframe('page-kakao-templates');
         else if (tab === 'csv-import') {
-          /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
+          /* 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
           if (window.CsvImport && typeof window.CsvImport.init === 'function') {
             window.CsvImport.init();
           }
         }
-        else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
-        /* ★ Phase 22-B-R1: 재정 관리 (admin.html에서 이전) */
-        /* ★ 버그픽스: 첫 진입 시 init() 호출 보장 — 빈 섹션 렌더 누락 방지 */
+        else if (tab === 'donation-dashboard') renderDonationDashboard(); /* Phase 3 D7 */
+        /* Phase 22-B-R1: 재정 관리 (admin.html에서 이전) */
+        /* 버그픽스: 첫 진입 시 init() 호출 보장 — 빈 섹션 렌더 누락 방지 */
         else if (tab === 'donations') {
           if (window.SIREN_DONATIONS) {
             const _dn = document.getElementById('page-donations');
@@ -401,7 +401,7 @@
             else window.SIREN_BANK_TXN.load();
           }
         }
-        /* ★ AI 에이전트 5개 섹션 (ai-cost 추가) */
+        /* AI 에이전트 5개 섹션 (ai-cost 추가) */
         else if (tab === 'ai-chat')    renderAiChat();
         else if (tab === 'ai-history') renderAiHistory();
         else if (tab === 'ai-cost')    _nfLoadIframe('page-ai-cost');
@@ -423,7 +423,7 @@
       });
     });
 
-    /* ★ Phase 1: 계층 메뉴 토글 — 실제 표시 상태 기준 (open 클래스 불일치 방지) */
+    /* Phase 1: 계층 메뉴 토글 — 실제 표시 상태 기준 (open 클래스 불일치 방지) */
     document.querySelectorAll('.cms-menu-group').forEach(group => {
       /* 초기 open 클래스를 실제 인라인 표시 상태와 동기화 */
       const submenu = group.querySelector('.cms-submenu');
@@ -448,7 +448,7 @@
       });
     });
 
-    /* ★ Phase 1: 서브메뉴 항목 클릭 시 상위 그룹 자동 펼침 */
+    /* Phase 1: 서브메뉴 항목 클릭 시 상위 그룹 자동 펼침 */
     document.querySelectorAll('.cms-submenu a[data-tab]').forEach(a => {
       a.addEventListener('click', () => {
         const group = a.closest('.cms-menu-group');
@@ -462,7 +462,7 @@
       });
     });
 
-    /* ★ 2026-05-16: 진입 시 모든 2뎁스 강제 닫힘 — 깔끔한 1뎁스만 보이는 디폴트 화면.
+    /* 2026-05-16: 진입 시 모든 2뎁스 강제 닫힘 — 깔끔한 1뎁스만 보이는 디폴트 화면.
        HTML 인라인 display:none이 박혀있어도 다른 코드가 변경했을 가능성 차단.
        sidebar-group.js의 data-sidebar-group 패턴 + cms-tbfa.js의 data-toggle 패턴
        두 가지가 공존하므로 모든 .cms-submenu를 명시적으로 초기화. */
@@ -514,10 +514,10 @@
     set('kpiTotal', total.toLocaleString() + '명');
     set('kpiNew', '—');                 // Phase 1: 별도 집계 API 없음
 
-    /* ★ 버그픽스 20260515-2차 (#1): 유족·후원·정기·예비 KPI를 실제 집계값으로.
+    /* 버그픽스 20260515-2차 (#1): 유족·후원·정기·예비 KPI를 실제 집계값으로.
        1순위: B가 admin-members 응답에 넣는 전체 집계 필드(typeCounts·donorTypeCounts).
        2순위(폴백): 현재 페이지 rows로 추정(첫 페이지만이라 부정확 — '~명*' 표기).
-       ★ 후원 분류 체계는 regular/prospect/none 3종 — onetime(일시) 키 없음.
+       후원 분류 체계는 regular/prospect/none 3종 — onetime(일시) 키 없음.
        "예비 후원회원" KPI는 donorTypeCounts.prospect 를 정식 매핑한다. */
     const tc  = resp.typeCounts || {};
     const dtc = resp.donorTypeCounts || {};
@@ -546,7 +546,7 @@
     set('kpiOnetime',  pick(aggProspect, rowProspect));
     set('kpiVolunteer', pick(aggVolunteer, rowVolunteer));
 
-    /* ★ 버그픽스 20260515 (#2): signupSource 정규화 후 출처별 카운트 (전부 "기타" 떨어지던 문제) */
+    /* 버그픽스 20260515 (#2): signupSource 정규화 후 출처별 카운트 (전부 "기타" 떨어지던 문제) */
     const srcSiren  = rows.filter(m => resolveSignupSource(m) === 'siren').length;
     const srcHyo    = rows.filter(m => resolveSignupSource(m) === 'hyosung').length;
     // 'manual' + 'event' + 'etc' 합산 (5종 enum 도입 후 분류)
@@ -748,7 +748,7 @@
   /* ============ 회원 상세 모달 ============ */
   let modalActiveTab = 'info';
   let modalCurrentMember = null;
-  /* ★ R35-Light-B-L2: 현재 로그인 어드민 정보 (init 시점에 캐시 — baseSalary UI 분기) */
+  /* R35-Light-B-L2: 현재 로그인 어드민 정보 (init 시점에 캐시 — baseSalary UI 분기) */
   let currentAdmin = null;
 
   function openMemberDetailModal(memberId) {
@@ -784,7 +784,7 @@
     setText('#mdmInfoDonor', DONOR_TYPE_LABEL[m.donorType]?.text || '비후원');
     setText('#mdmInfoCreated', formatDate(m.createdAt));
 
-    /* ★ R35-Light-B-L2: 기본연봉 입력 행 — super_admin만 노출 + 현재값 prefill */
+    /* R35-Light-B-L2: 기본연봉 입력 행 — super_admin만 노출 + 현재값 prefill */
     const baseSalaryRow = modal.querySelector('#mdmBaseSalaryRow');
     const baseSalaryInput = modal.querySelector('#mdmBaseSalaryInput');
     if (baseSalaryRow && baseSalaryInput) {
@@ -828,7 +828,7 @@
     }
   }
 
-  /* ★ Phase 3 D3: 회원 상세 모달 — 효성 계약 탭 */
+  /* Phase 3 D3: 회원 상세 모달 — 효성 계약 탭 */
   function loadModalHyosung(m) {
     const content = document.querySelector('#memberDetailModal #mdmHyosungContent');
     if (!content) return;
@@ -939,12 +939,12 @@
         closeMemberDetailModal();
       }
     });
-    /* ★ R35-Light-B-L2: 기본연봉 저장 버튼 */
+    /* R35-Light-B-L2: 기본연봉 저장 버튼 */
     const saveBtn = modal.querySelector('#mdmBaseSalarySave');
     if (saveBtn) saveBtn.addEventListener('click', saveBaseSalary);
   }
 
-  /* ★ R35-Light-B-L2: 기본연봉 저장 — super_admin 전용, PATCH /api/admin/members */
+  /* R35-Light-B-L2: 기본연봉 저장 — super_admin 전용, PATCH /api/admin/members */
   async function saveBaseSalary() {
     if (!modalCurrentMember) { toast('회원이 선택되지 않았습니다'); return; }
     if (currentAdmin?.role !== 'super_admin') { toast('슈퍼어드민만 변경 가능합니다'); return; }
@@ -1272,7 +1272,7 @@
     });
   }
 
-  /* ============ ★ Phase 1: 효성 CMS+ 관리 ============ */
+  /* ============ Phase 1: 효성 CMS+ 관리 ============ */
 
   let hyContractPage = 1;
   let hyBillingPage = 1;
@@ -1336,7 +1336,7 @@
       linkedEl.textContent = linkedCount;
     }
 
-    /* ★ 버그픽스 20260515 (#1): KPI 영역 — 계약 총원·매칭은 즉시, 유족·후원회원은 집계 API */
+    /* 버그픽스 20260515 (#1): KPI 영역 — 계약 총원·매칭은 즉시, 유족·후원회원은 집계 API */
     const kpiTotalEl = document.getElementById('hyKpiContractTotal');
     if (kpiTotalEl) kpiTotalEl.textContent = pagination.total.toLocaleString() + '명';
     const kpiLinkedEl = document.getElementById('hyKpiLinked');
@@ -1391,7 +1391,7 @@
   }
 
   /**
-   * ★ 버그픽스 20260515 (#1): 효성 회원 통계 (유족회원·후원회원)
+   * 버그픽스 20260515 (#1): 효성 회원 통계 (유족회원·후원회원)
    * B가 만드는 집계 API 사용 — 응답 키 다중 fallback, API 없으면 조용히 "—" 유지
    */
   async function loadHyosungMemberStats() {
@@ -1837,7 +1837,7 @@
     }
   }
 
-  /* ============ ★ STEP H-2d-4: 영수증 설정 (사이렌 관리자와 자동 동기화) ============ */
+  /* ============ STEP H-2d-4: 영수증 설정 (사이렌 관리자와 자동 동기화) ============ */
 
   /**
    * 페이지 진입 시 호출 — DB에서 현재 설정 로드 후 폼에 채움
@@ -1902,7 +1902,7 @@
       const safeVal = String(note || '').replace(/"/g, '&quot;');
       return '<div class="rs-footer-row" data-rs-idx="' + idx + '">' +
         '<input type="text" value="' + safeVal + '" placeholder="• 안내문 내용..." maxlength="200">' +
-        '<button type="button" data-rs-remove="' + idx + '" title="삭제">✕</button>' +
+        '<button type="button" data-rs-remove="' + idx + '" title="삭제">' + Icons.svg('x') + '</button>' +
         '</div>';
     }).join('');
   }
@@ -1995,7 +1995,7 @@
         newRow.dataset.rsIdx = String(currentRows);
         newRow.innerHTML =
           '<input type="text" value="" placeholder="• 안내문 내용..." maxlength="200">' +
-          '<button type="button" data-rs-remove="' + currentRows + '" title="삭제">✕</button>';
+          '<button type="button" data-rs-remove="' + currentRows + '" title="삭제">' + Icons.svg('x') + '</button>';
         list.appendChild(newRow);
         newRow.querySelector('input')?.focus();
         return;
@@ -2043,13 +2043,13 @@
   }
 
   /* =========================================================
-     ★ Phase 2 (마일스톤 #16 단계 C) — 정기/잠재 후원자 화면
+     Phase 2 (마일스톤 #16 단계 C) — 정기/잠재 후원자 화면
      - API 계약: docs/DESIGN_PHASE2.md §6.2·§6.3
      - 응답: ok() 헬퍼 wrap → unwrap(res.data, marker) 한 단계 unwrap
      ========================================================= */
 
   /* ---------- 채널 뱃지 (toss/hyosung) ---------- */
-  /* ★ 2026-06-26: PG가 토스→KICC로 전환됨. 내부 채널 키는 레거시 'toss' 유지(백엔드 호환),
+  /* 2026-06-26: PG가 토스→KICC로 전환됨. 내부 채널 키는 레거시 'toss' 유지(백엔드 호환),
      화면 표시 라벨만 KICC로 정정. */
   const CHANNEL_LABEL = {
     toss:    { icon: '', text: 'KICC', cls: 'cms-b-info' },
@@ -2080,7 +2080,7 @@
   let donorRegularQuery = { channel: 'all', q: '' };
   let donorRegularSearchTimer = null;
 
-  /* ★ Phase 3 D4 + D보강: 정기 후원자 효성 컬럼 헬퍼 (결제수단 + 약정일 + 최근 3개월 수납 점등) */
+  /* Phase 3 D4 + D보강: 정기 후원자 효성 컬럼 헬퍼 (결제수단 + 약정일 + 최근 3개월 수납 점등) */
 
   /* 최근 N개월 YYYY/MM 배열 생성 (내림차순) */
   function recentMonthKeys(n) {
@@ -2098,10 +2098,10 @@
     if (!entry) return '<span title="데이터 없음" style="color:#d0d0d0;font-size:11px">—</span>';
     const s = entry.status || '';
     if (s === '완납' || s === 'completed') {
-      return `<span title="${escapeHtml(entry.month)} 완납 ₩${Number(entry.amount||0).toLocaleString()}" style="color:#2e9744;font-size:12px;font-weight:600">✓</span>`;
+      return `<span title="${escapeHtml(entry.month)} 완납 ₩${Number(entry.amount||0).toLocaleString()}" style="color:#2e9744;font-size:12px;font-weight:600">${Icons.svg('check')}</span>`;
     }
     if (s === '미납') {
-      return `<span title="${escapeHtml(entry.month)} 미납" style="color:#c5293a;font-size:12px;font-weight:600">✗</span>`;
+      return `<span title="${escapeHtml(entry.month)} 미납" style="color:#c5293a;font-size:12px;font-weight:600">${Icons.svg('x')}</span>`;
     }
     return `<span title="${escapeHtml(entry.month)} ${escapeHtml(s)}" style="color:#e09400;font-size:11px">△</span>`;
   }
@@ -2399,7 +2399,7 @@
     });
   }
 
-  /* ============ ★ Phase 3 D7: 종합 검증 대시보드 ============ */
+  /* ============ Phase 3 D7: 종합 검증 대시보드 ============ */
 
   async function fetchDonationDashboard() {
     const res = await api('/api/admin/donation-dashboard');
@@ -2515,7 +2515,7 @@
   }
 
   /* ============ 초기화 ============ */
-  /* ★ 2026-06-03 R46: 사이드바 역할별 권한 게이팅 (메뉴→권한키 매핑).
+  /* 2026-06-03 R46: 사이드바 역할별 권한 게이팅 (메뉴→권한키 매핑).
      map에 없는 탭(dashboard 등)은 항상 표시. super_admin은 전체 표시. */
   const MENU_PERM = {
     members: 'siren_member',
@@ -2582,7 +2582,7 @@
     const auth = await checkAuth();
     if (!auth) return;
 
-    /* ★ R35-Light-B-L2: 어드민 정보 캐시 (baseSalary UI 권한 분기) */
+    /* R35-Light-B-L2: 어드민 정보 캐시 (baseSalary UI 권한 분기) */
     currentAdmin = auth.admin || null;
 
     /* 사용자 정보 표시 */
@@ -2600,24 +2600,24 @@
 
     setupTabs();
     setupMembersFilter();
-    setupMemberDetailModal(); /* ★ Phase 1 단계 B */
+    setupMemberDetailModal(); /* Phase 1 단계 B */
     setupManualForm();
     setupFileUpload();
     setupTransferActions();
     setupNotifyForm();
     setupExport();
-    setupReceiptSettings(); /* ★ STEP H-2d-4 */
-    setupHyosung(); /* ★ Phase 1 */
-    setupTossBilling(); /* ★ Phase 2 */
-    setupDonorRegularFilters(); /* ★ Phase 2 C10 */
-    setupDonorProspectFilters(); /* ★ Phase 2 C11 */
+    setupReceiptSettings(); /* STEP H-2d-4 */
+    setupHyosung(); /* Phase 1 */
+    setupTossBilling(); /* Phase 2 */
+    setupDonorRegularFilters(); /* Phase 2 C10 */
+    setupDonorProspectFilters(); /* Phase 2 C11 */
 
     renderDashboard();
 
-    /* ★ R46: 역할별 사이드바 권한 게이팅 (hash 진입 전에 적용) */
+    /* R46: 역할별 사이드바 권한 게이팅 (hash 진입 전에 적용) */
     await applySidebarPermissions();
 
-    /* ★ 2026-05-16: location.hash 기반 자동 탭 진입.
+    /* 2026-05-16: location.hash 기반 자동 탭 진입.
        예: /cms-tbfa.html#send-jobs 로 진입 시 발송 작업 메뉴 자동 선택. */
     const hash = (location.hash || '').replace('#', '');
     if (hash) {
@@ -2635,20 +2635,20 @@
     init();
   }
 
-  /* 전역 노출 — IIFE 외부 발송 탭 함수들이 공유 사용 (★ 진짜 IIFE 내부) */
+  /* 전역 노출 — IIFE 외부 발송 탭 함수들이 공유 사용 (진짜 IIFE 내부) */
   window._cmsApi    = api;
   window._cmsToast  = toast;
   window._cmsEsc    = escapeHtml;
   window._cmsFmt    = formatDate;
-  window._cmsUnwrap = unwrap;   // ★ 버그픽스 20260515-2차 (#4): IIFE 바깥 모듈 스코프 코드가 참조
-  /* ★ 버그픽스 3차 (#3): 검증 대시보드 서브탭 진입 시 cms-tbfa.html이
+  window._cmsUnwrap = unwrap;   // 버그픽스 20260515-2차 (#4): IIFE 바깥 모듈 스코프 코드가 참조
+  /* 버그픽스 3차 (#3): 검증 대시보드 서브탭 진입 시 cms-tbfa.html이
      window.CMS_TBFA_DASHBOARD.load() 를 호출하나 노출이 누락돼 무한로딩.
      renderDonationDashboard 를 노출해 탭 진입 시 데이터 로드되게 함. */
   window.CMS_TBFA_DASHBOARD = { load: renderDonationDashboard };
   window.loadDonationDashboard = renderDonationDashboard;
 })();
 
-/* ★ 버그픽스 20260515 (#4): IIFE 바깥(모듈 스코프) 함수들이 쓰는 api/toast 별칭.
+/* 버그픽스 20260515 (#4): IIFE 바깥(모듈 스코프) 함수들이 쓰는 api/toast 별칭.
    잠재후원자·토스빌링 등 옛 코드가 bare api()/toast() 호출 → "api is not defined" 에러.
    IIFE가 window._cmsApi/_cmsToast로 노출한 것을 모듈 스코프 이름으로 받아둔다. */
 const api    = window._cmsApi    || (async function(){ return { ok:false, status:0, data:{ error:'api 미초기화' } }; });
@@ -2656,7 +2656,7 @@ const toast  = window._cmsToast  || function(m){ alert(m); };
 const unwrap = window._cmsUnwrap || function(d){ return (d && d.data) || d || {}; };
 
 /* ============================================================
-   ★ Phase 2: 토스 빌링 자동 청구 관리
+   Phase 2: 토스 빌링 자동 청구 관리
    ============================================================ */
 
 let tbKeysPage = 1;
@@ -2881,9 +2881,9 @@ async function loadTbLogs() {
     tbody.innerHTML = rows.map(r => {
       const dt = r.requestedAt ? new Date(r.requestedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
       const statusBadge = r.status === 'success'
-        ? '<span style="padding:2px 8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;font-size:12px">✓ 성공</span>'
+        ? '<span style="padding:2px 8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;font-size:12px">' + Icons.svg('check') + ' 성공</span>'
         : r.status === 'failed'
-          ? '<span style="padding:2px 8px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px">✗ 실패</span>'
+          ? '<span style="padding:2px 8px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px">' + Icons.svg('x') + ' 실패</span>'
           : '<span style="padding:2px 8px;background:#fff3e0;color:#e65100;border-radius:4px;font-size:12px">대기</span>';
       const typeLabel = { scheduled: '정기', retry: '재시도', manual: '수동' }[r.attemptType] || r.attemptType;
       const errorCell = r.status === 'failed' && r.tossResponseCode
@@ -3056,12 +3056,12 @@ function setupTossBilling() {
 }
 
 /* ============================================================
-   ★ Phase 2: 토스 빌링 자동 청구 관리
+   Phase 2: 토스 빌링 자동 청구 관리
    ============================================================ */
 
 
 /* ============================================================
-   ★ 잠재 후원자 관리 (potential_donors) — 이벤트·활동 참여자
+   잠재 후원자 관리 (potential_donors) — 이벤트·활동 참여자
    ============================================================ */
 
 let potentialDonorQuery = { q: '', eventName: '', linked: 'all' };
@@ -3578,7 +3578,7 @@ function _pdRenderAiPreview(items) {
 }
 
 /* ============================================================
-   ★ 알림 발송 탭 통합 (notify-send)
+   알림 발송 탭 통합 (notify-send)
    ============================================================ */
 
 let notifySendInitialized = false;
@@ -3660,7 +3660,7 @@ async function loadNotifyJobs() {
 }
 
 /* ============================================================
-   ★ 2026-05-11: 회원 추가 모달 + 4개 탭 CSV·엑셀 내보내기
+   2026-05-11: 회원 추가 모달 + 4개 탭 CSV·엑셀 내보내기
    - 통합 일반 회원 / 정기 후원자 / 예비 후원자 / 잠재 후원자
    ============================================================ */
 (function() {
@@ -3995,7 +3995,7 @@ async function loadNotifyGroups() {
 
 
 /* ================================================================
-   ★ 알림·발송 5탭 — 원본 디자인·기능 100% 유지 (iframe lazy load)
+   알림·발송 5탭 — 원본 디자인·기능 100% 유지 (iframe lazy load)
    admin-send-jobs / admin-templates / admin-recipient-groups /
    admin-auto-triggers / admin-send-analytics 페이지를 iframe으로 통합.
    메뉴 클릭 시 최초 1회만 src 주입 (캐시 유지) → 재방문 시 즉시 표시.
@@ -4007,7 +4007,7 @@ function _nfLoadIframe(pageId) {
   if (!iframe) return;
   if (iframe.src) return; /* 이미 로드된 경우 스킵 */
   var src = iframe.dataset.nfSrc;
-  /* ★ 2026-05-16 안전망: src가 비어있거나 외부 URL/자기 자신(cms-tbfa.html)
+  /* 2026-05-16 안전망: src가 비어있거나 외부 URL/자기 자신(cms-tbfa.html)
      이면 iframe 안에 cms-tbfa.html이 통째로 다시 로드되어 사이드바 중복 발생.
      '/admin-'으로 시작하는 어드민 페이지만 허용. */
   if (!src || typeof src !== 'string' || !src.startsWith('/admin-')) {
@@ -4026,7 +4026,7 @@ function renderFormsBuilder()       { _nfLoadIframe('page-forms-builder'); }
 function renderSendAnalytics()   { _nfLoadIframe('page-send-analytics'); }
 
 /* ================================================================
-   ★ AI 에이전트 4개 섹션 (Phase A)
+   AI 에이전트 4개 섹션 (Phase A)
    ================================================================ */
 function renderAiChat() { _nfLoadIframe('page-ai-chat'); }
 

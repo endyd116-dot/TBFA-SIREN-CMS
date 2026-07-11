@@ -12,7 +12,7 @@
  * - Scheduled Function만 호출 (외부 호출 차단)
  * - DELETE 카운트 로깅 + 실패 시 시스템 알림
  *
- * ★ Phase M-16: 핵심 4종 중 자동 정리 cron
+ * Phase M-16: 핵심 4종 중 자동 정리 cron
  */
 import { sql, lt, and, inArray, not } from "drizzle-orm";
 import { db } from "../../db";

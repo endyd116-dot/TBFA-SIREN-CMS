@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -299,8 +299,8 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=3-navicon"></script>
-  <script src="/js/auth.js?v=17"></script>
+  <script src="/js/common.js?v=20260712-noemoji"></script>
+  <script src="/js/auth.js?v=20260712-noemoji"></script>
   <script>
   (function () {
     'use strict';
@@ -366,7 +366,7 @@
     }
 
     /* 3. "카드 등록하기" 버튼 클릭
-       ★ R40: KICC 빌링 등록 — billing-register API로 결제창 주소(authPageUrl)를 받아 리다이렉트.
+       R40: KICC 빌링 등록 — billing-register API로 결제창 주소(authPageUrl)를 받아 리다이렉트.
        KICC가 결제 완료 후 백엔드 returnUrl(approve)로 POST 복귀 → 302로 billing-success/fail 이동.
        이 페이지는 approve를 직접 호출하지 않음 */
     $('brStartBtn').addEventListener('click', async function () {

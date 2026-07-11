@@ -92,7 +92,7 @@ export async function requireOperator(req: Request): Promise<
   return { ok: true, ctx: { member } };
 }
 
-/* ★ R36-Cleanup L1: discriminated union narrowing 헬퍼.
+/* R36-Cleanup L1: discriminated union narrowing 헬퍼.
    tsconfig.strictNullChecks=false 환경에서 `if (!auth.ok) return auth.res` 패턴이
    narrowing 되지 않는 문제를 type predicate로 해결. */
 export type OperatorGuardResult =

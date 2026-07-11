@@ -1,5 +1,5 @@
 // netlify/functions/admin-experts-for-match.ts
-// ★ Phase M-19-11 V2: 법률/심리 상담 매칭용 전문가 목록 (members 기반)
+// Phase M-19-11 V2: 법률/심리 상담 매칭용 전문가 목록 (members 기반)
 //
 // GET /api/admin/experts-for-match?type=lawyer|counselor
 //
@@ -42,7 +42,7 @@ export default async (req: Request) => {
       return badRequest("type 파라미터가 필요합니다 (lawyer 또는 counselor)");
     }
 
-    /* ★ V2: members 테이블 직접 조회
+    /* V2: members 테이블 직접 조회
        조건: type='volunteer' AND member_subtype=type AND status='active'
              AND secondary_verified=true (관리자 승인 완료) */
     const experts = await db

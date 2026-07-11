@@ -19,7 +19,7 @@
   var lastActivity = Date.now();
   var lastJwtRefresh = 0;
   var tick = null, warnOpen = false, authed = false;
-  /* ★ 로그인 유지(remember) 모드: 무활동 자동 로그아웃 해제 + 실제 만료(로그인 후 24시간)까지 카운트다운 */
+  /* 로그인 유지(remember) 모드: 무활동 자동 로그아웃 해제 + 실제 만료(로그인 후 24시간)까지 카운트다운 */
   var rememberMode = false;
   var absoluteExpiryMs = 0;   // remember 모드에서 실제 만료 시각(ms)
 

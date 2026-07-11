@@ -1,5 +1,5 @@
 // lib/memorial-moderation.ts
-// ★ R41 Q2-013: 추모 메시지·편지 작성 시 AI 사전 검토
+// R41 Q2-013: 추모 메시지·편지 작성 시 AI 사전 검토
 // - callGeminiJSON(featureKey)가 5층 안전장치(토글·기능예산·전체예산·급증·사용량기록)를 내장 처리
 // - fail-open: 기능 꺼짐·예산초과·오류·미응답이면 flagged=false (정상 글을 절대 막지 않음)
 // - 부적절 판정 시 호출부가 isHidden=true로 보류 + 운영자/슈퍼어드민 통지

@@ -1,5 +1,5 @@
 // lib/r2-client.ts
-// ★ Phase M-2.5: Cloudflare R2 (S3 호환) 클라이언트 래퍼
+// Phase M-2.5: Cloudflare R2 (S3 호환) 클라이언트 래퍼
 // - 환경변수: R2_ACCOUNT_ID, R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
 
 import { S3Client } from "@aws-sdk/client-s3";

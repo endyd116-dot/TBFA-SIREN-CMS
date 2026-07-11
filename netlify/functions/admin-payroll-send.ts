@@ -45,7 +45,7 @@ function buildEmailHtml(opts: { name: string; year: number; month: number; gross
     <div style="font-family:'Pretendard','Noto Sans KR',Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a2035">
       <div style="background:#3730a3;color:#fff;padding:24px;border-radius:10px 10px 0 0">
         <div style="font-size:13px;opacity:0.85">${opts.orgName}</div>
-        <div style="font-size:22px;font-weight:700;margin-top:6px">💰 ${opts.year}년 ${String(opts.month).padStart(2, "0")}월 급여명세서</div>
+        <div style="font-size:22px;font-weight:700;margin-top:6px">${opts.year}년 ${String(opts.month).padStart(2, "0")}월 급여명세서</div>
       </div>
       <div style="background:#fff;padding:24px;border:1px solid #e5e7eb;border-top:none">
         <p style="font-size:14px;line-height:1.7;margin:0 0 16px">

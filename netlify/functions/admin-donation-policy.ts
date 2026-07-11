@@ -3,7 +3,7 @@
  * GET   /api/admin/donation-policy   — 어드민용 정책 조회
  * PATCH /api/admin/donation-policy   — 정책 수정 (super_admin만)
  *
- * ★ 2026-05: 효성 카운트다운 메시지/초수 추가
+ * 2026-05: 효성 카운트다운 메시지/초수 추가
  */
 import { eq } from "drizzle-orm";
 import { db } from "../../db";

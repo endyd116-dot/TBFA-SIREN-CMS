@@ -1,5 +1,5 @@
 // public/js/admin-campaigns.js
-// ★ Phase M-19-2: 캠페인 관리 어드민 모듈
+// Phase M-19-2: 캠페인 관리 어드민 모듈
 (function () {
   'use strict';
 

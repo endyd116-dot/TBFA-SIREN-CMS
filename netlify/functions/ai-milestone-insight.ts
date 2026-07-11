@@ -25,7 +25,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return Response.json({ ok: false, error: "type은 summary|anomaly|coach|recommend 중 하나" }, { status: 400 });
   }
 
-  /* ★ Q3-033 fix: 전 직원 결산 금액이 노출되는 summary·anomaly는 결산 조회 권한 게이트
+  /* Q3-033 fix: 전 직원 결산 금액이 노출되는 summary·anomaly는 결산 조회 권한 게이트
      (결산 CSV·관리와 동일 권한선. coach는 본인 자가평가라 그대로 admin 허용. settlement_view 시드는 메인). */
   const _role = (auth.ctx.member as any).role || "";
   if ((type === "summary" || type === "anomaly") && !(await canAccess(_role, "settlement_view"))) {

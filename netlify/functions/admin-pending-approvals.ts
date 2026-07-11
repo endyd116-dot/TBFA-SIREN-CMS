@@ -1,5 +1,5 @@
 // netlify/functions/admin-pending-approvals.ts
-// ★ Phase M-19-11 V2 STEP 4: 회원 가입 승인 대기 관리
+// Phase M-19-11 V2 STEP 4: 회원 가입 승인 대기 관리
 //
 // GET  /api/admin/pending-approvals?type=family|teacher|lawyer|counselor|all
 //      → 승인 대기 회원 목록 (증빙 파일 메타 포함)
@@ -265,7 +265,7 @@ export default async (req: Request) => {
             recipientType: "user",
             category: "member",
             severity: "info",
-            title: `🎉 ${subtypeLabel} 회원 가입이 승인되었습니다`,
+            title: `${subtypeLabel} 회원 가입이 승인되었습니다`,
             message: "이제 모든 서비스를 이용하실 수 있습니다.",
             link: "/mypage.html",
             refTable: "members",

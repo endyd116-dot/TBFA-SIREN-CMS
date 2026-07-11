@@ -57,7 +57,7 @@ export default async (req: Request, _ctx: Context) => {
         action = "added";
       }
     } else {
-      // 신규 투표 — ★ R41 Q2-023: (comment_id, member_id) 유니크 + onConflictDoNothing으로
+      // 신규 투표 — R41 Q2-023: (comment_id, member_id) 유니크 + onConflictDoNothing으로
       // 더블클릭·동시요청 시 중복 투표 방지(아래 카운트는 COUNT(*) 재집계라 정합 유지)
       await db
         .insert(commentVotes)

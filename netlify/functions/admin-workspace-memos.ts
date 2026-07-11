@@ -1,8 +1,8 @@
 // netlify/functions/admin-workspace-memos.ts
-// ★ Phase 3 Step 2-A — 워크스페이스 Memo CRUD API
-// ★ Phase 21 R4 — eventDate / eventTime / showInCalendar 캘린더 미러링 필드 추가
+// Phase 3 Step 2-A — 워크스페이스 Memo CRUD API
+// Phase 21 R4 — eventDate / eventTime / showInCalendar 캘린더 미러링 필드 추가
 //
-// ⚠️ 메모는 완전 개인 — 본인(memberId = meId)만 접근 가능 (super_admin도 조회 불가)
+// 메모는 완전 개인 — 본인(memberId = meId)만 접근 가능 (super_admin도 조회 불가)
 //
 // GET ?list=1          : 내 메모 목록 (핀 고정 먼저)
 // GET ?list=1&pinned=1 : 고정 메모만

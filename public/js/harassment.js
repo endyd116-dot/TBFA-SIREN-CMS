@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — harassment.js (★ M-6 + 2026-05 + B-9 토스트 + 3-3 AI/일반 분리)
+   SIREN — harassment.js (M-6 + 2026-05 + B-9 토스트 + 3-3 AI/일반 분리)
    ========================================================= */
 (function () {
   'use strict';
@@ -63,9 +63,9 @@
   let _editor = null;
   let _attachments = null;
   let _lastReportId = null;
-  let _donorStatusCache = null;  /* ★ 3-3: 후원자 상태 캐시 */
+  let _donorStatusCache = null;  /* 3-3: 후원자 상태 캐시 */
 
-  /* ★ 3-3: 후원자 상태 조회 */
+  /* 3-3: 후원자 상태 조회 */
   async function loadDonorStatus() {
     if (_donorStatusCache !== null) return _donorStatusCache;
     try {
@@ -84,7 +84,7 @@
     }
   }
 
-  /* ★ 3-3: 후원자 안내 모달 표시 */
+  /* 3-3: 후원자 안내 모달 표시 */
   function showDonorRequiredModal() {
     const modal = document.getElementById('donorRequiredModal');
     if (modal) {
@@ -136,7 +136,7 @@
     }
   }
 
-  /* ============ 폼 제출 (★ 3-3: skipAi 매개변수 추가) ============ */
+  /* ============ 폼 제출 (3-3: skipAi 매개변수 추가) ============ */
   async function handleSubmit(e, skipAi) {
     if (e && e.preventDefault) e.preventDefault();
     skipAi = !!skipAi;
@@ -154,7 +154,7 @@
       return;
     }
 
-    /* ★ 3-3: AI 분석 시도 시 후원자 검증 */
+    /* 3-3: AI 분석 시도 시 후원자 검증 */
     if (!skipAi) {
       const donorStatus = await loadDonorStatus();
       if (!donorStatus.isDonor) {
@@ -235,7 +235,7 @@
       const data = json.data || {};
       _lastReportId = data.reportId;
 
-      /* ★ 3-3: skipAi=true면 STEP 2 건너뛰고 STEP 3 직행 */
+      /* 3-3: skipAi=true면 STEP 2 건너뛰고 STEP 3 직행 */
       if (skipAi) {
         const finalIcon = document.getElementById('harassFinalIcon');
         const finalTitle = document.getElementById('harassFinalTitle');
@@ -433,7 +433,7 @@
     const form = document.getElementById('harassmentForm');
     if (form) form.addEventListener('submit', (e) => handleSubmit(e, false));
 
-    /* ★ 3-3: 일반 신고 버튼 */
+    /* 3-3: 일반 신고 버튼 */
     const skipBtn = document.getElementById('harassSkipAiBtn');
     if (skipBtn) {
       skipBtn.addEventListener('click', (e) => {

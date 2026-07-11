@@ -3,7 +3,7 @@
  *
  * 효성 CMS+ billing_update.csv 업로드 → 수납 결과 반영
  *
- * ★ M-13 추가:
+ * M-13 추가:
  * - createMembers 폼 필드 (true/false) — 매칭 실패 행에 대해 회원 자동 생성
  * - 응답에 createdMembers 카운트 추가
  *
@@ -47,7 +47,7 @@ export default async (req: Request) => {
       return badRequest("파일 크기는 5MB 이하여야 합니다");
     }
 
-    /* ★ M-13: createMembers 옵션 (매칭 실패 시 자동 회원 생성) */
+    /* M-13: createMembers 옵션 (매칭 실패 시 자동 회원 생성) */
     const createMembersFlag = String(formData.get("createMembers") || "").trim() === "true";
 
     /* 2. 파일 읽기 (인코딩 자동 감지) */
@@ -137,10 +137,10 @@ export default async (req: Request) => {
     let updatedCount = 0;
     let skippedCount = 0;
     let failedCount = 0;
-    let createdMembersCount = 0;        // ★ M-13: 자동 생성된 회원 수
-    let reusedMembersCount = 0;         // ★ M-13: 중복으로 재사용된 회원 수
+    let createdMembersCount = 0;        // M-13: 자동 생성된 회원 수
+    let reusedMembersCount = 0;         // M-13: 중복으로 재사용된 회원 수
     const failures: any[] = [];
-    const createdMembers: any[] = [];   // ★ M-13: 생성/재사용된 회원 정보
+    const createdMembers: any[] = [];   // M-13: 생성/재사용된 회원 정보
 
     for (const row of dataRows) {
       try {
@@ -191,7 +191,7 @@ export default async (req: Request) => {
           useDonorPhone = matchedDonation.donorPhone;
           useDonorEmail = matchedDonation.donorEmail;
         } else {
-          /* ★ M-13: 매칭 실패 — createMembers 옵션에 따라 처리 */
+          /* M-13: 매칭 실패 — createMembers 옵션에 따라 처리 */
           if (createMembersFlag) {
             /* 자동 회원 생성 */
             const createResult = await createHyosungMember({
@@ -262,7 +262,7 @@ export default async (req: Request) => {
           hyosungMemberNo: row.hyosungMemberNo,
           hyosungContractNo: row.contractNo,
           hyosungBillNo: row.billNo,
-          /* ★ Q12: 자료의 실제 결제일을 컬럼에 저장 (수입 그래프·영수증·마이페이지 정합) */
+          /* Q12: 자료의 실제 결제일을 컬럼에 저장 (수입 그래프·영수증·마이페이지 정합) */
           hyosungPaidDate: row.paymentDate ? new Date(row.paymentDate) : null,
           receiptRequested: true,
           memo: `${memoPrefix} ${row.product} ₩${totalAmount.toLocaleString()} (약정일: ${row.appointDay}일, 결제일: ${row.paymentDate})`,
@@ -271,7 +271,7 @@ export default async (req: Request) => {
         await db.insert(donations).values(insertPayload);
         createdCount++;
 
-        /* ★ M-12: 매칭된 회원이 있으면 sponsor + hyosung_donation으로 승급 */
+        /* M-12: 매칭된 회원이 있으면 sponsor + hyosung_donation으로 승급 */
         if (useMemberId) {
           try {
             await upgradeToSponsor(useMemberId, "hyosung");
@@ -352,7 +352,7 @@ export default async (req: Request) => {
       updated: updatedCount,
       skipped: skippedCount,
       failed: failedCount,
-      /* ★ M-13: 자동 회원 생성 통계 */
+      /* M-13: 자동 회원 생성 통계 */
       createMembersOption: createMembersFlag,
       createdMembers: createdMembersCount,
       reusedMembers: reusedMembersCount,

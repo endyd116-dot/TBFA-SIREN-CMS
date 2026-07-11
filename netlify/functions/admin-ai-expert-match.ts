@@ -71,7 +71,7 @@ export default async (req: Request) => {
 - 카테고리: ${categoryKr}
 - 제목: ${request.title}
 - 내용: ${request.content.slice(0, 1200)}${request.content.length > 1200 ? "..." : ""}
-${request.priority === "urgent" ? "- ⚠️ 긴급 사안: 빠른 대응 가능한 전문가 우선" : ""}
+${request.priority === "urgent" ? "- 긴급 사안: 빠른 대응 가능한 전문가 우선" : ""}
 
 # 추천 기준
 1. 카테고리에 맞는 직역(상담사/변호사/사회복지사 등)

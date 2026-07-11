@@ -1,5 +1,5 @@
 // netlify/functions/cron-anniversary-check.ts
-// ★ Phase M-19-7: 매일 새벽 05:00 KST 기념일 축하 메일 cron
+// Phase M-19-7: 매일 새벽 05:00 KST 기념일 축하 메일 cron
 //
 // Schedule: "0 20 * * *" (UTC 20:00 = KST 05:00)
 //
@@ -167,7 +167,7 @@ export default async (req: Request, _ctx: Context) => {
         await notifyAllSuperAdmins({
           category: "member",
           severity: "info",
-          title: `🎉 오늘 기념일 축하 메일 ${successCount}건 발송 완료`,
+          title: `오늘 기념일 축하 메일 ${successCount}건 발송 완료`,
           message: `총 ${candidates.length}명 대상 (성공: ${successCount} / 실패: ${failCount})`,
           link: "/admin.html#anniversary",
         });

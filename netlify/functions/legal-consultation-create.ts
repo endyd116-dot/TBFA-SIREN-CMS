@@ -1,5 +1,5 @@
 // netlify/functions/legal-consultation-create.ts
-// ★ Phase M-7: 법률 상담 신청 + AI 1차 자문
+// Phase M-7: 법률 상담 신청 + AI 1차 자문
 
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
@@ -86,7 +86,7 @@ export default async (req: Request, _ctx: Context) => {
       await notifyAllOperators({
         category: "support",
         severity: "warning",
-        title: `⚖️ 새 법률 상담 신청: ${consultationNo}`,
+        title: `새 법률 상담 신청: ${consultationNo}`,
         message: `방금 법률 상담 신청이 접수됐어요. "${title}" — 확인이 필요해요.`,
         link: `/admin.html#legal-consultations`,
         refTable: "legal_consultations",
@@ -133,7 +133,7 @@ export default async (req: Request, _ctx: Context) => {
       console.error("[legal-consultation-create] AI 예외:", aiErr);
     }
 
-    /* ★ Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
+    /* Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
     try {
       const { createWorkspaceTaskFromService, resolveAssigneeByService } = await import("../../lib/workspace-sync");
       const reporterDisplay = isAnonymous ? "익명" : (reporterName || "회원");
@@ -160,7 +160,7 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[legal-consultation-create] 카드 생성 훅 실패:", hookErr);
     }
 
-    /* ★ 라운드 10 — AI 전문 분야 분석 결과 기반 변호사 자동 배정 (fire-and-forget)
+    /* 라운드 10 — AI 전문 분야 분석 결과 기반 변호사 자동 배정 (fire-and-forget)
      *   실제 schema: members 테이블에 expert_specialty 컬럼은 없음.
      *   변호사는 member_subtype='lawyer'로 식별, 카테고리/전문분야는 assigned_categories jsonb 배열로 운영.
      *   1차) assigned_categories::text ILIKE %specialty% 매칭
@@ -231,7 +231,7 @@ export default async (req: Request, _ctx: Context) => {
     /* (운영자 알림은 접수 성공 직후 항상 발송하도록 위로 이동 — 2026-07-01) */
 
    // netlify/functions/legal-consultation-create.ts — 감사 로그 + return 블록 교체
-    /* ★ M-17: 후원자 검증 */
+    /* M-17: 후원자 검증 */
     const donorCheck = await hasAnyCompletedDonation(user.uid);
 
     try {
@@ -248,7 +248,7 @@ export default async (req: Request, _ctx: Context) => {
       });
     } catch (_) {}
 
-    /* ★ M-17: AI 결과는 DB에 항상 저장, 응답은 후원자만 */
+    /* M-17: AI 결과는 DB에 항상 저장, 응답은 후원자만 */
     return created({
       consultationId,
       consultationNo,

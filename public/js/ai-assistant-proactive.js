@@ -105,7 +105,7 @@
     var closeBtn = document.createElement("button");
     closeBtn.className = "ai-pro-close";
     closeBtn.type = "button";
-    closeBtn.textContent = "✕";
+    closeBtn.innerHTML = Icons.svg("x");
     head.appendChild(closeBtn);
     card.appendChild(head);
 

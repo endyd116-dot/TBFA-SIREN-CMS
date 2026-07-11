@@ -1,5 +1,5 @@
 // netlify/functions/public-home-content.ts
-// ★ Phase B Step 6-C — 메인 페이지 통합 콘텐츠 API
+// Phase B Step 6-C — 메인 페이지 통합 콘텐츠 API
 // home.* 키 27개 + 향후 추가 키를 트리 형태로 묶어서 반환
 // preview=1 + 어드민 인증 시 Draft 우선
 
@@ -99,7 +99,7 @@ export default async (req: Request) => {
       const value = pickValue(row, useDraft);
       setNested(tree, row.key, value);
     }
-    /* ★ Step 6-G: specialBanner.linkedCampaignId가 있으면 캠페인 데이터 덮어쓰기 */
+    /* Step 6-G: specialBanner.linkedCampaignId가 있으면 캠페인 데이터 덮어쓰기 */
     try {
       const linkedId = tree.specialBanner?.linkedCampaignId;
       if (linkedId && String(linkedId).trim() !== "") {

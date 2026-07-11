@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -81,7 +81,7 @@
 </head>
 <body data-page="campaign">
 
-<!-- ★ v11 묶음 C-7: header-mount → header-slot (common.js 표준 패턴) -->
+<!-- v11 묶음 C-7: header-mount → header-slot (common.js 표준 패턴) -->
 <div id="header-slot"></div>
 
 <div class="breadcrumb">
@@ -92,12 +92,12 @@
   <div style="text-align:center;padding:80px 20px;color:var(--text-3)">불러오는 중...</div>
 </main>
 
-<!-- ★ v11 묶음 C-7: mount → slot 통일 -->
+<!-- v11 묶음 C-7: mount → slot 통일 -->
 <div id="modals-slot"></div>
 <div id="footer-slot"></div>
 
-<script src="/js/common.js?v=3-navicon"></script>
-<script src="/js/auth.js?v=17"></script>
+<script src="/js/common.js?v=20260712-noemoji"></script>
+<script src="/js/auth.js?v=20260712-noemoji"></script>
 <script src="/js/donate.js?v=r45"></script>
 <script>
 (function(){
@@ -113,7 +113,7 @@
      서식 태그(p/b/img/a 등)는 유지. 완전한 살균이 필요하면 서버 화이트리스트/ DOMPurify 도입 권장. */
   function sanitizeHtml(html) {
     var s = String(html == null ? '' : html);
-    /* ★US-049: 위험 태그에 svg/math/form 추가, on* 핸들러 구분자에 '/'도 포함(<svg/onload=> 우회 차단),
+    /* US-049: 위험 태그에 svg/math/form 추가, on* 핸들러 구분자에 '/'도 포함(<svg/onload=> 우회 차단),
        javascript/data/vbscript 스킴은 xlink:href 까지 무력화. 정규식 살균은 한계가 있어
        근본 대책(서버 화이트리스트/DOMPurify)은 Swain 라이브러리 결정 후 도입 권장. */
     s = s.replace(/<\s*(script|iframe|object|embed|svg|math|form)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
@@ -191,7 +191,7 @@
     }
   }
 
-  /* ★ v11 묶음 C-7: 후원하기 버튼 → 같은 페이지에서 모달 오픈 (이동 X)
+  /* v11 묶음 C-7: 후원하기 버튼 → 같은 페이지에서 모달 오픈 (이동 X)
      - sessionStorage에 캠페인 정보 저장 (donate.js가 자동 prefill)
      - 표준 [data-action="open-modal"] 가짜 트리거로 common.js의 모달 오픈 메커니즘 활용
      - donateModal이 partials 로드 후에 DOM에 들어오므로, 최대 6초 대기 후 폴백 */

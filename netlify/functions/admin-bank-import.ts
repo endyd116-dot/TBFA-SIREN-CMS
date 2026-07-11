@@ -67,7 +67,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   // ── 중복 차단 — 기존 dedup_hash 조회 ────────────────────────
-  // ★ 버그픽스3 #13: drizzle sql 템플릿에서 ${jsArray} 를 = ANY 에 직접 넣으면
+  // 버그픽스3 #13: drizzle sql 템플릿에서 ${jsArray} 를 = ANY 에 직접 넣으면
   //   postgres-js 가 record 로 바인딩 → "op ANY/ALL requires array" 또는
   //   "cannot cast type record to text[]" 500.
   //   startJob 의 검증된 패턴(sql.raw 로 명시 배열 리터럴)을 적용.

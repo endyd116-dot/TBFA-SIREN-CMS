@@ -85,7 +85,7 @@ export async function collectReportStats(
         COUNT(*) FILTER (WHERE created_at >= ${ps}::timestamptz AND created_at <= ${pe}::timestamptz AND type != 'admin') AS new_this_period,
         COUNT(*) FILTER (WHERE withdrawn_at >= ${ps}::timestamptz AND withdrawn_at <= ${pe}::timestamptz) AS withdrawn_this_period,
         COUNT(*) FILTER (WHERE status = 'active' AND type != 'admin') AS total_active,
-        COUNT(*) FILTER (WHERE type = 'regular'   AND status = 'active') AS type_user,  -- ★ R41 Q2-020: 'user'는 존재하지 않는 enum값(항상 0) → 'regular'로 정정
+        COUNT(*) FILTER (WHERE type = 'regular'   AND status = 'active') AS type_user,  -- R41 Q2-020: 'user'는 존재하지 않는 enum값(항상 0) → 'regular'로 정정
         COUNT(*) FILTER (WHERE type = 'family'    AND status = 'active') AS type_family,
         COUNT(*) FILTER (WHERE type = 'volunteer' AND status = 'active') AS type_volunteer
       FROM members

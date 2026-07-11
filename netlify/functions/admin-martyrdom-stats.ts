@@ -59,7 +59,7 @@ export default async (req: Request, _ctx: Context) => {
     return jsonError("select_totals", err);
   }
 
-  /* ★ R41 Q2-050: 인정률 분모를 종결(closed) 사건 기준으로 통일 — 발간 자체조사(lib/martyrdom-ai.ts: closed만)와 일치.
+  /* R41 Q2-050: 인정률 분모를 종결(closed) 사건 기준으로 통일 — 발간 자체조사(lib/martyrdom-ai.ts: closed만)와 일치.
      종결 사건이 없으면 0 (진행중 사건은 인정/불인정 미확정이므로 분모 제외) */
   const recognitionRate = totals.closed > 0
     ? Math.round((totals.approved / totals.closed) * 100) / 100

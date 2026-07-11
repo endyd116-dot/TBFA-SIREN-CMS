@@ -84,7 +84,7 @@ export default async (req: Request, _ctx: Context) => {
   if (!periodStart || isNaN(periodStart.getTime())) return new Response(JSON.stringify({ ok: false, error: "periodStart 필요 (ISO 날짜)" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
   if (!periodEnd   || isNaN(periodEnd.getTime()))   return new Response(JSON.stringify({ ok: false, error: "periodEnd 필요 (ISO 날짜)" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
-  // ★ R41 Q2-034: 기간 논리·상한 검증 — 종료일이 시작일보다 이후여야 하고, 과도한 기간(1100일 초과) 금지
+  // R41 Q2-034: 기간 논리·상한 검증 — 종료일이 시작일보다 이후여야 하고, 과도한 기간(1100일 초과) 금지
   if (periodEnd.getTime() <= periodStart.getTime()) {
     return new Response(JSON.stringify({ ok: false, error: "종료일은 시작일보다 이후여야 합니다" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
   }

@@ -1,5 +1,5 @@
 // netlify/functions/board-comment-delete.ts
-// ★ Phase M-8: 댓글 삭제 (본인만)
+// Phase M-8: 댓글 삭제 (본인만)
 
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";

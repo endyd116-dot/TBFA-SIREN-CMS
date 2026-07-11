@@ -1,5 +1,5 @@
 // netlify/functions/board-detail.ts
-// ★ Phase M-8: 게시글 상세 + 조회수 증가 + 댓글 목록 포함
+// Phase M-8: 게시글 상세 + 조회수 증가 + 댓글 목록 포함
 
 import type { Context } from "@netlify/functions";
 import { eq, and, asc, inArray } from "drizzle-orm";

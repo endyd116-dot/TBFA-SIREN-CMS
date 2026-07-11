@@ -23,7 +23,7 @@ export default async (req: Request) => {
     const useAI = !aiDisabled;
 
     if (aiDisabled) {
-      console.log("[cron-churn-predictor] ⚠️ AI 분석 비활성화됨 (CHURN_AI_DISABLED=true)");
+      console.log("[cron-churn-predictor] AI 분석 비활성화됨 (CHURN_AI_DISABLED=true)");
     }
 
     /* 평가 실행 */
@@ -59,7 +59,7 @@ export default async (req: Request) => {
         await notifyAllSuperAdmins({
           category: "member",
           severity: "warning",
-          title: `⚠️ 이탈 위험 회원 ${stats.byLevel.critical}명 감지`,
+          title: `이탈 위험 회원 ${stats.byLevel.critical}명 감지`,
           message: `오늘 평가 결과 CRITICAL ${stats.byLevel.critical}명 / WARNING ${stats.byLevel.warning}명이 감지되었습니다. 재참여 유도 메일 발송을 검토해 주세요.`,
           link: "/admin.html#ai",
           refTable: "members",

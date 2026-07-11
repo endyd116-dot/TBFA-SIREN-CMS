@@ -1,5 +1,5 @@
 // netlify/functions/harassment-reports-mine.ts
-// ★ Phase M-6: 본인 신고 목록 조회
+// Phase M-6: 본인 신고 목록 조회
 
 import type { Context } from "@netlify/functions";
 import { eq, desc } from "drizzle-orm";

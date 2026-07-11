@@ -15,7 +15,7 @@ import {
 } from "../email";
 import { NotifyEvent } from "../notify-events";
 import type { NotifyAdapter, AdapterSendOpts, AdapterResult } from "./types";
-/* ★ 2026-05-16: 자동 발송 통합 CMS — 운영자가 어드민에서 이벤트 끄면 발송 차단. */
+/* 2026-05-16: 자동 발송 통합 CMS — 운영자가 어드민에서 이벤트 끄면 발송 차단. */
 import { loadEventTemplate } from "../notify-dispatcher";
 
 /* ─── 수신자 이메일 조회 (members 테이블 통합 — user·admin 모두) ─── */
@@ -32,7 +32,7 @@ async function lookupEmail(targetId: number): Promise<string | null> {
   }
 }
 
-/* ─── 이벤트 → 이메일 템플릿 라우팅 (★ export — list API 미리보기에서 호출) ─── */
+/* ─── 이벤트 → 이메일 템플릿 라우팅 (export — list API 미리보기에서 호출) ─── */
 export function buildEmailContent(
   event: NotifyEvent,
   params: Record<string, any>,
@@ -103,7 +103,7 @@ export const emailAdapter: NotifyAdapter = {
   async send(opts: AdapterSendOpts): Promise<AdapterResult> {
     const t0 = Date.now();
     try {
-      /* ★ 어드민 채널 토글 확인 — DB 본문 우선, 없으면 폴백, isActive=false면 차단 */
+      /* 어드민 채널 토글 확인 — DB 본문 우선, 없으면 폴백, isActive=false면 차단 */
       const dbTpl = await loadEventTemplate({ event: opts.event, channel: "email", params: opts.params });
       if (dbTpl && "skip" in dbTpl) {
         return {

@@ -60,7 +60,7 @@
       api({ url: `/api/admin-send-analytics-channel?from=${from}&to=${to}` }),
     ]);
 
-    /* ★ 2026-05-16 (2차): API 실패 시 detail(서버 SQL 에러 본문)까지 합쳐 표시.
+    /* 2026-05-16 (2차): API 실패 시 detail(서버 SQL 에러 본문)까지 합쳐 표시.
        이전 fix는 error 또는 detail 중 하나만 → '발송 통계 조회 실패: 발송 통계
        조회 실패' 같은 무의미 출력. 둘을 합쳐 진짜 원인이 화면에 노출되도록. */
     if (!ovRes.ok) {
@@ -88,7 +88,7 @@
       ? (chRes.data?.channels || chRes.data?.data?.channels || chRes.data?.byChannel || ov.byChannel || {})
       : (ov.byChannel || {});
 
-    /* ★ 2026-05-16 (3차): 200 응답이지만 일부 쿼리 실패한 경우 _errors 표시 */
+    /* 2026-05-16 (3차): 200 응답이지만 일부 쿼리 실패한 경우 _errors 표시 */
     const errs = [];
     if (ovRes.data && Array.isArray(ovRes.data._errors)) errs.push(...ovRes.data._errors);
     if (chRes.data && Array.isArray(chRes.data._errors)) errs.push(...chRes.data._errors);

@@ -1,5 +1,5 @@
 // netlify/functions/admin-media-posts.ts
-// ★ M-11: 언론보도/갤러리 CRUD (어드민)
+// M-11: 언론보도/갤러리 CRUD (어드민)
 
 import { eq, and, desc, count, or, ilike } from "drizzle-orm";
 import { db } from "../../db";

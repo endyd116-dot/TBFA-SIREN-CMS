@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-home-banner.js (★ Phase B Step 6-G)
+   SIREN — admin-home-banner.js (Phase B Step 6-G)
    메인 화면 편집 → 특별 캠페인 배너 (하단) 편집 모듈
    - 모드 1: 직접 입력
    - 모드 2: 캠페인 연결 (linkedCampaignId)

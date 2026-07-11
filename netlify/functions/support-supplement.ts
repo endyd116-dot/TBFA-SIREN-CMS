@@ -2,7 +2,7 @@
  * POST /api/support-supplement
  * 유가족 지원 신청의 보완 자료 제출 (본인만)
  *
- * ★ v11 묶음 B-11:
+ * v11 묶음 B-11:
  *   - status='supplement' 상태에서만 호출 가능
  *   - 본문 텍스트 + 첨부 ID 배열 받음
  *   - 기존 content 끝에 "[보완 자료 추가 — YYYY.MM.DD HH:mm]" 헤더와 함께 누적
@@ -29,7 +29,7 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
-    /* 1. 인증 + 차단(블랙) 회원 진입 차단 (★ 2026-06-27 FIX) */
+    /* 1. 인증 + 차단(블랙) 회원 진입 차단 (2026-06-27 FIX) */
     const _r = await requireActiveUser(req);
     if (!_r.ok) return (_r as { ok: false; res: Response }).res;
     const auth = _r.user;
@@ -51,7 +51,7 @@ export default async (req: Request) => {
       return badRequest("보완 내용은 5000자 이내로 작성해 주세요");
     }
 
-    /* ★ R41 Q2-026: 첨부 키는 본인 업로드(support/{uid}/...)만 병합 허용 — 타인 키 끼워넣기 차단 */
+    /* R41 Q2-026: 첨부 키는 본인 업로드(support/{uid}/...)만 병합 허용 — 타인 키 끼워넣기 차단 */
     const ownPrefix = `support/${auth.uid}/`;
     const newAttachments: string[] = Array.isArray(body.attachmentIds)
       ? body.attachmentIds
@@ -146,7 +146,7 @@ export default async (req: Request) => {
         const previewText = supplementContent.slice(0, 300);
         const html = `
           <div style="font-family:'Malgun Gothic',sans-serif;font-size:14px;line-height:1.7;max-width:600px">
-            <h2 style="color:#7a1f2b;border-bottom:2px solid #7a1f2b;padding-bottom:8px">📤 유가족 지원 신청 보완 자료 제출</h2>
+            <h2 style="color:#7a1f2b;border-bottom:2px solid #7a1f2b;padding-bottom:8px">유가족 지원 신청 보완 자료 제출</h2>
             <p>회원이 보완 자료를 제출하였습니다. 어드민에서 다시 검토해 주세요.</p>
             <table style="width:100%;border-collapse:collapse;margin:14px 0">
               <tr><td style="padding:6px 10px;background:#f8f9fa;width:120px"><strong>신청번호</strong></td><td style="padding:6px 10px;border-bottom:1px solid #eee">${escapeHtml(row.requestNo)}</td></tr>

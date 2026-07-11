@@ -4,7 +4,7 @@
  * GET   /api/admin/receipt-settings    — 현재 설정 조회 (직인 정보 포함)
  * PATCH /api/admin/receipt-settings    — 설정 업데이트
  *
- * ★ M-14: 직인 이미지 처리 추가
+ * M-14: 직인 이미지 처리 추가
  *   - PATCH body에 stampBlobId 포함 시 직인 변경
  *   - stampBlobId=null로 보내면 직인 제거
  *   - 응답에 stampUrl 자동 생성
@@ -46,7 +46,7 @@ function buildDefaults() {
   };
 }
 
-/* ============ 응답 정규화 (★ M-14: 직인 정보 포함) ============ */
+/* ============ 응답 정규화 (M-14: 직인 정보 포함) ============ */
 async function normalizeForResponse(row: any) {
   let notes: string[] = [];
   if (row.footerNotes) {
@@ -56,7 +56,7 @@ async function normalizeForResponse(row: any) {
     } catch { notes = []; }
   }
 
-  /* ★ M-14: 직인 정보 조회 */
+  /* M-14: 직인 정보 조회 */
   let stampUrl: string | null = null;
   let stampOriginalName: string | null = null;
   if (row.stampBlobId) {
@@ -92,7 +92,7 @@ async function normalizeForResponse(row: any) {
     proofText: row.proofText || "",
     donationTypeLabel: row.donationTypeLabel || "",
     footerNotes: notes,
-    /* ★ M-14: 직인 정보 */
+    /* M-14: 직인 정보 */
     stampBlobId: row.stampBlobId || null,
     stampUrl,
     stampOriginalName,
@@ -169,7 +169,7 @@ export default async (req: Request) => {
         updateData.footerNotes = JSON.stringify(cleaned);
       }
 
-      /* ★ M-14: 직인 처리 */
+      /* M-14: 직인 처리 */
       if (body.stampBlobId !== undefined) {
         if (body.stampBlobId === null || body.stampBlobId === 0 || body.stampBlobId === "") {
           /* 직인 제거 */

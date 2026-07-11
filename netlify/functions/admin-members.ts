@@ -2,20 +2,20 @@
 /**
  * GET    /api/admin/members              — 회원 목록 (페이징/필터/검색)
  * GET    /api/admin/members?id=N         — 회원 상세 (후원 통계 포함)
- * POST   /api/admin/members              — ★ K-7: 회원 직접 추가 (임시 비번 자동 생성)
+ * POST   /api/admin/members              — K-7: 회원 직접 추가 (임시 비번 자동 생성)
  * PATCH  /api/admin/members              — 상태/메모/타입/잠금해제/이메일인증 변경
  *
- * ★ K-7 PATCH 분기:
+ * K-7 PATCH 분기:
  * - inlineStatusOnly:    status만 빠른 변경 (기존)
  * - inlineMemoOnly:      memo만 변경
  * - unlock=true:         lockedUntil=null + loginFailCount=0 으로 잠금 해제
  * - 일반 PATCH:          여러 필드 동시 변경 (status/type/memo/agreeXxx)
  * - emailVerified=true:  이메일 인증 강제 처리 (관리자 권한)
  *
- * ★ M-19-1 PATCH 분기 추가:
+ * M-19-1 PATCH 분기 추가:
  * - setGrade=true:       등급 수동 변경 (gradeId/gradeLocked)
  *
- * ★ K-7 POST:
+ * K-7 POST:
  * - name/email/phone/type/memo 입력
  * - 임시 비밀번호 자동 생성 (12자 랜덤, 응답에 1회만 노출)
  * - 유가족 회원은 status=pending, 그 외는 active
@@ -130,7 +130,7 @@ const addMemberSchema = z.object({
   phone: z.string().trim().regex(/^[0-9\-+\s()]{8,20}$/, "연락처 형식이 올바르지 않습니다"),
   type: z.enum(["regular", "family", "volunteer"]),
   memo: z.string().max(2000).optional(),
-  /* ★ M-12: 관리자 추가 시 분류 옵션 (선택, 미지정 시 자동 분류) */
+  /* M-12: 관리자 추가 시 분류 옵션 (선택, 미지정 시 자동 분류) */
   memberCategory: z.enum(["sponsor", "regular", "family", "etc"]).optional(),
   memberSubtype: z.enum([
     "regular_donation", "hyosung_donation", "onetime_donation",
@@ -202,9 +202,9 @@ export default async (req: Request) => {
         });
       }
 
-      /* 목록 조회 (★ M-12: 4분류 + 가입경로 / ★ M-19-1: 등급 추가 / ★ Phase 1: ?source enum + ?donorType + ?pageSize) */
+      /* 목록 조회 (M-12: 4분류 + 가입경로 / M-19-1: 등급 추가 / Phase 1: ?source enum + ?donorType + ?pageSize) */
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-      /* ★ Phase 1: pageSize 명시 시 우선, 없으면 limit fallback. max 200 (DESIGN §6.2 안전 상한) */
+      /* Phase 1: pageSize 명시 시 우선, 없으면 limit fallback. max 200 (DESIGN §6.2 안전 상한) */
       const pageSizeRaw = url.searchParams.get("pageSize");
       const limitRaw = url.searchParams.get("limit");
       const limit = Math.min(
@@ -220,7 +220,7 @@ export default async (req: Request) => {
       const gradeIdParam = url.searchParams.get("grade");
       const q = (url.searchParams.get("q") || "").trim();
 
-      /* ★ Phase 1: ?source enum(siren/hyosung/manual/event/etc) → signup_sources.id 매핑.
+      /* Phase 1: ?source enum(siren/hyosung/manual/event/etc) → signup_sources.id 매핑.
        *           숫자(기존 호환) 또는 'all'(미필터) 도 지원.
        *           매핑 실패 시 폴백: 필터 미적용 (메인 SELECT 보존) */
       let resolvedSourceId: number | null = null;
@@ -240,7 +240,7 @@ export default async (req: Request) => {
         /* 그 외 값(잘못된 입력)은 무시 — 필터 미적용 */
       }
 
-      /* ★ 버그픽스 #2: donorType 은 donations JOIN 으로 실제 판정 (컬럼 추가 불필요).
+      /* 버그픽스 #2: donorType 은 donations JOIN 으로 실제 판정 (컬럼 추가 불필요).
        *  - regular  : status='completed' 이고 type='regular'(정기) 후원 이력 있음
        *  - prospect : 완료 후원 이력은 있으나 정기는 없음 (일시후원만)
        *  - none     : 완료 후원 이력 전혀 없음
@@ -272,7 +272,7 @@ export default async (req: Request) => {
       if (resolvedSourceId !== null) {
         conditions.push(eq((members as any).signupSourceId, resolvedSourceId));
       }
-      /* ★ 버그픽스 #2: donorType 필터 — 해당 donorType 의 memberId 집합을 먼저 구해 where 합류.
+      /* 버그픽스 #2: donorType 필터 — 해당 donorType 의 memberId 집합을 먼저 구해 where 합류.
        *  donations 집계로 정기/일시/무후원 분류 후 inArray 조건 추가. */
       if (donorTypeFilter) {
         try {
@@ -308,7 +308,7 @@ export default async (req: Request) => {
           console.warn("[admin-members] donorType 필터 집계 실패 — 필터 미적용", dtErr);
         }
       }
-      /* ★ M-19-1: 등급 필터 */
+      /* M-19-1: 등급 필터 */
       if (gradeIdParam && /^\d+$/.test(gradeIdParam)) {
         conditions.push(eq((members as any).gradeId, Number(gradeIdParam)));
       }
@@ -331,7 +331,7 @@ export default async (req: Request) => {
 
       const [{ total }] = await db.select({ total: count() }).from(members).where(where);
 
-      /* ★ M-12 + M-19-1: signup_sources + member_grades join */
+      /* M-12 + M-19-1: signup_sources + member_grades join */
       const list = await db
         .select({
           id: members.id,
@@ -345,7 +345,7 @@ export default async (req: Request) => {
           signupSourceId: (members as any).signupSourceId,
           sourceLabel: signupSources.label,
           sourceCode: signupSources.code,
-          /* ★ M-19-1: 등급 컬럼들 */
+          /* M-19-1: 등급 컬럼들 */
           gradeId: (members as any).gradeId,
           gradeCode: memberGrades.code,
           gradeNameKo: memberGrades.nameKo,
@@ -369,7 +369,7 @@ export default async (req: Request) => {
         .limit(limit)
         .offset((page - 1) * limit);
 
-      /* ★ M-12: 카테고리별 카운트 (대시보드용) */
+      /* M-12: 카테고리별 카운트 (대시보드용) */
       const catStats: any = await db.execute(sql`
         SELECT
           COALESCE(member_category, 'unknown') AS category,
@@ -382,7 +382,7 @@ export default async (req: Request) => {
       const catRows: any[] = Array.isArray(catStats) ? catStats : (catStats?.rows || []);
       for (const r of catRows) categoryCounts[r.category] = Number(r.count);
 
-      /* ★ Phase 3 §6.3: hyosung_contracts 별도 쿼리 + Map 매칭 (drizzle 다중 leftJoin 금지) */
+      /* Phase 3 §6.3: hyosung_contracts 별도 쿼리 + Map 매칭 (drizzle 다중 leftJoin 금지) */
       const memberIds = (list as any[]).map((r) => Number(r.id)).filter(Boolean);
       const hyosungMap = new Map<number, any>();
       if (memberIds.length > 0) {
@@ -407,7 +407,7 @@ export default async (req: Request) => {
         }
       }
 
-      /* ★ 버그픽스 #2: donorType — donations 별도 집계 + Map 매칭.
+      /* 버그픽스 #2: donorType — donations 별도 집계 + Map 매칭.
        *  목록에 표시된 회원만 집계 (memberIds IN 절). 정기 후원 있으면 regular,
        *  완료 후원만 있으면 prospect, 없으면 none. 실패 시 전원 'none' fallback. */
       const donorTypeMap = new Map<number, DonorType>();
@@ -436,7 +436,7 @@ export default async (req: Request) => {
         }
       }
 
-      /* ★ 버그픽스2 #2: 효성 계약 보유 회원의 후원상태 보정.
+      /* 버그픽스2 #2: 효성 계약 보유 회원의 후원상태 보정.
        *  효성 CMS 회원은 donations 행이 아니라 hyosung_contracts 로만 후원이 잡힐 수 있어
        *  donations JOIN 만으로는 'none'(비후원)으로 잘못 분류됨.
        *  → 유효한 효성 계약(해지·만료·중지·정지 아님)이 있으면 정기후원으로 간주. */
@@ -456,7 +456,7 @@ export default async (req: Request) => {
         return dt;
       };
 
-      /* ★ Phase 1 §6.2: AdminMember 매핑 — list 와 동일한 row 를 §6.2 인터페이스로 정규화.
+      /* Phase 1 §6.2: AdminMember 매핑 — list 와 동일한 row 를 §6.2 인터페이스로 정규화.
        *  매핑 표 5종 외 코드(또는 NULL) → signupSource=null, label=null (DESIGN §6.2 명시) */
       const adminMembers: AdminMember[] = (list as any[]).map((r) => {
         const code: string = r.sourceCode || "";
@@ -493,7 +493,7 @@ export default async (req: Request) => {
         };
       });
 
-      /* ★ 버그픽스 #2: list 행에도 signupSource/Label·donorType 미러링
+      /* 버그픽스 #2: list 행에도 signupSource/Label·donorType 미러링
        *  (A 가 list 키를 쓰든 data 키를 쓰든 출처·후원상태가 보이도록) */
       const listEnriched = (list as any[]).map((r) => {
         const code: string = r.sourceCode || "";
@@ -505,7 +505,7 @@ export default async (req: Request) => {
         };
       });
 
-      /* ★ 버그픽스2 #1: 통합 CMS 대시보드 KPI 용 전체 집계 필드.
+      /* 버그픽스2 #1: 통합 CMS 대시보드 KPI 용 전체 집계 필드.
        *  목록은 페이지 단위라 KPI 분모로 못 씀 → withdrawn 제외 전체 회원을
        *  type / donorType 별로 집계해 응답에 동봉. 실패 시 빈 객체 fallback. */
       let typeCounts: Record<string, number> = {};
@@ -560,7 +560,7 @@ export default async (req: Request) => {
         list: listEnriched,
         pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
         categoryCounts,
-        /* ★ 버그픽스2 #1: 대시보드 KPI 용 전체 집계 (페이지 무관) */
+        /* 버그픽스2 #1: 대시보드 KPI 용 전체 집계 (페이지 무관) */
         typeCounts,
         donorTypeCounts,
         /* ── DESIGN_PHASE1 §6.2 키 (cms-tbfa.js 가 fallback 으로 접근) ── */
@@ -571,7 +571,7 @@ export default async (req: Request) => {
       });
     }
 
-    /* ===== POST (★ K-7: 회원 직접 추가) ===== */
+    /* ===== POST (K-7: 회원 직접 추가) ===== */
     if (req.method === "POST") {
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
@@ -609,7 +609,7 @@ export default async (req: Request) => {
       /* 유가족은 pending, 그 외는 active */
       const status = data.type === "family" ? "pending" : "active";
 
-      /* ★ M-12: 자동 분류 + 가입경로='admin' 자동 설정 */
+      /* M-12: 자동 분류 + 가입경로='admin' 자동 설정 */
       const classify = await classifyForSignup({
         type: data.type,
         signupSource: "admin",
@@ -713,7 +713,7 @@ export default async (req: Request) => {
         return ok({ member: updated }, "상태가 변경되었습니다");
       }
 
-      /* ───── 분기 2: ★ K-7 inlineMemoOnly (메모만 빠른 저장) ───── */
+      /* ───── 분기 2: K-7 inlineMemoOnly (메모만 빠른 저장) ───── */
       if (body.inlineMemoOnly === true) {
         const memo = typeof body.memo === "string" ? body.memo.slice(0, 2000) : "";
 
@@ -735,7 +735,7 @@ export default async (req: Request) => {
         return ok({ member: updated }, "메모가 저장되었습니다");
       }
 
-      /* ───── 분기 3: ★ K-7 unlock (잠금 해제) ───── */
+      /* ───── 분기 3: K-7 unlock (잠금 해제) ───── */
       if (body.unlock === true) {
         if (!existing.lockedUntil && (existing.loginFailCount ?? 0) === 0) {
           return badRequest("잠긴 계정이 아닙니다");
@@ -763,7 +763,7 @@ export default async (req: Request) => {
         return ok({ member: updated }, "계정 잠금이 해제되었습니다");
       }
 
-      /* ───── 분기 4: ★ K-7 verifyEmail (관리자 강제 이메일 인증) ───── */
+      /* ───── 분기 4: K-7 verifyEmail (관리자 강제 이메일 인증) ───── */
       if (body.verifyEmail === true) {
         if (existing.emailVerified) {
           return badRequest("이미 이메일 인증이 완료된 계정입니다");
@@ -792,7 +792,7 @@ export default async (req: Request) => {
         return ok({ member: updated }, "이메일 인증이 완료 처리되었습니다");
       }
 
-      /* ───── 분기 4.5: ★ M-19-1 setGrade (등급 수동 변경) ───── */
+      /* ───── 분기 4.5: M-19-1 setGrade (등급 수동 변경) ───── */
       if (body.setGrade === true) {
         const gradeId = body.gradeId === null ? null : Number(body.gradeId);
         const lock = body.gradeLocked === true;
@@ -887,7 +887,7 @@ export default async (req: Request) => {
         changedFields.push("agreeMail");
       }
 
-      /* ★ R35-Light-B-L2: 기본연봉(base_salary) — 슈퍼어드민 전용 */
+      /* R35-Light-B-L2: 기본연봉(base_salary) — 슈퍼어드민 전용 */
       if (body.baseSalary !== undefined) {
         if (adminMember?.role !== "super_admin") {
           return badRequest("기본연봉은 슈퍼어드민만 변경할 수 있습니다");
@@ -920,7 +920,7 @@ export default async (req: Request) => {
           agreeEmail: members.agreeEmail,
           agreeSms: members.agreeSms,
           agreeMail: members.agreeMail,
-          /* ★ R35-Light-B-L2: 응답에 baseSalary 포함 (UI prefill 갱신용) */
+          /* R35-Light-B-L2: 응답에 baseSalary 포함 (UI prefill 갱신용) */
           baseSalary: members.baseSalary,
         });
 

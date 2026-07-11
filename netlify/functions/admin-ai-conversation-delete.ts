@@ -5,7 +5,7 @@
  * AI 비서 대화 삭제 — 대화 messages에 회원 PII·후원·재정·순직 도구 결과가 누적되는데
  * 기존엔 CMS에서 지울 방법이 없어(list·detail API만 존재) 개발자 DB 직접 작업이 필요했다(R45 OP-053).
  *
- * ★ 민감정보 삭제이므로 super_admin 전용(DB role 기준 — elevate JWT 우회 방지).
+ * 민감정보 삭제이므로 super_admin 전용(DB role 기준 — elevate JWT 우회 방지).
  *   대화 + 연결된 도구 실행 로그(ai_agent_logs) 함께 정리.
  */
 import type { Context } from "@netlify/functions";

@@ -61,7 +61,7 @@ export default async function handler(req: Request, _ctx: Context) {
     /* 과도 방지 — 같은 디바이스·대상 최근 N초 내 중복은 카운트만 반환 */
     let throttled = false;
     try {
-      /* ★ R41 Q2-015: 로그인 회원은 (memberId,대상) 기준, 비회원만 IP 기준으로 중복 판정.
+      /* R41 Q2-015: 로그인 회원은 (memberId,대상) 기준, 비회원만 IP 기준으로 중복 판정.
          — 공유망(학교·회사)에서 서로 다른 회원의 헌화가 같은 IP로 과차단되던 문제 해소 */
       const idCond = memberId != null
         ? sql`member_id = ${memberId}`

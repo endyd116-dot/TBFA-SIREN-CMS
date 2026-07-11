@@ -1,5 +1,5 @@
 // lib/grade-calculator.ts
-// ★ Phase M-19-1: 회원 등급 자동 산정 로직
+// Phase M-19-1: 회원 등급 자동 산정 로직
 //
 // 핵심 함수:
 // - recalculateGrade(memberId): 단일 회원 재계산 (후원 완료 시 훅)

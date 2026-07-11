@@ -148,7 +148,7 @@ export async function buildDraftHtml(caseId: number, outputId?: number): Promise
   <h1>유족급여신청서 (초안)</h1>
   ${info?.title ? `<div class="meta">${esc(info.title)}</div>` : ""}
   ${metaParts.length ? `<div class="meta">${metaParts.join(" · ")}</div>` : ""}
-  <div class="draft-banner">⚠️ 본 문서는 AI가 생성한 <strong>전문가 검토용 초안</strong>입니다. 제출 전 반드시 전문가(노무사·변호사) 검토·교정이 필요합니다.</div>
+  <div class="draft-banner">본 문서는 AI가 생성한 <strong>전문가 검토용 초안</strong>입니다. 제출 전 반드시 전문가(노무사·변호사) 검토·교정이 필요합니다.</div>
   ${sectionHtml || "<p>(생성된 섹션이 없습니다. 목차 제안 후 본문을 생성하세요.)</p>"}
   <div class="footer">${todayKR()}<br>(사)교사유가족협의회</div>
 </body></html>`;

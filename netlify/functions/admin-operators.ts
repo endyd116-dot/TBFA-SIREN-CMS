@@ -6,7 +6,7 @@
  * PATCH /api/admin/operators           — 운영자 정보 수정 (body: { id, role?, notifyOnSupport?, operatorActive?, assignedCategories? })
  * DELETE /api/admin/operators?id=N     — 운영자 강등 (operator → regular)
  *
- * ★ M-15: assigned_categories (JSONB) 처리 추가
+ * M-15: assigned_categories (JSONB) 처리 추가
  * - super_admin은 어차피 알림 발송 시 카테고리 무시되므로 ['all'] 권장
  * - operator는 ['incident','harassment',...] 또는 ['all']
  * - 'all' 포함 시 다른 값 자동 제거 (정규화)
@@ -20,7 +20,7 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 
-/* ===== ★ M-15: 카테고리 화이트리스트 + 정규화 헬퍼 ===== */
+/* ===== M-15: 카테고리 화이트리스트 + 정규화 헬퍼 ===== */
 const VALID_CATEGORIES = [
   "incident", "harassment", "legal", "board",
   "donation", "support", "all",
@@ -51,7 +51,7 @@ export default async (req: Request) => {
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin } = guard.ctx;
-  /* ★ P0-2 fix: 운영자 관리의 변경 작업(승급·역할변경·강등)은 super_admin 전용.
+  /* P0-2 fix: 운영자 관리의 변경 작업(승급·역할변경·강등)은 super_admin 전용.
      DB role(ctx.member.role)로 판정 — admin JWT role은 type=admin이면 전부 super_admin이라 신뢰 불가.
      형제 함수 admin-service-rnr.ts:42와 동일 패턴. GET(목록 조회)은 전 운영자 허용. */
   const isSuperAdmin = (guard.ctx.member?.role || "") === "super_admin";
@@ -111,7 +111,7 @@ export default async (req: Request) => {
           role: members.role,
           notifyOnSupport: members.notifyOnSupport,
           operatorActive: members.operatorActive,
-          assignedCategories: members.assignedCategories,  // ★ M-15
+          assignedCategories: members.assignedCategories,  // M-15
           lastLoginAt: members.lastLoginAt,
           createdAt: members.createdAt,
           hireDate: members.hireDate,                       // 입사일(연차 모드B 근속 계산)
@@ -146,7 +146,7 @@ export default async (req: Request) => {
       const role = VALID_ROLES.includes(body.role) ? body.role : "admin";
       const notifyOnSupport = body.notifyOnSupport !== false; // 기본 true
 
-      /* ★ M-15: 카테고리 처리
+      /* M-15: 카테고리 처리
          - 입력 없거나 잘못된 값: super_admin은 ['all'], operator는 [] (명시적 할당 필요)
          - super_admin은 알림 발송 시 카테고리 무시되지만, 일관성을 위해 ['all'] 기본값 부여 */
       let assignedCategories: string[];
@@ -172,7 +172,7 @@ export default async (req: Request) => {
         role,
         notifyOnSupport,
         operatorActive: true,
-        assignedCategories,  // ★ M-15
+        assignedCategories,  // M-15
         updatedAt: new Date(),
       };
 
@@ -224,7 +224,7 @@ export default async (req: Request) => {
         updateData.hireDate = /^\d{4}-\d{2}-\d{2}$/.test(hd) ? hd : null;
       }
 
-      /* ★ M-15: assigned_categories 수정 */
+      /* M-15: assigned_categories 수정 */
       if (body.assignedCategories !== undefined) {
         updateData.assignedCategories = sanitizeCategories(body.assignedCategories);
       }
@@ -234,7 +234,7 @@ export default async (req: Request) => {
         return forbidden("자기 자신을 비활성화할 수 없습니다");
       }
 
-      /* ★ M-15: 자기 자신의 super_admin role을 강등하는 것도 차단 (마지막 super_admin 보호) */
+      /* M-15: 자기 자신의 super_admin role을 강등하는 것도 차단 (마지막 super_admin 보호) */
       if (id === admin.uid && updateData.role && updateData.role !== "super_admin") {
         const superAdmins: any = await db
           .select({ c: sql<number>`count(*)::int` })

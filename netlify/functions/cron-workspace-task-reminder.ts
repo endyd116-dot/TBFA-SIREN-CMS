@@ -94,6 +94,6 @@ export default async (_req: Request, _ctx: Context) => {
 };
 
 export const config = {
-  // ★ 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬·:30 wake 제거). 리마인더 최대 1시간 지연.
+  // 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬·:30 wake 제거). 리마인더 최대 1시간 지연.
   schedule: "0 * * * *",
 };

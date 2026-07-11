@@ -1,6 +1,6 @@
 // admin-notify-subscribers.ts — 게시글 새 댓글 시 구독자 알림 발송 (HTTP 엔드포인트)
 // POST /api/admin-notify-subscribers  body: { postId, commentId }
-// ★ US-036/037: 실제 발송 로직은 lib/board-notify 로 단일화(댓글 작성 직후 board-comment-create 가 직접 호출).
+// US-036/037: 실제 발송 로직은 lib/board-notify 로 단일화(댓글 작성 직후 board-comment-create 가 직접 호출).
 //   이 엔드포인트는 하위호환용 얇은 래퍼 — 본인(댓글 작성자) 검증·링크 정합은 lib 내부에서 처리.
 import { requireActiveUser } from "../../lib/auth";
 import { notifyPostSubscribers } from "../../lib/board-notify";

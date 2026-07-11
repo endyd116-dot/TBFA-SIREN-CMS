@@ -3,7 +3,7 @@
  *
  * KICC 일시 결제 1단계 — 거래등록(webpay).
  * - 프론트가 결제 직전 호출
- * - donations 에 pending 레코드 선저장(금액·기부자·customerKey 상관) → ★ 승인 시 서버 신뢰 기준
+ * - donations 에 pending 레코드 선저장(금액·기부자·customerKey 상관) → 승인 시 서버 신뢰 기준
  * - KICC 거래등록 → authPageUrl 반환 → 프론트가 결제창으로 이동
  *
  * Body: { name, phone, email, amount, type?, isAnonymous?, campaignId?, campaignTag? }
@@ -70,7 +70,7 @@ export default async (req: Request) => {
       if (i === 2) throw new Error("주문번호 생성 실패");
     }
 
-    /* pending 레코드 선저장 — ★ 승인 시 금액·기부자 서버 신뢰 기준
+    /* pending 레코드 선저장 — 승인 시 금액·기부자 서버 신뢰 기준
        캠페인 합산 키는 campaignId(숫자 FK). campaignTag는 레거시(보조 저장만). */
     const [donation] = await db
       .insert(donations)
@@ -80,7 +80,7 @@ export default async (req: Request) => {
         donorPhone: data.phone,
         donorEmail: data.email,
         amount: data.amount,
-        /* ★ US-017: 이 경로는 일시(단건) 카드결제 전용 — 빌키를 만들지 않으므로 항상 onetime 으로 고정.
+        /* US-017: 이 경로는 일시(단건) 카드결제 전용 — 빌키를 만들지 않으므로 항상 onetime 으로 고정.
            정기후원은 반드시 billing-register/billing-approve(빌키 발급) 경로로만 유입. */
         type: "onetime",
         payMethod: "card",

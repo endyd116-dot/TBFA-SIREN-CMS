@@ -83,7 +83,7 @@ export default async (req: Request) => {
         userId: meId,
         userType: "admin",
         action: "WORKSPACE_FOLDER_PURGE",
-        target: `workspace_folder:${folderId}`,   // ★ Q3-023 fix: logAudit 실제 필드(userId·target)로 교정
+        target: `workspace_folder:${folderId}`,   // Q3-023 fix: logAudit 실제 필드(userId·target)로 교정
         detail: {
           folderName: (folder as any).name,
           foldersDeleted: allFolderIds.length,

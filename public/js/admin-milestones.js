@@ -256,7 +256,7 @@ function openDefEdit(id) {
     document.getElementById('fRevSrc').value = d.revenueSource || '';
     document.getElementById('fSortOrder').value = d.sortOrder ?? 0;
     document.getElementById('fQApplicable').value = d.quarterApplicable || '';
-    /* ★ R29-GAP-P1-H3: threshold 객체 분해 → 평탄 키(schema 일치) */
+    /* R29-GAP-P1-H3: threshold 객체 분해 → 평탄 키(schema 일치) */
     const thrEnabled = !!d.thresholdEnabled;
     document.getElementById('fThrEnabled').checked = thrEnabled;
     document.getElementById('fThrVal').value = d.thresholdValue ?? '';
@@ -275,7 +275,7 @@ document.getElementById('defModalClose')?.addEventListener('click', () => {
 });
 
 document.getElementById('defModalSave')?.addEventListener('click', async () => {
-  /* ★ R29-GAP-P1-H3: 필수 4개(code/name/category/targetMilestoneRole) 입력 차단 */
+  /* R29-GAP-P1-H3: 필수 4개(code/name/category/targetMilestoneRole) 입력 차단 */
   const code = document.getElementById('fCode').value.trim();
   const name = document.getElementById('fName').value.trim();
   const category = document.getElementById('fCategory').value;
@@ -291,7 +291,7 @@ document.getElementById('defModalSave')?.addEventListener('click', async () => {
     catch { amToast('인센티브 공식 JSON 형식이 올바르지 않습니다.', 'error'); return; }
   }
 
-  /* ★ R29-GAP-P1-H3: threshold 평탄 키 — schema(milestone_definitions)와 일치 */
+  /* R29-GAP-P1-H3: threshold 평탄 키 — schema(milestone_definitions)와 일치 */
   const thresholdEnabled = document.getElementById('fThrEnabled').checked;
   const thresholdValue = thresholdEnabled
     ? (parseFloat(document.getElementById('fThrVal').value) || 0) : null;
@@ -318,7 +318,7 @@ document.getElementById('defModalSave')?.addEventListener('click', async () => {
     isEdit ? `/api/milestone-definitions/${AM.editingDefId}` : '/api/milestone-definitions',
     { method: isEdit ? 'PATCH' : 'POST', body }
   );
-  /* ★ R29-GAP-P1-H3: HTTP ok + 응답 본문 ok 이중 검증 */
+  /* R29-GAP-P1-H3: HTTP ok + 응답 본문 ok 이중 검증 */
   if (!res.ok || res.data?.ok === false) {
     amToast((res.data?.error || '저장 실패') + (res.data?.detail ? ': ' + res.data.detail : ''), 'error');
     return;
@@ -633,7 +633,7 @@ function renderQuarters() {
         sel.appendChild(opt);
       }
     });
-    /* ★ R29-GAP-P1-H5: 기본 선택 — ACTIVE 우선, 없으면 최신 SETTLED */
+    /* R29-GAP-P1-H5: 기본 선택 — ACTIVE 우선, 없으면 최신 SETTLED */
     if (!sel.value) {
       const active = AM.quarters.find(q => q.status === 'ACTIVE');
       const latestSettled = [...AM.quarters]
@@ -831,7 +831,7 @@ async function paidSettlement(id) {
   loadSettlements();
 }
 
-/* ★ R29-MS-GAP1-D: HOLD 처리 (자료 보완 요청) */
+/* R29-MS-GAP1-D: HOLD 처리 (자료 보완 요청) */
 async function holdSettlement(id) {
   const holdReason = prompt('보류 사유를 입력하세요 (운영자에게 알림 전송):');
   if (!holdReason || !holdReason.trim()) return;
@@ -841,7 +841,7 @@ async function holdSettlement(id) {
   loadSettlements();
 }
 
-/* ★ R29-MS-GAP1-D: HOLD → REVIEWED 복귀 */
+/* R29-MS-GAP1-D: HOLD → REVIEWED 복귀 */
 async function resumeSettlement(id) {
   if (!confirm('재검토 상태로 복귀시키시겠습니까?')) return;
   const res = await amApi(`/api/admin-milestone-settlement/${id}/resume`, { method: 'POST' });

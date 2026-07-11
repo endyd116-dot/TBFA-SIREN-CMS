@@ -1,5 +1,5 @@
 // netlify/functions/admin-resources.ts
-// ★ Phase M-19-8: 자료실 자료 CRUD (어드민)
+// Phase M-19-8: 자료실 자료 CRUD (어드민)
 //
 // GET    /api/admin/resources                        — 목록 (페이지네이션 + 필터 + 통계)
 // GET    /api/admin/resources?id=N                   — 단건 상세 (작성자/카테고리 조인)

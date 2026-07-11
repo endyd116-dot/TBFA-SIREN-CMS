@@ -24,7 +24,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const method = req.method.toUpperCase();
   const type = url.searchParams.get("type") === "letter" ? "letter" : "message";
-  /* ★ R41 Q2-013: sort=recent → 최신순(미검토 탭). 기본은 신고순 */
+  /* R41 Q2-013: sort=recent → 최신순(미검토 탭). 기본은 신고순 */
   const sortRecent = url.searchParams.get("sort") === "recent";
 
   /* ── GET: 신고순(기본) 또는 최신순(미검토) 목록 ── */

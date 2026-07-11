@@ -49,18 +49,18 @@ function buildEmailHtml(stats: ReportStats, aiSummary: string, aiAlerts: any[], 
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;color:#2d3748;max-width:640px;margin:auto;padding:24px;">
 <h2 style="color:#2b6cb0;">[SIREN 주간 보고] ${label}</h2>
 <hr/>
-<h3>📋 AI 핵심 요약</h3>
+<h3>AI 핵심 요약</h3>
 <div style="background:#ebf8ff;padding:16px;border-radius:8px;white-space:pre-wrap;">${aiSummary || "(AI 요약 없음)"}</div>
-${alerts ? `<h3>⚠️ 위험경보</h3><ul>${alerts}</ul>` : ""}
-<h3>📊 주요 통계</h3>
+${alerts ? `<h3>위험경보</h3><ul>${alerts}</ul>` : ""}
+<h3>주요 통계</h3>
 <table style="border-collapse:collapse;width:100%;">
-  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">👥 회원</td><td style="padding:8px;">신규 ${stats.members.newThisPeriod}명 / 활성 전체 ${stats.members.totalActive}명</td></tr>
-  <tr><td style="padding:8px;font-weight:bold;">💰 후원</td><td style="padding:8px;">${stats.donations.count}건 / ${stats.donations.totalAmount.toLocaleString()}원 | 정기후원자 ${stats.donations.regularActive}명</td></tr>
-  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">🚨 사건신고</td><td style="padding:8px;">신규 ${stats.siren.incident.newThisPeriod}건 (미처리 ${stats.siren.incident.totalOpen}건)</td></tr>
-  <tr><td style="padding:8px;font-weight:bold;">😤 괴롭힘신고</td><td style="padding:8px;">신규 ${stats.siren.harassment.newThisPeriod}건 (미처리 ${stats.siren.harassment.totalOpen}건)</td></tr>
-  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">⚖️ 법률신고</td><td style="padding:8px;">신규 ${stats.siren.legal.newThisPeriod}건 (미처리 ${stats.siren.legal.totalOpen}건)</td></tr>
-  <tr><td style="padding:8px;font-weight:bold;">🤝 전문가매칭</td><td style="padding:8px;">신규 ${stats.expertMatches.newThisPeriod}건 / 진행중 ${stats.expertMatches.active}건</td></tr>
-  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">🏠 유족지원</td><td style="padding:8px;">신규 ${stats.support.newThisPeriod}건 (상담${stats.support.byCategory.counseling}/법률${stats.support.byCategory.legal}/장학${stats.support.byCategory.scholarship})</td></tr>
+  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">회원</td><td style="padding:8px;">신규 ${stats.members.newThisPeriod}명 / 활성 전체 ${stats.members.totalActive}명</td></tr>
+  <tr><td style="padding:8px;font-weight:bold;">후원</td><td style="padding:8px;">${stats.donations.count}건 / ${stats.donations.totalAmount.toLocaleString()}원 | 정기후원자 ${stats.donations.regularActive}명</td></tr>
+  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">사건신고</td><td style="padding:8px;">신규 ${stats.siren.incident.newThisPeriod}건 (미처리 ${stats.siren.incident.totalOpen}건)</td></tr>
+  <tr><td style="padding:8px;font-weight:bold;">괴롭힘신고</td><td style="padding:8px;">신규 ${stats.siren.harassment.newThisPeriod}건 (미처리 ${stats.siren.harassment.totalOpen}건)</td></tr>
+  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">법률신고</td><td style="padding:8px;">신규 ${stats.siren.legal.newThisPeriod}건 (미처리 ${stats.siren.legal.totalOpen}건)</td></tr>
+  <tr><td style="padding:8px;font-weight:bold;">전문가매칭</td><td style="padding:8px;">신규 ${stats.expertMatches.newThisPeriod}건 / 진행중 ${stats.expertMatches.active}건</td></tr>
+  <tr style="background:#edf2f7;"><td style="padding:8px;font-weight:bold;">유족지원</td><td style="padding:8px;">신규 ${stats.support.newThisPeriod}건 (상담${stats.support.byCategory.counseling}/법률${stats.support.byCategory.legal}/장학${stats.support.byCategory.scholarship})</td></tr>
 </table>
 <p style="color:#a0aec0;font-size:12px;margin-top:24px;">이 메일은 SIREN 플랫폼 Agent-9가 자동 발송했습니다.</p>
 </body></html>`;

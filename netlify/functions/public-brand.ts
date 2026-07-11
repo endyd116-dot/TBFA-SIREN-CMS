@@ -1,5 +1,5 @@
 // netlify/functions/public-brand.ts
-// ★ 2026-06-03 브랜드 설정 공개 서빙 (로그인 불필요)
+// 2026-06-03 브랜드 설정 공개 서빙 (로그인 불필요)
 //   - GET /api/public/brand                  → 설정 JSON { siteName, homeTitle, logoUrl, faviconUrl, version }
 //   - GET /api/public/brand?asset=logo       → 로고 심볼 이미지 바이트
 //   - GET /api/public/brand?asset=favicon    → 파비콘 이미지 바이트

@@ -61,7 +61,7 @@ export default async function handler(req: Request) {
   const policy = await getDefaultPolicy();
   if (!policy) return jsonError("no_policy", new Error("근무 정책 없음"), 500);
 
-  /* ★ 2026-07-09 유연근무 출근 하한(floor) — OFFICE + 유연근무에서만.
+  /* 2026-07-09 유연근무 출근 하한(floor) — OFFICE + 유연근무에서만.
      표준출근(예 09:00) − 유연범위(예 60분) = 08:00 이전 출근은 근무·야근 계산에 미산입.
      (표시용 출근시각은 실제 도착 그대로 유지) */
   let minStart: Date | null = null;

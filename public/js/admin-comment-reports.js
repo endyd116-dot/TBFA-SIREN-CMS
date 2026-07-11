@@ -35,7 +35,7 @@
     return iso.slice(0, 10) + ' ' + iso.slice(11, 16);
   }
 
-  /* ★ R41 Q2-006: 서버 허용 상태집합(pending/approved/dismissed)과 일치 */
+  /* R41 Q2-006: 서버 허용 상태집합(pending/approved/dismissed)과 일치 */
   var STATUS_MAP = {
     pending:   { cls: 'badge-pending',  txt: '검토대기' },
     approved:  { cls: 'badge-reviewed', txt: '처리완료' },
@@ -158,7 +158,7 @@
     if (!currentReportId) return;
     var action = document.querySelector('input[name="reviewAction"]:checked')?.value || 'none';
 
-    /* ★ R41 Q2-006: 처리(숨김/삭제)=approved, 기각=dismissed (서버 허용 상태값) */
+    /* R41 Q2-006: 처리(숨김/삭제)=approved, 기각=dismissed (서버 허용 상태값) */
     var status = action === 'none' ? 'dismissed' : 'approved';
     var res = await api('/api/admin-comment-report-review', {
       method: 'PATCH',

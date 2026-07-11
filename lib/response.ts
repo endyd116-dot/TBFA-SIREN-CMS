@@ -64,7 +64,7 @@ export function notFound(message = "찾을 수 없습니다") {
 }
 
 
-// ★ 신규 추가
+// 신규 추가
 export function conflict(message = "이미 존재하거나 충돌하는 리소스입니다", detail?: any) {
   return new Response(
     JSON.stringify({ ok: false, error: message, detail }),

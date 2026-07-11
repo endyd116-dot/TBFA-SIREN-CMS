@@ -1,5 +1,5 @@
 // netlify/functions/admin-activity-report-ai.ts
-// ★ Phase M-19-3 + C안: AI 활동보고서 생성/조회/수정/삭제 어드민 API
+// Phase M-19-3 + C안: AI 활동보고서 생성/조회/수정/삭제 어드민 API
 //
 // POST /api/admin/activity-report-ai
 //   body: {
@@ -10,14 +10,14 @@
 //     postSlug?: string,
 //   }
 //
-// GET /api/admin/activity-report-ai?list=1                — 저장된 보고서 목록 (★ C안 신규)
+// GET /api/admin/activity-report-ai?list=1                — 저장된 보고서 목록 (C안 신규)
 // GET /api/admin/activity-report-ai?postId=N              — 단건 HTML 본문
 // GET /api/admin/activity-report-ai?postId=N&pdf=1        — PDF 다운로드 리다이렉트
 //
-// PATCH /api/admin/activity-report-ai                     — 제목/발행/고정 수정 (★ C안 신규)
+// PATCH /api/admin/activity-report-ai                     — 제목/발행/고정 수정 (C안 신규)
 //   body: { id, title?, isPublished?, isPinned? }
 //
-// DELETE /api/admin/activity-report-ai?id=N               — 보고서 삭제 (★ C안 신규)
+// DELETE /api/admin/activity-report-ai?id=N               — 보고서 삭제 (C안 신규)
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자
 
@@ -186,7 +186,7 @@ export default async (req: Request) => {
       const url = new URL(req.url);
       const isList = url.searchParams.get("list") === "1";
 
-      /* ── 목록 조회 (?list=1) — ★ C안 신규 ── */
+      /* ── 목록 조회 (?list=1) — C안 신규 ── */
       if (isList) {
         const page = Math.max(1, Number(url.searchParams.get("page") || 1));
         const limit = Math.min(100, Math.max(10, Number(url.searchParams.get("limit") || 50)));
@@ -327,7 +327,7 @@ export default async (req: Request) => {
       });
     }
 
-    /* ===== PATCH: 제목/발행상태/고정/본문 수정 + PDF 재생성 — ★ C안 ===== */
+    /* ===== PATCH: 제목/발행상태/고정/본문 수정 + PDF 재생성 — C안 ===== */
     if (req.method === "PATCH") {
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
@@ -383,12 +383,12 @@ export default async (req: Request) => {
         .where(eq(activityPosts.id, id))
         .returning();
 
-      /* ★ C안: 본문 변경 또는 명시적 regeneratePdf 시 PDF 재생성 */
+      /* C안: 본문 변경 또는 명시적 regeneratePdf 시 PDF 재생성 */
       const shouldRegenerate = (contentChanged || body.regeneratePdf === true);
       let newPdfBlobId: number | null = null;
       let pdfWarning: string | null = null;
 
-      if (false && shouldRegenerate) { /* ★ v13.1: PDF 재생성 비활성화 — 브라우저 인쇄로 전환 */
+      if (false && shouldRegenerate) { /* v13.1: PDF 재생성 비활성화 — 브라우저 인쇄로 전환 */
         try {
           /* 1. 기간 복원 — slug 또는 year/month로 추정 */
           const finalContentHtml = updates.contentHtml || existing.contentHtml || "";
@@ -508,7 +508,7 @@ export default async (req: Request) => {
       );
     }
 
-    /* ===== DELETE: 보고서 삭제 — ★ C안 신규 ===== */
+    /* ===== DELETE: 보고서 삭제 — C안 신규 ===== */
     if (req.method === "DELETE") {
       const url = new URL(req.url);
       const id = Number(url.searchParams.get("id"));
@@ -650,7 +650,7 @@ export default async (req: Request) => {
     let pdfBlobId: number | null = null;
     let pdfDownloadUrl: string | null = null;
 
-    if (false && generatePdf) { /* ★ v13.1: PDF 생성 비활성화 — 브라우저 인쇄로 전환 */
+    if (false && generatePdf) { /* v13.1: PDF 생성 비활성화 — 브라우저 인쇄로 전환 */
       try {
         /* 협회 정보 조회 (영수증 설정에서 재사용) */
         const [rs] = await db.select().from(receiptSettings).where(eq(receiptSettings.id, 1)).limit(1);

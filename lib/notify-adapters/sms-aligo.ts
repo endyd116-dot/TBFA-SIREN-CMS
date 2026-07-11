@@ -15,7 +15,7 @@ import { eq } from "drizzle-orm";
 import { aligoSend } from "../aligo-client";
 import { NotifyEvent } from "../notify-events";
 import type { NotifyAdapter, AdapterSendOpts, AdapterResult } from "./types";
-/* ★ 2026-05-16: 어드민 채널 토글 — isActive=false면 발송 차단. */
+/* 2026-05-16: 어드민 채널 토글 — isActive=false면 발송 차단. */
 import { loadEventTemplate } from "../notify-dispatcher";
 
 /* ─── 수신자 전화번호 조회 ─── */
@@ -32,7 +32,7 @@ async function lookupPhone(targetId: number): Promise<string | null> {
   }
 }
 
-/* ─── 이벤트 → SMS 메시지 빌드 (★ export — list API 미리보기에서 호출) ─── */
+/* ─── 이벤트 → SMS 메시지 빌드 (export — list API 미리보기에서 호출) ─── */
 export function buildSmsContent(
   event: NotifyEvent,
   params: Record<string, any>,

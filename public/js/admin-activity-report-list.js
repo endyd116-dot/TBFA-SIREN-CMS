@@ -1,5 +1,5 @@
 // public/js/admin-activity-report-list.js
-// ★ C안 Step 3-A: AI 활동보고서 목록 화면 모듈
+// C안 Step 3-A: AI 활동보고서 목록 화면 모듈
 //
 // 의존:
 //   - window.SIREN_ACTIVITY_REPORT.openModal (admin-activity-report.js)
@@ -205,7 +205,7 @@
         </div>
       </div>
 
-      <!-- ★ 본문 수정 모달 (AI 초안 다듬기) -->
+      <!-- 본문 수정 모달 (AI 초안 다듬기) -->
       <div class="ar-preview-modal" id="arBodyEditModal" style="z-index:10001">
         <div class="ar-preview-box" style="max-width:1100px;width:95vw;max-height:92vh">
           <div class="ar-preview-head">
@@ -268,7 +268,7 @@
         <div class="label">비공개</div>
         <div class="value" style="color:var(--text-3)">${draft}</div>
       </div>
-      <!-- ★ v13.1: PDF 보유 카드 제거 (브라우저 인쇄 전환) -->
+      <!-- v13.1: PDF 보유 카드 제거 (브라우저 인쇄 전환) -->
     `;
   }
 
@@ -457,7 +457,7 @@
     }
 
     try {
-      /* ★ Toast UI 호환 — 빈 값으로 생성 후 setHTML로 별도 주입 */
+      /* Toast UI 호환 — 빈 값으로 생성 후 setHTML로 별도 주입 */
       _bodyEditor = await window.SirenEditor.create({
         el: editorEl,
         height: '480px',
@@ -602,7 +602,7 @@
         return;
       }
 
-      /* ★ 미리보기 인쇄 버튼 */
+      /* 미리보기 인쇄 버튼 */
       if (e.target.matches('[data-print-preview]') || e.target.closest('[data-print-preview]')) {
         e.preventDefault();
         try { window.print(); } catch (err) { console.error('[activity-report] print failed', err); }
@@ -636,7 +636,7 @@
         return;
       }
 
-      /* ★ 본문 수정 모달 닫기 + 저장 */
+      /* 본문 수정 모달 닫기 + 저장 */
       if (e.target.matches('[data-close-body-edit]') || e.target.closest('[data-close-body-edit]')) {
         e.preventDefault();
         closeBodyEditModal();

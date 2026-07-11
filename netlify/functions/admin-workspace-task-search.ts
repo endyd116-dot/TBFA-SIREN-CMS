@@ -87,7 +87,7 @@ export default async (req: Request, _ctx: Context) => {
     step = "query_db";
     const conds: any[] = [];
 
-    // 범위: 본인 소유/담당/지시 작업만 (super_admin은 전체). ★ Q3-041: 아래 담당자 이름·UID 필터는 이 범위와
+    // 범위: 본인 소유/담당/지시 작업만 (super_admin은 전체). Q3-041: 아래 담당자 이름·UID 필터는 이 범위와
     //   AND(교집합)로 결합 — 일반 관리자는 "본인 범위 내의 그 담당자" 작업만 노출(타인 작업 누출 없음·의도된 스코핑).
     if (!isSuperAdmin) {
       conds.push(or(

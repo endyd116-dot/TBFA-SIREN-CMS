@@ -6,14 +6,14 @@
 //
 // 쿼리: slug 또는 id — 콘텐츠 메타 우선, 없으면 페이지 기본 메타 fallback.
 //
-// ★ netlify.toml functions 블록에 included_files=["public/*.html"] 필요 (메인이 처리).
+// netlify.toml functions 블록에 included_files=["public/*.html"] 필요 (메인이 처리).
 
 import fs from "node:fs";
 import path from "node:path";
 import { getPageMeta, getOrgMeta, getDefaultMeta, getContentMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
 
-// ★ P0 fix: Function v2의 config.path에서 ".html" 확장자 경로가 라우팅 미동작 →
+// P0 fix: Function v2의 config.path에서 ".html" 확장자 경로가 라우팅 미동작 →
 //   /api/page-with-seo 표준 경로로 변경. netlify.toml에서 각 .html → /api/page-with-seo?_p=/xxx.html rewrite.
 //   함수는 _p 쿼리로 원래 경로 식별 (직접 호출 시 url.pathname 사용 가능).
 export const config = { path: "/api/page-with-seo" };
@@ -54,7 +54,7 @@ function resolveHtml(pagePath: string): string | null {
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    // ★ rewrite 경유 시 url.pathname=/api/page-with-seo. 원래 경로는 _p 쿼리에서 받음.
+    // rewrite 경유 시 url.pathname=/api/page-with-seo. 원래 경로는 _p 쿼리에서 받음.
     const pagePath = url.searchParams.get("_p") || url.pathname;
     const html = resolveHtml(pagePath);
     if (!html) {

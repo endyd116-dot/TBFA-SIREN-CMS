@@ -7,7 +7,7 @@
  * 요청: { messageId }  (body or ?messageId=)
  * 응답: { ok }
  *
- * ★ schema.ts의 is_deleted/deleted_at 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
+ * schema.ts의 is_deleted/deleted_at 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
  */
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
@@ -64,7 +64,7 @@ export default async (req: Request, _ctx: Context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers: JSON_HEADER });
     }
 
-    /* ★ Q3-051 fix: 종료(closed)된 채팅방의 메시지는 삭제 금지 (기록 불변성 — 전송 경로와 일관) */
+    /* Q3-051 fix: 종료(closed)된 채팅방의 메시지는 삭제 금지 (기록 불변성 — 전송 경로와 일관) */
     try {
       const rr: any = await db.execute(sql`SELECT status FROM chat_rooms WHERE id = ${row.room_id} LIMIT 1`);
       const rst = (rr?.rows ?? rr ?? [])[0]?.status;

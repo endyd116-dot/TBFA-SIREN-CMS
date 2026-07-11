@@ -58,7 +58,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return new Response(JSON.stringify({
       ok: true, mode: "executed",
       inserted: !already,
-      hint: "권한정책관리 → 📦 통합 CMS 탭에 '콘텐츠 편집'이 노출됩니다. 어드민은 기본 허용. 성공 확인 후 이 파일 삭제 + commit.",
+      hint: "권한정책관리 → 통합 CMS 탭에 '콘텐츠 편집'이 노출됩니다. 어드민은 기본 허용. 성공 확인 후 이 파일 삭제 + commit.",
     }, null, 2), { headers: JSON_HEADER });
   } catch (err: any) {
     return new Response(JSON.stringify({

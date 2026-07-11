@@ -102,7 +102,7 @@ export default async function handler(req: Request) {
        WHERE id = ${jobId}
     `);
 
-    /* ★ 2026-06-25 즉시 처리: 30분 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire. */
+    /* 2026-06-25 즉시 처리: 30분 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire. */
     void triggerDispatchBackground().catch(() => {});
 
     return new Response(

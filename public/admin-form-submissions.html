@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>응답 조회 | SIREN 어드민</title>
@@ -102,7 +102,7 @@ function render() {
   document.getElementById("tableWrap").innerHTML = html;
 }
 
-/* ★ R9: 응답 삭제 (관리자) */
+/* R9: 응답 삭제 (관리자) */
 async function deleteSubmission(submissionId) {
   if (!confirm(`응답 #${submissionId}을(를) 삭제하시겠습니까? 되돌릴 수 없습니다.`)) return;
   const row = document.querySelector(`[data-submission-row="${submissionId}"]`);

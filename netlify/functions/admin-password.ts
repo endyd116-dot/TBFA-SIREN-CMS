@@ -73,7 +73,7 @@ export default async (req: Request) => {
 
     if (!user) return unauthorized("관리자 정보를 찾을 수 없습니다");
 
-    /* ★ 관리자 권한 재확인 (토큰만으로는 불충분 — 권한 강등 시 즉시 차단) */
+    /* 관리자 권한 재확인 (토큰만으로는 불충분 — 권한 강등 시 즉시 차단) */
     const isAdmin =
       user.type === "admin" ||
       user.role === "super_admin" ||
@@ -135,7 +135,7 @@ export default async (req: Request) => {
       return badRequest("새 비밀번호는 현재 비밀번호와 달라야 합니다");
     }
 
-    /* ★ K-9 보안: 기본 비번 'admin1234' 재사용 차단 */
+    /* K-9 보안: 기본 비번 'admin1234' 재사용 차단 */
     if (newPassword === "admin1234" || newPassword.toLowerCase() === "admin1234") {
       return badRequest(
         "기본 비밀번호는 사용할 수 없습니다. 다른 비밀번호를 입력해 주세요.",

@@ -3,7 +3,7 @@
  * GET    /api/admin/hyosung?id=N      — 단건 상세
  * PATCH  /api/admin/hyosung           — 상태 변경 / 메모 / 효성 정보 업데이트
  *
- * ★ L-9 업데이트:
+ * L-9 업데이트:
  * - markCompleted 시 hyosungMemberNo 필수 입력
  * - updateHyosungInfo 분기 추가 (효성 회원번호/계약번호 수정)
  * - 목록/상세에 hyosung_member_no 포함
@@ -102,7 +102,7 @@ export default async (req: Request) => {
         eq(donations.type, "regular"),
       ];
 
-      /* ★ 효성 status 매핑: 클라이언트 'pending' → DB 'pending_hyosung' */
+      /* 효성 status 매핑: 클라이언트 'pending' → DB 'pending_hyosung' */
       const HY_STATUS_MAP: Record<string, string> = {
         pending: "pending_hyosung",
         completed: "completed",
@@ -135,7 +135,7 @@ export default async (req: Request) => {
         .where(where);
       const total = Number(totalRows[0]?.total ?? 0);
 
-      /* 목록 (★ L-9: 효성 컬럼 3개 포함) */
+      /* 목록 (L-9: 효성 컬럼 3개 포함) */
       const list = await db
         .select({
           id: donations.id,
@@ -150,7 +150,7 @@ export default async (req: Request) => {
           memo: donations.memo,
           receiptIssued: donations.receiptIssued,
           receiptNumber: donations.receiptNumber,
-          /* ★ L-9 추가 */
+          /* L-9 추가 */
           hyosungMemberNo: donations.hyosungMemberNo,
           hyosungContractNo: donations.hyosungContractNo,
           hyosungBillNo: donations.hyosungBillNo,
@@ -186,7 +186,7 @@ export default async (req: Request) => {
         failed: { count: 0, amount: 0 },
       };
       statsRows.forEach((r: any) => {
-        /* ★ pending_hyosung → pending 키로 매핑 */
+        /* pending_hyosung → pending 키로 매핑 */
         const key = r.status === "pending_hyosung" ? "pending" : r.status;
         if (stats[key]) {
           stats[key].count = Number(r.c);
@@ -247,7 +247,7 @@ export default async (req: Request) => {
         return ok({ donation: updated }, "메모가 저장되었습니다");
       }
 
-      /* ───── 분기 2: ★ L-9 효성 정보만 업데이트 (회원번호 수정 등) ───── */
+      /* ───── 분기 2: L-9 효성 정보만 업데이트 (회원번호 수정 등) ───── */
       if (body.updateHyosungInfo === true) {
         const hyMemberNo = body.hyosungMemberNo != null
           ? Number(body.hyosungMemberNo)
@@ -292,14 +292,14 @@ export default async (req: Request) => {
 
       /* ───── 분기 3: 효성 등록 완료 처리 (pending → completed) ───── */
       if (body.markCompleted === true) {
-        /* ★ pending 또는 pending_hyosung 둘 다 허용 */
+        /* pending 또는 pending_hyosung 둘 다 허용 */
         if (existing.status !== "pending_hyosung" && existing.status !== "pending") {
           return badRequest(
             `현재 상태(${existing.status})에서는 완료 처리할 수 없습니다. pending 상태만 가능합니다.`,
           );
         }
 
-        /* ★ L-9: 효성 회원번호 필수 */
+        /* L-9: 효성 회원번호 필수 */
         const hyMemberNo = body.hyosungMemberNo != null
           ? Number(body.hyosungMemberNo)
           : null;
@@ -328,7 +328,7 @@ export default async (req: Request) => {
           status: "completed",
           memo: newMemo,
           receiptRequested: true,
-          /* ★ L-9: 효성 매칭 정보 저장 */
+          /* L-9: 효성 매칭 정보 저장 */
           hyosungMemberNo: hyMemberNo,
           hyosungContractNo: hyContractNo,
           updatedAt: now,
@@ -375,7 +375,7 @@ export default async (req: Request) => {
         }
 
 // netlify/functions/admin-hyosung.ts — 기존 recalculateGrade 블록 다음에 추가
-        /* ★ M-19-1: 등급 재계산 훅 (효성 후원이 첫 completed가 되는 시점) */
+        /* M-19-1: 등급 재계산 훅 (효성 후원이 첫 completed가 되는 시점) */
         if (updated.memberId) {
           try {
             const r = await recalculateGrade(updated.memberId);

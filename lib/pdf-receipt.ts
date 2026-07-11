@@ -1,10 +1,10 @@
 /**
- * SIREN — PDF 기부금 영수증 생성 (★ M-14: 직인 이미지 삽입 추가)
+ * SIREN — PDF 기부금 영수증 생성 (M-14: 직인 이미지 삽입 추가)
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
  * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset: false)
  * - A4 (595 x 842 pt) 1장
- * - ★ M-14: 관리자가 업로드한 직인 이미지를 R2에서 가져와 PDF에 삽입
+ * - M-14: 관리자가 업로드한 직인 이미지를 R2에서 가져와 PDF에 삽입
  *   * 직인 미설정 시 기존처럼 빨간 원형 표식 표시
  */
 import { PDFDocument, rgb } from "pdf-lib";
@@ -43,7 +43,7 @@ interface ReceiptSettingsResolved {
   proofText: string;
   donationTypeLabel: string;
   footerNotes: string[];
-  /* ★ M-14 */
+  /* M-14 */
   stampBlobId: number | null;
   stampBlobKey: string | null;
   stampMimeType: string | null;
@@ -85,7 +85,7 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
         } catch {}
       }
 
-      /* ★ M-14: 직인 BLOB 키 조회 */
+      /* M-14: 직인 BLOB 키 조회 */
       let stampBlobKey: string | null = null;
       let stampMimeType: string | null = null;
       const stampBlobId = r.stampBlobId || null;
@@ -166,7 +166,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   /* 영수증 설정 (DB 우선) */
   const settings = await getReceiptSettings();
 
-  /* ★ M-14: 직인 이미지 임베딩 (있으면) */
+  /* M-14: 직인 이미지 임베딩 (있으면) */
   let stampImage: any = null;
   if (settings.stampBlobKey) {
     try {
@@ -311,7 +311,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const orgX = (width - orgWidth) / 2 - 25;
   page.drawText(orgLine, { x: orgX, y, size: orgLineSize, font, color: black });
 
-  /* ★ M-14: 직인 이미지가 있으면 삽입, 없으면 빨간 원형 표식 */
+  /* M-14: 직인 이미지가 있으면 삽입, 없으면 빨간 원형 표식 */
   const stampCenterX = orgX + orgWidth + 35;
   const stampCenterY = y + 5;
 

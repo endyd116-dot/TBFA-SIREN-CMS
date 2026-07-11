@@ -1,6 +1,6 @@
 // lib/pdf-activity-report.ts
-// ★ Phase M-19-3 (Q68-b): 활동보고서 PDF 생성
-// ★ C안 (2026-05): customContentHtml 옵션 + 이미지 임베드
+// Phase M-19-3 (Q68-b): 활동보고서 PDF 생성
+// C안 (2026-05): customContentHtml 옵션 + 이미지 임베드
 //
 // - 기존: data + generated → 7섹션 자동 그리기
 // - 신규: customContentHtml 우선 → 사용자가 수정한 최종 HTML 그대로 그림 + 이미지 포함
@@ -213,7 +213,7 @@ function drawPageHeader(ctx: PageContext): void {
   });
 }
 
-/* ═══════════ ★ 이미지 처리 (C안 신규) ═══════════ */
+/* ═══════════ 이미지 처리 (C안 신규) ═══════════ */
 
 interface HtmlSegment {
   type: "text" | "image" | "heading";
@@ -396,7 +396,7 @@ export async function buildActivityReportPdf(opts: {
   data: ReportData;
   generated: GeneratedReport;
   orgInfo?: { name?: string; address?: string; phone?: string };
-  /* ★ C안 신규: 사용자가 수정한 최종 HTML이 있으면 이걸 우선 사용 */
+  /* C안 신규: 사용자가 수정한 최종 HTML이 있으면 이걸 우선 사용 */
   customContentHtml?: string;
 }): Promise<Uint8Array> {
   const { data, generated } = opts;
@@ -455,7 +455,7 @@ export async function buildActivityReportPdf(opts: {
   ctx = { ...ctx, cursorY: ctx.cursorY - 24 };
 
   /* ===== KPI 박스 ===== */
-  ctx = drawSectionTitle(ctx, "📊 핵심 지표");
+  ctx = drawSectionTitle(ctx, "핵심 지표");
   const boxWidth = (A4_WIDTH - MARGIN * 2 - 24) / 4;
   drawStatBox(ctx, "총 모금액", fmtKRW(data.donations.totalAmount), boxWidth, MARGIN);
   drawStatBox(ctx, "후원자 수", `${data.donations.donorCount}명`, boxWidth, MARGIN + boxWidth + 8);
@@ -465,25 +465,25 @@ export async function buildActivityReportPdf(opts: {
 
   /* ═════════ 본문 분기 ═════════ */
   if (customHtml) {
-    /* ★ 사용자가 수정한 최종안 우선 — 이미지 포함 */
-    ctx = drawSectionTitle(ctx, "📝 보고서 본문");
+    /* 사용자가 수정한 최종안 우선 — 이미지 포함 */
+    ctx = drawSectionTitle(ctx, "보고서 본문");
     ctx = await drawHtmlContent(ctx, customHtml);
     ctx = { ...ctx, cursorY: ctx.cursorY - 16 };
   } else {
     /* AI 생성 7섹션 (기존 동작) */
-    ctx = drawSectionTitle(ctx, "📜 인사말");
+    ctx = drawSectionTitle(ctx, "인사말");
     ctx = drawText(ctx, stripHtml(generated.greeting), { size: 11, lineHeight: 18 });
     ctx = { ...ctx, cursorY: ctx.cursorY - 16 };
 
-    ctx = drawSectionTitle(ctx, "✨ 핵심 성과");
+    ctx = drawSectionTitle(ctx, "핵심 성과");
     ctx = drawText(ctx, stripHtml(generated.highlights), { size: 11, lineHeight: 18 });
     ctx = { ...ctx, cursorY: ctx.cursorY - 16 };
 
-    ctx = drawSectionTitle(ctx, "📊 상세 분석");
+    ctx = drawSectionTitle(ctx, "상세 분석");
     ctx = drawText(ctx, stripHtml(generated.detailedAnalysis), { size: 10.5, lineHeight: 17 });
     ctx = { ...ctx, cursorY: ctx.cursorY - 16 };
 
-    ctx = drawSectionTitle(ctx, "📈 트렌드 분석");
+    ctx = drawSectionTitle(ctx, "트렌드 분석");
     ctx = drawText(ctx, stripHtml(generated.trendAnalysis), { size: 11, lineHeight: 18 });
     if (data.donations.growthRate !== null) {
       ctx = { ...ctx, cursorY: ctx.cursorY - 8 };
@@ -494,11 +494,11 @@ export async function buildActivityReportPdf(opts: {
     }
     ctx = { ...ctx, cursorY: ctx.cursorY - 16 };
 
-    ctx = drawSectionTitle(ctx, "🎯 향후 계획");
+    ctx = drawSectionTitle(ctx, "향후 계획");
     ctx = drawText(ctx, stripHtml(generated.futureOutlook), { size: 11, lineHeight: 18 });
     ctx = { ...ctx, cursorY: ctx.cursorY - 16 };
 
-    ctx = drawSectionTitle(ctx, "🙏 마치며");
+    ctx = drawSectionTitle(ctx, "마치며");
     ctx = drawText(ctx, stripHtml(generated.conclusion), { size: 11, lineHeight: 18 });
     ctx = { ...ctx, cursorY: ctx.cursorY - 24 };
   }
@@ -508,7 +508,7 @@ export async function buildActivityReportPdf(opts: {
     ctx = createNewPage(ctx);
     drawPageHeader(ctx);
   }
-  ctx = drawSectionTitle(ctx, "📋 부록 — 도메인별 통계");
+  ctx = drawSectionTitle(ctx, "부록 — 도메인별 통계");
 
   const appendixLines = [
     `▶ 후원: 총 ${data.donations.totalCount}건 / 평균 ${fmtKRW(data.donations.avgAmount)} / 최고 ${fmtKRW(data.donations.maxAmount)}`,

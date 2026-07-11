@@ -81,7 +81,7 @@ export default async (_req: Request, _ctx: Context) => {
 - 평균 근무시간: ${Math.floor(avgMins / 60)}시간 ${avgMins % 60}분
 
 이상 신호 기준: 결근 20%+ / 지각 30%+ / 평균근무 6시간 미만.
-한국어로 작성하고, 이상 신호 있으면 "⚠️" 표시.`;
+한국어로 작성하고, 이모지 없이 이상 신호 있으면 "[주의]" 문구로 표시.`;
 
     let summaryText = `${today} 근태: 출근 ${checkedIn}명, 결근 ${absent}명, 지각 ${lateCount}명. 재택 보고서 ${submitted}/${reportTotal} 제출.`;
 

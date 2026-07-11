@@ -86,7 +86,7 @@ export default async function handler(req: Request, _ctx: Context) {
       scheduleType: r.schedule_type,
       scheduledAt: r.scheduled_at,
       status: r.status,
-      /* ★ 버그픽스 #14: NULL → 0 정규화 (목록 진행률 카운트 0 표시 방지) */
+      /* 버그픽스 #14: NULL → 0 정규화 (목록 진행률 카운트 0 표시 방지) */
       totalRecipients: Number(r.total_recipients) || 0,
       successCount: Number(r.success_count) || 0,
       failureCount: Number(r.failure_count) || 0,

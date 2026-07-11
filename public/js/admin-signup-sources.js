@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-signup-sources.js (★ Phase M-12)
+   SIREN — admin-signup-sources.js (Phase M-12)
    가입 경로 CRUD 전용 모듈
    ========================================================= */
 (function () {

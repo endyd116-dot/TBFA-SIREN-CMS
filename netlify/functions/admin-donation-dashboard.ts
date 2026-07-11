@@ -93,7 +93,7 @@ export default async (req: Request, _ctx: Context) => {
   const CACHE_KEY = "donation-dashboard-v1";
   const CACHE_TTL = 5 * 60; // 5분
 
-  /* ★ 버그픽스2 #3: 캐시·신규 응답을 동일한 한 겹 구조로 통일.
+  /* 버그픽스2 #3: 캐시·신규 응답을 동일한 한 겹 구조로 통일.
    *  기존엔 dashboard 객체 안에 ok:true 가 박혀 있어 응답이 { ok, data:{ ok, ... } } 형태 →
    *  프론트 unwrap 이 data 안의 ok 를 보고 한 번 더 풀어 데이터가 통째로 사라짐(무한로딩).
    *  이제 dashboard 에는 ok 를 넣지 않고 항상 { ok:true, data:{generatedAt,kpi,alerts,...} } 로만 응답. */
@@ -112,14 +112,14 @@ export default async (req: Request, _ctx: Context) => {
      ───────────────────────────────────────────────────────── */
   let kpi: AdminDonationDashboard["kpi"];
   try {
-    /* ★ 버그픽스 #3: 기존 쿼리가 members.donor_type / donor_channels / prospect_subtype
+    /* 버그픽스 #3: 기존 쿼리가 members.donor_type / donor_channels / prospect_subtype
      *  컬럼을 참조했으나 해당 컬럼들은 DB에 존재하지 않음 → select_kpi 단계 500 → 무한로딩.
      *  donations 테이블 집계로 후원 분류를 실시간 산출하도록 재작성:
      *  - regular  : status='completed' 인 정기(type='regular') 후원 이력 보유 회원
      *  - prospect : 완료 후원은 있으나 정기 후원 이력은 없는 회원 (일시후원만)
      *  - none     : 완료 후원 이력 전혀 없음
      *  - 채널(toss/hyosung)은 donations.pg_provider 로 구분 */
-    /* ★ 버그픽스3 #3: 효성 import(admin-hyosung-import-billings.ts:289)는
+    /* 버그픽스3 #3: 효성 import(admin-hyosung-import-billings.ts:289)는
      *  pg_provider 를 'hyosung' 으로 저장하는데 기존 쿼리는 'hyosung_cms' 로 비교 →
      *  효성 채널 카운트가 항상 0. 실제 저장값 'hyosung' 으로 정정 (ILIKE 로 변형 흡수). */
     const kpiRes: any = await db.execute(sql`
@@ -251,7 +251,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   /* Alert 3: 최근 30일 내 효성 계약 중지(해지) 이동
-   * ★ 버그픽스 #3: m.donor_type 조건 제거 (컬럼 없음). 효성 계약상태·동기화 시각만으로 판정. */
+   * 버그픽스 #3: m.donor_type 조건 제거 (컬럼 없음). 효성 계약상태·동기화 시각만으로 판정. */
   try {
     const cancelRes: any = await db.execute(sql`
       SELECT m.id, m.name, hc.member_no, hc.contract_status
@@ -279,7 +279,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   /* Alert 4: 후원 상태 충돌 — 효성 계약은 active 인데 완료된 후원 이력이 전혀 없는 회원
-   * ★ 버그픽스 #3: m.donor_type 컬럼 제거. donations 완료 이력 부재로 충돌 판정. */
+   * 버그픽스 #3: m.donor_type 컬럼 제거. donations 완료 이력 부재로 충돌 판정. */
   try {
     const conflictRes: any = await db.execute(sql`
       SELECT m.id, m.name, m.hyosung_contract_status

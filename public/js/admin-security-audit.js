@@ -216,8 +216,8 @@
         <td style="font-size:12px;font-family:monospace">${log.ipAddress || '-'}</td>
         <td>${riskBadge(log.riskLevel)}</td>
         <td style="text-align:center">${log.success
-          ? '<span style="color:#16a34a;font-size:14px">✓</span>'
-          : '<span style="color:#dc2626;font-size:14px">✗</span>'}</td>
+          ? '<span style="color:#16a34a;font-size:14px">' + Icons.svg('check') + '</span>'
+          : '<span style="color:#dc2626;font-size:14px">' + Icons.svg('x') + '</span>'}</td>
       </tr>`;
     }).join('');
 

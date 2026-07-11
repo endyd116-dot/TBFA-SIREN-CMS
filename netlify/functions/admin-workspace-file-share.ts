@@ -157,7 +157,7 @@ export default async (req: Request, _ctx: Context) => {
             sourceId: inserted[0].id,
             notifType: "invited",
             channel: "bell",
-            title: `${isFolder ? "📁 폴더" : "📎 파일"} 공유: ${target.name}`,
+            title: `${isFolder ? "폴더" : "파일"} 공유: ${target.name}`,
             body: `${adminName}님이 ${permission === "edit" ? "편집" : "보기"} 권한으로 공유했어요`,
             actionUrl: linkFolder ? `/workspace-files.html?folder=${linkFolder}` : `/workspace-files.html`,
             category: "system",

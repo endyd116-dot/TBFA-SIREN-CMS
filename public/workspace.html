@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -387,7 +387,7 @@
     </ul>
   </section>
 
-  <!-- ★ Phase 25: 비매출 마일스톤 진행률 게이지 -->
+  <!-- Phase 25: 비매출 마일스톤 진행률 게이지 -->
   <section id="wsMilestoneGauge" style="display:none; margin:24px 0 0; padding:18px 20px; background:#f8f9fa; border-radius:12px; border:1px solid #e5e7eb;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h3 style="font-size:14px;font-weight:700;color:#111;margin:0"><span class="siren-icon-wrap" data-icon="trophy"></span> 이번 분기 성과 목표</h3>
@@ -548,7 +548,7 @@
       <h3><span class="siren-icon-wrap" data-icon="folder"></span> 파일함</h3>
       <div class="ws-file-panel-actions-top">
         <a href="/workspace-files.html" class="ws-file-panel-full" title="전체 보기">전체 <span class="siren-icon-wrap" data-icon="arrow-up-right"></span></a>
-        <button class="ws-file-panel-close" id="wsFilePanelClose" type="button" aria-label="닫기">✕</button>
+        <button class="ws-file-panel-close" id="wsFilePanelClose" type="button" aria-label="닫기"><span class="siren-icon-wrap" data-icon="x"></span></button>
       </div>
     </header>
 
@@ -628,20 +628,20 @@
      스크립트
 ═══════════════════════════════════════════════════════ -->
 <script src="/js/lib-kst.js?v=1"></script>
-<script src="/js/auth.js?v=17"></script>
-<script src="/js/common.js?v=3-navicon"></script>
+<script src="/js/auth.js?v=20260712-noemoji"></script>
+<script src="/js/common.js?v=20260712-noemoji"></script>
 <script src="/js/notification-bell.js?v=3" defer></script>
 <script src="/js/workspace-sync-channel.js?v=2" defer></script>
-<script src="/js/workspace-task-modal.js?v=4" defer></script>
-<script src="/js/workspace-memo-modal.js?v=3-notify" defer></script>
+<script src="/js/workspace-task-modal.js?v=20260712-noemoji" defer></script>
+<script src="/js/workspace-memo-modal.js?v=20260712-noemoji" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
 <script src="/js/workspace.js?v=15-batch6-notif" defer></script>
 <script src="/js/workspace-topbar-attendance.js?v=4-door" defer></script>
 <script src="/js/quick-jump.js?v=20260707-door"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
-<script src="/js/ai-agent-widget.js?v=2027-05-13-nostream"></script>
+<script src="/js/ai-agent-widget.js?v=20260712-noemoji"></script>
 <script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
-<script src="/js/workspace-milestones.js?v=17-polish" defer></script>
+<script src="/js/workspace-milestones.js?v=20260712-noemoji" defer></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 <script>
 /* 패널 전환 (dashboard / milestones / files) */
@@ -677,7 +677,7 @@ document.addEventListener('DOMContentLoaded', function () {
   else if (location.hash === '#files') wsSwitchPanel('files');
 });
 
-/* ★ Phase 25: 비매출 마일스톤 진행률 게이지 로딩 */
+/* Phase 25: 비매출 마일스톤 진행률 게이지 로딩 */
 document.addEventListener('DOMContentLoaded', function () {
   fetch('/api/workspace-milestone-progress', { credentials: 'include' })
     .then(function (r) { return r.json(); })

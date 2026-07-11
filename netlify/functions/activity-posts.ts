@@ -1,5 +1,5 @@
 // netlify/functions/activity-posts.ts
-// ★ M-11: 주요 활동 공개 조회 (목록 + 상세)
+// M-11: 주요 활동 공개 조회 (목록 + 상세)
 
 import { eq, and, desc, count, sql as sqlExp, inArray } from "drizzle-orm";
 import { db } from "../../db";

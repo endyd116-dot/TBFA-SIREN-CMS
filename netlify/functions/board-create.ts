@@ -1,5 +1,5 @@
 // netlify/functions/board-create.ts
-// ★ Phase M-8: 게시글 작성 (로그인 필수)
+// Phase M-8: 게시글 작성 (로그인 필수)
 
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";

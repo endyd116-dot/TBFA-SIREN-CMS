@@ -1,6 +1,6 @@
 // lib/kicc.ts
 // R40: KICC(이지페이) 결제 API 라이브러리 — 토스 lib/toss-billing.ts 전면 대체.
-// ★ fix/r40-kicc-spec: docs/kicc.md(EP9 실측 명세)와 정합화.
+// fix/r40-kicc-spec: docs/kicc.md(EP9 실측 명세)와 정합화.
 // - 일시: 거래등록(webpay)→authPageUrl→승인(approval)
 // - 정기: 빌키 등록창(webpay payMethodTypeCode=81·amount 0)→빌키발급(approval·cardNo=빌키)→자동결제(approval/batch)
 // - 취소·환불(revise) / 빌키삭제(removeBatchKey) / 거래조회(retrieveTransaction)
@@ -65,8 +65,8 @@ export interface ApproveResult {
   cardNumberMasked?: string; // cardInfo.cardMaskNo(빌키발급) | cardInfo.cardNo(일시)
   cardType?: string; // 신용 | 체크 | 기프트
   billKey?: string; // 빌키발급 시 cardInfo.cardNo
-  payMethodTypeCode?: string; // ★R45: 실제 결제수단 코드(11 카드·21 계좌이체·22 가상계좌·31 휴대폰)
-  cpCode?: string; // ★R45: 간편결제 제공사 코드(KKO 등) — 있으면 간편결제 결제
+  payMethodTypeCode?: string; // R45: 실제 결제수단 코드(11 카드·21 계좌이체·22 가상계좌·31 휴대폰)
+  cpCode?: string; // R45: 간편결제 제공사 코드(KKO 등) — 있으면 간편결제 결제
   approvedAt?: string;
   errorCode?: string;
   errorMessage?: string;
@@ -235,7 +235,7 @@ export async function registerTrade(p: RegisterTradeParams): Promise<RegisterRes
     mallId,
     shopOrderNo: p.shopOrderNo,
     amount: p.isBillingKey ? 0 : p.amount,
-    // ★R45 A안: 일시 후원은 통합 결제창("00") — 카드+간편결제 함께 노출. 정기 빌키는 "81" 유지.
+    // R45 A안: 일시 후원은 통합 결제창("00") — 카드+간편결제 함께 노출. 정기 빌키는 "81" 유지.
     payMethodTypeCode: p.isBillingKey ? "81" : "00",
     currency: "00",
     clientTypeCode: "00", // 통합형 고정
@@ -252,7 +252,7 @@ export async function registerTrade(p: RegisterTradeParams): Promise<RegisterRes
   if (p.isBillingKey) {
     body.payMethodInfo = { billKeyMethodInfo: { certType: "0" } };
   } else {
-    // ★R45 A안: 일시 통합 결제창에서 카드 + 간편결제만 노출(displayArea CARD·SPAY).
+    // R45 A안: 일시 통합 결제창에서 카드 + 간편결제만 노출(displayArea CARD·SPAY).
     // 가상계좌(입금 대기형)는 제외 — 입금통보 webhook이 없어 동기 승인 흐름과 불일치.
     // 계좌 기반 후원은 효성 CMS+·직접 계좌이체(donate-bank-intent) 별도 경로 사용.
     body.payMethodInfo = { cardMethodInfo: { displayArea: ["CARD", "SPAY"] } };
@@ -331,14 +331,14 @@ export async function approveTrade(p: ApproveTradeParams): Promise<ApproveResult
     cardNumberMasked: hasBillKey ? cardInfo.cardMaskNo : cardInfo.cardNo,
     cardType: cardTypeKo(cardInfo.cardGubun),
     billKey: hasBillKey ? cardInfo.cardNo : undefined,
-    payMethodTypeCode: paymentInfo.payMethodTypeCode, // ★R45 통합창: 실제 결제수단 구분
-    cpCode: paymentInfo.cpCode, // ★R45 통합창: 간편결제 제공사(있으면 간편결제)
+    payMethodTypeCode: paymentInfo.payMethodTypeCode, // R45 통합창: 실제 결제수단 구분
+    cpCode: paymentInfo.cpCode, // R45 통합창: 간편결제 제공사(있으면 간편결제)
     approvedAt: j.transactionDate,
     raw: j,
   };
 }
 
-/** ★R45 KICC 결제수단 코드 → 내부 payMethod 토큰(donations.pay_method, varchar 20).
+/** R45 KICC 결제수단 코드 → 내부 payMethod 토큰(donations.pay_method, varchar 20).
  *  통합 결제창에서 실제로 선택된 수단을 기록 — 간편결제를 카드로 잘못 기록하지 않기 위함.
  *  cpCode(간편결제 제공사 코드)가 있으면 간편결제. 제공사 세분화는 실제 코드 확인 후 추가. */
 export function kiccPayMethod(payMethodTypeCode?: string, cpCode?: string): string {
@@ -423,7 +423,7 @@ export async function chargeWithBillingKey(p: ChargeParams): Promise<ChargeResul
 }
 
 /* =========================================================
-   4. 취소·환불 (POST /api/trades/revise) — ★ 요청 msgAuthValue 필수
+   4. 취소·환불 (POST /api/trades/revise) — 요청 msgAuthValue 필수
    msgAuthValue = HmacSHA256(secret, `pgCno|shopTransactionId`)
    ========================================================= */
 

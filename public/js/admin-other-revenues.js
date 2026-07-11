@@ -884,7 +884,7 @@
   }
 
   /* ── 초기화 / 재진입 통합 ──
-     ★ 버그픽스 20260515-2차 (#9): 사전 로드(카테고리)가 실패해도 화면 골격은 반드시
+     버그픽스 20260515-2차 (#9): 사전 로드(카테고리)가 실패해도 화면 골격은 반드시
         그린다. 예전엔 중간 단계가 throw하면 renderShell이 안 돌아 빈 섹션 = 빈 화면. */
   async function init() {
     const container = document.getElementById('adm-other-revenues') || document.getElementById('page-other-revenues');

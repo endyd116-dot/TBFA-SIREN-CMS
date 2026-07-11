@@ -1,5 +1,5 @@
 // netlify/functions/resources.ts
-// ★ Phase M-19-8: 공개 자료실 API (Public)
+// Phase M-19-8: 공개 자료실 API (Public)
 //
 // GET /api/resources                            — 공개 자료 목록 (권한별 필터)
 // GET /api/resources?slug=xxx                   — 단건 상세 (slug)

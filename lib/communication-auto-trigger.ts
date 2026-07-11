@@ -190,7 +190,7 @@ export async function executeTrigger(trigger: {
       return { jobId: null, error: `템플릿 없음 또는 비활성 (id=${trigger.templateId})` };
     }
 
-    /* ★ 2026-06-27 보안 FIX: 자동 발송 경로 수신동의·차단 게이트.
+    /* 2026-06-27 보안 FIX: 자동 발송 경로 수신동의·차단 게이트.
        executeTrigger는 memberIds를 직접 받아 스냅샷하므로(그룹 resolve 미경유) 동의/차단이
        누락됐다 → 채널별 수신동의·차단(blacklisted)·탈퇴/비활성을 여기서 선행 필터(정보통신망법).
        (너처링 등 이미 선행 필터한 호출은 결과 동일·멱등.) */
@@ -247,7 +247,7 @@ export async function executeTrigger(trigger: {
         if (channel === "email") {
           bodyStr = injectTrackingIntoHtml(bodyStr, trackingToken, BASE_URL);
         }
-        /* ★ 2026-06-26: 너처링 등 마케팅 발송엔 수신거부 링크 자동 삽입(정보통신망법·재동의 가능). */
+        /* 2026-06-26: 너처링 등 마케팅 발송엔 수신거부 링크 자동 삽입(정보통신망법·재동의 가능). */
         if (opts?.unsubscribe && (channel === "email" || channel === "sms" || channel === "kakao")) {
           const link = unsubUrl(BASE_URL, Number(mid), channel);
           if (channel === "email") {

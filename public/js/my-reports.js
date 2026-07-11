@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — my-reports.js (★ Phase 12 신고 진행 공개)
+   SIREN — my-reports.js (Phase 12 신고 진행 공개)
    - 사용자가 본인 신고의 처리 단계를 타임라인으로 확인
    ========================================================= */
 (function () {
@@ -29,7 +29,7 @@
     rejected:    '반려',
   };
 
-  /* 신고 유형별 단계 흐름 — ★US-020: 실제 DB status enum과 1:1 정합.
+  /* 신고 유형별 단계 흐름 — US-020: 실제 DB status enum과 1:1 정합.
      (incident/harassment enum: submitted·ai_analyzed·reviewing·responded·closed·rejected
       legal enum: submitted·ai_analyzed·matching·matched·in_progress·responded·closed·rejected)
      이전엔 in_progress·completed·responding 같이 enum에 없는 '유령 단계'가 타임라인에 항상 회색으로 떠
@@ -117,8 +117,8 @@
     const anonBadge = report.isAnonymous ? '<span class="anon-badge">익명</span>' : '';
     const title = report.title || report.subject || cfg.typeLabel;
     const cardId = 'card-tl-' + report.id;
-    /* ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정/삭제 허용
-       ★ 2026-06-27: 반려(rejected)도 수정 후 재제출 허용(저장 시 접수 상태로 복귀) */
+    /* R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정/삭제 허용
+       2026-06-27: 반려(rejected)도 수정 후 재제출 허용(저장 시 접수 상태로 복귀) */
     const isEditable = ['submitted', 'ai_analyzed', 'rejected'].includes(report.status || '');
 
     const editBtn = isEditable
@@ -256,7 +256,7 @@
   }
 
   /* =========================================================
-     ★ round8: 수정/삭제 버튼 이벤트 바인딩
+     round8: 수정/삭제 버튼 이벤트 바인딩
      ========================================================= */
   function bindCardActions(rows) {
     /* 수정 버튼 */
@@ -301,7 +301,7 @@
     /* 탭별 추가 필드 */
     let extraFields = '';
     if (tabKey === 'harassment') {
-      /* ★ R41 Q2-011: 발생일은 occurredAt 키로 통일(서버·신고폼 일치), 빈도는 enum(once|recurring|ongoing) 선택 */
+      /* R41 Q2-011: 발생일은 occurredAt 키로 통일(서버·신고폼 일치), 빈도는 enum(once|recurring|ongoing) 선택 */
       const freq = report.frequency || '';
       const occurred = report.occurredAt ? String(report.occurredAt).slice(0, 10) : '';
       const freqOptions = [
@@ -328,7 +328,7 @@
     if (tabKey === 'legal') {
       const urgency = report.urgency || report.aiUrgency || '';
       const partyInfo = report.partyInfo || '';
-      /* ★ R41 Q2-011: 긴급도 값을 서버 검증(urgent|normal|reference)·신고폼과 일치 */
+      /* R41 Q2-011: 긴급도 값을 서버 검증(urgent|normal|reference)·신고폼과 일치 */
       const urgencyOptions = [
         { value: 'urgent', label: '긴급' },
         { value: 'normal', label: '보통' },
@@ -458,7 +458,7 @@
     /* 탭별 추가 필드 수집 */
     const extra = {};
     if (tabKey === 'harassment') {
-      /* ★ R41 Q2-011: 발생일 occurredAt 키·빈도 enum 전송 */
+      /* R41 Q2-011: 발생일 occurredAt 키·빈도 enum 전송 */
       const dateEl = document.getElementById('reOccurredAt');
       const freqEl = document.getElementById('reFrequency');
       if (dateEl && dateEl.value) extra.occurredAt = dateEl.value;

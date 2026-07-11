@@ -17,7 +17,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { extractCaseStructure } from "../../lib/martyrdom-ai";
 
-/* ⚠️ 백그라운드 함수(-background)는 config.path 금지 (2026-05-26 자동체인 멈춤 근본 원인·extract-bg 참고) */
+/* 백그라운드 함수(-background)는 config.path 금지 (2026-05-26 자동체인 멈춤 근본 원인·extract-bg 참고) */
 
 /* ── P2 자동체인: 추출 후 active 사건이면 전략 분석(generate-background) 자동 트리거 ── */
 async function triggerStrategy(caseId: number): Promise<void> {

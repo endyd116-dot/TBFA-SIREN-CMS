@@ -137,7 +137,7 @@
         const done   = successCnt + failureCnt;
         const pct    = progressPercent(r);
 
-        /* ★ 2026-05-16: status='completed' 인데 실제로는 전부/일부 실패면 표시 라벨 분기 */
+        /* 2026-05-16: status='completed' 인데 실제로는 전부/일부 실패면 표시 라벨 분기 */
         let effLabel = STATUS_LABEL[status] || status;
         let effBadgeStyle = "";
         let effFillCls = (status === "completed") ? "completed"

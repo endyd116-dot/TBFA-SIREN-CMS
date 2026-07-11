@@ -2,7 +2,7 @@
  * POST /api/kicc-webhook   ← KICC 결제 노티(webhook) 수신
  *
  * - KICC는 결제/취소 결과를 비동기 노티로 전송 (3분 간격 최대 10회 재전송)
- * - ★ 서명 검증 없음 → resCd "0000" ack 응답으로만 재전송 중단
+ * - 서명 검증 없음 → resCd "0000" ack 응답으로만 재전송 중단
  * - shopOrderNo/pgCno 기준 멱등(중복 INSERT/상태변경 방지)
  * - donations 상태 동기화 (승인 단계와 별개 — 이중 안전장치)
  *
@@ -91,7 +91,7 @@ export default async (req: Request) => {
     /* 멱등 — 이미 같은 상태면 skip */
     if (donation.status === newStatus) return ack({ idempotent: true });
 
-    /* ★ P1-4 하드닝: KICC 노티는 서명 검증이 없어 위조 가능 → 미결제(pending) 후원을
+    /* P1-4 하드닝: KICC 노티는 서명 검증이 없어 위조 가능 → 미결제(pending) 후원을
        completed로 승격하는 경우, 노티 금액이 저장(서버 신뢰) 금액과 정확히 일치할 때만 허용.
        금액 누락·불일치면 승격 보류(fail-safe) — 정상 결제는 동기 승인 경로(approve)가 이미 확정함. */
     if (newStatus === "completed" && donation.status !== "completed") {
@@ -110,13 +110,13 @@ export default async (req: Request) => {
     const next = priority[newStatus] || 0;
     const downgradeAllowed = donation.status === "completed" && (newStatus === "cancelled" || newStatus === "refunded");
 
-    /* ★ 2026-06-26 FIX: 승인 응답 미수신으로 pending/failed에 갇힌 결제를 KICC 노티가 completed로
+    /* 2026-06-26 FIX: 승인 응답 미수신으로 pending/failed에 갇힌 결제를 KICC 노티가 completed로
        구제. failed(3)>completed(2)라 기존엔 우선순위 가드에 막혀 영영 미반영됐음. 위에서 노티 금액==
        저장 금액 검증을 이미 통과한 'completed' 노티만 여기 도달하므로(위조 방지), pending·failed →
        completed 승격은 허용한다. */
     const promoteToCompleted = newStatus === "completed" && (donation.status === "pending" || donation.status === "failed");
 
-    /* ★ R41 Q1-003 FIX: 완료건 취소/환불 다운그레이드는 노티 서명(msgAuthValue) 검증 통과 시에만 자동 반영.
+    /* R41 Q1-003 FIX: 완료건 취소/환불 다운그레이드는 노티 서명(msgAuthValue) 검증 통과 시에만 자동 반영.
        KICC 노티는 서명이 없을 수 있어, 미검증 취소/환불 노티를 그대로 적용하면 내부 ID(pgCno·shopOrderNo)를
        아는 자가 위조 노티로 완료 후원을 취소·환불 상태로 둔갑시킬 수 있음(회계·영수증 무결성).
        미검증이면 자동 반영 보류 + 감사로그 + 슈퍼어드민 통지로 수동 확인 유도. */
@@ -134,7 +134,7 @@ export default async (req: Request) => {
         await notifyAllSuperAdmins({
           category: "donation",
           severity: "warning",
-          title: "⚠️ 미검증 결제 취소/환불 노티 — 확인 필요",
+          title: "미검증 결제 취소/환불 노티 — 확인 필요",
           message: `후원 D-${donation.id}에 외부 ${newStatus} 노티가 수신됐으나 서명 검증이 안 돼 자동 반영을 보류했습니다. 실제 취소/환불 여부를 확인해 주세요.`,
           link: "/admin.html",
           refTable: "donations",
@@ -157,7 +157,7 @@ export default async (req: Request) => {
     } else if (newStatus === "cancelled" || newStatus === "refunded") {
       const memo = `[KICC 노티 ${new Date().toISOString().slice(0, 10)} ${newStatus}] ${p.resMsg || ""}`.slice(0, 200);
       updatePayload.memo = donation.memo ? `${donation.memo}\n${memo}` : memo;
-      /* ★ 2026-06-27: 취소/환불 시 기부영수증 무효화(세무 정합) */
+      /* 2026-06-27: 취소/환불 시 기부영수증 무효화(세무 정합) */
       updatePayload.receiptIssued = false;
       updatePayload.receiptNumber = null;
       updatePayload.receiptIssuedAt = null;
@@ -165,12 +165,12 @@ export default async (req: Request) => {
 
     await db.update(donations).set(updatePayload).where(eq(donations.id, donation.id));
 
-    /* ★ 2026-06-27: 취소/환불이면 캠페인 모금현황 재계산(완료분만 집계 → 차감 반영) */
+    /* 2026-06-27: 취소/환불이면 캠페인 모금현황 재계산(완료분만 집계 → 차감 반영) */
     if (newStatus === "cancelled" || newStatus === "refunded") {
       await recalcCampaignStatsSafe((donation as any).campaignId);
     }
 
-    /* ★ 2026-06-26: 웹훅이 일시후원을 완료로 승격(승인 미수신 복구)한 경우에도
+    /* 2026-06-26: 웹훅이 일시후원을 완료로 승격(승인 미수신 복구)한 경우에도
        예비 후원자 자동 등록. 정기(regular)는 제외(별도 분류). fire-and-forget. */
     if (newStatus === "completed" && donation.type === "onetime") {
       void ensureProspectFromDonation({

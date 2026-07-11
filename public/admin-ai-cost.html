@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=1"></script>
+  <script src="/js/icons.js?v=20260712-noemoji"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI 비용 관리 | 관리자</title>
@@ -548,7 +548,7 @@ async function loadLogs() {
         <td class="num">${(r.input_tokens || 0).toLocaleString()}</td>
         <td class="num">${(r.output_tokens || 0).toLocaleString()}</td>
         <td class="num">${fmtUsd(r.cost_usd)}</td>
-        <td>${r.success ? '<span style="color:#047857">✓</span>' : '<span style="color:#b91c1c" title="' + escapeHtml(r.error || "") + '">✗</span>'}</td>
+        <td>${r.success ? '<span style="color:#047857">' + Icons.svg('check') + '</span>' : '<span style="color:#b91c1c" title="' + escapeHtml(r.error || "") + '">' + Icons.svg('x') + '</span>'}</td>
       </tr>
     `).join("");
   } catch (e) {

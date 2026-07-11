@@ -34,7 +34,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const rows = await db
         .select({
           id:         memorialLetters.id,
-          memberId:   memorialLetters.memberId,   /* ★US-028: isMine 판정용(응답엔 미포함) */
+          memberId:   memorialLetters.memberId,   /* US-028: isMine 판정용(응답엔 미포함) */
           authorName: memorialLetters.authorName,
           title:      memorialLetters.title,
           content:    memorialLetters.content,
@@ -44,7 +44,7 @@ export default async function handler(req: Request, _ctx: Context) {
         .where(and(eq(memorialLetters.teacherId, teacherId), eq(memorialLetters.isHidden, false)))
         .orderBy(desc(memorialLetters.createdAt));
 
-      /* ★US-028: 로그인 회원이 본인 편지를 식별하도록 isMine만 노출(memberId는 제외) */
+      /* US-028: 로그인 회원이 본인 편지를 식별하도록 isMine만 노출(memberId는 제외) */
       const viewer = authenticateUser(req);
       const letters = rows.map((r) => ({
         id: r.id,
@@ -69,7 +69,7 @@ export default async function handler(req: Request, _ctx: Context) {
     if (!guard.ok) return (guard as { ok: false; res: Response }).res;
     const user = (guard as { ok: true; user: import("../../lib/auth").UserPayload }).user;
 
-    /* ★ US-028: 본인 편지 삭제 (작성자 본인만) */
+    /* US-028: 본인 편지 삭제 (작성자 본인만) */
     if (url.searchParams.get("action") === "delete") {
       const lid = parseInt(url.searchParams.get("id") || "0", 10);
       if (!lid) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
@@ -109,7 +109,7 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const authorName = isAnonymous ? "익명" : (user.name || "회원");
 
-      /* ★ R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
+      /* R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
       const mod = await moderateMemorialText(`${title || ""}\n${content}`);
 
       const insertData: any = {
@@ -128,7 +128,7 @@ export default async function handler(req: Request, _ctx: Context) {
         notifyAllOperators({
           category: "support",
           severity: "warning",
-          title: "🛡️ 기억의 편지 자동 보류 — 검토 필요",
+          title: "기억의 편지 자동 보류 — 검토 필요",
           message: `AI가 부적절로 판단해 비공개 처리했습니다. (사유: ${mod.reason || "검토 필요"})`,
           link: `/admin.html#memorial`,
           refTable: "memorial_letters",

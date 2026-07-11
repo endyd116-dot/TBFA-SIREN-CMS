@@ -1,5 +1,5 @@
 // lib/r2-server.ts
-// ★ Phase M-14: 서버 측에서 R2에 직접 업로드/다운로드 + blob_uploads에 자동 기록
+// Phase M-14: 서버 측에서 R2에 직접 업로드/다운로드 + blob_uploads에 자동 기록
 // - PDF 영수증 / 자동 생성 이미지 등 서버에서 생성한 파일을 R2에 저장할 때 사용
 // - 클라이언트 업로드(presign)와 별개
 

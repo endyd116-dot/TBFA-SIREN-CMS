@@ -4,7 +4,7 @@
  *  + 관리자/담당자 다중 메일 발송 (STEP F-3)
  *  + AI 우선순위 자동 분석 (STEP E-4a)
  *  + 긴급 신청은 모든 운영자에게 강제 발송
- *  + 신청자에게 접수 확인 메일 발송 (★ STEP H-4)
+ *  + 신청자에게 접수 확인 메일 발송 (STEP H-4)
  */
 import { eq, and } from "drizzle-orm";
 import { db, supportRequests, members, generateRequestNo } from "../../db";
@@ -62,7 +62,7 @@ export default async (req: Request) => {
     const { category, title, content, attachments } = (v as any).data;
     const skipAi = !!body.skipAi;
 
-    /* ★ R41 Q2-026: 첨부 키는 본인 업로드(support/{uid}/...)만 허용 — 타인 키 끼워넣기로 남의 증빙 다운로드 차단 */
+    /* R41 Q2-026: 첨부 키는 본인 업로드(support/{uid}/...)만 허용 — 타인 키 끼워넣기로 남의 증빙 다운로드 차단 */
     const ownPrefix = `support/${auth.uid}/`;
     const safeAttachments: string[] = Array.isArray(attachments)
       ? attachments.filter((k: any) => typeof k === "string" && k.startsWith(ownPrefix))
@@ -78,7 +78,7 @@ export default async (req: Request) => {
     let priority = "normal";
     let priorityReason = skipAi ? "AI 분석 건너뜀 (사용자 선택)" : "AI 미실행";
     if (!skipAi) try {
-      /* ★ US-027: 지원 첨부는 R2 키 문자열(support/{uid}/...)이라 숫자 blob ID로 변환 불가
+      /* US-027: 지원 첨부는 R2 키 문자열(support/{uid}/...)이라 숫자 blob ID로 변환 불가
          (기존 Number(key)→NaN→.filter로 전부 제거되어 첨부가 우선순위 분석에 한 번도 반영 안 됐음).
          loadAttachmentsForAI는 숫자 blob ID 전용이므로, 첨부 개수를 분석 컨텍스트에 시그널로 포함한다. */
       const attachNote = safeAttachments.length > 0
@@ -120,7 +120,7 @@ export default async (req: Request) => {
         createdAt: supportRequests.createdAt,
       });
 
-    /* ★ Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
+    /* Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
     try {
       const { createWorkspaceTaskFromService, resolveAssigneeByService } = await import("../../lib/workspace-sync");
       const taskPriority: "low" | "normal" | "high" | "urgent" =
@@ -147,7 +147,7 @@ export default async (req: Request) => {
       console.warn("[support-create] 카드 생성 훅 실패:", hookErr);
     }
 
-    /* 7. ★ 메일 수신자 결정 (STEP F-3) */
+    /* 7. 메일 수신자 결정 (STEP F-3) */
     const recipientEmails = new Set<string>();
 
     /* 7-1. 환경변수 ADMIN_NOTIFY_EMAIL은 항상 폴백으로 추가 */
@@ -170,7 +170,7 @@ export default async (req: Request) => {
         for (const op of allOperators) {
           if (op.email) recipientEmails.add(op.email);
         }
-        console.log(`[support-create] 🔴 긴급 — 모든 운영자에게 발송: ${recipientEmails.size}명`);
+        console.log(`[support-create] 긴급 — 모든 운영자에게 발송: ${recipientEmails.size}명`);
       } catch (opErr) {
         console.error("[support-create] 긴급 운영자 조회 실패:", opErr);
       }
@@ -199,7 +199,7 @@ export default async (req: Request) => {
     /* 8. 관리자/운영자 메일 발송 (실패해도 신청은 정상 처리) */
     if (recipientEmails.size > 0) {
       const contentPreview = (content || "").trim().slice(0, 80);
-      const subjectPrefix = priority === "urgent" ? "🔴 긴급 - " : "";
+      const subjectPrefix = priority === "urgent" ? "긴급 - " : "";
       const tpl = tplSupportReceivedAdmin({
         requestNo,
         applicantName: user.name,
@@ -233,7 +233,7 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "support",
         severity: isUrgent ? "critical" : "info",
-        title: isUrgent ? "🚨 긴급 지원 신청" : "🔔 새 유가족 지원 신청",
+        title: isUrgent ? "긴급 지원 신청" : "새 유가족 지원 신청",
         message: isUrgent
           ? `긴급 유가족 지원 신청이 접수됐어요. ${user.name || "회원"}님 · ${category} — 바로 확인이 필요해요. (${requestNo})`
           : `방금 유가족 지원 신청이 들어왔어요. ${user.name || "회원"}님 · ${category} — 확인해 보세요. (${requestNo})`,
@@ -254,7 +254,7 @@ export default async (req: Request) => {
       });
     } catch (e) { console.warn("[support-create] 운영자 알림톡 예외(무시):", e); }
 
-    /* ★ STEP H-4: 신청자에게 접수 확인 메일 발송
+    /* STEP H-4: 신청자에게 접수 확인 메일 발송
        - 결정 Q3-A안: 긴급 신청자에게만 1:1 채팅 안내 추가
        - try-catch로 격리 → 메일 실패해도 신청 처리 응답은 정상 반환 */
     if (user.email) {

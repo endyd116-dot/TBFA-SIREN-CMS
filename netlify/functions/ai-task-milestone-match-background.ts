@@ -132,7 +132,7 @@ ${defsText}
       return Response.json({ ok: true, skipped: true });
     }
 
-    /* ★ R35-GAP-P2-🟡A: 신뢰도 임계점 환경변수화 (기본 90%·운영 누적 후 조정 가능) */
+    /* ★ R35-GAP-P2-A: 신뢰도 임계점 환경변수화 (기본 90%·운영 누적 후 조정 가능) */
     const threshold = Number(process.env.MILESTONE_AI_CONFIDENCE_THRESHOLD || 90);
     if (confidence >= threshold) {
       // 자동 매칭 저장

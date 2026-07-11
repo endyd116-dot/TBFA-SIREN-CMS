@@ -518,7 +518,7 @@
     }
     const summary = data.summary || { yes: 0, no: 0, maybe: 0 };
     const summaryEl = $('#wcRsvpSummary');
-    if (summaryEl) summaryEl.textContent = `✓ ${summary.yes} · ✗ ${summary.no} · ? ${summary.maybe}`;
+    if (summaryEl) summaryEl.textContent = `참석 ${summary.yes} · 불참 ${summary.no} · 미정 ${summary.maybe}`;
 
     // 내 응답 하이라이트
     const myUid = STATE.me?.id;

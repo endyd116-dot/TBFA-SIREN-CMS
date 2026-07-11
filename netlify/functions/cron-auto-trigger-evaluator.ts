@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { evaluateTrigger, executeTrigger, type TriggerType } from "../../lib/communication-auto-trigger";
 import { triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
-// ★ 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬·:30 wake 제거).
+// 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬·:30 wake 제거).
 export const config = { schedule: "0 * * * *" };
 
 export default async function handler(_req: Request) {
@@ -132,7 +132,7 @@ export default async function handler(_req: Request) {
     }
   }
 
-  /* ★ 2026-06-25: 트리거가 발송 job을 만들었으면 발송 큐 드레이너 즉시 fire.
+  /* 2026-06-25: 트리거가 발송 job을 만들었으면 발송 큐 드레이너 즉시 fire.
      (안전망 디스패처가 1시간 주기로 바뀌어, fire 없으면 자동 트리거 발송이 최대 1시간 지연됨)
      fire 실패해도 안전망 크론이 줍게 이중화. */
   if (stats.triggered > 0) {

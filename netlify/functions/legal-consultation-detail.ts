@@ -1,5 +1,5 @@
 // netlify/functions/legal-consultation-detail.ts
-// ★ Phase M-7: 본인 법률 상담 상세
+// Phase M-7: 본인 법률 상담 상세
 
 import type { Context } from "@netlify/functions";
 import { eq, and, inArray } from "drizzle-orm";

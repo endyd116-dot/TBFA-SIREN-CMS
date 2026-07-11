@@ -1,7 +1,7 @@
 /**
  * GET /api/admin-donation-pending-list
  *
- * ★ 6순위 #15: pending_donations 목록 (필터 + 페이징 + 매칭 회원 정보 합치기)
+ * 6순위 #15: pending_donations 목록 (필터 + 페이징 + 매칭 회원 정보 합치기)
  *
  * 쿼리 파라미터:
  *   status    : 'pending' | 'matched' | 'confirmed' | 'ignored' | 'all' (기본 'pending,matched')
@@ -20,7 +20,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { ok, serverError, methodNotAllowed, corsPreflight } from "../../lib/response";
 import { evaluateDonorTypeFromContract } from "../../lib/hyosung-merge";
 
-/* ★ Phase 3 D 보강: 통과 시 회원 donor_type 전이 예측
+/* Phase 3 D 보강: 통과 시 회원 donor_type 전이 예측
  * - hyosung_contracts: rawData._hyosungContractRow.contractStatus → regular/prospect/none
  * - hyosung_billings: 수납 발생 → regular (계약 active 가정)
  * - ibk: 일시 입금 → 회원이 이미 regular면 유지, 아니면 prospect
@@ -160,7 +160,7 @@ export default async (req: Request, _ctx: Context) => {
       } catch (e) { console.warn("[pending-list] member fetch failed", e); }
     }
 
-    /* ★ 미리보기 분류 집계 (현재 페이지 기준) */
+    /* 미리보기 분류 집계 (현재 페이지 기준) */
     const previewBuckets = { auto: 0, manual: 0, new: 0 };
 
     const enriched = rows.map(r => {

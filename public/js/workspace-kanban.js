@@ -124,7 +124,7 @@
   /* ═══════════════════ 보기 모드 전환 ═══════════════════ */
 
   function switchViewMode(mode) {
-    /* ★ 2026-05-16 (2차 fix): WBS 내 캘린더 모드는 deprecated. 단 init()에서
+    /* 2026-05-16 (2차 fix): WBS 내 캘린더 모드는 deprecated. 단 init()에서
        자동으로 switchViewMode('calendar')가 호출되면 무한 redirect 발생 →
        WBS 화면 자체로 진입 불가. 따라서 calendar 모드 진입 시도는 board로
        강제 정정 (자동 redirect 제거). 사용자가 명시적으로 캘린더 버튼을
@@ -350,7 +350,7 @@
         }
         if (filter.textQuery) parts.push(`키워드: ${filter.textQuery}`);
         banner.innerHTML = `<span>${parts.length ? parts.join(' + ') + '으로 해석' : '검색 결과'} (${items.length}건)</span>
-          <button onclick="document.getElementById('wkAiFilterBanner').style.display='none';window.wkClearAiFilter()">✕</button>`;
+          <button onclick="document.getElementById('wkAiFilterBanner').style.display='none';window.wkClearAiFilter()">${Icons.svg('x')}</button>`;
         banner.style.display = 'flex';
       }
 
@@ -430,7 +430,7 @@
 
     return `
 <article class="wk-card wk-priority-${escapeHtml(t.priority || 'normal')}${isSub ? ' wk-card--sub' : ''}" data-task-id="${t.id}" data-status="${escapeHtml(t.status || 'todo')}">
-  <button class="wk-card-bookmark${bookmarked ? ' is-marked' : ''}" data-bookmark="${t.id}" type="button" title="북마크">★</button>
+  <button class="wk-card-bookmark${bookmarked ? ' is-marked' : ''}" data-bookmark="${t.id}" type="button" title="북마크">${Icons.svg('star')}</button>
   ${isSub ? '<div class="wk-card-sub-label">서브태스크</div>' : ''}
   <h3 class="wk-card-title">${escapeHtml(t.title || '제목 없음')}</h3>
   <div class="wk-card-meta">
@@ -771,7 +771,7 @@
       <li class="${it.done ? 'is-done' : ''}" data-cl-id="${escapeHtml(it.id || '')}">
         <input type="checkbox" data-cl-toggle="${escapeHtml(it.id || '')}" ${it.done ? 'checked' : ''}>
         <span class="wk-checklist-text">${escapeHtml(it.text || '')}</span>
-        <button type="button" class="wk-checklist-remove" data-cl-remove="${escapeHtml(it.id || '')}">✕</button>
+        <button type="button" class="wk-checklist-remove" data-cl-remove="${escapeHtml(it.id || '')}">${Icons.svg('x')}</button>
       </li>
     `).join('');
     ul.querySelectorAll('[data-cl-toggle]').forEach(cb => {
@@ -841,7 +841,7 @@
     const id = Number($('#wkCardId').value);
     if (!id) return;
     try {
-      /* ★ P1-12 fix: action=restore는 없는 deleted_at 컬럼을 갱신해 무동작 →
+      /* P1-12 fix: action=restore는 없는 deleted_at 컬럼을 갱신해 무동작 →
          보관해제(드래그)와 동일한 검증된 경로 action=unarchive 사용. */
       await api(`/api/admin-workspace-tasks?id=${id}&action=unarchive`, { method: 'PATCH', body: {} });
       toast('복원됐어요 — 완료(done) 컬럼으로 이동', 'success');
@@ -1038,7 +1038,7 @@
       const btn = e.target.closest('.wk-view-btn');
       if (!btn) return;
       const mode = btn.dataset.view;
-      /* ★ 2026-05-16: WBS 내 캘린더 보기 모드는 작업만 표시 (단일 데이터).
+      /* 2026-05-16: WBS 내 캘린더 보기 모드는 작업만 표시 (단일 데이터).
          별도 캘린더 페이지(workspace-calendar.html)가 작업·일정·메모를 통합
          표시하므로 캘린더 버튼은 그 통합 화면으로 이동 처리. 우선순위 색상·
          월/주/목록 보기 등 핵심 기능은 통합 캘린더에 이미 갖춰져 있음. */
@@ -1152,7 +1152,7 @@
       li.innerHTML = `
         <input type="checkbox" data-cl-toggle="${id}">
         <span class="wk-checklist-text">${escapeHtml(text)}</span>
-        <button type="button" class="wk-checklist-remove" data-cl-remove="${id}">✕</button>
+        <button type="button" class="wk-checklist-remove" data-cl-remove="${id}">${Icons.svg('x')}</button>
       `;
       ul.appendChild(li);
       li.querySelector('input').addEventListener('change', e => {
@@ -1194,7 +1194,7 @@
       $('#wkColArchived').classList.toggle('wk-col-collapsed');
     });
 
-    // ★ Phase 25: 성과별 완료 카드 보기 토글
+    // Phase 25: 성과별 완료 카드 보기 토글
     $('#wkBtnMilestoneView')?.addEventListener('click', toggleMilestoneGroupView);
 
     // 로그아웃
@@ -1207,7 +1207,7 @@
     });
   }
 
-  /* ★ Phase 25: 완료 카드 성과별 그룹 보기 */
+  /* Phase 25: 완료 카드 성과별 그룹 보기 */
   let _msGroupViewOpen = false;
   async function toggleMilestoneGroupView() {
     const view = $('#wkMilestoneGroupView');
@@ -1279,7 +1279,7 @@
       }
       const prefs = (res && res.data) || res || {};
       const serverView = prefs.defaultWbsView;
-      /* ★ 2026-05-16 (2차 fix): WBS 내 캘린더 모드는 deprecated. 서버 prefs에
+      /* 2026-05-16 (2차 fix): WBS 내 캘린더 모드는 deprecated. 서버 prefs에
          'calendar'가 박혀있어도 'board'로 강제 정정 (자동 redirect 무한루프 방지). */
       const normalized = serverView === 'calendar' ? 'board' : serverView;
       if (normalized && ['board', 'list'].includes(normalized)) {
@@ -1466,7 +1466,7 @@
     'task.hold':                { icon: '', label: '보류 시작' },
     'task.unhold':              { icon: '', label: '보류 해제' },
     'task.checklist.add':       { icon: '', label: '체크리스트 추가' },
-    'task.checklist.toggle':    { icon: '✓', label: '체크리스트 토글' },
+    'task.checklist.toggle':    { icon: '', label: '체크리스트 토글' },
     'task.attachment.add':      { icon: '', label: '파일 첨부' },
     'task.attachment.remove':   { icon: '', label: '첨부 해제' },
     'task.move':                { icon: '', label: '컬럼 이동' },
@@ -1601,7 +1601,7 @@
       return `${escapeHtml(m.fileName)}`;
     }
     if (item.actionType === 'task.checklist.toggle') {
-      return m.done ? '체크 ✓' : '체크 해제';
+      return m.done ? '체크 완료' : '체크 해제';
     }
     return '';
   }
@@ -1659,7 +1659,7 @@
     if (TAB_STATE.members.length > 0) return;
     try {
       const res = await api('/api/admin-workspace-members');
-      /* ★ P1-10 fix: 서버가 ok({data:rows})로 한 겹 더 감싸므로 res.data.data가 배열(파일공유 화면과 동일). */
+      /* P1-10 fix: 서버가 ok({data:rows})로 한 겹 더 감싸므로 res.data.data가 배열(파일공유 화면과 동일). */
       const items = res.data?.data || res.data?.items || res.items || [];
       TAB_STATE.members = Array.isArray(items) ? items : [];
     } catch (_) { /* 실패 무시 — 멘션 자동완성만 비활성 */ }
@@ -1817,7 +1817,7 @@
   </span>
   <span class="wk-file-size">${escapeHtml(formatSize(it.fileSize))}</span>
   ${it.fileDeletedAt ? '' : `<button class="wk-file-remove" data-file-download="${it.fileId}" title="다운로드" style="color:#2563eb"></button>`}
-  <button class="wk-file-remove" data-file-remove="${it.id}" title="연결 해제">✕</button>
+  <button class="wk-file-remove" data-file-remove="${it.id}" title="연결 해제">${Icons.svg('x')}</button>
 </li>`).join('');
       // [감사#93] 첨부 파일 다운로드 — 파일함과 동일하게 presigned URL 열기(카드 접근권자 허용은 서버에서 처리)
       $$('[data-file-download]').forEach(btn => {
@@ -2230,7 +2230,7 @@
 
 /* ═══════════════════════════════════════════════════════
    라운드 9 — 서브태스크 / 체크리스트 즉시 PATCH / 리마인더 / 반복 작업
-   ★ B 머지 전: API 실패 시 mock 폴백 사용
+   B 머지 전: API 실패 시 mock 폴백 사용
 ═══════════════════════════════════════════════════════ */
 (function () {
   'use strict';

@@ -1,5 +1,5 @@
 // netlify/functions/admin-nav-menus.ts
-// ★ Phase B: 어드민 메뉴 CRUD + Draft/Publish
+// Phase B: 어드민 메뉴 CRUD + Draft/Publish
 //
 // GET    /api/admin/nav-menus?location=header&tree=1   — 트리 조회 (preferDraft=1 옵션)
 // GET    /api/admin/nav-menus?location=header           — flat 리스트

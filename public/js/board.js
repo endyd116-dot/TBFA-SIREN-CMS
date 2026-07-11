@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — board.js (★ Phase M-8 자유게시판)
+   SIREN — board.js (Phase M-8 자유게시판)
    - board-list / board-view / board-write 3개 페이지 통합
    ========================================================= */
 (function () {
@@ -471,7 +471,7 @@
     const leftDiv = document.querySelector('.board-view-actions .left');
     if (!leftDiv) return;
 
-    /* 현재 구독 상태 조회 — ★ P1-8 fix: 미존재 엔드포인트(board-subscription-status) 대신
+    /* 현재 구독 상태 조회 — P1-8 fix: 미존재 엔드포인트(board-subscription-status) 대신
        내 구독 목록(user-post-subscriptions)에서 이 게시글 포함 여부로 판정 */
     let subscribed = false;
     try {
@@ -497,7 +497,7 @@
     const isSubscribed = btn.classList.contains('subscribed');
     btn.disabled = true;
     try {
-      /* ★ P1-8 fix: 미존재 엔드포인트(board-subscription-toggle) 대신
+      /* P1-8 fix: 미존재 엔드포인트(board-subscription-toggle) 대신
          user-post-subscribe — POST=구독 / DELETE=해제 */
       const res = isSubscribed
         ? await fetch('/api/user-post-subscribe?postId=' + encodeURIComponent(postId), {

@@ -1,6 +1,6 @@
 // netlify/functions/admin-churn-reengage.ts
-// ★ Phase M-19-1: 후원자 재참여 유도 메일 발송
-// ★ Pass 1-C 패치: admin.js 의 API 계약에 맞게 재작성
+// Phase M-19-1: 후원자 재참여 유도 메일 발송
+// Pass 1-C 패치: admin.js 의 API 계약에 맞게 재작성
 //
 // POST /api/admin/churn-reengage
 // Body 형식 (둘 중 하나):
@@ -52,7 +52,7 @@ const FALLBACK_MESSAGE = (memberName: string) =>
 사이렌은 지금도 유가족 심리 상담, 법률 자문, 자녀 장학 사업을 묵묵히 이어가고 있습니다.
 
 ${memberName}님의 안부가 늘 궁금합니다.
-언제든 편안히 연락 주세요. 🎗`;
+언제든 편안히 연락 주세요.`;
 
 /* ─────────────────────────────────────────────────────
    AI 자동 메시지 생성
@@ -166,7 +166,7 @@ export default async (req: Request) => {
       }
     }
 
-    /* ★ 본문 결정: admin.js 의 두 가지 입력 방식 모두 지원 */
+    /* 본문 결정: admin.js 의 두 가지 입력 방식 모두 지원 */
     let messageBody = "";
     let messageSource: "ai" | "custom" | "fallback" = "custom";
 
@@ -240,7 +240,7 @@ export default async (req: Request) => {
       });
     } catch (_) {}
 
-    /* ★ admin.js 가 기대하는 응답 키: messageSource */
+    /* admin.js 가 기대하는 응답 키: messageSource */
     return ok({
       memberId,
       sentTo: m.email,

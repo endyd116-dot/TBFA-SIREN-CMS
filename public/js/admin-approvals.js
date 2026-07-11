@@ -1,6 +1,6 @@
 /* =========================================================
    SIREN — admin-approvals.js
-   ★ M-19-11 V2 STEP 6: 회원 자격 관리 (목록/승인/반려/재심사)
+   M-19-11 V2 STEP 6: 회원 자격 관리 (목록/승인/반려/재심사)
    ========================================================= */
 (function () {
   'use strict';
@@ -176,9 +176,9 @@
       const actions = `<div class="srn-row-actions">
         <button type="button" class="detail" data-apv-action="open-detail" data-id="${m.id}" style="background:#fff;border:1px solid var(--brand);color:var(--brand);padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer">상세</button>
         <button type="button" data-apv-action="approve" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-subtype="${m.subtypeKey}"
-          style="background:#1a8b46;color:#fff;border:none;padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer;font-weight:600">✓ 승인</button>
+          style="background:#1a8b46;color:#fff;border:none;padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer;font-weight:600">${Icons.svg('check')} 승인</button>
         <button type="button" data-apv-action="open-reject" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-subtype="${m.subtypeKey}"
-          style="background:#fff;color:var(--danger);border:1px solid var(--danger);padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer">✗ 반려</button>
+          style="background:#fff;color:var(--danger);border:1px solid var(--danger);padding:5px 11px;font-size:11.5px;border-radius:4px;cursor:pointer">${Icons.svg('x')} 반려</button>
       </div>`;
 
       return `<tr>
@@ -292,24 +292,24 @@
         <div class="ai-title">검토 체크리스트</div>
         <div style="font-size:12.5px;color:var(--text-2);line-height:1.85">
           ${m.subtypeKey === 'family' ? `
-            ✓ 가족관계증명서 또는 사망진단서로 유가족 신원 확인<br />
-            ✓ 신청자 본인 명의 확인 (이름 일치)<br />
-            ✓ 사망 사유가 교사 직무 관련성 있는지 확인
+            ${Icons.svg('check')} 가족관계증명서 또는 사망진단서로 유가족 신원 확인<br />
+            ${Icons.svg('check')} 신청자 본인 명의 확인 (이름 일치)<br />
+            ${Icons.svg('check')} 사망 사유가 교사 직무 관련성 있는지 확인
           ` : m.subtypeKey === 'teacher' ? `
-            ✓ 재직증명서 또는 교사자격증 확인<br />
-            ✓ 발급일이 1년 이내인지 확인 (재직 중 여부)<br />
-            ✓ 학교명/소속 확인 → 2단계 검증 진행 (필요 시)
+            ${Icons.svg('check')} 재직증명서 또는 교사자격증 확인<br />
+            ${Icons.svg('check')} 발급일이 1년 이내인지 확인 (재직 중 여부)<br />
+            ${Icons.svg('check')} 학교명/소속 확인 → 2단계 검증 진행 (필요 시)
           ` : m.subtypeKey === 'lawyer' ? `
-            ✓ 변호사 자격증 또는 등록증 확인<br />
-            ✓ 대한변협 등록 확인 (가능 시)<br />
-            ✓ 자격증 발급 일자 + 면허번호 확인
+            ${Icons.svg('check')} 변호사 자격증 또는 등록증 확인<br />
+            ${Icons.svg('check')} 대한변협 등록 확인 (가능 시)<br />
+            ${Icons.svg('check')} 자격증 발급 일자 + 면허번호 확인
           ` : m.subtypeKey === 'counselor' ? `
-            ✓ 심리상담사 자격증 (한국상담심리학회 1급/2급 등) 확인<br />
-            ✓ 발급기관 신뢰도 확인 (학회/협회)<br />
-            ✓ 자격증 만료일 확인
+            ${Icons.svg('check')} 심리상담사 자격증 (한국상담심리학회 1급/2급 등) 확인<br />
+            ${Icons.svg('check')} 발급기관 신뢰도 확인 (학회/협회)<br />
+            ${Icons.svg('check')} 자격증 만료일 확인
           ` : `
-            ✓ 신청자 신원 확인<br />
-            ✓ 증빙 자료 진위 확인
+            ${Icons.svg('check')} 신청자 신원 확인<br />
+            ${Icons.svg('check')} 증빙 자료 진위 확인
           `}
         </div>
       </div>
@@ -317,9 +317,9 @@
       <!-- 액션 버튼 -->
       <div class="srn-action-row" style="margin-top:18px">
         <button type="button" class="btn-save" data-apv-action="approve" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-subtype="${m.subtypeKey}"
-          style="background:#1a8b46">✓ 승인 (정상 회원으로 변경)</button>
+          style="background:#1a8b46">${Icons.svg('check')} 승인 (정상 회원으로 변경)</button>
         <button type="button" class="btn-hide" data-apv-action="open-reject" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-subtype="${m.subtypeKey}"
-          style="background:#fff;color:var(--danger);border:1px solid var(--danger)">✗ 반려</button>
+          style="background:#fff;color:var(--danger);border:1px solid var(--danger)">${Icons.svg('x')} 반려</button>
       </div>
     `;
   }
@@ -330,10 +330,10 @@
 
     const confirmed = confirm(
       `${memberName}님을 ${meta.label} 회원으로 승인하시겠습니까?\n\n` +
-      `✓ 회원 상태가 '정상(active)'으로 변경됩니다\n` +
-      `✓ 즉시 회원 목록에 추가됩니다\n` +
-      `✓ 승인 안내 이메일이 자동 발송됩니다 (이메일 동의 시)\n` +
-      `✓ ${meta.label} 권한이 부여됩니다`
+      `- 회원 상태가 '정상(active)'으로 변경됩니다\n` +
+      `- 즉시 회원 목록에 추가됩니다\n` +
+      `- 승인 안내 이메일이 자동 발송됩니다 (이메일 동의 시)\n` +
+      `- ${meta.label} 권한이 부여됩니다`
     );
     if (!confirmed) return;
 
@@ -345,7 +345,7 @@
     });
 
     if (res.ok) {
-      toast(`✓ ${memberName}님이 ${meta.label} 회원으로 승인되었습니다`);
+      toast(`${memberName}님이 ${meta.label} 회원으로 승인되었습니다`);
 
       /* 모달 닫기 */
       document.getElementById('approvalDetailModal')?.classList.remove('show');

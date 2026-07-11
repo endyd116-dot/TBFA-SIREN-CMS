@@ -1,5 +1,5 @@
 // netlify/functions/admin-harassment-reports.ts
-// ★ M-10: 악성민원 신고 관리자 목록 조회
+// M-10: 악성민원 신고 관리자 목록 조회
 
 import type { Context } from "@netlify/functions";
 import { eq, and, desc, count, or, like, sql } from "drizzle-orm";
@@ -72,7 +72,7 @@ export default async (req: Request, _ctx: Context) => {
       .limit(limit)
       .offset((page - 1) * limit);
 
-    /* ★ R41 Q2-002: 익명 신고는 신원(회원명) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
+    /* R41 Q2-002: 익명 신고는 신원(회원명) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
     // R45 CLUSTER-2(OP-007): 익명 신고는 회원명 + 작성자 입력 신원(reporter*) 모두 마스킹
     const maskedList = list.map((r: any) => (r.isAnonymous ? { ...r, memberName: null, reporterName: null, reporterPhone: null, reporterEmail: null } : r));
 
@@ -86,7 +86,7 @@ export default async (req: Request, _ctx: Context) => {
         COUNT(*) FILTER (WHERE ai_severity IN ('critical','high'))::int AS "highSeverityCount"
       FROM harassment_reports
     `);
-    /* ★ R41 Q2-010: drizzle.execute 결과 표준 처리 — postgres-js는 배열, 일부 드라이버는 .rows */
+    /* R41 Q2-010: drizzle.execute 결과 표준 처리 — postgres-js는 배열, 일부 드라이버는 .rows */
     const sr = Array.isArray(stats) ? stats : ((stats as any)?.rows || []);
     const s: any = sr[0] || {};
 

@@ -2,7 +2,7 @@
  * GET /api/support/mine            — 본인의 지원 신청 목록
  * GET /api/support/mine?id=N       — 본인의 지원 신청 단건 상세
  *
- * ★ v11 (2026-05) 묶음 B-3:
+ * v11 (2026-05) 묶음 B-3:
  *   - ?id=N 분기 추가 (마이페이지 신청 내역 → 상세 모달용)
  *   - list 응답에 content / priority / priorityReason 등 카드 표시용 필드 보강
  *   - adminNote/answeredAt → adminResponse/respondedAt 별칭 추가 (클라이언트 호환)

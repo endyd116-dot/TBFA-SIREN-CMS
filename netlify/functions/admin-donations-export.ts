@@ -83,7 +83,7 @@ export default async (req: Request, _ctx: Context) => {
     if (["pending", "completed", "failed", "cancelled", "refunded"].includes(status)) {
       conds.push(eq(donations.status, status as any));
     }
-    /* ★ Q12: 기간 필터·정렬 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+    /* Q12: 기간 필터·정렬 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
     const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
     if (from) {
       const fromDate = new Date(from);

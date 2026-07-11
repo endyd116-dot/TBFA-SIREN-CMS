@@ -170,7 +170,7 @@ export default async (req: Request) => {
 
       if (!existing) return notFound("FAQ를 찾을 수 없습니다");
 
-      /* ★ 빠른 인라인 수정 분기: sortOrder/isActive만 변경 */
+      /* 빠른 인라인 수정 분기: sortOrder/isActive만 변경 */
       if (body.inlineOnly === true) {
         const inlinePayload: any = { updatedAt: new Date() };
         if (typeof body.sortOrder === "number") inlinePayload.sortOrder = body.sortOrder;

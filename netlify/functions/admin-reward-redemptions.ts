@@ -61,7 +61,7 @@ export default async (req: Request) => {
       if (body.note !== undefined) updateData.note = String(body.note);
       if (status === "processed") updateData.processedAt = new Date();
 
-      /* ★US-061: 취소 전이 시 차감 포인트 환불 + 재고 복원 (기존엔 상태만 바꾸고 환불 없어 회원이 포인트만 잃음) */
+      /* US-061: 취소 전이 시 차감 포인트 환불 + 재고 복원 (기존엔 상태만 바꾸고 환불 없어 회원이 포인트만 잃음) */
       const willRefund = status === "cancelled" && (prior as any).status !== "cancelled";
 
       const updated = await db.transaction(async (tx) => {

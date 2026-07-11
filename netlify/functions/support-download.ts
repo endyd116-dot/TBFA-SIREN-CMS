@@ -93,7 +93,7 @@ export default async (req: Request) => {
       return forbidden("이 첨부파일을 다운로드할 권한이 없습니다");
     }
 
-    /* 6. ★ key가 실제로 이 신청의 attachments에 포함되어 있는지 검증 (우회 방지)
+    /* 6. key가 실제로 이 신청의 attachments에 포함되어 있는지 검증 (우회 방지)
        — 공격자가 다른 신청 ID를 알고 있어도, 그 신청에 속하지 않은 key는 차단 */
     let attachments: string[] = [];
     try {

@@ -189,7 +189,7 @@
     badge.textContent = { ACTIVE:'진행 중', UPCOMING:'예정', ENDED:'종료', SETTLED:'정산 완료' }[q.status] || q.status;
     badge.className = 'ms-quarter-badge ' + (q.status === 'ACTIVE' ? 'active' : q.status === 'ENDED' || q.status === 'SETTLED' ? 'ended' : '');
 
-    /* ★ R29-MS-GAP2-F: D-N 카운트다운 배지 */
+    /* R29-MS-GAP2-F: D-N 카운트다운 배지 */
     renderCountdownBadge(q);
   }
 
@@ -290,7 +290,7 @@
     $('#kpiTotal').textContent    = fmt(inc.total || 0);
     ($('#msKpiRow')).style.display = '';
 
-    /* ★ R29-MS-GAP2-E: KPI 카드 클릭 시 breakdown 토글 */
+    /* R29-MS-GAP2-E: KPI 카드 클릭 시 breakdown 토글 */
     const kpiRow = $('#msKpiRow');
     if (kpiRow && !kpiRow.dataset.breakdownBound) {
       kpiRow.dataset.breakdownBound = '1';
@@ -327,7 +327,7 @@
       `).join('');
     }
 
-    // ★ Phase 25: 보류 큐 + 보관함 + 카드 생성 섹션 삽입
+    // Phase 25: 보류 큐 + 보관함 + 카드 생성 섹션 삽입
     content.insertAdjacentHTML('beforeend', `
       <div style="margin-top:28px">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">성과 분류 보류 카드</h3>
@@ -347,7 +347,7 @@
           <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
         </div>
       </div>
-      <!-- ★ R29-MS-GAP2-B: AI 코칭 -->
+      <!-- R29-MS-GAP2-B: AI 코칭 -->
       <div style="margin-top:24px">
         <button class="ms-btn ms-btn-ghost" id="btnAiCoaching"
           style="background:#f5f3ff;color:#5b21b6;border:1px solid #ede9fe;font-weight:600">
@@ -359,10 +359,10 @@
     loadAndRenderDoneTasks();
     if (state.member.milestoneRole) loadNonRevMilestonesForCardCreate();
 
-    /* ★ R29-MS-GAP2-B: AI 코칭 버튼 바인딩 */
+    /* R29-MS-GAP2-B: AI 코칭 버튼 바인딩 */
     $('#btnAiCoaching')?.addEventListener('click', requestAiCoaching);
 
-    /* ★ R29-MS-GAP2-H: overview 렌더 시점에 SUBMITTED 배지 노출용 잠금 상태 반영 */
+    /* R29-MS-GAP2-H: overview 렌더 시점에 SUBMITTED 배지 노출용 잠금 상태 반영 */
     const settle = state.settlement || state.dashboard?.settlement;
     if (settle && ['SUBMITTED','APPROVED','PAID'].includes(settle.status)) {
       const tip = document.createElement('div');
@@ -406,7 +406,7 @@
     }
   }
 
-  /* ★ R29-MS-GAP2-H: SUBMITTED 잠금 안내 배너 적용 */
+  /* R29-MS-GAP2-H: SUBMITTED 잠금 안내 배너 적용 */
   function applySubmittedLock() {
     const settle = state.settlement || state.dashboard?.settlement;
     const isLocked = settle && ['SUBMITTED', 'APPROVED', 'PAID'].includes(settle.status);
@@ -458,7 +458,7 @@
     </table>`;
   }
 
-  /* ★ R29-MS-GAP1-C: 업로드한 증빙 파일 URL 캐시 */
+  /* R29-MS-GAP1-C: 업로드한 증빙 파일 URL 캐시 */
   let riUploadedEvidence = [];
 
   // 입력 폼 이벤트
@@ -472,7 +472,7 @@
       const m = state.milestones.find(x => String(x.id) === milSel.value);
       if (wrap) wrap.style.display = m && ['sm-001','sm-002'].includes(m.code) ? '' : 'none';
 
-      /* ★ R29-MS-GAP1-B: 마일스톤 정의의 사업체/원천을 드롭다운에 prefill */
+      /* R29-MS-GAP1-B: 마일스톤 정의의 사업체/원천을 드롭다운에 prefill */
       if (m) {
         const buSel = $('#riBusinessUnit');
         const rsSel = $('#riRevenueSource');
@@ -485,7 +485,7 @@
     const dateEl = $('#riDate');
     if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
 
-    /* ★ R29-MS-GAP1-C: 파일 선택 시 즉시 R2 업로드 */
+    /* R29-MS-GAP1-C: 파일 선택 시 즉시 R2 업로드 */
     const fileEl = $('#riEvidenceFile');
     if (fileEl) fileEl.addEventListener('change', async () => {
       const files = Array.from(fileEl.files || []);
@@ -516,7 +516,7 @@
       fileEl.value = '';
     });
 
-    /* ★ R29-MS-GAP2-A: AI 자동 분류 (비고 입력 시 debounce 600ms) */
+    /* R29-MS-GAP2-A: AI 자동 분류 (비고 입력 시 debounce 600ms) */
     let aiClassifyTimer = null;
     let aiClassifyLastReq = 0;
     const triggerAiClassify = () => {
@@ -556,7 +556,7 @@
     if (amountEl) amountEl.addEventListener('input', triggerAiClassify);
   });
 
-  /* ★ R29-MS-GAP2-E: 인센티브 breakdown 토글 */
+  /* R29-MS-GAP2-E: 인센티브 breakdown 토글 */
   function toggleBreakdown() {
     const kpiRow = $('#msKpiRow');
     if (!kpiRow) return;
@@ -605,7 +605,7 @@
     kpiRow.insertAdjacentElement('afterend', panel);
   }
 
-  /* ★ R29-MS-GAP2-A: AI 추천 배지 렌더링 */
+  /* R29-MS-GAP2-A: AI 추천 배지 렌더링 */
   function renderAiBadge(rec) {
     const milSel = $('#riMilestoneId');
     if (!milSel) return;
@@ -690,7 +690,7 @@
         const isEventRange = formula.type === 'EVENT_RANGE' || formula.formula_type === 'EVENT_RANGE';
         const rangeMin = formula.minAmount || formula.min || 0;
         const rangeMax = formula.maxAmount || formula.max || 0;
-        /* ★ R34-P1-B-1: EVENT_RANGE 단위 일관성 — DB 저장은 원 단위, UI 표시만 만원 변환. 입력값(min/max)은 원 단위 그대로 */
+        /* R34-P1-B-1: EVENT_RANGE 단위 일관성 — DB 저장은 원 단위, UI 표시만 만원 변환. 입력값(min/max)은 원 단위 그대로 */
         const rangeHint = isEventRange
           ? `<div style="font-size:11px;color:#7c3aed;margin-top:3px">범위: ${(Number(rangeMin)/10000).toLocaleString()}만원 ~ ${(Number(rangeMax)/10000).toLocaleString()}만원 (원 단위 입력)</div>
              <input type="number" id="eventRangeAmount_${e.id}" placeholder="원 단위 금액" min="${rangeMin}" max="${rangeMax}" disabled
@@ -701,7 +701,7 @@
             `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerify('revenue','verify',${e.id})">승인</button>`}
           <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="window.__msVerify('revenue','reject',${e.id})">반려</button>
         ` : '';
-        /* ★ R29-MS-GAP1-C: 증빙 파일 표시 */
+        /* R29-MS-GAP1-C: 증빙 파일 표시 */
         const evidence = Array.isArray(e.evidenceFiles) ? e.evidenceFiles : [];
         const evidenceHtml = evidence.length
           ? `<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${evidence.map(f => {
@@ -734,7 +734,7 @@
     const input = document.getElementById(`eventRangeAmount_${id}`);
     const eventRangeAmount = input ? Number(input.value) : 0;
     if (!eventRangeAmount || eventRangeAmount <= 0) { toast('금액을 입력하세요', 'error'); return; }
-    /* ★ R29-MS-GAP1-I + R34-P1-B-1: 클라이언트 범위 검증 (원 단위, 표시는 만원 변환) */
+    /* R29-MS-GAP1-I + R34-P1-B-1: 클라이언트 범위 검증 (원 단위, 표시는 만원 변환) */
     const minA = Number(input.min || 0);
     const maxA = Number(input.max || 0);
     if (maxA > 0 && (eventRangeAmount < minA || eventRangeAmount > maxA)) {
@@ -833,7 +833,7 @@
     const list = $('#nrList');
     if (!list) return;
 
-    /* ★ v4 2단계: 분기 7개·카테고리당 2개 (카테고리 한도는 서버에서 최종 검증) */
+    /* v4 2단계: 분기 7개·카테고리당 2개 (카테고리 한도는 서버에서 최종 검증) */
     const NR_MAX = 7;
     const selectedCount = state.nrSelectedIds.length;
     const maxReached = selectedCount >= NR_MAX;
@@ -1108,7 +1108,7 @@
     const panel = $('#settlementPanel');
     if (!panel) return;
 
-    /* ★ R35-GAP-P2-M1: 결산 상태 박스에 REJECTED·HOLD 사유 표시 + 재제출 안내 */
+    /* R35-GAP-P2-M1: 결산 상태 박스에 REJECTED·HOLD 사유 표시 + 재제출 안내 */
     if (settle && ['SUBMITTED','APPROVED','PAID'].includes(settle.status)) {
       panel.innerHTML = `
         <div class="ms-settle-box">
@@ -1124,7 +1124,7 @@
       return;
     }
 
-    /* ★ R35-GAP-P2-M1: REJECTED·HOLD 상태는 사유 표시 + 재제출 안내 (이어서 자동 계산/제출 폼 노출) */
+    /* R35-GAP-P2-M1: REJECTED·HOLD 상태는 사유 표시 + 재제출 안내 (이어서 자동 계산/제출 폼 노출) */
     let statusBanner = '';
     if (settle && settle.status === 'REJECTED') {
       statusBanner = `

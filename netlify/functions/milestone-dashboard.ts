@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-/* ★ R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator */
+/* R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -81,7 +81,7 @@ export default async function handler(req: Request, _ctx: Context) {
       }
     }
 
-    /* ★ R35-GAP-P2-🟡B: SI 공유 임계점 첫 항목을 milestone.id 오름차순으로 명시 정렬 */
+    /* R35-GAP-P2-B: SI 공유 임계점 첫 항목을 milestone.id 오름차순으로 명시 정렬 */
     for (const grp of Object.values(sharedGroups)) {
       grp.items.sort((a, b) => Number(a.milestone.id) - Number(b.milestone.id));
     }
@@ -163,7 +163,7 @@ export default async function handler(req: Request, _ctx: Context) {
       .reduce((s: number, a: any) => s + Number(a.bonusAmount), 0);
   } catch (err) { /* non-critical */ }
 
-  /* ★ Q3-029 fix: 역할 캡(milestone_roles)을 정산과 동일하게 적용 — 대시보드 '예상 인센티브'가
+  /* Q3-029 fix: 역할 캡(milestone_roles)을 정산과 동일하게 적용 — 대시보드 '예상 인센티브'가
      실제 결산액보다 부풀려 보이는 불일치 해소(캡 미설정이면 무영향). */
   try {
     if (milestoneRole) {
@@ -199,7 +199,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   } catch (err) { /* non-critical */ }
 
-  /* ★ R34-P1-B-9: formatDashboard 헬퍼로 응답 키 표준화 (재사용·테스트 용이성 + 키 일관성) */
+  /* R34-P1-B-9: formatDashboard 헬퍼로 응답 키 표준화 (재사용·테스트 용이성 + 키 일관성) */
   return Response.json({
     ok: true,
     data: formatDashboard({
@@ -232,7 +232,7 @@ function formatDashboard(d: {
       nonRevenue: d.nonRevenueTotal,
       total: d.revenueLinkedTotal + d.nonRevenueTotal,
     },
-    /* ★ R29-MS-GAP2-E: 인센티브 계산 breakdown 상세 */
+    /* R29-MS-GAP2-E: 인센티브 계산 breakdown 상세 */
     breakdown: {
       revenue: d.revenueProgress.map((p: any) => ({
         milestoneName: p.name,
@@ -268,7 +268,7 @@ function calcIncentive(formula: any, thresholdEnabled: number, thrVal: number, c
       const matched = brackets.sort((a, b) => b.min - a.min).find(b => current >= b.min && (b.max == null || current <= b.max));
       return matched ? matched.amount : 0;
     }
-    /* ★ R33-FIX H2: EVENT_RANGE — 어드민 결정 amount를 그대로 인센티브로 (수동 결정 0 반환은 옛 정책) */
+    /* R33-FIX H2: EVENT_RANGE — 어드민 결정 amount를 그대로 인센티브로 (수동 결정 0 반환은 옛 정책) */
     case "EVENT_RANGE": return Math.floor(current);
     default: return 0;
   }

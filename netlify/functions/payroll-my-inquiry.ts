@@ -39,7 +39,7 @@ export default async (req: Request, _ctx: Context) => {
     await notifyAllSuperAdmins({
       category: "system",
       severity: "info",
-      title: `💰 급여 명세 문의/이의제기 — ${me.name || "직원"}`,
+      title: `급여 명세 문의/이의제기 — ${me.name || "직원"}`,
       message: `[${periodText}] ${message.slice(0, 400)}`,
       link: "/cms-tbfa.html#payroll",
     });

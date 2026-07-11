@@ -209,7 +209,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     await createNotification({
       recipientId: match!.userId, recipientType: "user", category: "support", severity: "info",
-      title: `🤝 담당 ${matchLabel}가 배정되었습니다`,
+      title: `담당 ${matchLabel}가 배정되었습니다`,
       message: `${expertName || matchLabel}님과의 1:1 상담 채팅방이 개설되었습니다. 마이페이지에서 상담을 시작하세요.`,
       link: `/mypage.html#chat`, refTable: "chat_rooms", refId: chatRoomId,
     });
@@ -217,7 +217,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     await createNotification({
       recipientId: expertId, recipientType: "user", category: "support", severity: "info",
-      title: "🤝 새 1:1 상담이 배정되었습니다",
+      title: "새 1:1 상담이 배정되었습니다",
       message: `${userName || "신청자"}님의 상담이 배정되었습니다. 상담 채팅방에서 진행해 주세요.`,
       link: `/mypage.html#chat`, refTable: "chat_rooms", refId: chatRoomId,
     });

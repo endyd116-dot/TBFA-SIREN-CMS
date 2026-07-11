@@ -207,7 +207,7 @@
 
   /* ============ 폼 렌더러 ============ */
   const RENDERERS = {
-    /* ★ 2026-06-03: 브랜드(로고·파비콘·사이트이름·홈타이틀) 편집 */
+    /* 2026-06-03: 브랜드(로고·파비콘·사이트이름·홈타이틀) 편집 */
     'brand': function () {
       if (window.SIREN_HOME_BRAND && window.SIREN_HOME_BRAND.render) {
         window.SIREN_HOME_BRAND.render();
@@ -226,7 +226,7 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>통계 편집 모듈 로드 실패</p></div>';
       }
     },
-    /* ★ Step 6-D: HERO 편집 폼 */
+    /* Step 6-D: HERO 편집 폼 */
     'home.hero': function () {
       if (window.SIREN_HOME_HERO && window.SIREN_HOME_HERO.render) {
         window.SIREN_HOME_HERO.render();
@@ -235,7 +235,7 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>HERO 편집 모듈 로드 실패 — admin-home-hero.js 스크립트 태그 확인</p></div>';
       }
     },
-    /* ★ Step 6-E: 퀵메뉴 편집 폼 */
+    /* Step 6-E: 퀵메뉴 편집 폼 */
     'home.quickMenu': function () {
       if (window.SIREN_HOME_QUICKMENU && window.SIREN_HOME_QUICKMENU.render) {
         window.SIREN_HOME_QUICKMENU.render();
@@ -247,11 +247,11 @@
     'publish': function () {
       renderPublishPanel();
     },
-    /* ★ 5순위 #9: 관련 사이트 CRUD */
+    /* 5순위 #9: 관련 사이트 CRUD */
     'footer.related_sites': function () {
       renderRelatedSitesEditor();
     },
-    /* ★ 5순위 #10: 정기 후원 해지 안내 편집 */
+    /* 5순위 #10: 정기 후원 해지 안내 편집 */
     'mypage.cancellationGuide': function () {
       if (window.SIREN_MYPAGE_CANCELLATION && window.SIREN_MYPAGE_CANCELLATION.render) {
         window.SIREN_MYPAGE_CANCELLATION.render();
@@ -260,7 +260,7 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>해지 안내 편집 모듈 로드 실패 — admin-mypage-cancellation.js 스크립트 태그 확인</p></div>';
       }
     },
-        /* ★ Step 6-F: 섹션 제목 편집 (캠페인/공지/FAQ) */
+        /* Step 6-F: 섹션 제목 편집 (캠페인/공지/FAQ) */
     'home.sections': function () {
       if (window.SIREN_HOME_SECTIONS && window.SIREN_HOME_SECTIONS.render) {
         window.SIREN_HOME_SECTIONS.render();
@@ -269,7 +269,7 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>섹션 제목 편집 모듈 로드 실패 — admin-home-sections.js 스크립트 태그 확인</p></div>';
       }
     },
-        /* ★ Step 6-G: 특별 캠페인 배너 편집 */
+        /* Step 6-G: 특별 캠페인 배너 편집 */
     'home.specialBanner': function () {
       if (window.SIREN_HOME_BANNER && window.SIREN_HOME_BANNER.render) {
         window.SIREN_HOME_BANNER.render();
@@ -278,7 +278,7 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>배너 편집 모듈 로드 실패 — admin-home-banner.js 스크립트 태그 확인</p></div>';
       }
     },
-        /* ★ Step 6-H: 효과/애니메이션 편집 */
+        /* Step 6-H: 효과/애니메이션 편집 */
     'home.effects': function () {
       if (window.SIREN_HOME_EFFECTS && window.SIREN_HOME_EFFECTS.render) {
         window.SIREN_HOME_EFFECTS.render();
@@ -288,7 +288,7 @@
       }
     },
 
-    /* ★ 2026-05-11: 누락 영역 일괄 RENDERER 등록 — site_settings generic editor + nav-menus editor */
+    /* 2026-05-11: 누락 영역 일괄 RENDERER 등록 — site_settings generic editor + nav-menus editor */
     'header.brand': function () {
       renderSettingsEditor({
         title: '헤더 — 로고 / 협회명 / 부제',
@@ -371,7 +371,7 @@
   };
 
   /* =========================================================
-     ★ 2026-05-11: site_settings generic editor
+     2026-05-11: site_settings generic editor
      scope/keyPrefix 기준으로 row를 받아 valueType 별 input을 자동 생성.
      변경 시 PATCH /api/admin/site-settings → Draft 저장.
      ========================================================= */
@@ -580,7 +580,7 @@
   }
 
   /* =========================================================
-     ★ 정적 페이지 본문 편집 — site_settings에 단일 키로 저장된 HTML
+     정적 페이지 본문 편집 — site_settings에 단일 키로 저장된 HTML
      scope에 해당하는 모든 row를 그대로 generic editor로 표시
      ========================================================= */
   function renderPageContentEditor(opts) {
@@ -593,7 +593,7 @@
   }
 
   /* =========================================================
-     ★ 2026-05-11: nav_menu_items 편집기
+     2026-05-11: nav_menu_items 편집기
      /api/admin/nav-menus?location=X 로 트리 조회 → 인라인 편집
      ========================================================= */
   async function renderNavMenusEditor(opts) {
@@ -929,7 +929,7 @@
   }
 
 
-  /* ★ Step 6-B: home.* 노드용 placeholder는 시드 데이터 키 안내까지 표시 */
+  /* Step 6-B: home.* 노드용 placeholder는 시드 데이터 키 안내까지 표시 */
   const HOME_NODE_INFO = {
     'home.hero': {
       icon: '',

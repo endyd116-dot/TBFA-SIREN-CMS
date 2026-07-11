@@ -1,5 +1,5 @@
 // netlify/functions/admin-brand-settings.ts
-// ★ 2026-06-03 브랜드 설정 어드민 (메인 화면 편집 → 브랜드 패널)
+// 2026-06-03 브랜드 설정 어드민 (메인 화면 편집 → 브랜드 패널)
 //   GET  /api/admin/brand-settings  → 현재 설정 { siteName, homeTitle, logoUrl, faviconUrl, version }
 //   POST /api/admin/brand-settings  → multipart FormData 저장
 //        필드: siteName, homeTitle, logo(file?), favicon(file?), removeLogo('1'?), removeFavicon('1'?)

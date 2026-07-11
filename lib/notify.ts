@@ -1,10 +1,10 @@
 // lib/notify.ts (헤더 영역)
-// ★ Phase M-3: 알림 생성/조회 헬퍼
+// Phase M-3: 알림 생성/조회 헬퍼
 // - 후속 STEP에서 createNotification(...) 한 줄로 알림 발생
 // - notifyMany(...)로 다중 수신자 일괄 발송
 // - 모든 호출은 try-catch로 격리되어야 함 (알림 실패가 본 작업 막지 않음)
 //
-// ★ Phase M-15 패치:
+// Phase M-15 패치:
 // - notifyAllOperators(params, { category })로 카테고리별 분리 발송 지원
 // - super_admin은 카테고리 무시하고 항상 전체 수신
 // - operator는 assigned_categories(JSONB)에 해당 category 또는 'all' 포함 시 수신
@@ -22,7 +22,7 @@ export type NotifySeverity = "info" | "warning" | "critical";
 export type NotifyRecipientType = "user" | "admin" | "operator";
 
 /**
- * ★ M-15: 운영자 담당 카테고리
+ * M-15: 운영자 담당 카테고리
  * - 6개 도메인 + 'all' (메타값)
  * - members.assigned_categories JSONB 배열에 저장
  * - 'all' 포함 시 모든 카테고리 알림 수신
@@ -124,7 +124,7 @@ export async function notifyAllSuperAdmins(
 /**
  * 운영자 전원에게 알림 (super_admin은 항상 수신)
  *
- * ★ M-15 카테고리별 분리 발송:
+ * M-15 카테고리별 분리 발송:
  * - filter.category 지정 시:
  *   · super_admin: 항상 수신 (category 무시)
  *   · operator: assigned_categories에 해당 category 또는 'all' 포함 시 수신

@@ -1,7 +1,7 @@
 /**
  * GET /api/admin/donor-regular-list
  *
- * ★ Phase 2 (마일스톤 #16 단계 C / DESIGN_PHASE2.md §6.2): 정기 후원자 조회 + 채널별 KPI
+ * Phase 2 (마일스톤 #16 단계 C / DESIGN_PHASE2.md §6.2): 정기 후원자 조회 + 채널별 KPI
  *
  * Query:
  *   channel?:  'toss' | 'hyosung' | 'all'   (default 'all')

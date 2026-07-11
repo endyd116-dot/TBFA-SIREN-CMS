@@ -45,7 +45,7 @@ export default async (req: Request) => {
       return forbidden("관리자 권한이 없습니다");
     }
 
-    /* ★ 로그인 유지(remember) 선택 시 관리자 세션 1일(KST 기준 로그인 후 24시간).
+    /* 로그인 유지(remember) 선택 시 관리자 세션 1일(KST 기준 로그인 후 24시간).
        미선택 시 기존대로 2시간 JWT + 세션 쿠키(브라우저 종료 시 삭제). */
     const wantRemember = (auth as any).remember === true;
     const ADMIN_DAY_SEC = 60 * 60 * 24; // 24시간

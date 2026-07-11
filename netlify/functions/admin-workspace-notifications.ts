@@ -49,12 +49,12 @@ export default async (req: Request, _ctx: Context) => {
       const limit = Math.min(MAX_LIMIT, Math.max(1, Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : DEFAULT_LIMIT));
       const category = url.searchParams.get("category");
       const onlyUnread = url.searchParams.get("onlyUnread") === "1";
-      // ★ Q3-019 fix: offset 페이지네이션 + 실제 총건수 반환 (기존엔 offset 미지원·total=현재페이지수라 '더 보기' 불능)
+      // Q3-019 fix: offset 페이지네이션 + 실제 총건수 반환 (기존엔 offset 미지원·total=현재페이지수라 '더 보기' 불능)
       const offsetRaw = Number(url.searchParams.get("offset"));
       const offset = Number.isFinite(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0;
 
       step = "select_items";
-      /* ★ 2026-06-03 알림 통합: workspace_notifications + notifications 두 테이블을
+      /* 2026-06-03 알림 통합: workspace_notifications + notifications 두 테이블을
          하나의 피드로 UNION. 프런트 호환 위해 키 유지(actionUrl·readAt·sentAt·category)
          + source('ws'|'notif') 추가(읽음 처리 시 대상 테이블 식별).
          [감사#84] workspace-logger.dispatch가 ws 알림을 notifications에도 복제(ref_table='workspace_notifications')
@@ -128,7 +128,7 @@ export default async (req: Request, _ctx: Context) => {
 
       step = "mark_read";
       if (all) {
-        /* ★ 알림 통합: 두 테이블 모두 읽음 처리 */
+        /* 알림 통합: 두 테이블 모두 읽음 처리 */
         await db.execute(sql`UPDATE workspace_notifications SET read_at = NOW() WHERE member_id = ${meId} AND read_at IS NULL`);
         await db.execute(sql`UPDATE notifications SET is_read = true, read_at = NOW() WHERE recipient_id = ${meId} AND is_read = false`);
         return jsonOk({ all: true }, "모든 알림을 읽음 처리했어요");

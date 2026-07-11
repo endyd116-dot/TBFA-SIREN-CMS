@@ -1,5 +1,5 @@
 // netlify/functions/admin-incidents-crud.ts
-// ★ B-3: 사건(incidents) 게시글 CRUD (관리자 전용)
+// B-3: 사건(incidents) 게시글 CRUD (관리자 전용)
 
 import { eq, desc, sql } from "drizzle-orm";
 import { db } from "../../db";

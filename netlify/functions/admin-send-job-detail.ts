@@ -40,7 +40,7 @@ export default async function handler(req: Request, _ctx: Context) {
   let stats: any = { pending: 0, sending: 0, sent: 0, failed: 0, cancelled: 0, skipped: 0 };
 
   try {
-    /* ★ 2026-05-17: images_override + template.images 조건부 SELECT */
+    /* 2026-05-17: images_override + template.images 조건부 SELECT */
     const colJob: any = await db.execute(sql`
       SELECT 1 AS ok FROM information_schema.columns
        WHERE table_name = 'communication_send_jobs' AND column_name = 'images_override' LIMIT 1
@@ -99,7 +99,7 @@ export default async function handler(req: Request, _ctx: Context) {
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      /* ★ 2026-05-17: 이미지 — override 우선, 없으면 템플릿의 images */
+      /* 2026-05-17: 이미지 — override 우선, 없으면 템플릿의 images */
       imagesOverride: Array.isArray(row.images_override) ? row.images_override : null,
       templateImages: Array.isArray(row.template_images) ? row.template_images : [],
     };
@@ -127,7 +127,7 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("[admin-send-job-detail] recipient stats 실패", err);
   }
 
-  /* ★ 버그픽스2 #14: total_recipients 컬럼이 0/NULL 이면 수신자 상태 합계로 보정 —
+  /* 버그픽스2 #14: total_recipients 컬럼이 0/NULL 이면 수신자 상태 합계로 보정 —
    *  "발송 상세 전부 0" 차단. 보정 시 progressPercent 도 재계산. */
   if (job && (!job.totalRecipients || job.totalRecipients === 0)) {
     const statsSum = (Object.values(stats) as any[]).reduce<number>((a, b) => a + (Number(b) || 0), 0);

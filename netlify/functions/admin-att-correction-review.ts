@@ -169,7 +169,7 @@ export default async function handler(req: Request) {
           outLat: existing?.checkOutLat, outLng: existing?.checkOutLng,
           workplaceId: existing?.workplaceId ?? null,
         });
-        // ★ 근무시간·야근시간 재계산 (유연 출근 하한 반영) — 승인이 집계에 반영되도록 (기존 누락 버그 fix)
+        // 근무시간·야근시간 재계산 (유연 출근 하한 반영) — 승인이 집계에 반영되도록 (기존 누락 버그 fix)
         let workingMins: number | null = null;
         let overtimeMins = 0;
         if (policy && ciISO && coISO) {

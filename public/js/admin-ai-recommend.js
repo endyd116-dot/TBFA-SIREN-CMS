@@ -102,7 +102,7 @@
         '</td>' +
         '<td style="font-size:11.5px;color:var(--text-2)">' + escapeHtml(rec.reason || '') + '</td>' +
         '<td style="text-align:center;font-size:12px">' +
-          (rec.avgRating ? rec.avgRating.toFixed(1) + '★' : '-') +
+          (rec.avgRating ? rec.avgRating.toFixed(1) + ' ' + Icons.svg('star') : '-') +
           (rec.ratingCount ? '<div style="font-size:10.5px;color:var(--text-3)">(' + rec.ratingCount + ')</div>' : '') +
         '</td>' +
         '<td>' +

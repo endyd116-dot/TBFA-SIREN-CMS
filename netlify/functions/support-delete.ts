@@ -2,7 +2,7 @@
  * POST /api/support-delete
  * 본인의 유가족 지원 신청 삭제
  *
- * ★ v11 (2026-05) 묶음 B-3:
+ * v11 (2026-05) 묶음 B-3:
  *   - 마이페이지 → 신청 내역 → 유가족 지원 탭에서 본인 신청 삭제
  *   - 진행 중 상태(reviewing/matching/matched/in_progress)는 차단
  *
@@ -16,7 +16,7 @@ import {
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 
-/* ★ R41 Q2-056: 'matching'은 support_status enum에 없는 값(드리프트) — 제거 */
+/* R41 Q2-056: 'matching'은 support_status enum에 없는 값(드리프트) — 제거 */
 const BLOCKED_STATUSES = ["reviewing", "matched", "in_progress"];
 
 export default async (req: Request) => {
@@ -24,7 +24,7 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
-    /* ★ 2026-06-27 FIX: 차단(블랙) 회원 진입 차단 — support-create/update와 동일 게이트 */
+    /* 2026-06-27 FIX: 차단(블랙) 회원 진입 차단 — support-create/update와 동일 게이트 */
     const _r = await requireActiveUser(req);
     if (!_r.ok) return (_r as { ok: false; res: Response }).res;
     const auth = _r.user;

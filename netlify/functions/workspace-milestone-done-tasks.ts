@@ -3,7 +3,7 @@
  * GET /api/workspace-milestone-done-tasks?quarterId=N
  */
 import type { Context } from "@netlify/functions";
-/* ★ R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
+/* R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";

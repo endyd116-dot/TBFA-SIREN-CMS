@@ -1,5 +1,5 @@
 // netlify/functions/media-posts.ts
-// ★ M-11: 언론보도/갤러리 공개 조회
+// M-11: 언론보도/갤러리 공개 조회
 
 import { eq, and, desc, count, sql as sqlExp } from "drizzle-orm";
 import { db } from "../../db";

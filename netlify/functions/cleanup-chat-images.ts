@@ -62,7 +62,7 @@ export default async (req: Request, _ctx: Context) => {
       .limit(BATCH_LIMIT);
 
     stats.scanned = expired.length;
-    log.push(`✅ 만료 대상 ${expired.length}건 조회 완료`);
+    log.push(`만료 대상 ${expired.length}건 조회 완료`);
 
     if (expired.length === 0) {
       log.push("ℹ️ 처리할 만료 이미지가 없습니다.");
@@ -81,7 +81,7 @@ export default async (req: Request, _ctx: Context) => {
         )
       );
     const activeRoomSet = new Set(activeRooms.map((r) => r.id));
-    log.push(`🛡 보존 대상 active 채팅방: ${activeRoomSet.size}개`);
+    log.push(`보존 대상 active 채팅방: ${activeRoomSet.size}개`);
 
     /* ============ 3단계: Blob 삭제 + DB 삭제 ============ */
     const store = getStore({ name: "chat-images", consistency: "strong" });
@@ -101,7 +101,7 @@ export default async (req: Request, _ctx: Context) => {
         }
       } catch (e: any) {
         stats.blobErrors++;
-        log.push(`⚠️ Blob 삭제 실패 (id=${att.id}, key=${att.blobKey}): ${e.message}`);
+        log.push(`Blob 삭제 실패 (id=${att.id}, key=${att.blobKey}): ${e.message}`);
         /* Blob 삭제 실패해도 DB는 정리 (orphan 방지) */
       }
 
@@ -112,7 +112,7 @@ export default async (req: Request, _ctx: Context) => {
         }
       } catch (e: any) {
         stats.blobErrors++;
-        log.push(`⚠️ Thumbnail 삭제 실패 (id=${att.id}): ${e.message}`);
+        log.push(`Thumbnail 삭제 실패 (id=${att.id}): ${e.message}`);
       }
 
       idsToDelete.push(att.id);
@@ -125,10 +125,10 @@ export default async (req: Request, _ctx: Context) => {
           .delete(chatAttachments)
           .where(inArray(chatAttachments.id, idsToDelete));
         stats.deleted = idsToDelete.length;
-        log.push(`✅ DB 일괄 삭제 완료: ${idsToDelete.length}건`);
+        log.push(`DB 일괄 삭제 완료: ${idsToDelete.length}건`);
       } catch (e: any) {
         stats.dbErrors++;
-        log.push(`❌ DB 일괄 삭제 실패: ${e.message}`);
+        log.push(`DB 일괄 삭제 실패: ${e.message}`);
       }
     }
 
@@ -137,7 +137,7 @@ export default async (req: Request, _ctx: Context) => {
     return responseOk(stats, log, startedAt);
   } catch (err: any) {
     console.error("[cleanup-chat-images] 치명적 오류:", err);
-    log.push(`❌ 치명적 오류: ${err.message}`);
+    log.push(`치명적 오류: ${err.message}`);
     return new Response(
       JSON.stringify(
         {

@@ -1,5 +1,5 @@
 // netlify/functions/public-mypage-content.ts
-// ★ v11 묶음 B-1: 마이페이지 안내 콘텐츠 통합 API
+// v11 묶음 B-1: 마이페이지 안내 콘텐츠 통합 API
 // scope='mypage' 키들을 트리 형태로 묶어서 반환
 // preview=1 + 어드민 인증 시 Draft 우선 (public-home-content와 동일 패턴)
 

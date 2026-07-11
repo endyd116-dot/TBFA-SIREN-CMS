@@ -1,7 +1,7 @@
 /**
  * POST /api/admin-donation-import
  *
- * ★ Phase 3 D1·D2 (2026-05-10 재작성):
+ * Phase 3 D1·D2 (2026-05-10 재작성):
  *   효성·기업은행 모두 pending_donations(임시 보관함)에 적재.
  *   사용자가 행별/일괄 "통과(확정)" 처리해야 효성 저장소(hyosungContracts·hyosungBillings)
  *   및 회원·후원 내역에 정식 반영됨.

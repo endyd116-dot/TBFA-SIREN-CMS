@@ -59,7 +59,7 @@ async function lookupRecipient(targetId: number): Promise<{ name: string; phone:
   }
 }
 
-/* enriched params 추출 — DB 템플릿 변수 치환·폴백·솔라피 변수맵에 사용 (★ export — list API 미리보기) */
+/* enriched params 추출 — DB 템플릿 변수 치환·폴백·솔라피 변수맵에 사용 (export — list API 미리보기) */
 export function enrichKakaoParams(event: NotifyEvent, params: Record<string, any>, memberName: string): Record<string, any> {
   const name = String(params.memberName || memberName || "후원자");
   switch (event) {
@@ -175,7 +175,7 @@ function kakaoVariables(event: NotifyEvent, e: Record<string, any>): Record<stri
   }
 }
 
-/* 폴백 본문(알림톡 실패 시 SMS 대체발송 문구) — 등록 템플릿과 동일 문안 (★ export — list API 미리보기) */
+/* 폴백 본문(알림톡 실패 시 SMS 대체발송 문구) — 등록 템플릿과 동일 문안 (export — list API 미리보기) */
 export function fallbackBodyKakao(event: NotifyEvent, e: Record<string, any>): string | null {
   switch (event) {
     case NotifyEvent.BILLING_FAILED:

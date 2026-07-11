@@ -1,5 +1,5 @@
 // public/js/settings-notifications.js
-// ★ R10: 라운드 10 — 알림 구독 설정 (일괄 저장)
+// R10: 라운드 10 — 알림 구독 설정 (일괄 저장)
 //
 // 응답 shape:
 //   GET  /api/notification-preferences → { ok, preferences:[{eventType, channels}] }

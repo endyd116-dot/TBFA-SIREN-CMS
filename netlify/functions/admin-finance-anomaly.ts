@@ -94,7 +94,7 @@ export default async function handler(req: Request, _ctx: Context) {
       thisMonth,
       prevSync,
       changeRate,               // null = 전월 동기 0 (신규)
-      surge,                    // true = "⚠️ 급증" 배지 대상
+      surge,                    // true = "급증" 배지 대상
     };
   }).sort((a, b) => b.thisMonth - a.thisMonth);
 

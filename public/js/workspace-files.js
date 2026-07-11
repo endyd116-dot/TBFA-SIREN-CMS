@@ -357,7 +357,7 @@
           <td class="wf-col-actions">
             <div class="wf-row-actions">
               <button class="wf-row-action-btn" data-faction="restore-folder" data-fid="${fd.id}" title="복원"></button>
-              <button class="wf-row-action-btn" data-faction="purge-folder" data-fid="${fd.id}" data-fname="${escapeHtml(fd.name)}" title="영구 삭제">✕</button>
+              <button class="wf-row-action-btn" data-faction="purge-folder" data-fid="${fd.id}" data-fname="${escapeHtml(fd.name)}" title="영구 삭제">${Icons.svg('x')}</button>
             </div>
           </td>
         </tr>`).join('');
@@ -383,7 +383,7 @@
             <div class="wf-row-actions">
               ${isTrash ? `
                 <button class="wf-row-action-btn" data-action="restore" data-id="${f.id}" title="복원"></button>
-                <button class="wf-row-action-btn" data-action="purge" data-id="${f.id}" title="영구 삭제">✕</button>
+                <button class="wf-row-action-btn" data-action="purge" data-id="${f.id}" title="영구 삭제">${Icons.svg('x')}</button>
               ` : `
                 <button class="wf-row-action-btn" data-action="download" data-id="${f.id}" title="다운로드"></button>
                 <button class="wf-row-action-btn" data-action="share" data-id="${f.id}" title="공유"></button>
@@ -755,7 +755,7 @@
                 <option value="view" ${s.permission === 'view' ? 'selected' : ''}>조회</option>
                 <option value="edit" ${s.permission === 'edit' ? 'selected' : ''}>편집</option>
               </select>
-              <button class="wf-row-action-btn" data-remove-share="${s.id}" title="제거">✕</button>
+              <button class="wf-row-action-btn" data-remove-share="${s.id}" title="제거">${Icons.svg('x')}</button>
             </span>
           </li>
         `).join('');
@@ -874,10 +874,10 @@
         <div class="wf-purge-warning">
           <strong style="color:#991b1b;font-size:13px;">영구 삭제하면 다음과 같이 처리됩니다:</strong>
           <ul>
-            <li class="danger">✗ 복원할 수 없습니다</li>
-            <li class="danger">✗ R2 저장소에서도 완전히 제거됩니다</li>
-            ${type === 'folder' ? '<li class="danger">✗ 폴더 안 모든 파일이 함께 영구 삭제됩니다</li>' : ''}
-            <li class="info">✓ 삭제 내역만 감사 로그에 남습니다</li>
+            <li class="danger">${Icons.svg('x')} 복원할 수 없습니다</li>
+            <li class="danger">${Icons.svg('x')} R2 저장소에서도 완전히 제거됩니다</li>
+            ${type === 'folder' ? '<li class="danger">' + Icons.svg('x') + ' 폴더 안 모든 파일이 함께 영구 삭제됩니다</li>' : ''}
+            <li class="info">${Icons.svg('check')} 삭제 내역만 감사 로그에 남습니다</li>
           </ul>
         </div>
       `;
@@ -1025,7 +1025,7 @@
         <div class="wf-modal-content wf-modal-sm">
           <div class="wf-modal-header">
             <h2>이동</h2>
-            <button class="wf-modal-close" data-close="wfMoveModal">✕</button>
+            <button class="wf-modal-close" data-close="wfMoveModal">${Icons.svg('x')}</button>
           </div>
           <div class="wf-modal-body">
             <div class="wf-share-target" id="wfMoveTarget"></div>
@@ -1295,10 +1295,10 @@
     const zipBtn = document.getElementById('wfBtnZipDownload');
     if (zipBtn) zipBtn.style.display = isTrash ? 'none' : '';
 
-    /* 4. [삭제] 버튼 → [✕ 일괄 영구 삭제]로 변경 */
+    /* 4. [삭제] 버튼 → [일괄 영구 삭제]로 변경 */
     if (delBtn) {
       if (isTrash) {
-        delBtn.innerHTML = '✕ 일괄 영구 삭제';
+        delBtn.innerHTML = Icons.svg('x') + ' 일괄 영구 삭제';
         delBtn.dataset.bulkMode = 'purge';
       } else {
         delBtn.innerHTML = '삭제';

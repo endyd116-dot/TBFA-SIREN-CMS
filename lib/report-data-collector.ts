@@ -1,5 +1,5 @@
 // lib/report-data-collector.ts
-// ★ Phase M-19-3: 활동보고서용 데이터 수집 헬퍼
+// Phase M-19-3: 활동보고서용 데이터 수집 헬퍼
 // - 기간 지정 시 모든 도메인의 통계를 일괄 집계 (Promise.all 병렬)
 // - 분기/반기/연간/자유 기간 모두 지원
 // - STEP 2(AI 분석) + STEP 3(PDF) 모두에서 재사용

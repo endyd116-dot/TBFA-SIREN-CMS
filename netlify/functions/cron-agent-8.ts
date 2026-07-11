@@ -18,7 +18,7 @@ import { db } from "../../db";
 import { members, dailyBriefings } from "../../db/schema";
 import { and, sql, isNull, inArray } from "drizzle-orm";
 import { callGeminiJSON } from "../../lib/ai-gemini";
-// ★ Phase 8: 통합 알림 디스패처 (어드민 일일 브리핑 이메일)
+// Phase 8: 통합 알림 디스패처 (어드민 일일 브리핑 이메일)
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
 

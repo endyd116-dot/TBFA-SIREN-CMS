@@ -120,7 +120,7 @@
       _state = Object.assign(_state, j.data || {});
       _logoFile = null; _faviconFile = null;
       toast('브랜드 설정 저장 완료 — 즉시 적용됩니다');
-      if (msg) msg.textContent = '✓ 저장됨 (전체 사이트 적용)';
+      if (msg) msg.textContent = '저장됨 (전체 사이트 적용)';
       render();   // 미리보기 갱신
       if (window.SIREN_SITE_BUILDER && window.SIREN_SITE_BUILDER.reloadPreview) window.SIREN_SITE_BUILDER.reloadPreview();
     } catch (e) {

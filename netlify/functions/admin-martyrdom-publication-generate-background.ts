@@ -1,7 +1,7 @@
 /**
  * admin-martyrdom-publication-generate-background — 발간물 본문 생성 (INTERNAL·Background)
  *
- * ⚠️ 백그라운드 함수(-background)는 config.path 금지.
+ * 백그라운드 함수(-background)는 config.path 금지.
  *
  * POST { pubId, pubType, caseIds, blendRatio, maskLevel, secret }
  *   INTERNAL_TRIGGER_SECRET 검증 후 buildPublication 호출 → martyrdom_publications UPDATE
@@ -67,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
     return new Response(JSON.stringify({ ok: true, pubId }), { status: 200 });
   } catch (err: any) {
     console.error(`[publication-generate-bg] 실패 pubId=${pubId}`, err?.message);
-    /* ★ R41 Q2-029: 생성 실패 시 (1) 행 제목에 실패 마커 + 본문에 안내, (2) 운영자 경고 알림 — 조용한 멈춤 방지(generate-bg:136 패턴) */
+    /* R41 Q2-029: 생성 실패 시 (1) 행 제목에 실패 마커 + 본문에 안내, (2) 운영자 경고 알림 — 조용한 멈춤 방지(generate-bg:136 패턴) */
     const failMsg = String(err?.message || err).replace(/'/g, "''").slice(0, 300);
     try {
       await db.execute(sql.raw(`

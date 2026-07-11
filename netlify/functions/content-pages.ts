@@ -1,5 +1,5 @@
 // netlify/functions/content-pages.ts
-// ★ M-11: 공개 콘텐츠 페이지 조회 (about.html 등에서 사용)
+// M-11: 공개 콘텐츠 페이지 조회 (about.html 등에서 사용)
 
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db";

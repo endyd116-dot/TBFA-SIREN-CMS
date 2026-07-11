@@ -1,5 +1,5 @@
 // lib/campaign-stats.ts
-// ★ US-044: 캠페인 모금현황(raised_amount·donor_count) 재계산 공용 헬퍼.
+// US-044: 캠페인 모금현황(raised_amount·donor_count) 재계산 공용 헬퍼.
 //   기존엔 admin-campaign-stats 의 수동 재계산(POST)에서만 갱신되어, 후원 완료 직후
 //   캠페인 상세의 진행률·모금액·후원자수가 옛 값으로 멈춰 있었다(부진 감지 크론도 오판).
 //   후원 완료 시점(KICC 승인·계좌이체 통과 등)에서 fire-and-forget 으로 호출한다.

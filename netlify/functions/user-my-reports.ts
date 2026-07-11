@@ -34,12 +34,12 @@ export default async (req: Request) => {
   const url = new URL(req.url);
   const type = url.searchParams.get("type") || "all";
   const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-  /* ★ R41 Q2-012: 클라 page size(limit)와 서버 paging 정합 — 미지정 시 20, 안전 상한 50 */
+  /* R41 Q2-012: 클라 page size(limit)와 서버 paging 정합 — 미지정 시 20, 안전 상한 50 */
   const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit") || 20)));
   const offset = (page - 1) * limit;
 
   const results: any[] = [];
-  /* ★ R41 Q2-012: 전체 건수(total) — 타입별 count 합산 (페이지네이션용) */
+  /* R41 Q2-012: 전체 건수(total) — 타입별 count 합산 (페이지네이션용) */
   let total = 0;
 
   // 사건 신고
@@ -50,12 +50,12 @@ export default async (req: Request) => {
         id: incidentReports.id,
         reportNo: incidentReports.reportNo,
         title: incidentReports.title,
-        contentHtml: incidentReports.contentHtml,   /* ★ P1-6: 수정 모달 본문 채움용 */
+        contentHtml: incidentReports.contentHtml,   /* P1-6: 수정 모달 본문 채움용 */
         category: incidentReports.category,
         status: incidentReports.status,
         isAnonymous: incidentReports.isAnonymous,
-        aiSummary: incidentReports.aiSummary,       /* ★ R41 Q2-012: AI 요약 카드 표시용 */
-        aiSeverity: incidentReports.aiSeverity,     /* ★ R41 Q2-012 */
+        aiSummary: incidentReports.aiSummary,       /* R41 Q2-012: AI 요약 카드 표시용 */
+        aiSeverity: incidentReports.aiSeverity,     /* R41 Q2-012 */
         adminResponse: incidentReports.adminResponse,
         respondedAt: incidentReports.respondedAt,
         createdAt: incidentReports.createdAt,
@@ -70,7 +70,7 @@ export default async (req: Request) => {
       console.warn("[user-my-reports] incident 조회 실패", err);
     }
     results.push(...rows.map((r) => ({ ...r, reportType: "incident" })));
-    /* ★ R41 Q2-012: 사건 신고 전체 건수 */
+    /* R41 Q2-012: 사건 신고 전체 건수 */
     try {
       const [c]: any = await db.select({ c: count() }).from(incidentReports).where(eq(incidentReports.memberId, memberId));
       total += Number(c?.c || 0);
@@ -85,14 +85,14 @@ export default async (req: Request) => {
         id: harassmentReports.id,
         reportNo: harassmentReports.reportNo,
         title: harassmentReports.title,
-        contentHtml: harassmentReports.contentHtml,   /* ★ P1-6: 수정 모달 본문 채움용 */
+        contentHtml: harassmentReports.contentHtml,   /* P1-6: 수정 모달 본문 채움용 */
         category: harassmentReports.category,
         status: harassmentReports.status,
         isAnonymous: harassmentReports.isAnonymous,
-        aiSummary: harassmentReports.aiSummary,       /* ★ R41 Q2-012: AI 요약 카드 표시용 */
-        aiSeverity: harassmentReports.aiSeverity,     /* ★ R41 Q2-012 */
-        occurredAt: harassmentReports.occurredAt,     /* ★ R41 Q2-011: 수정 모달 발생일·빈도 채움용 */
-        frequency: harassmentReports.frequency,       /* ★ R41 Q2-011 */
+        aiSummary: harassmentReports.aiSummary,       /* R41 Q2-012: AI 요약 카드 표시용 */
+        aiSeverity: harassmentReports.aiSeverity,     /* R41 Q2-012 */
+        occurredAt: harassmentReports.occurredAt,     /* R41 Q2-011: 수정 모달 발생일·빈도 채움용 */
+        frequency: harassmentReports.frequency,       /* R41 Q2-011 */
         adminResponse: harassmentReports.adminResponse,
         respondedAt: harassmentReports.respondedAt,
         createdAt: harassmentReports.createdAt,
@@ -107,7 +107,7 @@ export default async (req: Request) => {
       console.warn("[user-my-reports] harassment 조회 실패", err);
     }
     results.push(...rows.map((r) => ({ ...r, reportType: "harassment" })));
-    /* ★ R41 Q2-012: 괴롭힘 신고 전체 건수 */
+    /* R41 Q2-012: 괴롭힘 신고 전체 건수 */
     try {
       const [c]: any = await db.select({ c: count() }).from(harassmentReports).where(eq(harassmentReports.memberId, memberId));
       total += Number(c?.c || 0);
@@ -122,14 +122,14 @@ export default async (req: Request) => {
         id: legalConsultations.id,
         reportNo: legalConsultations.consultationNo,
         title: legalConsultations.title,
-        contentHtml: legalConsultations.contentHtml,   /* ★ P1-6: 수정 모달 본문 채움용 */
+        contentHtml: legalConsultations.contentHtml,   /* P1-6: 수정 모달 본문 채움용 */
         category: legalConsultations.category,
         status: legalConsultations.status,
         isAnonymous: legalConsultations.isAnonymous,
-        aiSummary: legalConsultations.aiSummary,       /* ★ R41 Q2-012: AI 요약 카드 표시용 */
-        aiUrgency: legalConsultations.aiUrgency,       /* ★ R41 Q2-012 */
-        urgency: legalConsultations.urgency,           /* ★ R41 Q2-011: 수정 모달 긴급도 채움용 */
-        partyInfo: legalConsultations.partyInfo,       /* ★ R41 Q2-011: 수정 모달 당사자정보 채움용 */
+        aiSummary: legalConsultations.aiSummary,       /* R41 Q2-012: AI 요약 카드 표시용 */
+        aiUrgency: legalConsultations.aiUrgency,       /* R41 Q2-012 */
+        urgency: legalConsultations.urgency,           /* R41 Q2-011: 수정 모달 긴급도 채움용 */
+        partyInfo: legalConsultations.partyInfo,       /* R41 Q2-011: 수정 모달 당사자정보 채움용 */
         adminResponse: legalConsultations.adminResponse,
         respondedAt: legalConsultations.respondedAt,
         assignedLawyerName: legalConsultations.assignedLawyerName,
@@ -145,7 +145,7 @@ export default async (req: Request) => {
       console.warn("[user-my-reports] legal 조회 실패", err);
     }
     results.push(...rows.map((r) => ({ ...r, reportType: "legal" })));
-    /* ★ R41 Q2-012: 법률 상담 전체 건수 */
+    /* R41 Q2-012: 법률 상담 전체 건수 */
     try {
       const [c]: any = await db.select({ c: count() }).from(legalConsultations).where(eq(legalConsultations.memberId, memberId));
       total += Number(c?.c || 0);
@@ -155,7 +155,7 @@ export default async (req: Request) => {
   // createdAt 내림차순 정렬 (all 모드)
   results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  /* ★ 2026-06-27: 반려 사유 노출 — 반려 시 사유는 report_status_logs.note(to_status='rejected')에
+  /* 2026-06-27: 반려 사유 노출 — 반려 시 사유는 report_status_logs.note(to_status='rejected')에
      보존됨(AD-014). 신고별 최신 반려 note를 rejectedReason로 부착해 마이페이지 타임라인에 표시.
      실패해도 목록은 정상 반환(보조 조회). */
   try {
@@ -188,7 +188,7 @@ export default async (req: Request) => {
     console.warn("[user-my-reports] 반려사유 부착 실패(무시):", err);
   }
 
-  /* ★ R41 Q2-012: total·limit·totalPages 추가 (페이지네이션이 실제 전체 건수 사용) */
+  /* R41 Q2-012: total·limit·totalPages 추가 (페이지네이션이 실제 전체 건수 사용) */
   return new Response(JSON.stringify({
     ok: true,
     page,
