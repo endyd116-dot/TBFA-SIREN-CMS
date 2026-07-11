@@ -55,7 +55,7 @@ export default async (req: Request, _ctx: Context) => {
     if (memberIds.length > 0) {
       try {
         const mRows = await db.execute(sql`
-          SELECT id, name FROM members WHERE id = ANY(${memberIds})
+          SELECT id, name FROM members WHERE id = ANY(ARRAY[${sql.raw(memberIds.map(Number).join(","))}]::int[])
         `);
         const list2: any[] = Array.isArray(mRows) ? mRows : (mRows as any).rows ?? [];
         for (const m of list2) nameMap.set(Number(m.id), String(m.name));

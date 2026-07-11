@@ -16,7 +16,7 @@
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { workspaceEvents, members, workspaceEventRsvps } from "../../db/schema";
-import { eq, and, or, desc, asc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, gte, lte, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, methodNotAllowed, serverError,
@@ -136,13 +136,14 @@ export default async (req: Request, _ctx: Context) => {
         if (!canView) return forbidden("조회 권한이 없습니다");
 
         // 참석자 이름 조회
-        const attendeeIds = attendees.map((a: any) => a.memberId).filter(Boolean);
+        const attendeeIds = attendees.map((a: any) => a.memberId).filter(Boolean) as number[];
         let memberMap: Record<number, string> = {};
         if (attendeeIds.length > 0) {
+          // ★ 라이브 E2E fix: sql`= ANY(${배열})` 동일 결함 → inArray()로 교체(참석자 이름이 null로 나오던 잠복 버그)
           const memberList: any = await db
             .select({ id: members.id, name: members.name })
             .from(members)
-            .where(sql`${members.id} = ANY(${attendeeIds})`);
+            .where(inArray(members.id, attendeeIds));
           for (const m of memberList) memberMap[m.id] = m.name;
         }
 
@@ -214,14 +215,18 @@ export default async (req: Request, _ctx: Context) => {
           .limit(limit);
 
         // [감사#18] 공유 캘린더 — 소유자 이름 병기(전 운영자 일정 구분용)
+        //   ★ 라이브 E2E fix: sql`= ANY(${배열})`는 drizzle이 파라미터를 펼쳐 ANY($1,$2)로 깨뜨림 → 쿼리 실패로 이름이 전부 null.
+        //   inArray()로 교체 + 실패 시 조용히 넘기지 않고 경고 로그.
         let ownerMap: Record<number, string> = {};
-        const ownerIds = [...new Set(eventItems.map((e: any) => e.memberId).filter(Boolean))];
+        const ownerIds = [...new Set(eventItems.map((e: any) => e.memberId).filter(Boolean))] as number[];
         if (ownerIds.length > 0) {
           try {
             const owners: any = await db.select({ id: members.id, name: members.name })
-              .from(members).where(sql`${members.id} = ANY(${ownerIds})`);
+              .from(members).where(inArray(members.id, ownerIds));
             for (const o of owners) ownerMap[o.id] = o.name;
-          } catch { /* 이름 조회 실패는 무시 */ }
+          } catch (err) {
+            console.warn("[events] 소유자 이름 조회 실패:", err);
+          }
         }
         const typedEvents = eventItems.map((e: any) => ({ type: "event", ...e, ownerName: ownerMap[e.memberId] || null }));
 

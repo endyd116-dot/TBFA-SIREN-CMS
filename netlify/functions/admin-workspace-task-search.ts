@@ -196,7 +196,7 @@ export default async (req: Request, _ctx: Context) => {
         const mList: any = await db
           .select({ id: members.id, name: members.name })
           .from(members)
-          .where(sql`${members.id} = ANY(${assigneeIds})`);
+          .where(inArray(members.id, assigneeIds as number[])); /* ★E2E fix */
         for (const m of mList) nameMap[m.id] = m.name;
       } catch { /* 보조 쿼리 실패 시 무시 */ }
     }

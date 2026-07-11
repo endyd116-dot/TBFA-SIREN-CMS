@@ -12,7 +12,7 @@
 //  - POST/PATCH/DELETE: super_admin 또는 'all' 카테고리 담당자
 /* 2026-07-02: assignedCategories canEdit → role_permissions canAccess('content_edit') 교체 — 권한설계 화면에서 중앙 제어 */
 
-import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
+import { eq, and, desc, sql, or, ilike, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { resources, resourceCategories, members, blobUploads } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -336,7 +336,7 @@ export default async (req: Request) => {
             icon: resourceCategories.icon,
           })
           .from(resourceCategories)
-          .where(sql`${resourceCategories.id} = ANY(${catIds})`);
+          .where(inArray(resourceCategories.id, catIds as number[])); /* ★E2E fix */
         for (const c of cats) catMap[String(c.id)] = c;
       }
 

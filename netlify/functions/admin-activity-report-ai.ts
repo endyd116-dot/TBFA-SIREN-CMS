@@ -21,7 +21,7 @@
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자
 
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { activityPosts, blobUploads, receiptSettings } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -286,7 +286,7 @@ export default async (req: Request) => {
                 context: blobUploads.context,
               })
               .from(blobUploads)
-              .where(sql`${blobUploads.id} = ANY(${attachIds})`);
+              .where(inArray(blobUploads.id, attachIds as number[])); /* ★E2E fix */
             const pdfBlob = blobRows.find((b: any) =>
               b.context === "activity_report_pdf" || b.mimeType === "application/pdf"
             );

@@ -292,18 +292,10 @@
     setBadge('#wsNavInboxBadge', d.inboxCount);
     setBadge('#wsNavDueBadge', (d.overdueCount || 0) + (d.todayDueCount || 0));
 
-    // 알림 벨
-    const notifCount = $('#wsNotifCount');
-    if (notifCount) {
-      // [감사#85] 브리핑 응답 키는 unreadNotifCount — 기존 잘못된 키(unreadNotificationsCount)로 항상 0→배지 깜빡임
-      const n = Number(d.unreadNotifCount ?? d.unreadNotificationsCount ?? 0);
-      if (n > 0) {
-        notifCount.textContent = n > 99 ? '99+' : n;
-        notifCount.style.display = '';
-      } else {
-        notifCount.style.display = 'none';
-      }
-    }
+    /* 알림 벨 배지는 여기서 갱신하지 않는다.
+       [감사#85 · 라이브 E2E fix] 브리핑(워크스페이스 알림만 집계)과 통합 알림 API(두 저장소 합산)가
+       서로 다른 숫자를 같은 배지에 60초마다 번갈아 써서 숫자가 깜빡이며 오락가락했다(예: 300 ↔ 325).
+       → 배지는 통합 알림 API(loadNotifications)를 단일 출처로 삼는다. */
 
     // 인사말 + 날짜
     const greet = $('#wsGreeting');

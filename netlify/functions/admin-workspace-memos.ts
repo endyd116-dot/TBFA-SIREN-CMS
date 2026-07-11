@@ -105,7 +105,7 @@ export default async (req: Request, _ctx: Context) => {
                 TO_CHAR(event_date, 'YYYY-MM-DD') AS "eventDate",
                 TO_CHAR(event_time, 'HH24:MI:SS') AS "eventTime"
               FROM workspace_memos
-              WHERE id = ANY(${ids})
+              WHERE id = ANY(ARRAY[${sql.raw(ids.map(Number).join(","))}]::int[])
             `);
             const rows = Array.isArray(calRows) ? calRows : (calRows as any).rows || [];
             for (const r of rows) {

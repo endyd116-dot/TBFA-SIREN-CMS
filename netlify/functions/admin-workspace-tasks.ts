@@ -21,7 +21,7 @@ import {
   workspaceTaskMentions,
   members,
 } from "../../db/schema";
-import { eq, and, or, desc, asc, sql, lte, gte, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, lte, gte, isNull, isNotNull, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
@@ -216,7 +216,7 @@ export default async (req: Request, _ctx: Context) => {
             const memberList: any = await db
               .select({ id: members.id, name: members.name })
               .from(members)
-              .where(sql`${members.id} = ANY(${actorIds})`);
+              .where(inArray(members.id, actorIds as number[])); /* ★E2E fix: ANY(배열) 직렬화 예외 → inArray */
             for (const m of memberList) actorNameMap[m.id] = m.name;
           } catch { /* 보조 쿼리 실패 시 무시 */ }
         }
@@ -310,7 +310,7 @@ export default async (req: Request, _ctx: Context) => {
           ? await db
               .select({ id: members.id, name: members.name })
               .from(members)
-              .where(sql`${members.id} = ANY(${memberIds})`)
+              .where(inArray(members.id, memberIds as number[])) /* ★E2E fix: 단건 조회 500 원인 */
           : [];
         const memberMap: Record<number, string> = {};
         for (const m of memberList) memberMap[m.id] = m.name;
@@ -439,7 +439,7 @@ export default async (req: Request, _ctx: Context) => {
                      COUNT(*)::int                                       AS subtask_count,
                      COUNT(*) FILTER (WHERE status = 'done')::int        AS subtask_done_count
               FROM workspace_tasks
-              WHERE parent_task_id = ANY(${taskIds})
+              WHERE parent_task_id = ANY(ARRAY[${sql.raw(taskIds.map(Number).join(","))}]::int[])
               GROUP BY parent_task_id
             `);
             const subRows = subRes?.rows ?? subRes ?? [];

@@ -5314,7 +5314,7 @@ async function tool_legalReplyBatch(args: any, adminId: number | null): Promise<
     const r: any = await db.execute(sql`
       SELECT id, title, content_html, status
         FROM legal_consultations
-       WHERE id = ANY(${ids})
+       WHERE id = ANY(ARRAY[${sql.raw(ids.map(Number).join(","))}]::int[])
        ORDER BY id
     `);
     const rows: any[] = r?.rows ?? r ?? [];
@@ -5380,7 +5380,7 @@ async function tool_harassmentReplyBatch(args: any, adminId: number | null): Pro
     const r: any = await db.execute(sql`
       SELECT id, title, content_html, status
         FROM harassment_reports
-       WHERE id = ANY(${ids})
+       WHERE id = ANY(ARRAY[${sql.raw(ids.map(Number).join(","))}]::int[])
        ORDER BY id
     `);
     const rows: any[] = r?.rows ?? r ?? [];
@@ -5503,7 +5503,7 @@ async function tool_notificationBatch(args: any, adminId: number | null): Promis
   try {
     if (inputMemberIds.length > 0) {
       const r: any = await db.execute(sql`
-        SELECT id, name FROM members WHERE id = ANY(${inputMemberIds}) AND deleted_at IS NULL ORDER BY id
+        SELECT id, name FROM members WHERE id = ANY(ARRAY[${sql.raw(inputMemberIds.map(Number).join(","))}]::int[]) AND deleted_at IS NULL ORDER BY id
       `);
       targetMembers = (r?.rows ?? r ?? []).map((row: any) => ({ id: Number(row.id), name: String(row.name || "") }));
     } else if (filter.type || filter.role) {

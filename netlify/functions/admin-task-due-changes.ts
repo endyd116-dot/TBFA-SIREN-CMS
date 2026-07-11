@@ -19,7 +19,7 @@ import {
   taskDueChangeRequests,
   members,
 } from "../../db/schema";
-import { eq, and, or, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, methodNotAllowed, serverError,
@@ -117,7 +117,7 @@ export default async (req: Request, _ctx: Context) => {
           if (taskIds.length > 0) {
             conds.push(or(
               eq(taskDueChangeRequests.requestedBy, meId),
-              sql`${taskDueChangeRequests.taskId} = ANY(${taskIds})`
+              inArray(taskDueChangeRequests.taskId, taskIds as number[]) /* ★E2E fix */
             ));
           } else {
             conds.push(eq(taskDueChangeRequests.requestedBy, meId));

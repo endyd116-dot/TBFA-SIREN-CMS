@@ -5,7 +5,7 @@
 // GET /api/public/activity-reports?year=2025      — 연도 필터
 // GET /api/public/activity-reports?id=N           — 단건 + PDF 링크 + 조회수+1
 
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { activityPosts, blobUploads } from "../../db/schema";
 import {
@@ -65,7 +65,7 @@ export default async (req: Request) => {
               sizeBytes: blobUploads.sizeBytes,
             })
             .from(blobUploads)
-            .where(sql`${blobUploads.id} = ANY(${ids})`);
+            .where(inArray(blobUploads.id, ids as number[])); /* ★E2E fix */
           const pdfBlob = blobRows.find((b: any) =>
             b.context === "activity_report_pdf" || b.mimeType === "application/pdf"
           );
@@ -180,7 +180,7 @@ export default async (req: Request) => {
         const sizes = await db
           .select({ id: blobUploads.id, sizeBytes: blobUploads.sizeBytes })
           .from(blobUploads)
-          .where(sql`${blobUploads.id} = ANY(${allBlobIds})`);
+          .where(inArray(blobUploads.id, allBlobIds as number[])); /* ★E2E fix */
         for (const s of sizes as any[]) {
           blobSizeMap[s.id] = s.sizeBytes;
         }
