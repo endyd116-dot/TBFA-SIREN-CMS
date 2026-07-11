@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.6";
+export const APP_VERSION = "2026-07-12.7";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,20 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    /* 급여·근태 정책이 실제로 바뀝니다 — 전 직원이 알아야 하므로 가장 먼저 발행하세요 */
+    key: "2026-07-12-payroll-policy",
+    title: "[중요] 급여·근태 정책 변경 안내",
+    items: [
+      { text: "급여는 이제 '실제 근무시간'으로 그날 지급일수를 정합니다 — 8시간 이상 1일치 / 6~8시간 0.75일치 / 4~6시간 0.5일치 (반차·반반차)", link: "/workspace-attendance.html" },
+      { text: "휴가를 신청하지 않고 일찍 퇴근해도 일한 만큼만 지급됩니다. 소정근로에 못 미친 날은 그날 저녁에 '반차·조퇴 처리가 필요합니다' 알림이 갑니다", link: "/workspace-attendance.html" },
+      { text: "구간 경계에는 10분 유예가 있습니다 — 몇 분 차이로 지급일수가 깎이지 않습니다" },
+      { text: "휴게시간이 법정 기준으로 바뀌었습니다 — 4시간 이하 근무는 휴게를 빼지 않고, 4~8시간은 30분, 8시간 이상은 1시간 (반차 4시간이 3시간으로 기록되던 문제 해결)" },
+      { text: "토·일·공휴일에 찍힌 출근은 급여 지급일수에서 제외됩니다. 실제 휴일근무 보상은 명세서에 별도 항목으로 지급됩니다" },
+      { text: "2026년 7월부터, 재택근무일에 일일 보고서를 내지 않으면 그 날은 근무로 인정되지 않습니다 (재택일 +3일 자정 마감). 재택보고서 탭에서 아직 안 낸 날과 남은 기한을 확인하세요", link: "/workspace-attendance.html" },
+      { text: "명세서에 '왜 이 금액인지'가 표시됩니다 — 소정근로 미달·휴일 출근·재택보고서 미제출·퇴근 미기록이 각각 몇 일인지 알 수 있습니다", link: "/workspace-attendance.html" },
+    ],
+  },
   {
     key: "2026-07-12-icons-and-workspace",
     title: "화면 아이콘 새 단장 · 워크스페이스 대규모 개선",
