@@ -1721,7 +1721,7 @@ export const taskDueChangeRequests = pgTable("task_due_change_requests", {
   id: serial("id").primaryKey(),
   taskId: integer("task_id").references(() => workspaceTasks.id, { onDelete: "cascade" }).notNull(),
   requestedBy: integer("requested_by").references(() => members.id, { onDelete: "cascade" }).notNull(),
-  currentDue: timestamp("current_due").notNull(),
+  currentDue: timestamp("current_due"),  // [감사#97] 마감일 없는 작업의 변경요청 허용 위해 nullable (migrate-due-change-nullable 적용 완료)
   newDue: timestamp("new_due").notNull(),
   reason: text("reason").notNull(),
   status: varchar("status", { length: 20 }).default("pending").notNull(),  // pending | approved | rejected
