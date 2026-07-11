@@ -2,7 +2,7 @@
 // 출퇴근 다중 세션 헬퍼 — att-checkin · att-checkout · att-session-edit 공용.
 // 요약 컬럼(check_in_time=첫 출근·check_out_time=마지막 퇴근·working_mins=합계)을
 // 세션 배열로부터 재계산해 기존 통계·급여·현황과의 호환을 유지한다.
-import { calcWorkingMins } from "./att-utils";
+import { calcWorkingMins, breakMinsFor } from "./att-utils";
 
 export interface AttSession {
   in: string;                 // ISO 문자열 (출근)
@@ -91,9 +91,13 @@ export function recomputeSummary(
     total += Math.max(0, (new Date(s.out as string).getTime() - new Date(s.in).getTime()) / 60000);
   }
   total = Math.round(total);
-  // Q3-026 fix(P-4): 단일 세션과 동일하게 임계 초과 시 휴게 차감 — 세션 분할 여부로 근무시간이 달라지지 않게 일관화.
-  const thresholdMins = Number(policy.breakThresholdHours) * 60;
-  if (thresholdMins > 0 && total >= thresholdMins) total = Math.max(0, total - Number(policy.breakMins || 0));
+  // Q3-026 fix(P-4): 단일 세션과 동일하게 휴게 차감 — 세션 분할 여부로 근무시간이 달라지지 않게 일관화.
+  // 2026-07-12: 휴게 단계화(4시간 이하 0분 / 4~8시간 30분 / 8시간 이상 60분)를 단일 세션과 공유.
+  total = Math.max(0, total - breakMinsFor(total, {
+    dailyHours: Number(policy.dailyHours),
+    breakMins: Number(policy.breakMins || 0),
+    breakThresholdHours: Number(policy.breakThresholdHours),
+  }));
   const dailyMins = Number(policy.dailyHours) * 60;
   return { checkInTime: firstIn, checkOutTime: lastOut, workingMins: total, overtimeMins: Math.max(0, total - dailyMins) };
 }

@@ -194,12 +194,15 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
     }
     ctx.y -= 17;
   }
-  /* 급여에서 빠진 날이 있으면 그 이유를 문서에 남긴다 — 직원이 왜 줄었는지 알 수 있어야 한다 */
-  const warned = bd.attendance.find(a => a.warn);
-  if (warned) {
-    ensureSpace(ctx, 18);
-    text(ctx, `※ ${warned.label} ${warned.value} — ${warned.hint ?? "근무 불인정"}`, labelX, 8, WARN);
-    ctx.y -= 14;
+  /* 지급에서 빠지거나 줄어든 날이 있으면 이유를 전부 문서에 남긴다 — 직원이 왜 줄었는지 알 수 있어야 한다 */
+  for (const w of bd.attendance.filter(a => a.warn)) {
+    const note = `※ ${w.label} ${w.value} — ${w.hint ?? "지급 제외"}`;
+    for (const line of wrapText(ctx, note, 8, A4_W - MARGIN * 2 - 16)) {
+      ensureSpace(ctx, 14);
+      text(ctx, line, labelX, 8, WARN);
+      ctx.y -= 11;
+    }
+    ctx.y -= 2;
   }
   ctx.y -= 6;
   hr(ctx);

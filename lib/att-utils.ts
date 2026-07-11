@@ -170,6 +170,30 @@ export function flexStartFloor(firstIn: Date, checkInTimeHHMM: string, flexRange
   return new Date(floorShiftedMs - 9 * 3_600_000);
 }
 
+/**
+ * 재실시간(출근~퇴근)에 따라 차감할 휴게시간(분).
+ *
+ * 2026-07-12 개정 — 근로기준법 제54조에 맞춰 단계화:
+ *   · 소정근로(8시간) 이상  → 설정값 (기본 60분)
+ *   · 4시간 초과 ~ 8시간 미만 → 30분 (법정 최소)
+ *   · 4시간 이하             → 0분   (반차 4시간 연속근무 — 휴게를 빼지 않는다)
+ *
+ * 과거엔 "4시간만 넘으면 무조건 60분"이라, 반차(4시간)를 쓴 날의 근무시간이
+ * 3시간으로 기록돼 실제보다 1시간 짧게 남았다. 급여를 근무시간으로 산정하게 되면서
+ * 이 오차가 그대로 지급액 오류로 이어지므로 바로잡는다.
+ */
+export function breakMinsFor(
+  totalMins: number,
+  policy: { dailyHours: number; breakMins: number; breakThresholdHours: number }
+): number {
+  const fullMins = Number(policy.dailyHours) * 60;            // 8시간
+  const halfMins = Number(policy.breakThresholdHours) * 60;   // 4시간
+  const full = Number(policy.breakMins) || 0;
+  if (totalMins >= fullMins) return full;                     // 8시간 이상 → 설정값(60분)
+  if (totalMins > halfMins) return Math.min(full, 30);        // 4시간 초과 ~ 8시간 미만 → 30분
+  return 0;                                                   // 4시간 이하 → 휴게 차감 없음
+}
+
 export function calcWorkingMins(
   checkIn: Date,
   checkOut: Date,
@@ -180,12 +204,51 @@ export function calcWorkingMins(
   }
 ): WorkTimeResult {
   const totalMins = Math.floor((checkOut.getTime() - checkIn.getTime()) / 60000);
-  const thresholdMins = policy.breakThresholdHours * 60;
-  const breakDeducted = totalMins >= thresholdMins;
-  const workingMins = breakDeducted ? totalMins - policy.breakMins : totalMins;
+  const deduct = breakMinsFor(totalMins, policy);
+  const workingMins = totalMins - deduct;
   const standardMins = policy.dailyHours * 60;
   const overtimeMins = Math.max(0, workingMins - standardMins);
-  return { workingMins: Math.max(0, workingMins), overtimeMins, totalMins, breakDeducted };
+  return { workingMins: Math.max(0, workingMins), overtimeMins, totalMins, breakDeducted: deduct > 0 };
+}
+
+/**
+ * 지급일수 구간 판정의 유예(분).
+ *
+ * 왜 필요한가: 유예가 없으면 근무시간이 1분 모자란 것만으로 지급이 25% 깎인다.
+ *   (실제 사례: 08:00~17:00 근무가 초 단위 때문에 7시간 59분으로 기록 → 0.75일치로 추락)
+ *   출퇴근 버튼을 누르는 시각은 몇 분 흔들릴 수밖에 없으므로, 각 구간 경계에 유예를 둔다.
+ */
+export const PAY_DAY_GRACE_MINS = 10;
+
+/**
+ * 그날 급여 지급 대상 일수 — 실제 근무시간을 소정근로시간 대비 0.25일 단위로 환산.
+ *
+ * Swain 정책(2026-07-12): 일급제라도 반차·반반차를 쓴 날은 일한 만큼만 지급한다.
+ *   8시간 이상        → 1.00일
+ *   6시간 이상 8시간 미만 → 0.75일   (반반차 수준)
+ *   4시간 이상 6시간 미만 → 0.50일   (반차 수준)
+ *   2시간 이상 4시간 미만 → 0.25일
+ *   2시간 미만        → 0
+ * 각 경계는 위 유예(기본 10분)만큼 너그럽게 본다.
+ *
+ * 휴가 신청 여부와 무관하게 '실제 일한 시간'으로 정하므로,
+ * 반차를 신청하지 않고 일찍 퇴근해도 급여가 정확히 맞는다.
+ * (퇴근을 안 찍어 근무시간을 모르는 날은 호출부에서 별도 처리 — 여기선 0)
+ */
+export function payDayFraction(
+  workingMins: number | null | undefined,
+  dailyHours = 8,
+  graceMins: number = PAY_DAY_GRACE_MINS,
+): number {
+  const std = Number(dailyHours) * 60;
+  const mins = Number(workingMins);
+  if (!Number.isFinite(mins) || mins <= 0 || std <= 0) return 0;
+  const g = Math.max(0, Number(graceMins) || 0);
+  if (mins >= std - g)        return 1;
+  if (mins >= std * 0.75 - g) return 0.75;
+  if (mins >= std * 0.5 - g)  return 0.5;
+  if (mins >= std * 0.25 - g) return 0.25;
+  return 0;
 }
 
 // ─────────────────────────────────────────────────────────

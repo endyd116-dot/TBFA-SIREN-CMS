@@ -92,30 +92,57 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
   const unpaidLeaveDays   = num(slip.unpaidLeaveDays ?? slip.unpaid_leave_days);
   const paidDays          = derived.paidDays != null ? num(derived.paidDays) : workingDays + paidLeaveDays;
 
-  /* ── 근태 근거 ── */
+  /* ── 근태 근거 ──
+     2026-07-12: 지급일수는 '실제 근무시간'으로 정한다 (8시간↑=1.0 / 6~8h=0.75 / 4~6h=0.5 / 2~4h=0.25).
+     그래서 근무일수가 소수(예: 10.75일)로 나올 수 있고, 그 이유가 명세서에 드러나야 한다. */
+  const stdHours = num(snap?.att?.dailyHours) || 8;
   const attendance: Array<{ label: string; value: string; hint?: string; warn?: boolean }> = [
-    { label: "출근 일수",   value: `${workingDays}일` },
-    { label: "유급 휴가",   value: `${paidLeaveDays}일`, hint: "지급 대상에 포함" },
-    { label: "지급 대상일", value: `${paidDays}일`,      hint: "출근일 + 유급휴가일" },
+    { label: "근무 일수", value: `${workingDays}일`,
+      hint: `실제 근무시간 기준 (소정 ${stdHours}시간 = 1일 · 반차 0.5일 · 반반차 0.75일)` },
+    { label: "유급 휴가", value: `${paidLeaveDays}일`, hint: "하루를 통째로 쉰 유급휴가 (지급 대상 포함)" },
+    { label: "지급 대상일", value: `${paidDays}일`, hint: "근무일수 + 유급휴가일" },
   ];
   if (monthBusinessDays > 0) {
-    const notPaid = Math.max(0, monthBusinessDays - paidDays);
     attendance.push({ label: "그 달 영업일수", value: `${monthBusinessDays}일`, hint: "일급을 구하는 분모 (주말 제외)" });
-    attendance.push({ label: "미산입(무급)",   value: `${notPaid}일`,           hint: "공휴일·결근·무급휴가" });
   }
   attendance.push({ label: "무급 휴가", value: `${unpaidLeaveDays}일` });
   attendance.push({ label: "지각",      value: `${num(slip.lateCount ?? slip.late_count)}회` });
   attendance.push({ label: "결근",      value: `${num(slip.absentCount ?? slip.absent_count)}회` });
-  /* 재택근무일에 보고서를 안 내면 그 날은 근무로 인정하지 않는다 (2026-07-01부터).
-     급여에서 빠진 날이므로 명세서에 반드시 드러나야 직원이 이유를 알 수 있다. */
+
+  /* 지급에서 빠지거나 줄어든 날은 이유를 반드시 드러낸다 — 직원이 급여가 왜 줄었는지 알아야 한다. */
+  const shortDays = num(snap?.att?.shortDays);
+  if (shortDays > 0) {
+    attendance.push({
+      label: "소정근로 미달", value: `${shortDays}일`,
+      hint: `${stdHours}시간을 못 채운 날 — 일한 시간만큼 0.25일 단위로 지급 (반차 0.5 · 반반차 0.75)`,
+      warn: true,
+    });
+  }
   const unreportedRemote = num(snap?.att?.unreportedRemoteDays);
   if (unreportedRemote > 0) {
     attendance.push({
       label: "재택보고서 미제출", value: `${unreportedRemote}일`,
-      hint: "근무 불인정 — 출근일에서 제외됨 (보고서를 제출하면 다시 인정)",
+      hint: "근무 불인정 — 지급일수에서 제외 (보고서를 제출하면 다시 인정)",
       warn: true,
     });
   }
+  const offDay = num(snap?.att?.offDayWorkDays);
+  if (offDay > 0) {
+    attendance.push({
+      label: "휴일 출근", value: `${offDay}일`,
+      hint: "토·일·공휴일 출근은 지급일수에서 제외 (휴일근무 보상은 별도 지급)",
+      warn: true,
+    });
+  }
+  const noCheckout = num(snap?.att?.noCheckoutDays);
+  if (noCheckout > 0) {
+    attendance.push({
+      label: "퇴근 미기록", value: `${noCheckout}일`,
+      hint: "근무시간을 알 수 없어 지급에서 빠졌습니다 — 근태 수정 요청으로 퇴근 시각을 등록하세요",
+      warn: true,
+    });
+  }
+
   attendance.push({ label: "총 근무시간", value: hoursText(slip.workingMins ?? slip.working_mins) });
   attendance.push({ label: "만근 여부", value: (slip.perfectAttendance ?? slip.perfect_attendance) ? "예" : "아니오" });
 

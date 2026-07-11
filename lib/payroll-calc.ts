@@ -15,6 +15,7 @@ import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { REMOTE_REPORT_REQUIRED_FROM } from "./att-remote-policy";
 import { taxableBaseOf } from "./payroll-breakdown";
+import { getDefaultPolicy, PAY_DAY_GRACE_MINS } from "./att-utils";
 
 /* === 급여 고도화 (2026-05-20): 계산 기준 + 공제 === */
 export interface PayrollSettings {
@@ -117,6 +118,16 @@ export async function calculatePayrollForMonth(
   const q = quarterOfMonth(month);
   const settings = await loadPayrollSettings();
 
+  /* 소정근로시간(하루 몇 시간) — 근태 정책에서. 지급일수를 근무시간으로 환산할 때의 기준(분모).
+     정책을 못 읽으면 8시간으로 본다. */
+  let dailyHours = 8;
+  try {
+    const pol = await getDefaultPolicy();
+    if (pol?.dailyHours) dailyHours = Number(pol.dailyHours) || 8;
+  } catch { /* 기본 8시간 */ }
+  const stdMins = Math.max(1, Math.round(dailyHours * 60));
+  const graceMins = PAY_DAY_GRACE_MINS;
+
   const result: PayrollCalcResult = {
     year, month,
     candidateCount: 0,
@@ -155,29 +166,64 @@ export async function calculatePayrollForMonth(
     const baseSalary = Number(m.base_salary || 0);
 
     try {
-      /* 2-1. att_records 집계
-         2026-07-12: 재택근무일에 일일 보고서를 안 냈으면 그 날은 근무로 인정하지 않는다(2026-07-01부터).
-           근태 기록은 사실대로 두고 집계에서만 뺀다 → 나중에 보고서를 내면 재집계 시 자동으로 다시 인정됨.
-           (lib/att-remote-policy.ts 참고) */
+      /* 2-1. att_records 집계 — 지급 대상 근무일수(working_days) 산정
+         [2026-07-12 정책 전면 개정 · Swain]
+           ① 지급일수는 '실제 근무시간'으로 정한다 (일급제라도 일한 만큼만).
+              8시간↑ = 1.0 / 6~8시간 = 0.75(반반차) / 4~6시간 = 0.5(반차) / 2~4시간 = 0.25
+              → 휴가 신청을 안 하고 일찍 퇴근해도 급여가 정확히 맞는다.
+           ② 토·일·공휴일 출근은 지급일수에서 제외한다.
+              일급의 분모(그 달 영업일수)에 주말이 없으므로, 분자에 넣으면 그대로 과지급된다.
+              (2026-06-28 일요일 잘못 찍은 출근이 1일치로 지급되던 실제 사고)
+              진짜 휴일근무 보상은 명세서 조정 라인으로 따로 지급한다.
+           ③ 재택근무일에 보고서를 안 냈으면 그 날은 근무로 인정하지 않는다 (2026-07-01부터).
+           ④ 퇴근을 안 찍어 근무시간을 모르는 날은 0으로 두고 별도 카운트 →
+              명세서에 경고를 띄워 관리자가 정정하게 한다 (모르는 채로 지급/미지급하지 않는다).
+         전일 유급휴가(연차 등)는 아래 2-2에서 따로 더한다. */
       const attRows = await db.execute(sql`
         SELECT
-          -- P1-20 fix: 반차(PARTIAL_LEAVE)는 출근 0.5일로 집계. 나머지 반나절은 유급휴가 0.5일로 별도 합산되므로
-          --            (아래 paidDays=출근일+유급휴가일) 하루 상한 1.0일 보장 (과거: 출근 1일+휴가 0.5=1.5일 과지급).
-          (COUNT(*) FILTER (WHERE t.status IN ('NORMAL','LATE','EARLY_LEAVE') AND NOT t.unrecognized)
-            + 0.5 * COUNT(*) FILTER (WHERE t.status = 'PARTIAL_LEAVE'))::numeric AS working_days,
-          COALESCE(SUM(t.working_mins) FILTER (WHERE t.working_mins IS NOT NULL AND NOT t.unrecognized), 0)::int AS working_mins,
-          COALESCE(SUM(t.overtime_mins) FILTER (WHERE NOT t.unrecognized), 0)::int AS overtime_mins,
+          -- 경계마다 유예(PAY_DAY_GRACE_MINS)를 둔다 — 1분 모자라 25%가 깎이는 일이 없도록.
+          COALESCE(SUM(
+            CASE WHEN t.counts_for_pay THEN
+              CASE
+                WHEN t.working_mins >= ${stdMins} - ${graceMins}            THEN 1.00
+                WHEN t.working_mins >= ${stdMins} * 0.75 - ${graceMins}     THEN 0.75
+                WHEN t.working_mins >= ${stdMins} * 0.50 - ${graceMins}     THEN 0.50
+                WHEN t.working_mins >= ${stdMins} * 0.25 - ${graceMins}     THEN 0.25
+                ELSE 0
+              END
+            ELSE 0 END
+          ), 0)::numeric AS working_days,
+          COALESCE(SUM(t.working_mins) FILTER (WHERE t.counts_for_pay), 0)::int AS working_mins,
+          COALESCE(SUM(t.overtime_mins) FILTER (WHERE t.counts_for_pay), 0)::int AS overtime_mins,
           COUNT(*) FILTER (WHERE t.status = 'LATE')::int AS late_count,
           COUNT(*) FILTER (WHERE t.status = 'ABSENT')::int AS absent_count,
-          COUNT(*) FILTER (WHERE t.unrecognized)::int AS unreported_remote_days
+          COUNT(*) FILTER (WHERE t.unrecognized)::int AS unreported_remote_days,
+          COUNT(*) FILTER (WHERE t.attended AND t.is_off_day)::int AS off_day_work_days,
+          COUNT(*) FILTER (WHERE t.attended AND NOT t.is_off_day AND t.working_mins IS NULL)::int AS no_checkout_days,
+          COUNT(*) FILTER (WHERE t.counts_for_pay AND t.working_mins < ${stdMins})::int AS short_days
         FROM (
           SELECT
             ar.status, ar.working_mins, ar.overtime_mins,
+            /* 출근으로 기록된 날 */
+            (ar.status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')) AS attended,
+            /* 근무일이 아닌 날 (주말 · 공휴일) */
+            (EXTRACT(DOW FROM ar.date) IN (0, 6) OR hol.id IS NOT NULL) AS is_off_day,
+            /* 재택보고서 미제출 → 근무 불인정 */
             (ar.work_mode = 'REMOTE'
               AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
-              AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE')
-              AND rep.id IS NULL) AS unrecognized
+              AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+              AND rep.id IS NULL) AS unrecognized,
+            /* 급여 지급일수로 셀 수 있는 날 */
+            (ar.status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+              AND EXTRACT(DOW FROM ar.date) NOT IN (0, 6)
+              AND hol.id IS NULL
+              AND ar.working_mins IS NOT NULL
+              AND NOT (ar.work_mode = 'REMOTE'
+                       AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
+                       AND rep.id IS NULL)
+            ) AS counts_for_pay
           FROM att_records ar
+          LEFT JOIN att_holidays hol ON hol.date = ar.date
           LEFT JOIN att_remote_work_reports rep
             ON rep.member_uid = ar.member_uid
            AND rep.date = ar.date
@@ -195,12 +241,20 @@ export async function calculatePayrollForMonth(
       const lateCount = Number(att.late_count || 0);
       const absentCount = Number(att.absent_count || 0);
       const unreportedRemoteDays = Number(att.unreported_remote_days || 0);
+      const offDayWorkDays = Number(att.off_day_work_days || 0);        // 주말·공휴일 출근 (지급 제외)
+      const noCheckoutDays = Number(att.no_checkout_days || 0);         // 퇴근 미기록 (근무시간 미확인)
+      const shortDays = Number(att.short_days || 0);                    // 소정근로 미달 (0.25~0.75일치)
 
-      // 2-2. att_leave_requests 집계 (APPROVED·해당 월 시작일 기준)
+      /* 2-2. att_leave_requests 집계 (APPROVED·해당 월 시작일 기준)
+         2026-07-12: 반차·반반차 같은 '하루 미만(부분) 휴가'는 지급일수에 더하지 않는다.
+           그날 실제 근무시간으로 이미 0.5·0.75일치가 계산됐기 때문에, 여기서 또 더하면
+           반나절만 일하고 하루치를 받는 과지급이 된다 (Swain 정책: 일한 만큼만).
+           하루를 통째로 쉬는 유급휴가(연차 전일 등)만 여기서 더한다. */
       const leaveRows = await db.execute(sql`
         SELECT
-          COALESCE(SUM(lr.days) FILTER (WHERE lt.is_paid = TRUE), 0)::numeric AS paid_days,
-          COALESCE(SUM(lr.days) FILTER (WHERE lt.is_paid = FALSE), 0)::numeric AS unpaid_days
+          COALESCE(SUM(lr.days) FILTER (WHERE lt.is_paid = TRUE  AND lr.days >= 1), 0)::numeric AS paid_days,
+          COALESCE(SUM(lr.days) FILTER (WHERE lt.is_paid = FALSE AND lr.days >= 1), 0)::numeric AS unpaid_days,
+          COALESCE(SUM(lr.days) FILTER (WHERE lr.days < 1), 0)::numeric AS partial_days
         FROM att_leave_requests lr
         LEFT JOIN att_leave_types lt ON lt.id = lr.leave_type_id
         WHERE lr.member_uid = ${memberUid}
@@ -211,11 +265,13 @@ export async function calculatePayrollForMonth(
       const leave = ((leaveRows as any).rows || (leaveRows as any[]))[0] || {};
       const paidLeaveDays = Number(leave.paid_days || 0);
       const unpaidLeaveDays = Number(leave.unpaid_days || 0);
+      const partialLeaveDays = Number(leave.partial_days || 0);   // 반차·반반차 (근무시간으로 이미 반영)
 
       // Swain 2026-05-24: 급여 명세 대상 = 기본급 + 그달 근무실적 둘 다.
       // 기본급만 있고 해당 월 출퇴근·야근·휴가가 전혀 없으면 명세서 생성/갱신 제외
       // (운영 전 0원·무의미 명세서 방지). 기존 명세서가 있으면 보존(건드리지 않음).
-      const hasActivity = workingDays > 0 || overtimeMins > 0 || paidLeaveDays > 0 || unpaidLeaveDays > 0;
+      const hasActivity = workingDays > 0 || overtimeMins > 0 || paidLeaveDays > 0 || unpaidLeaveDays > 0
+        || noCheckoutDays > 0 || offDayWorkDays > 0;
       if (!hasActivity) {
         result.skipped++;
         result.skippedDetail.push({
@@ -225,10 +281,10 @@ export async function calculatePayrollForMonth(
         continue;
       }
 
-      // 만근 — 근무일 1일 이상 + 지각·결근·무급 휴가 0 + 재택보고서 미제출(근무 불인정) 0
+      // 만근 — 근무일 1일 이상 + 지각·결근·무급휴가·소정근로 미달·재택 미제출·퇴근 미기록 전부 0
       const perfectAttendance =
         workingDays > 0 && lateCount === 0 && absentCount === 0 && unpaidLeaveDays === 0
-        && unreportedRemoteDays === 0;
+        && unreportedRemoteDays === 0 && shortDays === 0 && noCheckoutDays === 0;
 
       // 2-3. quarterly_settlements 집계 (해당 월이 속한 분기·PAID·members.id 기준)
       const qsRows = await db.execute(sql`
@@ -273,8 +329,15 @@ export async function calculatePayrollForMonth(
         memberId: Number(memberUid),
         memberName: m.name,
         baseSalary,
-        att: { workingDays, workingMins, overtimeMins, lateCount, absentCount, unreportedRemoteDays },
-        leave: { paidLeaveDays, unpaidLeaveDays },
+        att: {
+          workingDays, workingMins, overtimeMins, lateCount, absentCount,
+          unreportedRemoteDays,
+          offDayWorkDays,    // 주말·공휴일 출근 (지급 제외)
+          noCheckoutDays,    // 퇴근 미기록 (근무시간 미확인 → 지급 0, 정정 필요)
+          shortDays,         // 소정근로 미달 (0.25~0.75일치로 계산된 날)
+          dailyHours,        // 소정근로시간 (지급일수 환산 기준)
+        },
+        leave: { paidLeaveDays, unpaidLeaveDays, partialLeaveDays },
         perfectAttendance,
         quarter: { year, q, totalBonusPaid: quarterTotalBonus },
         derived: {

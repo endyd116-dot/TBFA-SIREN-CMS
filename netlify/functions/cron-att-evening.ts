@@ -20,6 +20,7 @@ import { members, attRecords, attRemoteWorkReports } from "../../db/schema";
 import { eq, and, isNull, inArray, isNotNull, sql } from "drizzle-orm";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 import { reportDeadline } from "../../lib/att-remote-policy";
+import { payDayFraction } from "../../lib/att-utils";
 
 export const config = { schedule: "0 15 * * *" };
 
@@ -108,6 +109,65 @@ export default async (req: Request, _ctx: Context) => {
           console.warn(`[cron-att-evening] 보고서 알림 실패 memberId=${memberId}:`, err);
         }
       }
+    }
+
+    /* 2-b. 소정근로 미달인데 휴가 신청이 없는 날 → 직원·관리자에게 알림 (2026-07-12)
+       [배경] 급여는 실제 근무시간으로 지급일수를 정한다(8시간=1일 · 반차 0.5 · 반반차 0.75).
+              그런데 반차를 신청하지 않고 그냥 일찍 퇴근해 버리면 본인도 모르는 사이에
+              그날 급여가 0.5~0.75일치로 줄어든다. 월말에 명세서를 받고서야 알면 늦다.
+              → 당일 저녁에 "반차·조퇴 처리가 필요합니다"라고 알려 바로잡을 수 있게 한다. */
+    let shortWorkAlertCount = 0;
+    const shortWorkList: any[] = [];
+    try {
+      const shortRows: any = await db.execute(sql`
+        SELECT r.member_uid::integer AS member_id, r.working_mins, m.name,
+               COALESCE(p.daily_hours, 8) AS daily_hours
+          FROM att_records r
+          LEFT JOIN members m ON m.id = NULLIF(r.member_uid,'')::int
+          LEFT JOIN att_policies p ON p.id = 1
+          LEFT JOIN att_leave_requests lr
+            ON lr.member_uid = r.member_uid
+           AND lr.status = 'APPROVED'
+           AND r.date BETWEEN lr.start_date AND lr.end_date
+         WHERE r.date = ${today}::date
+           AND r.status IN ('NORMAL','LATE','EARLY_LEAVE')
+           AND r.working_mins IS NOT NULL
+           AND r.working_mins < COALESCE(p.daily_hours, 8) * 60
+           AND EXTRACT(DOW FROM r.date) NOT IN (0, 6)
+           AND lr.id IS NULL
+      `);
+      const list = Array.isArray(shortRows) ? shortRows : (shortRows as any).rows ?? [];
+      for (const row of list) {
+        const memberId = parseInt(row.member_id);
+        if (isNaN(memberId)) continue;
+        const mins = Number(row.working_mins || 0);
+        const std = Number(row.daily_hours || 8) * 60;
+        const frac = payDayFraction(mins, Number(row.daily_hours || 8));
+        const h = Math.floor(mins / 60), m2 = mins % 60;
+        shortWorkList.push(`${row.name ?? memberId}(${h}시간${m2 ? ` ${m2}분` : ""} → ${frac}일치)`);
+        if (dryRun) continue;
+        try {
+          await sendWorkspaceNotification({
+            memberId,
+            sourceType: "event" as any,
+            sourceId: 0,
+            notifType: "reminder_3d" as any,
+            channel: "bell" as any,
+            title: "반차·조퇴 처리가 필요합니다",
+            body:
+              `${today} 근무시간이 ${h}시간${m2 ? ` ${m2}분` : ""}으로 소정근로(${Math.round(std / 60)}시간)에 못 미칩니다. ` +
+              `이대로면 그날 급여가 ${frac}일치로 계산됩니다. ` +
+              `반차·반반차를 쓰셨다면 휴가 신청을, 근태가 잘못됐다면 수정 요청을 해주세요.`,
+            actionUrl: "/workspace-attendance.html",
+            category: "system" as any,
+          });
+          shortWorkAlertCount++;
+        } catch (err) {
+          console.warn(`[cron-att-evening] 소정근로 미달 알림 실패 memberId=${memberId}:`, err);
+        }
+      }
+    } catch (err) {
+      console.warn("[cron-att-evening] 소정근로 미달 조회 실패:", err);
     }
 
     // 3. 주간 누적 근무시간 체크 (48시간 임박, 52시간 초과)
