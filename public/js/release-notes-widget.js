@@ -66,17 +66,22 @@
     });
   }
 
-  /* 좌측 고정 사이드바(워크스페이스·통합CMS)가 있으면 그 옆으로 비켜 놓는다.
-     우하단은 AI 비서 버튼·AI 선제제안 카드가 쓰므로 침범하지 않는다. */
+  /* 좌측 사이드바 옆에 배치 — 우하단은 AI 비서 버튼(.aiw-fab)·AI 선제제안(.ai-pro-wrap)이 점유하므로 침범 금지.
+     워크스페이스=.ws-sidebar(고정 60px) · 통합CMS=.cms-side(240px, 모바일은 드로어) · 허브=사이드바 없음. */
+  var SIDEBARS = '.ws-sidebar, .cms-side, .cms-sidebar, aside[class*="sidebar"]';
   function placeChip(btn) {
     var left = 18;
-    var bars = document.querySelectorAll('.ws-sidebar, .cms-sidebar, aside[class*="sidebar"]');
+    var bars = document.querySelectorAll(SIDEBARS);
     for (var i = 0; i < bars.length; i++) {
-      var r = bars[i].getBoundingClientRect();
-      // 화면 좌측에 붙어 있고 실제로 보이는 사이드바만 고려
-      if (r.width > 0 && r.height > 0 && r.left <= 2) {
-        left = Math.max(left, Math.round(r.right) + 16);
-      }
+      var el = bars[i];
+      var st = window.getComputedStyle(el);
+      // 화면 밖으로 밀어둔 모바일 드로어(transform translateX(-100%))는 제외
+      if (st.display === 'none' || st.visibility === 'hidden') continue;
+      var r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      if (r.right <= 0) continue;              // 화면 왼쪽 밖(닫힌 드로어)
+      if (r.left > 2) continue;                // 좌측에 붙어있는 것만
+      left = Math.max(left, Math.round(r.right) + 16);
     }
     btn.style.left = left + 'px';
   }
