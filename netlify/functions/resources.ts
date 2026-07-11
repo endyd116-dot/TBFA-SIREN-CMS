@@ -402,7 +402,7 @@ export default async (req: Request) => {
       SELECT category_id, COUNT(*)::int AS cnt
       FROM resources
       WHERE is_published = true
-        AND access_level = ANY(ARRAY[${sql.join(allowedLevels.map((v: any) => sql`${v}`), sql`, `)}]::text[])  /* E2E fix: ANY(배열) 직렬화 예외 → 파라미터 바인딩 */
+        AND access_level::text = ANY(ARRAY[${sql.join(allowedLevels.map((v: any) => sql`${v}`), sql`, `)}]::text[])  /* E2E fix: ANY(배열) 직렬화 예외 → 파라미터 바인딩 + 열거형은 text로 비교 */
         AND category_id IS NOT NULL
       GROUP BY category_id
     `);
