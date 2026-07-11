@@ -68,13 +68,36 @@ interface DrawCtx {
   margin: number;
 }
 
+/**
+ * 글자를 하나씩, 실측 폭만큼 전진시키며 그린다.
+ *
+ * ⚠️ 이 함수를 거치지 않고 page.drawText(문장)을 그대로 쓰면 글자가 벌어진다.
+ *   원인: 이 한글 폰트(글리프 2만5천 개)를 PDF에 통째로 임베드하면 글자별 폭 정보(/W)가
+ *        제대로 실리지 않아, PDF 기본 폭(전각 1em)이 적용된다.
+ *        → 숫자·공백이 눈에 띄게 벌어진다.
+ *          실제: "kijs0726@gmail.com" → "kijs0 7 2 6 @gmail.com" / "지급 대상일" → "지급  대상일"
+ *   해결: 글자 위치를 직접 지정하면 PDF의 폭 정보에 의존하지 않으므로 항상 정확히 붙는다.
+ *        (폰트 부분추출(subset)로 /W를 줄이는 방법은 글자 모양이 통째로 사라져 쓸 수 없다 — 2026-07-12 실측)
+ */
+function drawRun(ctx: DrawCtx, str: string, x: number, y: number, size: number, color: RGB) {
+  let cx = x;
+  for (const ch of Array.from(String(str ?? ""))) {
+    const w = ctx.font.widthOfTextAtSize(ch, size);
+    if (ch.trim()) ctx.page.drawText(ch, { x: cx, y, size, font: ctx.font, color });
+    cx += w;
+  }
+}
 function text(ctx: DrawCtx, str: string, x: number, size: number, color: RGB = rgb(0, 0, 0)) {
-  ctx.page.drawText(String(str ?? ""), { x, y: ctx.y, size, font: ctx.font, color });
+  drawRun(ctx, str, x, ctx.y, size, color);
 }
 function textRight(ctx: DrawCtx, str: string, rightX: number, size: number, color: RGB = rgb(0, 0, 0)) {
   const s = String(str ?? "");
   const w = ctx.font.widthOfTextAtSize(s, size);
-  ctx.page.drawText(s, { x: rightX - w, y: ctx.y, size, font: ctx.font, color });
+  drawRun(ctx, s, rightX - w, ctx.y, size, color);
+}
+/** ctx.y 가 아닌 임의의 y에 그릴 때 (서명란·여러 줄 계산방법 등) */
+function textAt(ctx: DrawCtx, str: string, x: number, y: number, size: number, color: RGB = rgb(0, 0, 0)) {
+  drawRun(ctx, str, x, y, size, color);
 }
 function hr(ctx: DrawCtx, thickness = 0.8, color: RGB = rgb(0.5, 0.5, 0.5)) {
   ctx.page.drawLine({
@@ -229,7 +252,7 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
     textRight(ctx, amt, rightX, 10.5);
     let ly = ctx.y;
     for (const l of lines) {
-      ctx.page.drawText(l, { x: methodX, y: ly, size: 8, font: ctx.font, color: GRAY });
+      textAt(ctx, l, methodX, ly, 8, GRAY);
       ly -= 11;
     }
     ctx.y -= rowH;
@@ -321,7 +344,7 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
       borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.8,
     });
     const innerY = sigBoxY + 42;
-    ctx.page.drawText("서명", { x: MARGIN + 12, y: innerY, size: 9, font, color: GRAY });
+    textAt(ctx, "서명", MARGIN + 12, innerY, 9, GRAY);
 
     if (signature.imagePng && signature.imagePng.length > 0) {
       try {
@@ -333,17 +356,17 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
           width: png.width * scale, height: png.height * scale,
         });
       } catch {
-        ctx.page.drawText(signature.signedName, { x: MARGIN + 60, y: innerY, size: 13, font });
+        textAt(ctx, signature.signedName, MARGIN + 60, innerY, 13);
       }
     } else {
-      ctx.page.drawText(signature.signedName, { x: MARGIN + 60, y: innerY, size: 13, font });
-      ctx.page.drawText("(성명 입력 방식 전자서명)", { x: MARGIN + 60, y: innerY - 15, size: 7.5, font, color: GRAY });
+      textAt(ctx, signature.signedName, MARGIN + 60, innerY, 13);
+      textAt(ctx, "(성명 입력 방식 전자서명)", MARGIN + 60, innerY - 15, 7.5, GRAY);
     }
 
-    ctx.page.drawText(`성명: ${signature.signedName}`, { x: 330, y: innerY, size: 10, font });
-    ctx.page.drawText(`서명일시: ${kst(signature.signedAt)}`, { x: 330, y: innerY - 15, size: 8.5, font, color: GRAY });
+    textAt(ctx, `성명: ${signature.signedName}`, 330, innerY, 10);
+    textAt(ctx, `서명일시: ${kst(signature.signedAt)}`, 330, innerY - 15, 8.5, GRAY);
     if (signature.ip) {
-      ctx.page.drawText(`접속 IP: ${signature.ip}`, { x: 330, y: innerY - 28, size: 7.5, font, color: GRAY });
+      textAt(ctx, `접속 IP: ${signature.ip}`, 330, innerY - 28, 7.5, GRAY);
     }
     ctx.y = sigBoxY - 16;
 
