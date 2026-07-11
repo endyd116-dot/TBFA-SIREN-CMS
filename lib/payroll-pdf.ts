@@ -16,10 +16,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildPayrollBreakdown } from "./payroll-breakdown";
 
-/* 한글 폰트는 '쓰인 글자만' 문서에 넣는다(subset).
-   과거엔 6MB 폰트를 통째로 넣어 명세서 1장이 3MB였다. 이제 모든 문서를 영구 보관하므로
-   그대로 두면 저장·메일 첨부 비용이 그만큼 커진다. 실측: 3,036KB → 8KB (약 430배), 생성도 10배 빠름.
-   덤으로 PDF 텍스트 추출도 정확해진다(통째 임베드는 공백이 엉뚱한 글자로 추출돼 복사·검색이 깨졌다). */
+/* ⚠️ 한글 폰트는 반드시 '통째로'(subset: false) 넣는다. 절대 subset: true로 바꾸지 말 것.
+   PDF 라이브러리의 한글 폰트 부분추출(subset)이 글자 모양을 실제로 빠뜨린다 —
+   2026-07-12 실측: 파일은 3MB→13KB로 줄지만 '급여명세서'가 '명세'로, '2,727,273'이 '2 727 273'으로
+   보이는 등 글자가 통째로 사라진다(크롬 렌더 캡처로 확인).
+   더 고약한 건 PDF에서 '텍스트 추출'은 멀쩡하게 된다는 점이다 — 텍스트 추출만으로 검증하면
+   깨진 걸 못 잡는다. 폰트를 건드리면 반드시 눈으로 렌더 결과를 확인할 것.
+   → 문서 1장 약 3MB. 급여 문서는 연간 수십 건이라 저장 비용은 무시할 수준이고, 정확성이 우선이다. */
 let _fontCache: ArrayBuffer | null = null;
 function loadKoreanFont(): Uint8Array {
   if (!_fontCache) {
@@ -110,7 +113,7 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
-  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: true });
+  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: false });
 
   const ctx: DrawCtx = {
     doc: pdfDoc,
@@ -324,7 +327,7 @@ export async function generatePayrollAnnualPdf(input: PayrollAnnualPdfInput): Pr
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
-  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: true });
+  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: false });
 
   const W = 842, H = 595;                     // A4 가로 (열이 많다)
   const M = 44;
