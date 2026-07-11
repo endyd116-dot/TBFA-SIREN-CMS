@@ -7,14 +7,16 @@
  * PDF 첨부 (base64) — 본인 명세서 1건씩 첨부.
  * 발송 후 status=SENT·sent_at·email_sent_to 갱신 + payroll_send_history 적재.
  *
- * R37 5일차 — 완전 동작.
+ * 2026-07-11 — 발송 시점에 교부 문서를 저장소에 고정(해시 포함)하고, 직원에게 수령확인(전자서명)을 요청한다.
  */
 import { db } from "../../db/index";
 import { payrollSlips, members } from "../../db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sendEmail } from "../../lib/email";
-import { generatePayrollSlipPdf, payrollSlipFilename } from "../../lib/payroll-pdf";
+import { payrollSlipFilename } from "../../lib/payroll-pdf";
+import { issuePayrollDocument, fetchPayrollDocument } from "../../lib/payroll-document";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/admin-payroll-send" };
 
@@ -153,9 +155,15 @@ export default async function handler(req: Request) {
       }
 
       try {
-        // PDF 생성
-        const pdfBytes = await generatePayrollSlipPdf({ slip, member: memberInfo });
-        const filename = payrollSlipFilename(slip, memberInfo.name);
+        /* 교부 문서 확정 — 이 순간의 PDF를 저장소에 고정하고 지문(해시)을 남긴다.
+           이후 직원이 보는 문서·서명 대상·증빙은 전부 이 고정본이다.
+           (과거엔 저장 없이 매번 즉석 생성 → 요율·기준이 바뀌면 과거 명세서가 달라져 증빙 불가) */
+        const issued = await issuePayrollDocument(slip.id);
+        if (!issued.ok) throw new Error(issued.error || "교부 문서 확정 실패");
+
+        const pdfBytes = issued.bytes ?? (await fetchPayrollDocument(slip.id)).bytes;
+        if (!pdfBytes) throw new Error("교부 문서를 읽지 못했습니다");
+        const filename = payrollSlipFilename({ ...slip, documentVersion: issued.version }, memberInfo.name);
         const base64 = Buffer.from(pdfBytes).toString("base64");
 
         // 이메일 발송
@@ -169,12 +177,14 @@ export default async function handler(req: Request) {
         if (r.ok) {
           sent++;
           details.push({ slipId: slip.id, memberUid: slip.memberUid, status: "SUCCESS", resendId: (r as any).id });
-          // status=SENT 갱신
+          // status=SENT 갱신 + 수령확인 대기 시작
           try {
             await db.execute(sql`
               UPDATE payroll_slips SET
                 status = 'SENT',
                 sent_at = NOW(),
+                issued_at = COALESCE(issued_at, NOW()),
+                ack_status = CASE WHEN ack_status = 'ACKNOWLEDGED' THEN ack_status ELSE 'PENDING' END,
                 email_sent_to = ${memberInfo.email},
                 updated_at = NOW()
               WHERE id = ${slip.id}
@@ -185,6 +195,24 @@ export default async function handler(req: Request) {
             `);
           } catch (e) {
             console.warn("[admin-payroll-send] post-send update failed:", e);
+          }
+
+          /* 직원에게 알림 — 메일만 보내면 안 보는 경우가 많다. 워크스페이스 종에도 띄워
+             바로 명세서를 열고 수령확인(전자서명)까지 할 수 있게 한다. */
+          try {
+            await sendWorkspaceNotification({
+              memberId,
+              sourceType: "event" as any,
+              sourceId: slip.id,
+              notifType: "assigned",
+              channel: "bell",
+              title: `${year}년 ${String(month).padStart(2, "0")}월 급여명세서가 도착했습니다`,
+              body: "명세서를 확인하고 수령 확인(전자서명)을 해주세요.",
+              actionUrl: `/workspace-attendance.html#payroll-slip=${slip.id}`,
+              category: "system",
+            });
+          } catch (e) {
+            console.warn("[admin-payroll-send] 수령확인 알림 실패:", e);
           }
         } else {
           failed++;

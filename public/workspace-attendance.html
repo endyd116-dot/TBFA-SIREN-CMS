@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=20260712-noemoji"></script>
+  <script src="/js/icons.js?v=20260712-esign"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -482,10 +482,14 @@
         <label style="font-size:12.5px;color:#4b5563;font-weight:600">연도</label>
         <select id="payrollYear" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"></select>
         <button id="payrollLoadBtn" style="padding:6px 12px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">조회</button>
+        <a id="payrollAnnualBtn" href="#" target="_blank" rel="noopener" title="연말정산·대출 서류용 1년치 급여내역서"
+           style="padding:6px 12px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">
+          <span class="siren-icon-wrap" data-icon="file-text"></span> 연간 내역서
+        </a>
       </div>
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#4b5563;line-height:1.6">
-        ※ 발송·지급이 완료된 명세서만 표시됩니다.<br>
-        ※ 실수령액은 세전 총액에서 소득세·4대보험 등 공제를 차감한 금액입니다. 자세한 내역은 PDF에서 확인하세요.
+        ※ 교부(발송·지급)된 명세서만 표시됩니다. <b>명세서를 누르면</b> 계산 근거가 담긴 서류가 열리고, 거기서 수령 확인(전자서명)을 할 수 있습니다.<br>
+        ※ 내용이 사실과 다르면 서명 대신 <b>이의 제기</b>를 눌러 주세요. 담당자가 확인 후 회신합니다.
       </div>
       <div id="payrollList" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px">
         <div style="padding:30px;text-align:center;color:#9ca3af;font-size:13px">조회 버튼을 누르세요.</div>
@@ -509,7 +513,7 @@
 <!-- 근태관리 JS -->
 <script src="/js/workspace-attendance.js?v=20260712-noemoji"></script>
 <!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
-<script src="/js/workspace-payroll.js?v=20260520stage3"></script>
+<script src="/js/workspace-payroll.js?v=20260712-esign"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
 <!-- 2026-05-20 fix: quick-jump 사이드바 메뉴 (워크스페이스 다른 페이지와 동일) -->
 <script src="/js/quick-jump.js?v=20260707-door" defer></script>

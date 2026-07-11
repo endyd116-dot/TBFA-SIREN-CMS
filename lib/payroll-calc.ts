@@ -376,6 +376,18 @@ export async function calculatePayrollForMonth(
             approved_by = NULL, approved_at = NULL,
             sent_at = NULL,
             paid_by = NULL, paid_at = NULL,
+            -- 2026-07-11: 금액이 다시 계산됐으므로 교부해둔 고정 문서는 더 이상 이 명세서의 내용이 아니다.
+            --   버려야 다시 발송할 때 새 문서(정정 차수)가 만들어진다. 안 버리면 옛 PDF가 그대로 재발송된다.
+            --   이미 받아둔 서명도 '바뀌기 전 문서'에 대한 것이므로 수령확인을 다시 받는다.
+            --   (지난 서명 증적은 payroll_acknowledgments에 그대로 남아 감사 추적이 끊기지 않는다)
+            document_r2_key = NULL,
+            document_sha256 = NULL,
+            signed_document_r2_key = NULL,
+            ack_status = 'PENDING',
+            ack_at = NULL,
+            first_viewed_at = NULL,
+            reminder_count = 0,
+            reminder_sent_at = NULL,
             updated_at = NOW()
           WHERE id = ${Number(existingRow.id)}
           RETURNING id

@@ -150,12 +150,18 @@ export default async function handler(req: Request) {
         }
       }
 
-      const enriched = rows.map(r => ({
-        ...r,
-        memberName: memberMap.get(Number(r.memberUid))?.name ?? null,
-        memberEmail: memberMap.get(Number(r.memberUid))?.email ?? null,
-        memberMilestoneRole: memberMap.get(Number(r.memberUid))?.milestoneRole ?? null,
-      }));
+      /* 저장소 키는 클라이언트에 내보내지 않는다 — 존재 여부만 알린다 */
+      const enriched = rows.map(r => {
+        const { documentR2Key, signedDocumentR2Key, ...rest } = r as any;
+        return {
+          ...rest,
+          memberName: memberMap.get(Number(r.memberUid))?.name ?? null,
+          memberEmail: memberMap.get(Number(r.memberUid))?.email ?? null,
+          memberMilestoneRole: memberMap.get(Number(r.memberUid))?.milestoneRole ?? null,
+          hasDocument: !!documentR2Key,
+          hasSignedDocument: !!signedDocumentR2Key,
+        };
+      });
 
       // 통계 카드용 카운트
       const counts = {
@@ -165,7 +171,16 @@ export default async function handler(req: Request) {
         if (r.status in counts) counts[r.status as keyof typeof counts]++;
       }
 
-      return jsonOk({ rows: enriched, counts, total: rows.length });
+      /* 수령확인(전자서명) 현황 — 교부된 명세서만 대상 */
+      const issued = rows.filter(r => r.status === "SENT" || r.status === "PAID");
+      const ackCounts = {
+        issued: issued.length,
+        pending: issued.filter(r => (r as any).ackStatus === "PENDING").length,
+        acknowledged: issued.filter(r => (r as any).ackStatus === "ACKNOWLEDGED").length,
+        objected: issued.filter(r => (r as any).ackStatus === "OBJECTED").length,
+      };
+
+      return jsonOk({ rows: enriched, counts, ackCounts, total: rows.length });
     } catch (err) { return jsonError("select_slips", err); }
   }
 
@@ -245,6 +260,21 @@ export default async function handler(req: Request) {
         update.totalDeduction = String(r2(totalDeduction));
         update.netPay = String(r2(netPay));
         update.manuallyEdited = true;   // 재집계가 덮지 않도록 잠금
+
+        /* 2026-07-11: 금액을 손댔으므로 이미 교부해둔 고정 문서는 더 이상 이 명세서의 내용이 아니다.
+           버려야 다시 발송할 때 새 문서(정정 차수)가 만들어진다 — 안 버리면 옛 PDF가 그대로 재발송된다.
+           받아둔 서명도 '바뀌기 전 문서'에 대한 것이므로 수령확인을 다시 받는다.
+           (지난 서명 증적은 payroll_acknowledgments에 그대로 남는다) */
+        if (auditRows.length > 0 && (cur as any).documentR2Key) {
+          update.documentR2Key = null;
+          update.documentSha256 = null;
+          update.signedDocumentR2Key = null;
+          update.ackStatus = "PENDING";
+          update.ackAt = null;
+          update.firstViewedAt = null;
+          update.reminderCount = 0;
+          update.reminderSentAt = null;
+        }
       }
 
       if (typeof body.reviewNote === "string") update.reviewNote = body.reviewNote;

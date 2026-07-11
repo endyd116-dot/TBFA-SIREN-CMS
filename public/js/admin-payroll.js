@@ -119,11 +119,11 @@
     const y = $('selYear').value, m = $('selMonth').value;
     syncExportLink();
     const tbody = $('slipTbody');
-    tbody.innerHTML = '<tr class="loading-row"><td colspan="9">불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="10">불러오는 중...</td></tr>';
 
     const res = await api('/api/admin-payroll?year=' + y + '&month=' + m);
     if (!res.ok) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="9" style="color:#dc2626">' +
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="10" style="color:#dc2626">' +
         esc(res.data?.error || ('HTTP ' + res.status)) + '</td></tr>';
       return;
     }
@@ -131,6 +131,7 @@
     const d = res.data?.data || res.data;
     const rows = d?.rows || [];
     const counts = d?.counts || {};
+    const ack = d?.ackCounts || {};
     currentRows = rows;
 
     $('cntDraft').textContent    = counts.DRAFT    || 0;
@@ -140,8 +141,20 @@
     $('cntPaid').textContent     = counts.PAID     || 0;
     $('cntHold').textContent     = counts.HOLD     || 0;
 
+    /* 수령확인 현황 — 교부된 명세서 기준 */
+    const ackMeta = $('ackMeta'), btnRemind = $('btnRemind');
+    if (ackMeta) {
+      ackMeta.innerHTML = (ack.issued || 0) === 0 ? ''
+        : ('— 교부 ' + ack.issued + '건 중 서명완료 ' + (ack.acknowledged || 0) +
+           (ack.pending ? ' · <b style="color:#b45309">미서명 ' + ack.pending + '</b>' : '') +
+           (ack.objected ? ' · <b style="color:#b91c1c">이의 ' + ack.objected + '</b>' : ''));
+    }
+    if (btnRemind) btnRemind.style.display = (ack.pending || 0) > 0 ? '' : 'none';
+
+    loadObjections();   // 이의제기 카드 (있을 때만 표시)
+
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="9">해당 월 명세서가 없습니다. "재집계"로 자동 생성하세요. (직원별 <b>기본연봉</b>이 설정돼 있어야 생성됩니다 — 회원 상세에서 설정)</td></tr>';
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="10">해당 월 명세서가 없습니다. "재집계"로 자동 생성하세요. (직원별 <b>기본연봉</b>이 설정돼 있어야 생성됩니다 — 회원 상세에서 설정)</td></tr>';
       return;
     }
 
@@ -166,6 +179,14 @@
       actions.push('<button class="btn btn-warning btn-sm" onclick="recalcOne(' +
         r.id + ',\'' + String(r.memberUid).replace(/'/g, '') + '\',\'' + name.replace(/'/g, '') + '\')"' +
         ' title="이 직원만 최신 근태로 다시 계산">재집계</button>');
+      /* 교부된 명세서만 증빙(서명 증적) 대상 */
+      const issued = r.status === 'SENT' || r.status === 'PAID';
+      if (issued) {
+        actions.push('<button class="btn btn-light btn-sm" onclick="openEvidence(' + r.id + ')" title="열람·서명·이의 이력과 증빙 문서">증빙</button>');
+      }
+      actions.push('<button class="btn btn-light btn-sm" onclick="openMemberDocs(\'' +
+        String(r.memberUid).replace(/'/g, '') + '\',\'' + name.replace(/'/g, '') + '\')" title="이 직원의 급여 문서 전체">문서함</button>');
+
       return '<tr>' +
         '<td>' + name + editMark + '</td>' +
         '<td>' + role + '</td>' +
@@ -175,6 +196,7 @@
         '<td class="r" style="font-weight:700">' + won(r.grossPay) + '</td>' +
         '<td class="r" style="font-weight:700;color:#0f766e">' + won(r.netPay) + '</td>' +
         '<td class="c">' + statusBadge(r.status) + '</td>' +
+        '<td class="c">' + ackBadge(r) + '</td>' +
         '<td class="c" style="white-space:nowrap">' + actions.join(' ') + '</td>' +
         '</tr>';
     }).join('');
@@ -708,6 +730,249 @@
   }
   window.saveStaffSalary = saveStaffSalary;
 
+  /* ══════════════════════════════════════════════════════════════
+     증빙 보관함 — 수령확인(전자서명) 증적 · 직원별 문서함 · 이의제기
+     ══════════════════════════════════════════════════════════════ */
+
+  const ACK_LABEL = { PENDING: '미서명', ACKNOWLEDGED: '서명완료', OBJECTED: '이의제기' };
+
+  /** 목록의 수령확인 열 — 교부 전이면 '—' */
+  function ackBadge(r) {
+    if (r.status !== 'SENT' && r.status !== 'PAID') return '<span style="color:#d1d5db">—</span>';
+    const s = r.ackStatus || 'PENDING';
+    const style = {
+      ACKNOWLEDGED: 'background:#d1fae5;color:#065f46',
+      OBJECTED:     'background:#fee2e2;color:#991b1b',
+      PENDING:      'background:#fef3c7;color:#92400e',
+    }[s] || '';
+    const when = s === 'ACKNOWLEDGED' && r.ackAt ? ' ' + new Date(r.ackAt).toLocaleDateString('ko-KR') : '';
+    const viewed = s === 'PENDING' && r.firstViewedAt ? ' title="열람함: ' + fmtDate(r.firstViewedAt) + '"' : '';
+    const ver = Number(r.documentVersion || 1) > 1 ? ' <span style="color:#b91c1c;font-size:10px">정정' + r.documentVersion + '차</span>' : '';
+    return '<span class="status-badge" style="' + style + '"' + viewed + '>' + (ACK_LABEL[s] || s) + '</span>' +
+      (when ? '<div style="font-size:10.5px;color:#9ca3af;margin-top:2px">' + esc(when) + '</div>' : '') + ver;
+  }
+
+  function closeEvModal() { $('evModal').classList.remove('show'); }
+  window.closeEvModal = closeEvModal;
+
+  function evOpen(title, bodyHtml, actionsHtml) {
+    $('evTitle').textContent = title;
+    $('evBody').innerHTML = bodyHtml;
+    $('evActions').innerHTML = actionsHtml || '<button class="btn btn-light" onclick="closeEvModal()">닫기</button>';
+    $('evModal').classList.add('show');
+  }
+
+  /* ── 서명 증적 상세 ── */
+  async function openEvidence(slipId) {
+    evOpen('증빙 · 서명 증적', '<div style="padding:24px;text-align:center;color:#9ca3af">불러오는 중...</div>');
+    const res = await api('/api/admin-payroll-evidence?slipId=' + slipId);
+    if (!res.ok) {
+      evOpen('증빙 · 서명 증적', '<div style="padding:20px;color:#dc2626">' +
+        esc(res.data?.error || res.data?.detail || ('HTTP ' + res.status)) + '</div>');
+      return;
+    }
+    const d = res.data?.data || res.data;
+    const s = d.slip, hist = d.history || [], objs = d.objections || [];
+
+    const ACT_LABEL = { VIEWED: '열람', ACKNOWLEDGED: '전자서명', OBJECTED: '이의제기' };
+    const ACT_COLOR = { VIEWED: '#6b7280', ACKNOWLEDGED: '#047857', OBJECTED: '#b91c1c' };
+
+    let html = '<div class="pay-section-title">문서 정보</div>' +
+      '<table class="pay-edit"><tbody>' +
+      '<tr><td class="lbl">대상</td><td class="val">' + esc(s.memberName || s.memberUid) + ' · ' + s.payYear + '년 ' + String(s.payMonth).padStart(2, '0') + '월</td></tr>' +
+      '<tr><td class="lbl">문서 차수</td><td class="val">' + (s.documentVersion > 1 ? '<b style="color:#b91c1c">정정 ' + s.documentVersion + '차</b>' : '원본 (1차)') + '</td></tr>' +
+      '<tr><td class="lbl">교부일</td><td class="val">' + esc(s.issuedAt ? fmtDate(s.issuedAt) : '—') + '</td></tr>' +
+      '<tr><td class="lbl">직원 첫 열람</td><td class="val">' + (s.firstViewedAt ? esc(fmtDate(s.firstViewedAt)) : '<span style="color:#b45309">아직 열어보지 않음</span>') + '</td></tr>' +
+      '<tr><td class="lbl">수령 확인</td><td class="val">' + (s.ackStatus === 'ACKNOWLEDGED'
+        ? '<b style="color:#047857">서명 완료</b> · ' + esc(fmtDate(s.ackAt))
+        : s.ackStatus === 'OBJECTED' ? '<b style="color:#b91c1c">이의 제기됨</b>'
+        : '<b style="color:#b45309">미서명</b>' + (s.reminderCount ? ' (독촉 ' + s.reminderCount + '회)' : '')) + '</td></tr>' +
+      '<tr><td class="lbl">문서 지문(무결성)</td><td class="val" style="font-family:monospace;font-size:11px;color:#6b7280">' +
+        esc(s.documentSha256 ? String(s.documentSha256).slice(0, 32) + '…' : '—') + '</td></tr>' +
+      '<tr><td class="lbl">보관 문서</td><td class="val">' +
+        (s.hasDocument ? '<a class="btn btn-light btn-sm" href="/api/admin-payroll-evidence?slipId=' + s.id + '&download=1" target="_blank" rel="noopener">교부 원본</a> ' : '') +
+        (s.hasSignedDocument ? '<a class="btn btn-success btn-sm" href="/api/admin-payroll-evidence?slipId=' + s.id + '&download=1&signed=1" target="_blank" rel="noopener">서명본</a>' : '') +
+        (!s.hasDocument && !s.hasSignedDocument ? '<span style="color:#9ca3af">보관된 문서 없음 (이 명세서는 문서 고정 도입 전에 발송됨)</span>' : '') +
+      '</td></tr>' +
+      '</tbody></table>';
+
+    html += '<div class="pay-section-title">열람·서명 이력 (지워지지 않는 기록)</div>';
+    if (hist.length === 0) {
+      html += '<div class="adj-empty">아직 기록이 없습니다.</div>';
+    } else {
+      html += '<div class="audit-list">' + hist.map(h => {
+        const items = (h.consentItems || []).map(c => (c.agreed ? '☑ ' : '☐ ') + esc(c.text)).join('<br>');
+        return '<div class="audit-item">' +
+          '<div class="a-meta">' + esc(fmtDate(h.createdAt)) +
+            (h.documentVersion > 1 ? ' · 정정 ' + h.documentVersion + '차 문서' : '') +
+            (h.ip ? ' · IP ' + esc(h.ip) : '') + '</div>' +
+          '<div class="a-change"><b style="color:' + (ACT_COLOR[h.action] || '#374151') + '">' +
+            (ACT_LABEL[h.action] || esc(h.action)) + '</b>' +
+            (h.signedName ? ' — ' + esc(h.signedName) + ' (' + (h.signatureType === 'DRAW' ? '손글씨 서명' : '성명 입력') + ')' : '') +
+          '</div>' +
+          (items ? '<div style="font-size:11.5px;color:#065f46;margin-top:4px">' + items + '</div>' : '') +
+          (h.objectionReason ? '<div class="a-reason">' + esc(h.objectionReason) + '</div>' : '') +
+          (h.userAgent ? '<div style="font-size:10.5px;color:#c4c9d0;margin-top:3px">' + esc(String(h.userAgent).slice(0, 90)) + '</div>' : '') +
+          '</div>';
+      }).join('') + '</div>';
+    }
+
+    if (objs.length) {
+      html += '<div class="pay-section-title">이의제기</div><div class="audit-list">' + objs.map(o =>
+        '<div class="audit-item"><div class="a-meta">' + esc(fmtDate(o.createdAt)) + ' · ' + esc(o.status) + '</div>' +
+        '<div class="a-change">' + esc(o.reason) + '</div>' +
+        (o.resolutionNote ? '<div class="a-reason">회신: ' + esc(o.resolutionNote) + '</div>' : '') + '</div>').join('') + '</div>';
+    }
+
+    const actions =
+      '<button class="btn btn-warning" onclick="reissueSlip(' + s.id + ')" title="내용을 바로잡아 새 차수로 다시 교부합니다 (직원 재서명 필요)">정정 재발행</button>' +
+      '<button class="btn btn-light" onclick="closeEvModal()">닫기</button>';
+    evOpen('증빙 · ' + esc(s.memberName || '') + ' ' + s.payYear + '년 ' + String(s.payMonth).padStart(2, '0') + '월', html, actions);
+  }
+  window.openEvidence = openEvidence;
+
+  /* ── 정정 재발행 ── */
+  async function reissueSlip(slipId) {
+    const reason = prompt(
+      '정정 재발행합니다.\n\n' +
+      '· 지금 명세서 내용으로 새 차수 문서를 만들어 다시 교부합니다\n' +
+      '· 직원의 기존 서명은 무효가 되고, 다시 서명을 받습니다 (이전 서명 기록은 그대로 보존)\n' +
+      '· 금액이 틀렸다면 먼저 [재집계]나 [상세]에서 바로잡은 뒤 재발행하세요\n\n' +
+      '정정 사유를 입력하세요 (증빙 추적용·필수):', '');
+    if (reason == null) return;
+    if (!String(reason).trim()) { toast('정정 사유는 필수입니다', 'err'); return; }
+
+    const res = await api('/api/admin-payroll-evidence?action=reissue', {
+      method: 'POST', body: { slipId, reason: String(reason).trim() },
+    });
+    if (!res.ok) { toast('정정 재발행 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err'); return; }
+    toast(res.data?.message || '정정 재발행 완료', 'ok');
+    closeEvModal();
+    await loadList();
+  }
+  window.reissueSlip = reissueSlip;
+
+  /* ── 직원별 문서함 ── */
+  async function openMemberDocs(memberUid, memberName) {
+    evOpen('문서함 · ' + memberName, '<div style="padding:24px;text-align:center;color:#9ca3af">불러오는 중...</div>');
+    const res = await api('/api/admin-payroll-evidence?memberUid=' + encodeURIComponent(memberUid));
+    if (!res.ok) {
+      evOpen('문서함 · ' + memberName, '<div style="padding:20px;color:#dc2626">' +
+        esc(res.data?.error || ('HTTP ' + res.status)) + '</div>');
+      return;
+    }
+    const d = res.data?.data || res.data;
+    const list = d.rows || [];
+
+    let html;
+    if (list.length === 0) {
+      html = '<div style="padding:20px;color:#9ca3af;font-size:13px">교부된 명세서가 없습니다.</div>';
+    } else {
+      html = '<table class="list"><thead><tr>' +
+        '<th>대상 월</th><th class="r">세전총액</th><th class="r">실수령</th>' +
+        '<th class="c">수령확인</th><th class="c">문서</th></tr></thead><tbody>' +
+        list.map(s => {
+          const ackTxt = s.ackStatus === 'ACKNOWLEDGED'
+            ? '<span style="color:#047857;font-weight:700">서명완료</span><div style="font-size:10.5px;color:#9ca3af">' + esc(new Date(s.ackAt).toLocaleDateString('ko-KR')) + '</div>'
+            : s.ackStatus === 'OBJECTED' ? '<span style="color:#b91c1c;font-weight:700">이의제기</span>'
+            : '<span style="color:#b45309;font-weight:700">미서명</span>';
+          return '<tr>' +
+            '<td><b>' + s.payYear + '년 ' + String(s.payMonth).padStart(2, '0') + '월</b>' +
+              (s.documentVersion > 1 ? ' <span style="color:#b91c1c;font-size:10.5px">정정' + s.documentVersion + '차</span>' : '') + '</td>' +
+            '<td class="r">' + won(s.grossPay) + '</td>' +
+            '<td class="r" style="font-weight:700;color:#0f766e">' + won(s.netPay) + '</td>' +
+            '<td class="c">' + ackTxt + '</td>' +
+            '<td class="c" style="white-space:nowrap">' +
+              (s.hasDocument ? '<a class="btn btn-light btn-sm" href="/api/admin-payroll-evidence?slipId=' + s.id + '&download=1" target="_blank" rel="noopener">원본</a> ' : '') +
+              (s.hasSignedDocument ? '<a class="btn btn-success btn-sm" href="/api/admin-payroll-evidence?slipId=' + s.id + '&download=1&signed=1" target="_blank" rel="noopener">서명본</a> ' : '') +
+              '<button class="btn btn-light btn-sm" onclick="openEvidence(' + s.id + ')">증적</button>' +
+            '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+
+    const actions = (list.length
+        ? '<a class="btn btn-primary" href="/api/admin-payroll-evidence?memberUid=' + encodeURIComponent(memberUid) + '&zip=1" target="_blank" rel="noopener">전체 ZIP 다운로드</a>'
+        : '') +
+      '<button class="btn btn-light" onclick="closeEvModal()">닫기</button>';
+    evOpen('문서함 · ' + memberName + ' (' + list.length + '건)', html, actions);
+  }
+  window.openMemberDocs = openMemberDocs;
+
+  /* ── 미서명 독촉 ── */
+  async function remindUnsigned() {
+    const y = $('selYear').value, m = $('selMonth').value;
+    if (!confirm(y + '년 ' + m + '월 명세서를 아직 전자서명하지 않은 직원에게\n수령 확인 요청 알림을 보냅니다. 계속할까요?')) return;
+    const btn = $('btnRemind');
+    btn.disabled = true;
+    try {
+      const res = await api('/api/admin-payroll-evidence?action=remind', {
+        method: 'POST', body: { year: Number(y), month: Number(m) },
+      });
+      if (!res.ok) { toast('독촉 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err'); return; }
+      toast(res.data?.message || '수령 확인 요청을 보냈습니다', 'ok');
+      await loadList();
+    } finally { btn.disabled = false; }
+  }
+
+  /* ── 이의제기 처리 ── */
+  const OBJ_STATUS_KO = { OPEN: '접수됨', IN_REVIEW: '검토 중', RESOLVED: '처리 완료', REJECTED: '반려됨' };
+
+  async function loadObjections() {
+    const card = $('objCard'), tb = $('objTbody');
+    if (!card || !tb) return;
+    const res = await api('/api/admin-payroll-objections?status=PENDING_ALL');
+    if (!res.ok) { card.style.display = 'none'; return; }
+    const d = res.data?.data || res.data;
+    const list = d?.rows || [];
+    if (list.length === 0) { card.style.display = 'none'; return; }
+
+    card.style.display = 'block';
+    const c = d.counts || {};
+    $('objMeta').textContent = '— 미처리 ' + list.length + '건' +
+      (c.RESOLVED ? ' (누적 처리완료 ' + c.RESOLVED + ')' : '');
+
+    tb.innerHTML = list.map(o =>
+      '<tr>' +
+      '<td><b>' + esc(o.memberName || o.memberUid) + '</b></td>' +
+      '<td>' + o.payYear + '.' + String(o.payMonth).padStart(2, '0') + '</td>' +
+      '<td style="font-size:12.5px;line-height:1.6">' + esc(o.reason) + '</td>' +
+      '<td class="c"><span class="status-badge" style="background:' +
+        (o.status === 'OPEN' ? '#fee2e2;color:#991b1b' : '#fef3c7;color:#92400e') + '">' +
+        (OBJ_STATUS_KO[o.status] || o.status) + '</span></td>' +
+      '<td class="c" style="font-size:11.5px;color:#6b7280">' + esc(new Date(o.createdAt).toLocaleDateString('ko-KR')) + '</td>' +
+      '<td class="c" style="white-space:nowrap">' +
+        (o.status === 'OPEN' ? '<button class="btn btn-light btn-sm" onclick="objSet(' + o.id + ',\'IN_REVIEW\')">검토 시작</button> ' : '') +
+        '<button class="btn btn-success btn-sm" onclick="objSet(' + o.id + ',\'RESOLVED\')">처리 완료</button> ' +
+        '<button class="btn btn-danger btn-sm" onclick="objSet(' + o.id + ',\'REJECTED\')">반려</button>' +
+      '</td></tr>').join('');
+  }
+
+  async function objSet(id, status) {
+    let note = '';
+    if (status === 'RESOLVED' || status === 'REJECTED') {
+      const label = status === 'RESOLVED'
+        ? '직원에게 보낼 회신 내용을 입력하세요.\n(예: 6월 3일 근태를 정정하고 명세서를 다시 계산했습니다. 정정본을 확인해 주세요.)'
+        : '반려 사유를 입력하세요. 직원에게 그대로 전달됩니다.';
+      const r = prompt(label, '');
+      if (r == null) return;
+      note = String(r).trim();
+      if (!note) { toast('회신 내용은 필수입니다', 'err'); return; }
+    }
+    const res = await api('/api/admin-payroll-objections?id=' + id, {
+      method: 'PATCH', body: { status, resolutionNote: note || undefined },
+    });
+    if (!res.ok) { toast('처리 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err'); return; }
+    toast(res.data?.message || '처리했습니다', 'ok');
+    await loadList();
+  }
+  window.objSet = objSet;
+
+  function syncZipLink() {
+    const y = $('selYear').value, m = $('selMonth').value;
+    const a = $('btnZip');
+    if (a) a.href = '/api/admin-payroll-evidence?year=' + y + '&month=' + m + '&zip=1';
+  }
+
   /* ── 글로벌 노출 (인라인 onclick 용) ── */
   window.openDetail = openDetail;
   window.closeModal = closeModal;
@@ -723,8 +988,9 @@
   document.addEventListener('DOMContentLoaded', async () => {
     initSelectors();
     syncExportLink();
-    $('selYear').addEventListener('change', syncExportLink);
-    $('selMonth').addEventListener('change', syncExportLink);
+    syncZipLink();
+    $('selYear').addEventListener('change', () => { syncExportLink(); syncZipLink(); });
+    $('selMonth').addEventListener('change', () => { syncExportLink(); syncZipLink(); });
     const ok = await checkSuperAdmin();
     if (ok) { const sc = $('staffSalaryCard'); if (sc) sc.style.display = 'block'; loadStaffSalaries(); }
     $('btnLoad').addEventListener('click', loadList);
@@ -734,9 +1000,13 @@
     $('btnSendAll').addEventListener('click', sendAll);
     $('btnSettings').addEventListener('click', toggleSettings);
     $('btnSaveSettings').addEventListener('click', saveSettings);
+    const br = $('btnRemind');
+    if (br) br.addEventListener('click', remindUnsigned);
     document.getElementById('modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeModal();
     });
+    const evm = document.getElementById('evModal');
+    if (evm) evm.addEventListener('click', (e) => { if (e.target === e.currentTarget) closeEvModal(); });
     if (ok) await loadList();
   });
 })();

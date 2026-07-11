@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.3";
+export const APP_VERSION = "2026-07-12.4";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -30,6 +30,20 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
       { text: "파일함에 '내 파일'·'공유받음' 탭과 검색, 100개 초과 목록의 '더 보기'가 동작합니다", link: "/workspace-files.html" },
       { text: "구글 캘린더 동기화를 여러 번 눌러도 일정이 중복 생성되지 않습니다" },
       { text: "AI 비서로 작업을 지시·완료하면 담당자 알림과 원본 신고 종결이 정상 처리됩니다" },
+    ],
+  },
+  {
+    key: "2026-07-12-payroll-esign",
+    title: "급여명세서 — 계산근거 열람 · 전자서명 수령확인 · 증빙 보관",
+    items: [
+      { text: "급여명세서를 누르면 서류 모양 창이 열리고, 금액마다 '어떻게 나온 숫자인지' 계산근거가 함께 표시됩니다", link: "/workspace-attendance.html" },
+      { text: "명세서를 확인한 뒤 손글씨 또는 성명 입력으로 수령 확인(이의 없음 동의) 전자서명을 할 수 있습니다", link: "/workspace-attendance.html" },
+      { text: "내용이 사실과 다르면 이의를 제기할 수 있고, 담당자 회신까지 화면에서 확인됩니다", link: "/workspace-attendance.html" },
+      { text: "연말정산·대출 서류용 '연간 급여내역서'를 1년치 한 장으로 내려받을 수 있습니다", link: "/workspace-attendance.html" },
+      { text: "[관리자] 교부 시점의 명세서 PDF가 저장소에 고정 보관됩니다 — 나중에 급여 기준이 바뀌어도 과거 명세서가 변하지 않습니다", link: "/cms-tbfa.html#payroll" },
+      { text: "[관리자] 직원별 문서함에서 서명 증적(서명 이미지·일시·기기)과 증빙 문서를 언제든 확인·일괄 다운로드할 수 있습니다", link: "/cms-tbfa.html#payroll" },
+      { text: "[관리자] 미서명 직원에게 독촉 알림을 보낼 수 있고, 3일 간격으로 자동 재안내도 나갑니다", link: "/cms-tbfa.html#payroll" },
+      { text: "[관리자] 명세서를 바로잡아야 하면 '정정 재발행'으로 새 차수를 교부하고 재서명을 받을 수 있습니다 (기존 서명 기록은 보존)", link: "/cms-tbfa.html#payroll" },
     ],
   },
   {

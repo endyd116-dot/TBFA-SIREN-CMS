@@ -302,6 +302,15 @@
   included_files = ["assets/fonts/**"]
 [functions."admin-martyrdom-publication-export"]
   included_files = ["assets/fonts/**"]
+# ★ 2026-07-11 급여명세 전자서명·증빙보관 — PDF를 만드는 신규 함수 3개도 폰트 필요.
+#   (payroll-my-ack=서명본 생성 / payroll-my-annual=연간내역서 / admin-payroll-evidence=증빙 문서·ZIP)
+#   빠뜨리면 로컬에선 되고 라이브에서만 PDF 생성이 실패한다.
+[functions."payroll-my-ack"]
+  included_files = ["assets/fonts/**"]
+[functions."payroll-my-annual"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-payroll-evidence"]
+  included_files = ["assets/fonts/**"]
 
 # ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
 [functions."cron-org-news"]

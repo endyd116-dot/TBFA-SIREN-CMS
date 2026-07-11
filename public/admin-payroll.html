@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=20260712-noemoji"></script>
+  <script src="/js/icons.js?v=20260712-esign"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>급여관리 — SIREN</title>
@@ -212,6 +212,7 @@
         <span style="flex:1"></span>
         <button class="btn btn-light" id="btnSettings" title="급여 계산 기준 설정 (월 소정 근무일·공제 요율)"><span class="siren-icon-wrap" data-icon="settings"></span> 계산기준</button>
         <a class="btn btn-light" id="btnExport" title="해당 월 명세서 CSV 다운로드" target="_blank" rel="noopener"><span class="siren-icon-wrap" data-icon="arrow-down"></span> CSV</a>
+        <a class="btn btn-light" id="btnZip" title="그 달 교부 문서(서명본 우선) 일괄 ZIP 다운로드" target="_blank" rel="noopener"><span class="siren-icon-wrap" data-icon="download"></span> 증빙 ZIP</a>
         <button class="btn btn-success" id="btnSendAll" title="APPROVED 명세서 일괄 이메일 발송"><span class="siren-icon-wrap" data-icon="mail"></span> 전체 발송</button>
       </div>
     </div>
@@ -263,9 +264,29 @@
       <div id="aiChecklist"></div>
     </div>
 
+    <!-- 이의제기 (있을 때만 표시) -->
+    <div class="card" id="objCard" style="display:none;border-left:4px solid #dc2626">
+      <div class="card-title"><span class="siren-icon-wrap" data-icon="alert-triangle"></span> 급여명세 이의제기 <span id="objMeta" style="font-weight:400;color:#9ca3af;font-size:12px"></span></div>
+      <table class="list">
+        <thead><tr>
+          <th style="width:14%">직원</th><th style="width:10%">대상 월</th>
+          <th>이의 내용</th><th class="c" style="width:10%">상태</th>
+          <th class="c" style="width:12%">접수일</th><th class="c" style="width:20%">처리</th>
+        </tr></thead>
+        <tbody id="objTbody"></tbody>
+      </table>
+    </div>
+
     <!-- 명세서 표 -->
     <div class="card">
-      <div class="card-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 명세서 일람</div>
+      <div class="card-title">
+        <span class="siren-icon-wrap" data-icon="clipboard-list"></span> 명세서 일람
+        <span id="ackMeta" style="font-weight:400;color:#9ca3af;font-size:12px;margin-left:6px"></span>
+        <span style="flex:1"></span>
+        <button class="btn btn-light btn-sm" id="btnRemind" style="display:none" title="아직 전자서명하지 않은 직원에게 수령 확인 요청 알림 발송">
+          <span class="siren-icon-wrap" data-icon="bell"></span> 미서명 독촉
+        </button>
+      </div>
       <table class="list">
         <thead>
           <tr>
@@ -277,13 +298,26 @@
             <th class="r">세전총액</th>
             <th class="r">실수령</th>
             <th class="c">상태</th>
+            <th class="c">수령확인</th>
             <th class="c">동작</th>
           </tr>
         </thead>
         <tbody id="slipTbody">
-          <tr class="loading-row"><td colspan="9">조회를 시작하세요.</td></tr>
+          <tr class="loading-row"><td colspan="10">조회를 시작하세요.</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- 증빙 보관함 모달 (서명 증적 / 직원별 문서함) -->
+  <div class="modal-bg" id="evModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="evTitle">증빙 보관함</h3>
+        <button class="modal-close" type="button" onclick="closeEvModal()">×</button>
+      </div>
+      <div class="modal-body" id="evBody"></div>
+      <div class="modal-actions" id="evActions"></div>
     </div>
   </div>
 
@@ -305,6 +339,6 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260712-recalc"></script>
+  <script src="/js/admin-payroll.js?v=20260712-esign"></script>
 </body>
 </html>

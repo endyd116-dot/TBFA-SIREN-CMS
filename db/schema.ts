@@ -3905,6 +3905,21 @@ export const payrollSlips = pgTable("payroll_slips", {
   paidBy:               varchar("paid_by", { length: 36 }),
 
   calculationSnapshot:  jsonb("calculation_snapshot"),
+
+  /* === 전자서명·증빙보관 (2026-07-11, migrate-payroll-esign) ===
+     문서 고정: 교부(발송) 시점의 PDF를 저장소에 확정 보관하고 지문(해시)을 남긴다.
+     (과거엔 다운로드마다 즉석 생성 → 요율·기준이 바뀌면 과거 명세서가 달라져 서명 증빙 불가) */
+  documentVersion:      integer("document_version").default(1).notNull(),   // 정정 재발행 시 증가
+  documentR2Key:        text("document_r2_key"),                            // 확정 문서(미서명)
+  documentSha256:       varchar("document_sha256", { length: 64 }),         // 무결성 지문
+  signedDocumentR2Key:  text("signed_document_r2_key"),                     // 서명본
+  issuedAt:             timestamp("issued_at"),                             // 교부일 (문서에 찍히는 고정 날짜)
+  firstViewedAt:        timestamp("first_viewed_at"),                       // 직원이 처음 열어본 시각
+  ackStatus:            varchar("ack_status", { length: 20 }).default("PENDING").notNull(), // PENDING|ACKNOWLEDGED|OBJECTED
+  ackAt:                timestamp("ack_at"),
+  reminderSentAt:       timestamp("reminder_sent_at"),                       // 미서명 독촉 마지막 발송
+  reminderCount:        integer("reminder_count").default(0).notNull(),
+
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -4807,3 +4822,57 @@ export const releaseNotes = pgTable("release_notes", {
 export type ReleaseNote    = typeof releaseNotes.$inferSelect;
 export type NewReleaseNote = typeof releaseNotes.$inferInsert;
 /* === 업데이트 소식 끝 === */
+
+/* =========================================================
+ * 급여명세 전자서명·증빙보관 (2026-07-11, migrate-payroll-esign)
+ * payroll_slips 확장 컬럼은 위 payrollSlips 정의에 반영됨.
+ * ========================================================= */
+
+/** 열람·서명·이의 증적 — 한 번 쌓이면 고치거나 지우지 않는다 (감사 추적).
+ *  정정 재발행(차수 증가) 시에도 이전 차수의 서명 기록은 그대로 남는다. */
+export const payrollAcknowledgments = pgTable("payroll_acknowledgments", {
+  id:                   serial("id").primaryKey(),
+  slipId:               integer("slip_id").notNull().references(() => payrollSlips.id, { onDelete: "cascade" }),
+  memberUid:            varchar("member_uid", { length: 36 }).notNull(),
+  documentVersion:      integer("document_version").default(1).notNull(),
+  action:               varchar("action", { length: 20 }).notNull(),          // VIEWED | ACKNOWLEDGED | OBJECTED
+  signatureType:        varchar("signature_type", { length: 10 }),            // DRAW(손글씨) | TYPE(성명입력)
+  signatureR2Key:       text("signature_r2_key"),
+  signedName:           varchar("signed_name", { length: 80 }),
+  consentItems:         jsonb("consent_items").$type<any[]>().default([]).notNull(),
+  objectionReason:      text("objection_reason"),
+  documentR2Key:        text("document_r2_key"),                              // 무엇에 서명했는지
+  documentSha256:       varchar("document_sha256", { length: 64 }),
+  signedDocumentR2Key:  text("signed_document_r2_key"),
+  ip:                   varchar("ip", { length: 45 }),
+  userAgent:            text("user_agent"),
+  createdAt:            timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  slipIdx:   index("idx_payroll_ack_slip").on(t.slipId),
+  memberIdx: index("idx_payroll_ack_member").on(t.memberUid),
+  actionIdx: index("idx_payroll_ack_action").on(t.action),
+}));
+
+/** 이의제기 티켓 — 접수 → 검토중 → 해결/반려 */
+export const payrollObjections = pgTable("payroll_objections", {
+  id:              serial("id").primaryKey(),
+  slipId:          integer("slip_id").notNull().references(() => payrollSlips.id, { onDelete: "cascade" }),
+  memberUid:       varchar("member_uid", { length: 36 }).notNull(),
+  reason:          text("reason").notNull(),
+  status:          varchar("status", { length: 20 }).default("OPEN").notNull(),  // OPEN|IN_REVIEW|RESOLVED|REJECTED
+  resolutionNote:  text("resolution_note"),
+  resolvedBy:      varchar("resolved_by", { length: 36 }),
+  resolvedAt:      timestamp("resolved_at"),
+  createdAt:       timestamp("created_at").defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  slipIdx:   index("idx_payroll_obj_slip").on(t.slipId),
+  statusIdx: index("idx_payroll_obj_status").on(t.status),
+  memberIdx: index("idx_payroll_obj_member").on(t.memberUid),
+}));
+
+export type PayrollAcknowledgment    = typeof payrollAcknowledgments.$inferSelect;
+export type NewPayrollAcknowledgment = typeof payrollAcknowledgments.$inferInsert;
+export type PayrollObjection         = typeof payrollObjections.$inferSelect;
+export type NewPayrollObjection      = typeof payrollObjections.$inferInsert;
+/* === 급여명세 전자서명·증빙보관 끝 === */

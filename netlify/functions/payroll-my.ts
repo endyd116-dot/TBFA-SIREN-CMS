@@ -73,10 +73,24 @@ export default async function handler(req: Request) {
       sentAt: payrollSlips.sentAt,
       paidAt: payrollSlips.paidAt,
       pdfUrl: payrollSlips.pdfUrl,
+      /* 수령확인(전자서명) 상태 — 목록에서 '서명 필요' 배지를 띄우기 위해 */
+      ackStatus: payrollSlips.ackStatus,
+      ackAt: payrollSlips.ackAt,
+      issuedAt: payrollSlips.issuedAt,
+      firstViewedAt: payrollSlips.firstViewedAt,
+      documentVersion: payrollSlips.documentVersion,
+      signedDocumentR2Key: payrollSlips.signedDocumentR2Key,
     }).from(payrollSlips)
       .where(and(...conds))
       .orderBy(desc(payrollSlips.payYear), desc(payrollSlips.payMonth));
 
-    return jsonOk({ rows, total: rows.length });
+    /* 서명본 존재 여부만 노출 (저장소 키 자체는 클라이언트에 보내지 않는다) */
+    const safeRows = rows.map(r => {
+      const { signedDocumentR2Key, ...rest } = r as any;
+      return { ...rest, hasSignedDocument: !!signedDocumentR2Key };
+    });
+
+    const pendingAck = safeRows.filter(r => r.ackStatus === "PENDING").length;
+    return jsonOk({ rows: safeRows, total: safeRows.length, pendingAck });
   } catch (err) { return jsonError("select_my_slips", err); }
 }

@@ -1,13 +1,25 @@
 // lib/payroll-pdf.ts
-// R37 PDF 명세서 생성 — admin-payroll-pdf + payroll-my-pdf + 5일차 이메일 첨부 공유.
-// 설계서 §5 — A4 1페이지 레이아웃.
+// 급여명세서 PDF — 관리자 다운로드 · 직원 다운로드 · 메일 첨부 · 서명본 증빙 공용.
+//
+// 2026-07-11 개정 (전자서명·증빙보관):
+//   1) 계산방법 표기 — 근로기준법상 임금명세서는 금액뿐 아니라 '어떻게 나온 금액인지'를 적어야 한다.
+//      숫자·문구는 lib/payroll-breakdown.ts 한 곳에서만 만든다 (화면과 PDF가 어긋나지 않도록).
+//   2) 발행일 고정 — 과거엔 PDF를 만들 때마다 '지금' 시각을 찍어서 같은 명세서를 두 번 뽑으면
+//      발행일이 달랐다. 이제 명세서에 기록된 교부일을 쓴다 (증빙 문서는 항상 같아야 한다).
+//   3) 서명란 — 직원이 서명하면 서명 이미지·동의 항목·서명 시각을 문서에 찍어 '서명본'으로 보관한다.
+//
 // pdf-lib + @pdf-lib/fontkit + NotoSansKR (assets/fonts/NotoSansKR-Regular.ttf).
 
-import { PDFDocument, rgb, PDFPage, PDFFont } from "pdf-lib";
+import { PDFDocument, rgb, PDFPage, PDFFont, RGB } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { buildPayrollBreakdown } from "./payroll-breakdown";
 
+/* 한글 폰트는 '쓰인 글자만' 문서에 넣는다(subset).
+   과거엔 6MB 폰트를 통째로 넣어 명세서 1장이 3MB였다. 이제 모든 문서를 영구 보관하므로
+   그대로 두면 저장·메일 첨부 비용이 그만큼 커진다. 실측: 3,036KB → 8KB (약 430배), 생성도 10배 빠름.
+   덤으로 PDF 텍스트 추출도 정확해진다(통째 임베드는 공백이 엉뚱한 글자로 추출돼 복사·검색이 깨졌다). */
 let _fontCache: ArrayBuffer | null = null;
 function loadKoreanFont(): Uint8Array {
   if (!_fontCache) {
@@ -17,249 +29,385 @@ function loadKoreanFont(): Uint8Array {
   return new Uint8Array((_fontCache as ArrayBuffer).slice(0));
 }
 
+export interface PayrollSignatureInput {
+  /** 서명 이미지 PNG 바이트 (손글씨). 없으면 성명 입력 방식으로 간주 */
+  imagePng?: Uint8Array | null;
+  signedName: string;
+  signedAt: Date | string;
+  consentItems?: Array<{ text: string; agreed: boolean }>;
+  ip?: string | null;
+}
+
 export interface PayrollSlipPdfInput {
-  slip: {
-    payYear: number;
-    payMonth: number;
-    workingDays: number | string;
-    workingMins: number | string;
-    overtimeMins: number | string;
-    lateCount: number | string;
-    absentCount: number | string;
-    paidLeaveDays: number | string;
-    unpaidLeaveDays: number | string;
-    perfectAttendance: boolean;
-    baseSalaryMonth: number | string;
-    overtimePay: number | string;
-    deductionUnpaid: number | string;
-    performanceBonus: number | string;
-    perfectBonus: number | string;
-    grossPay: number | string;
-    // 공제·실수령·조정 (급여 고도화 2026-05-20)
-    adjustments?: Array<{ label?: string; amount?: number | string; kind?: string; reason?: string }> | null;
-    incomeTax?: number | string;
-    localTax?: number | string;
-    nationalPension?: number | string;
-    healthInsurance?: number | string;
-    longTermCare?: number | string;
-    employmentInsurance?: number | string;
-    otherDeduction?: number | string;
-    totalDeduction?: number | string;
-    netPay?: number | string;
-    status: string;
-    sentAt?: Date | string | null;
-    approvedAt?: Date | string | null;
-    paidAt?: Date | string | null;
-  };
+  slip: any;                       // payroll_slips 행 (calculationSnapshot 포함)
   member: {
+    id?: number | string;
     name: string;
     email?: string | null;
     role?: string | null;
     milestoneRole?: string | null;
   };
   orgName?: string;
+  /** 서명본 생성 시에만 전달 — 문서 하단에 서명란이 찍힌다 */
+  signature?: PayrollSignatureInput | null;
 }
 
-const won = (n: number | string) =>
-  `${Math.round(Number(n || 0)).toLocaleString("ko-KR")} 원`;
+const won = (n: number | string) => `${Math.round(Number(n || 0)).toLocaleString("ko-KR")} 원`;
 
-const hours = (m: number | string) => {
-  const n = Number(m || 0);
-  const h = Math.floor(n / 60);
-  const remain = n % 60;
-  return remain === 0 ? `${h}시간` : `${h}시간 ${remain}분`;
-};
+const A4_W = 595, A4_H = 842, MARGIN = 60;
 
 interface DrawCtx {
+  doc: PDFDocument;
   page: PDFPage;
   font: PDFFont;
   y: number;
   width: number;
-  height: number;
   margin: number;
 }
 
-function text(ctx: DrawCtx, str: string, x: number, size: number, color = rgb(0, 0, 0)) {
-  ctx.page.drawText(str, { x, y: ctx.y, size, font: ctx.font, color });
+function text(ctx: DrawCtx, str: string, x: number, size: number, color: RGB = rgb(0, 0, 0)) {
+  ctx.page.drawText(String(str ?? ""), { x, y: ctx.y, size, font: ctx.font, color });
 }
-function textRight(ctx: DrawCtx, str: string, rightX: number, size: number, color = rgb(0, 0, 0)) {
-  const w = ctx.font.widthOfTextAtSize(str, size);
-  ctx.page.drawText(str, { x: rightX - w, y: ctx.y, size, font: ctx.font, color });
+function textRight(ctx: DrawCtx, str: string, rightX: number, size: number, color: RGB = rgb(0, 0, 0)) {
+  const s = String(str ?? "");
+  const w = ctx.font.widthOfTextAtSize(s, size);
+  ctx.page.drawText(s, { x: rightX - w, y: ctx.y, size, font: ctx.font, color });
 }
-function hr(ctx: DrawCtx, thickness = 0.8, color = rgb(0.5, 0.5, 0.5)) {
+function hr(ctx: DrawCtx, thickness = 0.8, color: RGB = rgb(0.5, 0.5, 0.5)) {
   ctx.page.drawLine({
     start: { x: ctx.margin, y: ctx.y },
     end: { x: ctx.width - ctx.margin, y: ctx.y },
     thickness, color,
   });
 }
+/** 남은 높이가 모자라면 새 페이지 (계산방법·서명란이 붙어 1페이지를 넘길 수 있다) */
+function ensureSpace(ctx: DrawCtx, needed: number) {
+  if (ctx.y - needed < ctx.margin) {
+    ctx.page = ctx.doc.addPage([A4_W, A4_H]);
+    ctx.y = A4_H - ctx.margin;
+  }
+}
+/** 폭에 맞게 잘라내기 (계산방법 문구가 길 때) */
+function clip(ctx: DrawCtx, str: string, size: number, maxW: number): string {
+  let s = String(str ?? "");
+  if (ctx.font.widthOfTextAtSize(s, size) <= maxW) return s;
+  while (s.length > 1 && ctx.font.widthOfTextAtSize(s + "…", size) > maxW) s = s.slice(0, -1);
+  return s + "…";
+}
+
+function kst(d: any): string {
+  if (!d) return "";
+  try { return new Date(d).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }); } catch { return ""; }
+}
 
 export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promise<Uint8Array> {
-  const { slip, member } = input;
+  const { slip, member, signature } = input;
   const orgName = input.orgName || process.env.ORG_NAME || "(사)교사유가족협의회";
+  const orgRegNo = process.env.ORG_REGISTRATION_NO || "";
+  const orgRep = process.env.ORG_REPRESENTATIVE || "";
+
+  const bd = buildPayrollBreakdown(slip);
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
-  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: false });
+  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: true });
 
-  const page = pdfDoc.addPage([595, 842]);   // A4
   const ctx: DrawCtx = {
-    page, font,
-    y: 842 - 60, width: 595, height: 842, margin: 60,
+    doc: pdfDoc,
+    page: pdfDoc.addPage([A4_W, A4_H]),
+    font,
+    y: A4_H - MARGIN,
+    width: A4_W,
+    margin: MARGIN,
   };
-  const rightX = ctx.width - ctx.margin;
-  const issuedAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+  const rightX = A4_W - MARGIN;
+  const labelX = MARGIN + 14;
+  const methodX = MARGIN + 150;          // 계산방법 열 시작
+  const methodMaxW = 300;                // 금액 열과 겹치지 않는 폭
+  const GRAY = rgb(0.45, 0.45, 0.45);
 
-  // ── 머리말 ──
-  text(ctx, orgName, ctx.margin, 11, rgb(0.3, 0.3, 0.3));
+  /* 교부일 — 문서마다 고정. 발송 전이면(관리자 미리보기) 오늘 날짜에 '(미교부)' 표시 */
+  const issued = slip.issuedAt ?? slip.issued_at ?? slip.sentAt ?? slip.sent_at ?? null;
+  const issuedText = issued ? kst(issued) : `${kst(new Date())} (교부 전 미리보기)`;
+  const docVersion = Number(slip.documentVersion ?? slip.document_version ?? 1);
+
+  /* ── 머리말 ── */
+  text(ctx, orgName, MARGIN, 11, rgb(0.3, 0.3, 0.3));
+  if (orgRegNo || orgRep) {
+    textRight(ctx, [orgRegNo && `사업자번호 ${orgRegNo}`, orgRep && `대표 ${orgRep}`].filter(Boolean).join("  ·  "), rightX, 8.5, GRAY);
+  }
   ctx.y -= 30;
-  text(ctx, "급여명세서", ctx.margin, 22);
+  text(ctx, "급여명세서", MARGIN, 22);
+  if (docVersion > 1) {
+    text(ctx, `정정 ${docVersion}차`, MARGIN + 120, 11, rgb(0.7, 0.2, 0.2));
+  }
   ctx.y -= 22;
-  text(ctx, `${slip.payYear}년 ${String(slip.payMonth).padStart(2, "0")}월`,
-       ctx.margin, 13, rgb(0.2, 0.2, 0.2));
-  textRight(ctx, `발행일: ${issuedAt}`, rightX, 9, rgb(0.5, 0.5, 0.5));
+  text(ctx, `${slip.payYear ?? slip.pay_year}년 ${String(slip.payMonth ?? slip.pay_month).padStart(2, "0")}월`, MARGIN, 13, rgb(0.2, 0.2, 0.2));
+  textRight(ctx, `교부일: ${issuedText}`, rightX, 9, GRAY);
   ctx.y -= 12;
   hr(ctx, 1, rgb(0.2, 0.2, 0.2));
   ctx.y -= 24;
 
-  // ── 직원 정보 ──
-  text(ctx, "성명", ctx.margin, 10, rgb(0.4, 0.4, 0.4));
-  text(ctx, member.name, ctx.margin + 70, 11);
-  textRight(ctx, member.email || "", rightX, 9.5, rgb(0.4, 0.4, 0.4));
+  /* ── 근로자 정보 ── */
+  text(ctx, "성명", MARGIN, 10, GRAY);
+  text(ctx, member.name, MARGIN + 70, 11);
+  textRight(ctx, member.email || "", rightX, 9.5, GRAY);
   ctx.y -= 18;
-  text(ctx, "직책", ctx.margin, 10, rgb(0.4, 0.4, 0.4));
-  const role = member.milestoneRole || member.role || "-";
-  text(ctx, role, ctx.margin + 70, 11);
+  text(ctx, "직책", MARGIN, 10, GRAY);
+  text(ctx, member.milestoneRole || member.role || "-", MARGIN + 70, 11);
+  if (member.id != null) textRight(ctx, `사번 ${member.id}`, rightX, 9.5, GRAY);
   ctx.y -= 24;
-
   hr(ctx);
   ctx.y -= 22;
 
-  // ── 근태 현황 ──
-  text(ctx, "근태 현황", ctx.margin, 13, rgb(0.1, 0.1, 0.4));
-  ctx.y -= 22;
-  const labelX = ctx.margin + 16;
-  const colA = labelX, colAVal = 250;
-  const colB = 320, colBVal = rightX;
-
-  const attRows: Array<[string, string, string, string]> = [
-    ["출근 일수", `${slip.workingDays}일`, "총 근무", hours(slip.workingMins)],
-    ["지각", `${slip.lateCount}회`, "결근", `${slip.absentCount}회`],
-    ["유급 휴가", `${slip.paidLeaveDays}일`, "무급 휴가", `${slip.unpaidLeaveDays}일`],
-    ["만근", slip.perfectAttendance ? "예" : "아니오", "", ""],
-  ];
-  /* 2026-06-03 일급제(B): 일급 산정 근거 + 미산입(무급) 일수 표기 */
-  const _dv: any = ((slip as any).calculationSnapshot && (slip as any).calculationSnapshot.derived) || {};
-  if (_dv.dailyWage != null) {
-    const _biz = _dv.monthBusinessDays;
-    const _pay = _dv.paidDays != null ? _dv.paidDays : slip.workingDays;
-    attRows.push(["영업일수", _biz != null ? `${_biz}일` : "—", "일급", won(_dv.dailyWage)]);
-    const _unpaid = _biz != null ? Math.max(0, _biz - _pay) : null;
-    attRows.push(["지급일(출근+유급)", `${_pay}일`, "미산입(무급)", _unpaid != null ? `${_unpaid}일` : "—"]);
-  }
-  for (const [aLabel, aVal, bLabel, bVal] of attRows) {
-    text(ctx, aLabel, colA, 10, rgb(0.4, 0.4, 0.4));
-    textRight(ctx, aVal, colAVal, 10);
-    text(ctx, bLabel, colB, 10, rgb(0.4, 0.4, 0.4));
-    textRight(ctx, bVal, colBVal, 10);
-    ctx.y -= 18;
+  /* ── 근태 근거 (2열) ── */
+  text(ctx, "근태 집계", MARGIN, 13, rgb(0.1, 0.1, 0.4));
+  ctx.y -= 20;
+  const colBx = 320;
+  for (let i = 0; i < bd.attendance.length; i += 2) {
+    ensureSpace(ctx, 20);
+    const a = bd.attendance[i], b = bd.attendance[i + 1];
+    text(ctx, a.label, labelX, 9.5, GRAY);
+    textRight(ctx, a.value, 250, 10);
+    if (b) {
+      text(ctx, b.label, colBx, 9.5, GRAY);
+      textRight(ctx, b.value, rightX, 10);
+    }
+    ctx.y -= 17;
   }
   ctx.y -= 6;
   hr(ctx);
   ctx.y -= 22;
 
-  // ── 급여 구성 (지급 항목) ──
-  text(ctx, "지급 항목", ctx.margin, 13, rgb(0.1, 0.1, 0.4));
-  ctx.y -= 22;
-
-  type Row = [string, string, "plus" | "minus" | "calc"];
-  /* 2026-06-03: 출근일 기반 일급제 — 기본급=출근일×일급. 무급차감은 분모 처리로 항상 0이라
-     0일 때 줄 숨김(혼란 방지). 라벨도 일급제 기준으로 정정. */
-  const payRows: Row[] = [
-    ["기본급(출근일 기반)", won(slip.baseSalaryMonth), "plus"],
-  ];
-  if (Number(slip.deductionUnpaid) > 0) payRows.push(["무급 차감", won(slip.deductionUnpaid), "minus"]);
-  payRows.push(["성과 보너스", won(slip.performanceBonus), "plus"]);
-  if (Number(slip.perfectBonus) > 0) payRows.push(["만근 보너스", won(slip.perfectBonus), "plus"]);
-  // 조정 라인 (수기 가감)
-  const adjList = Array.isArray(slip.adjustments) ? slip.adjustments : [];
-  for (const a of adjList) {
-    const isDeduct = a?.kind === "DEDUCT";
-    const label = `조정: ${String(a?.label || "").slice(0, 30)}`;
-    payRows.push([label, won(a?.amount), isDeduct ? "minus" : "plus"]);
-  }
-  for (const [label, val, kind] of payRows) {
-    const sign = kind === "minus" ? "−" : "+";
-    const color = kind === "minus" ? rgb(0.6, 0.1, 0.1) : rgb(0.1, 0.35, 0.1);
-    text(ctx, `${sign}  ${label}`, labelX, 11, color);
-    textRight(ctx, val, rightX, 11);
-    ctx.y -= 18;
-  }
-
-  ctx.y -= 2;
-  hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
-  ctx.y -= 18;
-  text(ctx, "세전 총액 (Gross Pay)", ctx.margin, 12, rgb(0.1, 0.1, 0.5));
-  textRight(ctx, won(slip.grossPay), rightX, 12, rgb(0.1, 0.1, 0.5));
-  ctx.y -= 24;
-
-  // ── 공제 내역 ──
-  text(ctx, "공제 항목", ctx.margin, 13, rgb(0.4, 0.1, 0.1));
-  ctx.y -= 22;
-  const dedRows: Array<[string, number | string]> = [
-    ["국민연금",     slip.nationalPension ?? 0],
-    ["건강보험",     slip.healthInsurance ?? 0],
-    ["장기요양",     slip.longTermCare ?? 0],
-    ["고용보험",     slip.employmentInsurance ?? 0],
-    ["소득세",       slip.incomeTax ?? 0],
-    ["지방소득세",   slip.localTax ?? 0],
-  ];
-  if (Number(slip.otherDeduction || 0) !== 0) dedRows.push(["기타 공제", slip.otherDeduction ?? 0]);
-  for (const [label, val] of dedRows) {
-    text(ctx, `−  ${label}`, labelX, 11, rgb(0.5, 0.15, 0.15));
-    textRight(ctx, won(val), rightX, 11);
-    ctx.y -= 18;
+  /* ── 지급 항목 + 계산방법 ── */
+  ensureSpace(ctx, 60);
+  text(ctx, "지급 항목", MARGIN, 13, rgb(0.1, 0.1, 0.4));
+  text(ctx, "계산방법", methodX, 9, GRAY);
+  ctx.y -= 20;
+  for (const row of bd.earnings) {
+    ensureSpace(ctx, 22);
+    const minus = row.kind === "DEDUCT";
+    text(ctx, `${minus ? "−" : "+"}  ${row.label}`, labelX, 10.5, minus ? rgb(0.6, 0.1, 0.1) : rgb(0.1, 0.35, 0.1));
+    text(ctx, clip(ctx, row.method, 8, methodMaxW), methodX, 8, GRAY);
+    textRight(ctx, won(row.amount), rightX, 10.5);
+    ctx.y -= 19;
   }
   ctx.y -= 2;
   hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
   ctx.y -= 18;
-  text(ctx, "공제 합계", ctx.margin, 12, rgb(0.4, 0.1, 0.1));
-  textRight(ctx, won(slip.totalDeduction), rightX, 12, rgb(0.4, 0.1, 0.1));
-  ctx.y -= 24;
+  text(ctx, "세전 총액", MARGIN, 12, rgb(0.1, 0.1, 0.5));
+  textRight(ctx, won(bd.grossPay), rightX, 12, rgb(0.1, 0.1, 0.5));
+  ctx.y -= 26;
 
-  // ── 실수령액 ──
+  /* ── 공제 항목 + 계산방법 ── */
+  ensureSpace(ctx, 60);
+  text(ctx, "공제 항목", MARGIN, 13, rgb(0.4, 0.1, 0.1));
+  text(ctx, "계산방법", methodX, 9, GRAY);
+  ctx.y -= 20;
+  for (const row of bd.deductions) {
+    ensureSpace(ctx, 22);
+    text(ctx, `−  ${row.label}`, labelX, 10.5, rgb(0.5, 0.15, 0.15));
+    text(ctx, clip(ctx, row.method, 8, methodMaxW), methodX, 8, GRAY);
+    textRight(ctx, won(row.amount), rightX, 10.5);
+    ctx.y -= 19;
+  }
+  ctx.y -= 2;
+  hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
+  ctx.y -= 18;
+  text(ctx, "공제 합계", MARGIN, 12, rgb(0.4, 0.1, 0.1));
+  textRight(ctx, won(bd.totalDeduction), rightX, 12, rgb(0.4, 0.1, 0.1));
+  ctx.y -= 26;
+
+  /* ── 실수령액 ── */
+  ensureSpace(ctx, 50);
   hr(ctx, 1, rgb(0.1, 0.1, 0.1));
   ctx.y -= 22;
-  text(ctx, "실수령액 (Net Pay)", ctx.margin, 14, rgb(0.05, 0.2, 0.05));
-  textRight(ctx, won(slip.netPay), rightX, 16, rgb(0.05, 0.2, 0.05));
-  ctx.y -= 28;
+  text(ctx, "실수령액", MARGIN, 14, rgb(0.05, 0.2, 0.05));
+  textRight(ctx, won(bd.netPay), rightX, 16, rgb(0.05, 0.2, 0.05));
+  ctx.y -= 26;
 
-  // ── 안내 ──
+  /* ── 안내 ── */
+  ensureSpace(ctx, 40);
   hr(ctx, 0.4, rgb(0.7, 0.7, 0.7));
-  ctx.y -= 18;
-  text(ctx, "※ 실수령액은 세전 총액에서 소득세·4대보험 등 공제를 차감한 금액입니다.", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-  ctx.y -= 13;
-  if (slip.approvedAt) {
-    const d = new Date(slip.approvedAt as any).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-    text(ctx, `※ 승인일: ${d}`, ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-    ctx.y -= 13;
+  ctx.y -= 16;
+  text(ctx, "※ 실수령액 = 세전 총액 − 공제 합계. 위 계산방법은 급여 기준 설정값을 그대로 적용한 것입니다.", MARGIN, 8.5, GRAY);
+  ctx.y -= 12;
+  if (bd.basis.calculatedAt) {
+    text(ctx, `※ 산출 기준 시각: ${kst(bd.basis.calculatedAt)}`, MARGIN, 8.5, GRAY);
+    ctx.y -= 12;
   }
-  if (slip.sentAt) {
-    const d = new Date(slip.sentAt as any).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-    text(ctx, `※ 발송일: ${d}`, ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-    ctx.y -= 13;
+  const paidAt = slip.paidAt ?? slip.paid_at;
+  if (paidAt) {
+    text(ctx, `※ 지급일: ${kst(paidAt)}`, MARGIN, 8.5, GRAY);
+    ctx.y -= 12;
   }
-  if (slip.paidAt) {
-    const d = new Date(slip.paidAt as any).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-    text(ctx, `※ 지급일: ${d}`, ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-    ctx.y -= 13;
+
+  /* ── 전자서명란 (서명본에만) ── */
+  if (signature) {
+    ensureSpace(ctx, 170);
+    ctx.y -= 10;
+    hr(ctx, 1, rgb(0.2, 0.2, 0.2));
+    ctx.y -= 20;
+    text(ctx, "수령 확인 및 이의 없음 동의", MARGIN, 12, rgb(0.1, 0.1, 0.1));
+    ctx.y -= 18;
+
+    const items = signature.consentItems?.length
+      ? signature.consentItems
+      : [{ text: "위 급여명세 내용을 확인하였습니다.", agreed: true },
+         { text: "기재된 내용에 이의가 없음에 동의합니다.", agreed: true }];
+    for (const it of items) {
+      text(ctx, `${it.agreed ? "[v]" : "[ ]"}  ${it.text}`, labelX, 9.5, rgb(0.2, 0.2, 0.2));
+      ctx.y -= 15;
+    }
+    ctx.y -= 8;
+
+    /* 서명 이미지 (손글씨) 또는 성명 표기 */
+    const sigBoxY = ctx.y - 56;
+    ctx.page.drawRectangle({
+      x: MARGIN, y: sigBoxY, width: A4_W - MARGIN * 2, height: 62,
+      borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.8,
+    });
+    const innerY = sigBoxY + 42;
+    ctx.page.drawText("서명", { x: MARGIN + 12, y: innerY, size: 9, font, color: GRAY });
+
+    if (signature.imagePng && signature.imagePng.length > 0) {
+      try {
+        const png = await pdfDoc.embedPng(signature.imagePng);
+        const maxW = 150, maxH = 46;
+        const scale = Math.min(maxW / png.width, maxH / png.height, 1);
+        ctx.page.drawImage(png, {
+          x: MARGIN + 60, y: sigBoxY + 8,
+          width: png.width * scale, height: png.height * scale,
+        });
+      } catch {
+        ctx.page.drawText(signature.signedName, { x: MARGIN + 60, y: innerY, size: 13, font });
+      }
+    } else {
+      ctx.page.drawText(signature.signedName, { x: MARGIN + 60, y: innerY, size: 13, font });
+      ctx.page.drawText("(성명 입력 방식 전자서명)", { x: MARGIN + 60, y: innerY - 15, size: 7.5, font, color: GRAY });
+    }
+
+    ctx.page.drawText(`성명: ${signature.signedName}`, { x: 330, y: innerY, size: 10, font });
+    ctx.page.drawText(`서명일시: ${kst(signature.signedAt)}`, { x: 330, y: innerY - 15, size: 8.5, font, color: GRAY });
+    if (signature.ip) {
+      ctx.page.drawText(`접속 IP: ${signature.ip}`, { x: 330, y: innerY - 28, size: 7.5, font, color: GRAY });
+    }
+    ctx.y = sigBoxY - 16;
+
+    text(ctx, "※ 본 서명은 전자문서 및 전자거래 기본법에 따른 전자적 의사표시로, 서면 서명과 동일한 효력을 가집니다.", MARGIN, 7.5, GRAY);
+    ctx.y -= 11;
+  }
+
+  /* ── 문서 식별 (증빙 추적) ── */
+  const slipId = slip.id;
+  if (slipId != null) {
+    ensureSpace(ctx, 20);
+    text(ctx, `문서번호 PS-${slip.payYear ?? slip.pay_year}${String(slip.payMonth ?? slip.pay_month).padStart(2, "0")}-${slipId}-v${docVersion}`, MARGIN, 7.5, rgb(0.6, 0.6, 0.6));
   }
 
   return await pdfDoc.save();
 }
 
-export function payrollSlipFilename(slip: PayrollSlipPdfInput["slip"], memberName: string): string {
-  const m = String(slip.payMonth).padStart(2, "0");
-  const safeName = memberName.replace(/[\\/:*?"<>|]/g, "_");
-  return `급여명세서_${slip.payYear}_${m}_${safeName}.pdf`;
+/* ══════════════════════════════════════════════════════════════
+   연간 급여내역서 — 연말정산·대출 서류용 1년치 한 장 (가로 A4)
+   ══════════════════════════════════════════════════════════════ */
+export interface PayrollAnnualPdfInput {
+  year: number;
+  member: { id?: number | string; name: string; email?: string | null; role?: string | null };
+  org: { name: string; regNo?: string; representative?: string };
+  months: Array<Record<string, any>>;
+  totals: Record<string, any>;
+}
+
+export async function generatePayrollAnnualPdf(input: PayrollAnnualPdfInput): Promise<Uint8Array> {
+  const { year, member, org, months, totals } = input;
+
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit as any);
+  const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: true });
+
+  const W = 842, H = 595;                     // A4 가로 (열이 많다)
+  const M = 44;
+  const ctx: DrawCtx = { doc: pdfDoc, page: pdfDoc.addPage([W, H]), font, y: H - M, width: W, margin: M };
+  const GRAY = rgb(0.45, 0.45, 0.45);
+  const rightEdge = W - M;
+
+  text(ctx, org.name, M, 10, rgb(0.3, 0.3, 0.3));
+  textRight(ctx, `발급일: ${kst(new Date())}`, rightEdge, 8.5, GRAY);
+  ctx.y -= 26;
+  text(ctx, `${year}년 급여내역서`, M, 20);
+  ctx.y -= 18;
+  text(ctx, `${member.name}  ·  ${member.role || "-"}${member.id != null ? `  ·  사번 ${member.id}` : ""}`, M, 10.5, rgb(0.3, 0.3, 0.3));
+  ctx.y -= 10;
+  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
+  ctx.y -= 18;
+
+  /* 열 — 오른쪽 정렬 기준 x 좌표 */
+  const cols: Array<{ label: string; key: string; x: number }> = [
+    { label: "근무일", key: "workingDays",         x: 130 },
+    { label: "기본급", key: "baseSalary",          x: 215 },
+    { label: "성과급", key: "performanceBonus",    x: 292 },
+    { label: "세전총액", key: "grossPay",          x: 380 },
+    { label: "국민연금", key: "nationalPension",   x: 458 },
+    { label: "건강보험", key: "healthInsurance",   x: 536 },
+    { label: "고용보험", key: "employmentInsurance", x: 610 },
+    { label: "소득세", key: "incomeTax",           x: 676 },
+    { label: "공제계", key: "totalDeduction",      x: 740 },
+    { label: "실수령", key: "netPay",              x: rightEdge },
+  ];
+
+  text(ctx, "월", M, 8.5, GRAY);
+  for (const c of cols) textRight(ctx, c.label, c.x, 8.5, GRAY);
+  ctx.y -= 6;
+  hr(ctx, 0.6, rgb(0.75, 0.75, 0.75));
+  ctx.y -= 14;
+
+  const fmt = (v: any, key: string) =>
+    key === "workingDays" ? `${Math.round(Number(v || 0))}일`
+                          : Math.round(Number(v || 0)).toLocaleString("ko-KR");
+
+  for (const m of months) {
+    ensureSpace(ctx, 18);
+    /* 아직 수령확인(서명)을 안 한 달은 월 옆에 표시 — 본인이 무엇을 남겼는지 바로 보이게 */
+    text(ctx, `${String(m.month).padStart(2, "0")}월`, M, 9.5);
+    if (!m.acknowledged) text(ctx, "미서명", M + 34, 7.5, rgb(0.72, 0.45, 0.05));
+    for (const c of cols) {
+      const isNet = c.key === "netPay";
+      textRight(ctx, fmt(m[c.key], c.key), c.x, 9.5, isNet ? rgb(0.05, 0.35, 0.25) : rgb(0.1, 0.1, 0.1));
+    }
+    ctx.y -= 17;
+  }
+
+  ctx.y -= 2;
+  hr(ctx, 1, rgb(0.4, 0.4, 0.4));
+  ctx.y -= 16;
+  text(ctx, `합계 (${totals.monthCount}개월)`, M, 10.5, rgb(0.1, 0.1, 0.4));
+  for (const c of cols) {
+    const isNet = c.key === "netPay";
+    textRight(ctx, fmt(totals[c.key], c.key), c.x, 10.5, isNet ? rgb(0.05, 0.35, 0.25) : rgb(0.1, 0.1, 0.4));
+  }
+  ctx.y -= 26;
+
+  hr(ctx, 0.4, rgb(0.8, 0.8, 0.8));
+  ctx.y -= 14;
+  text(ctx, "※ 교부된 급여명세서(발송·지급완료)만 합산한 금액입니다.", M, 8, GRAY);
+  ctx.y -= 11;
+  text(ctx, "※ 장기요양보험·지방소득세·기타공제는 '공제계'에 포함되어 있습니다.", M, 8, GRAY);
+  ctx.y -= 11;
+  if (org.regNo || org.representative) {
+    text(ctx, [org.name, org.regNo && `사업자번호 ${org.regNo}`, org.representative && `대표 ${org.representative}`]
+      .filter(Boolean).join("  ·  "), M, 8, GRAY);
+  }
+
+  return await pdfDoc.save();
+}
+
+export function payrollSlipFilename(slip: any, memberName: string, opts?: { signed?: boolean }): string {
+  const y = slip.payYear ?? slip.pay_year;
+  const m = String(slip.payMonth ?? slip.pay_month).padStart(2, "0");
+  const v = Number(slip.documentVersion ?? slip.document_version ?? 1);
+  const safeName = String(memberName || "직원").replace(/[\\/:*?"<>|]/g, "_");
+  const suffix = opts?.signed ? "_서명본" : "";
+  const ver = v > 1 ? `_정정${v}차` : "";
+  return `급여명세서_${y}_${m}_${safeName}${ver}${suffix}.pdf`;
 }

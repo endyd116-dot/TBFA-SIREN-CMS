@@ -75,7 +75,12 @@ export default async function handler(req: Request) {
       "기본급(출근일기반)", "성과보너스", "만근보너스", "조정합계", "세전총액",
       "소득세", "지방소득세", "국민연금", "건강보험", "장기요양", "고용보험", "기타공제", "공제합계", "실수령액",
       "상태", "승인일", "발송일", "지급일",
+      /* 전자서명 증빙 (2026-07-11) — 급여대장이 곧 수령확인 대장이 되도록 */
+      "문서차수", "교부일", "첫열람일", "수령확인", "서명일", "문서지문",
     ];
+    const ACK_KO: Record<string, string> = {
+      PENDING: "미서명", ACKNOWLEDGED: "서명완료", OBJECTED: "이의제기",
+    };
     const lines: string[] = [header.map(csvEscape).join(",")];
     for (const r of rows) {
       const m = memberMap.get(Number(r.memberUid));
@@ -93,6 +98,12 @@ export default async function handler(req: Request) {
         r.approvedAt ? new Date(r.approvedAt as any).toISOString().slice(0, 10) : "",
         r.sentAt ? new Date(r.sentAt as any).toISOString().slice(0, 10) : "",
         r.paidAt ? new Date(r.paidAt as any).toISOString().slice(0, 10) : "",
+        r.documentVersion ?? 1,
+        r.issuedAt ? new Date(r.issuedAt as any).toISOString().slice(0, 10) : "",
+        r.firstViewedAt ? new Date(r.firstViewedAt as any).toISOString().slice(0, 10) : "",
+        (r.status === "SENT" || r.status === "PAID") ? (ACK_KO[String(r.ackStatus)] ?? r.ackStatus ?? "") : "",
+        r.ackAt ? new Date(r.ackAt as any).toISOString().slice(0, 10) : "",
+        r.documentSha256 ?? "",
       ].map(csvEscape).join(","));
     }
 
