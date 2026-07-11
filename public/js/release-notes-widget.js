@@ -21,12 +21,15 @@
   function injectStyle() {
     if (document.getElementById('rnw-style')) return;
     var css = [
-      '#rnwChip{position:fixed;right:18px;bottom:18px;z-index:9500;display:flex;align-items:center;gap:7px;',
+      /* 우하단은 AI 비서 버튼(.aiw-fab)·AI 선제제안(.ai-pro-wrap)이 이미 점유 → 좌하단(사이드바 옆)에 배치.
+         left 값은 좌측 고정 사이드바 폭을 실측해 런타임 지정(placeChip). */
+      '#rnwChip{position:fixed;bottom:18px;left:18px;z-index:9400;display:flex;align-items:center;gap:7px;',
       'background:#7a1f2b;color:#fff;border:none;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;',
       'box-shadow:0 4px 14px rgba(0,0,0,.22);cursor:pointer;font-family:inherit}',
       '#rnwChip:hover{background:#641823}',
       '#rnwChip .siren-icon{width:1.1em;height:1.1em}',
-      '#rnwOverlay{position:fixed;inset:0;z-index:9600;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px}',
+      /* AI 선제제안(99999)·세션모달(99999)보다는 아래, AI 버튼(9998)·PWA배너(9999)보다는 위 */
+      '#rnwOverlay{position:fixed;inset:0;z-index:99990;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px}',
       '#rnwModal{background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3)}',
       '#rnwModal header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb}',
       '#rnwModal header h2{margin:0;font-size:16px;color:#111827}',
@@ -39,7 +42,7 @@
       '.rnw-note li{font-size:13px;color:#374151;margin-bottom:6px;line-height:1.5}',
       '.rnw-go{margin-left:6px;font-size:12px;color:#2563eb;text-decoration:none;white-space:nowrap}',
       '.rnw-go:hover{text-decoration:underline}',
-      '#rnwToast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:9700;background:#111827;color:#fff;',
+      '#rnwToast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:10000;background:#111827;color:#fff;',
       'border-radius:10px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.3)}',
       '#rnwToast button{background:#7a1f2b;color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-weight:600}',
     ].join('');
@@ -63,6 +66,21 @@
     });
   }
 
+  /* 좌측 고정 사이드바(워크스페이스·통합CMS)가 있으면 그 옆으로 비켜 놓는다.
+     우하단은 AI 비서 버튼·AI 선제제안 카드가 쓰므로 침범하지 않는다. */
+  function placeChip(btn) {
+    var left = 18;
+    var bars = document.querySelectorAll('.ws-sidebar, .cms-sidebar, aside[class*="sidebar"]');
+    for (var i = 0; i < bars.length; i++) {
+      var r = bars[i].getBoundingClientRect();
+      // 화면 좌측에 붙어 있고 실제로 보이는 사이드바만 고려
+      if (r.width > 0 && r.height > 0 && r.left <= 2) {
+        left = Math.max(left, Math.round(r.right) + 16);
+      }
+    }
+    btn.style.left = left + 'px';
+  }
+
   function renderChip(unseen) {
     var old = document.getElementById('rnwChip');
     if (old) old.remove();
@@ -73,6 +91,15 @@
     btn.innerHTML = icon('sparkles') + ' 새 소식 ' + unseen + '건';
     btn.addEventListener('click', openModal);
     document.body.appendChild(btn);
+    placeChip(btn);
+    // 사이드바 접힘·창 크기 변경 시 재배치
+    if (!renderChip._bound) {
+      renderChip._bound = true;
+      window.addEventListener('resize', function () {
+        var c = document.getElementById('rnwChip');
+        if (c) placeChip(c);
+      });
+    }
   }
 
   function openModal() {
