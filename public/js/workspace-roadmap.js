@@ -76,19 +76,23 @@
     try {
       // [감사#17] 인증 탐침은 noAuthRedirect — auth/me 401이어도 즉시 튕기지 않고 admin/me 폴백으로 진행
       const r = await api('/api/auth/me', { noAuthRedirect: true });
-      if (r.ok) me = r.data?.data || r.data?.user || r.data || null;
+      if (r.ok) me = r.data?.data?.user || r.data?.data || r.data?.user || r.data || null;
     } catch (_) {}
     if (!me) {
       try {
         const r = await api('/api/admin/me?light=1', { noAuthRedirect: true });
-        if (r.ok) me = r.data?.admin || r.data?.data || r.data || null;
+        if (r.ok) me = r.data?.data?.admin || r.data?.admin || r.data?.data || r.data || null;
       } catch (_) {}
     }
     // [감사#17] 사용자·관리자 인증 둘 다 실패한 경우에만 로그인 페이지로 이동
     if (!me) { location.href = '/admin.html'; return; }
     if (me) {
       const isAdmin = me.role === 'admin' || me.role === 'super_admin';
-      if (!isAdmin && me.operatorActive === false) {
+      /* 직원(관리자·운영자)만 통과 — 서버 판정(isAdmin·isOperator)과 계정 종류를 함께 본다.
+         운영자 토글 하나로만 보면 토글이 꺼진 관리자가 자기 워크스페이스에서 튕긴다 (2026-07-12) */
+      const isStaff = isAdmin || me.isAdmin === true || me.isOperator === true
+        || me.type === 'admin' || me.operatorActive === true;
+      if (!isStaff) {
         alert('워크스페이스는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
         location.href = '/index.html';
         return;

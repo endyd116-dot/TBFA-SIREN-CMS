@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.11";
+export const APP_VERSION = "2026-07-12.12";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-workspace-me-fix",
+    title: "워크스페이스에 내 이름·역할이 제대로 표시됩니다",
+    items: [
+      { text: "근태·캘린더·파일함·WBS·로드맵·템플릿·성과관리에서 내 이름이 빈칸으로 나오던 문제를 고쳤습니다 ('님의 근태 현황' → '김광일님의 근태 현황')", link: "/workspace-attendance.html" },
+      { text: "관리자인데 '직원'으로 표시되던 역할 표기를 바로잡았습니다" },
+    ],
+  },
   {
     key: "2026-07-12-att-correction-evidence",
     title: "근태 수정 요청에 증빙 서류를 붙일 수 있습니다",

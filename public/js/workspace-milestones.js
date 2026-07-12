@@ -81,11 +81,11 @@
     ]);
     if (userRes.status === 'fulfilled' && userRes.value.ok) {
       const v = userRes.value;
-      memberData = v.data?.data || v.data?.user || v.data || null;
+      memberData = v.data?.data?.user || v.data?.data || v.data?.user || v.data || null;
     }
     if (!memberData && adminRes.status === 'fulfilled' && adminRes.value.ok) {
       const v = adminRes.value;
-      memberData = v.data?.admin || v.data?.data?.admin || v.data?.data || v.data || null;
+      memberData = v.data?.data?.admin || v.data?.admin || v.data?.data || v.data || null;
     }
     if (!memberData) {
       window.location.href = '/login.html';
@@ -95,7 +95,10 @@
     state.isAdmin = state.member.role === 'admin' || state.member.role === 'super_admin';
     state.isSuperAdmin = state.member.role === 'super_admin';
     // R35-GAP-P2 M-G7: regular 회원은 워크스페이스 부적합
-    if (!state.isAdmin && state.member.operatorActive === false) {
+    /* 직원(관리자·운영자)만 통과 — 서버 판정과 계정 종류를 함께 본다 (2026-07-12) */
+    const isStaff = state.isAdmin || state.member.isAdmin === true || state.member.isOperator === true
+      || state.member.type === 'admin' || state.member.operatorActive === true;
+    if (!isStaff) {
       alert('워크스페이스는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
       window.location.href = '/index.html';
       return;

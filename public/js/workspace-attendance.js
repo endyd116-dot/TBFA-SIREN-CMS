@@ -1442,7 +1442,7 @@
     try {
       const userRes = await api('/api/auth/me');
       if (userRes.ok) {
-        user = userRes.data?.data || userRes.data?.user || userRes.data || null;
+        user = userRes.data?.data?.user || userRes.data?.data || userRes.data?.user || userRes.data || null;
       }
     } catch (_) {}
 
@@ -1451,7 +1451,7 @@
       try {
         const adminRes = await api('/api/admin/me?light=1');
         if (adminRes.ok) {
-          user = adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
+          user = adminRes.data?.data?.admin || adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
           isAdmin = !!user;
         }
       } catch (_) {}
@@ -1460,16 +1460,24 @@
     // 3) 둘 다 실패 → 로그인 페이지
     if (!user) { location.href = '/login.html'; return null; }
 
-    // R35-GAP-P2 M-G7: regular 회원(operatorActive=false·non-admin)은 근태 페이지 부적합 — 안내 후 홈으로
-    if (!isAdmin && user.operatorActive === false) {
+    /* 근태 페이지는 직원(관리자·운영자) 전용 — 일반 회원만 걸러낸다.
+       '운영자 토글' 하나로만 판정하면, 토글이 꺼진 관리자(예: 정책국장)가 자기 근태·급여 화면에서
+       튕겨 나간다. 서버가 내려주는 판정(isAdmin·isOperator)과 계정 종류를 함께 본다.
+       (2026-07-12: 응답 껍질을 안 벗겨 이 값들이 통째로 비어 있었고, 그래서 검사가 무력화된 채
+        '우연히' 통과하던 상태였다. 껍질을 벗기는 순간 이 조건도 같이 고쳐야 회귀가 없다.) */
+    const isStaff = isAdmin
+      || user.isAdmin === true || user.isOperator === true
+      || user.type === 'admin' || user.operatorActive === true
+      || user.role === 'admin' || user.role === 'super_admin';
+    if (!isStaff) {
       alert('근태관리 페이지는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
       location.href = '/index.html';
       return null;
     }
 
-    const roleLabel = isAdmin
-      ? '관리자'
-      : (user.operatorActive ? '운영자' : '직원');
+    const roleLabel = user.role === 'super_admin' ? '총괄관리자'
+      : (isAdmin || user.isAdmin === true || user.type === 'admin' || user.role === 'admin') ? '관리자'
+      : '운영자';
 
     const nameEl = document.getElementById('wsSidebarUserName');
     if (nameEl) nameEl.textContent = user.name || user.username || '사용자';
