@@ -1661,8 +1661,8 @@
 
     const body = { recordId, reason };
     // datetime-local 입력은 로컬 타임존 — Date로 ISO 변환
-    if (ci) body.checkInTime  = new Date(ci).toISOString();
-    if (co) body.checkOutTime = new Date(co).toISOString();
+    if (ci) body.checkInTime  = kstLocalToISO(ci);
+    if (co) body.checkOutTime = kstLocalToISO(co);
     if (wm) body.workMode = wm;
     if (note !== '') body.note = note;
 
@@ -1756,8 +1756,8 @@
 
     const body = { memberUid: _recCreateCtx.memberUid, date: _recCreateCtx.date, reason };
     if (wm) body.workMode = wm;
-    if (ci) body.checkInTime  = new Date(ci).toISOString();
-    if (co) body.checkOutTime = new Date(co).toISOString();
+    if (ci) body.checkInTime  = kstLocalToISO(ci);
+    if (co) body.checkOutTime = kstLocalToISO(co);
     if (note !== '') body.note = note;
 
     const btn = document.getElementById('awmBtnRecCreateSave');

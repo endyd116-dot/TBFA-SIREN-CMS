@@ -979,7 +979,7 @@
 
     // 마감일은 선택 — 없으면 개인 기록·보관용 카드로 생성
     const body = { title, description, priority };
-    if (dueDate) body.dueDate = new Date(dueDate).toISOString();
+    if (dueDate) body.dueDate = kstLocalToISO(dueDate);
     if (SELECTED_TEMPLATE_ID) body.templateId = SELECTED_TEMPLATE_ID;
 
     try {
@@ -2450,7 +2450,7 @@
     const btn = $('#wkCardRecurringCreate');
     if (btn) btn.disabled = true;
     try {
-      const body = { parentTaskId: parentTaskId, dueDate: new Date(due).toISOString() };
+      const body = { parentTaskId: parentTaskId, dueDate: kstLocalToISO(due) };
       if (title) body.title = title;
       const res = await api('/api/admin-workspace-task-recurring', { method: 'POST', body });
       if (res && res.ok === false) {

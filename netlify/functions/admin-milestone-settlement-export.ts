@@ -1,4 +1,4 @@
-import { jsonRes } from "../../lib/kst";
+import { jsonRes, dateKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -73,7 +73,7 @@ export default async function handler(req: Request, _ctx: Context) {
         String(Math.round(Number(s.total_bonus || 0))),
         String(Math.round(Number(s.base_salary || 0))),
         statusLabel[s.status] || s.status || "",
-        s.paid_at ? new Date(s.paid_at).toISOString().slice(0, 10) : "",
+        s.paid_at ? dateKST(s.paid_at) : "",
       ];
       return cols.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",");
     });

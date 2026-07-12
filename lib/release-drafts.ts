@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.22";
+export const APP_VERSION = "2026-07-13.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-13-kst-io-edges",
+    title: "날짜·시각 정확성 마무리 — 엑셀 날짜·시각 입력",
+    items: [
+      { text: "[관리자] 급여·성과결산 엑셀의 지급일 등 날짜가 월말·월초 새벽 경계에서 하루 밀려 찍히던 문제를 고쳤습니다" },
+      { text: "출퇴근 시각·일정·마감일을 입력할 때, 컴퓨터 시간대가 한국이 아니어도 항상 한국 시각으로 저장되도록 했습니다 (해외 접속·시간대 오설정 대비)" },
+    ],
+  },
   {
     key: "2026-07-12-broken-apis",
     title: "휴가 신청 내역·전표 목록이 안 열리던 오류",

@@ -398,8 +398,8 @@
     const endVal = $('#wcEventEditEnd').value;
     if (!title) { toast('제목을 입력하세요', 'error'); return; }
     if (!startVal || !endVal) { toast('시작·종료 시각을 입력하세요', 'error'); return; }
-    const startAt = new Date(startVal);
-    const endAt = new Date(endVal);
+    const startAt = new Date(kstLocalToISO(startVal));
+    const endAt = new Date(kstLocalToISO(endVal));
     if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) { toast('시각 형식 오류', 'error'); return; }
     if (endAt < startAt) { toast('종료가 시작보다 빠릅니다', 'error'); return; }
     const payload = {

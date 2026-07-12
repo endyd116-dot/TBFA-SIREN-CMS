@@ -9,7 +9,7 @@
  * R37 1일차 — 골격 + 실 CSV 출력 (외부 라이브러리 없이 직접 생성).
  * 권한: super_admin 전용.
  */
-import { jsonKST } from "../../lib/kst";
+import { jsonKST, dateKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { payrollSlips, members } from "../../db/schema";
 import { and, eq, inArray } from "drizzle-orm";
@@ -96,14 +96,14 @@ export default async function handler(req: Request) {
         r.baseSalaryMonth, r.performanceBonus, r.perfectBonus, adjNet, r.grossPay,
         r.incomeTax, r.localTax, r.nationalPension, r.healthInsurance, r.longTermCare, r.employmentInsurance, r.otherDeduction, r.totalDeduction, r.netPay,
         r.status,
-        r.approvedAt ? new Date(r.approvedAt as any).toISOString().slice(0, 10) : "",
-        r.sentAt ? new Date(r.sentAt as any).toISOString().slice(0, 10) : "",
-        r.paidAt ? new Date(r.paidAt as any).toISOString().slice(0, 10) : "",
+        r.approvedAt ? dateKST(r.approvedAt) : "",
+        r.sentAt ? dateKST(r.sentAt) : "",
+        r.paidAt ? dateKST(r.paidAt) : "",
         r.documentVersion ?? 1,
-        r.issuedAt ? new Date(r.issuedAt as any).toISOString().slice(0, 10) : "",
-        r.firstViewedAt ? new Date(r.firstViewedAt as any).toISOString().slice(0, 10) : "",
+        r.issuedAt ? dateKST(r.issuedAt) : "",
+        r.firstViewedAt ? dateKST(r.firstViewedAt) : "",
         (r.status === "SENT" || r.status === "PAID") ? (ACK_KO[String(r.ackStatus)] ?? r.ackStatus ?? "") : "",
-        r.ackAt ? new Date(r.ackAt as any).toISOString().slice(0, 10) : "",
+        r.ackAt ? dateKST(r.ackAt) : "",
         r.documentSha256 ?? "",
       ].map(csvEscape).join(","));
     }

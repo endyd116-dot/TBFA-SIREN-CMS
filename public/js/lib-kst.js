@@ -87,6 +87,21 @@
     return new Date(t + 9 * 3600 * 1000).toISOString().slice(0, 10);
   }
 
+  /**
+   * datetime-local 입력값(벽시계)을 '한국 시각'으로 해석해 UTC ISO 로 바꾼다.
+   *
+   * 왜 필요한가: <input type="datetime-local"> 의 값은 "2026-07-12T09:00" 처럼 시간대가 없다.
+   *   `new Date(v)` 로 바꾸면 **브라우저 컴퓨터의 시간대**로 해석된다. 한국 노트북이면 맞지만,
+   *   해외·오설정 노트북이면 어긋난다. 표시는 이미 KST로 못박아 뒀으므로 입력도 KST로 맞춘다.
+   *   → 벽시계 뒤에 +09:00 을 붙여 '한국 9시'로 못박는다. 브라우저 시간대와 무관하게 정확하다.
+   */
+  function kstLocalToISO(v) {
+    if (!v) return v;
+    var m = String(v).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) { var d = new Date(v); return isNaN(d.getTime()) ? v : d.toISOString(); }
+    return new Date(m[1] + 'T' + m[2] + ':' + m[3] + ':' + (m[4] || '00') + '+09:00').toISOString();
+  }
+
   window.fmtKST = fmtKST;
   window.fmtKSTDate = fmtKSTDate;
   window.fmtKSTDateTime = fmtKSTDateTime;
@@ -95,4 +110,5 @@
   window.fmtKSTRelative = fmtKSTRelative;
   window.todayKST = todayKST;
   window.dateKST = dateKST;
+  window.kstLocalToISO = kstLocalToISO;
 })();
