@@ -5,7 +5,7 @@
 // - 같은 회원 정기+재시도 dedup → 이중청구 방지
 // - 영수증/알림 발송 (통합 디스패처)
 
-import { nowKST } from "../../lib/kst";
+import { nowKST, jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import { members, billingKeys, donations } from "../../db/schema";
@@ -100,13 +100,13 @@ export default async (_req: Request) => {
     summary.durationMs = completedAt.getTime() - startedAt.getTime();
     console.log(`[cron-kicc-billing] 완료`, JSON.stringify(summary, null, 2));
 
-    return new Response(JSON.stringify({ ok: true, summary }, null, 2), {
+    return new Response(jsonKST({ ok: true, summary }, null, 2), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error(`[cron-kicc-billing] 치명적 오류:`, error);
-    return new Response(JSON.stringify({ ok: false, error: error?.message, stack: error?.stack }, null, 2), {
+    return new Response(jsonKST({ ok: false, error: error?.message, stack: error?.stack }, null, 2), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

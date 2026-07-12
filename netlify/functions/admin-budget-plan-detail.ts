@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-budget-plan-detail" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예산안 상세 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -23,7 +23,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const fiscalYear = parseInt(url.searchParams.get("year") || "0");
 
   if (!id && !fiscalYear) {
-    return new Response(JSON.stringify({ ok: false, error: "id 또는 year 파라미터 필요" }),
+    return new Response(jsonKST({ ok: false, error: "id 또는 year 파라미터 필요" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -42,7 +42,7 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const planRows = rows?.rows ?? rows ?? [];
     if (!planRows[0]) {
-      return new Response(JSON.stringify({ ok: false, error: "예산안을 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "예산안을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
     plan = planRows[0];
@@ -90,7 +90,7 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("budget_lines 조회 실패:", err?.message);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       plan: {

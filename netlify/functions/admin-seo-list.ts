@@ -2,6 +2,7 @@
 // R42 SEO — 어드민용 페이지 SEO 목록.
 // site_settings page:* 항목 + 고정 페이지 + 동적 콘텐츠 페이지 머지.
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { listPageSeoKeys } from "../../lib/seo-meta";
@@ -10,13 +11,13 @@ import { STATIC_PAGES } from "../../lib/sitemap-builder";
 export const config = { path: "/api/admin-seo-list" };
 
 function jsonOk(body: any) {
-  return new Response(JSON.stringify(body), {
+  return new Response(jsonKST(body), {
     status: 200,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 function jsonError(status: number, error: string) {
-  return new Response(JSON.stringify({ ok: false, error }), {
+  return new Response(jsonKST({ ok: false, error }), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });

@@ -6,6 +6,7 @@
  *
  * R37 1일차 — 골격 + 본 동작 (별도 5일차 로직 의존 없음).
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { payrollSlips } from "../../db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -14,12 +15,12 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 export const config = { path: "/api/payroll-my" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "본인 급여 명세서 조회 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),

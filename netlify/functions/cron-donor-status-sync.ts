@@ -14,6 +14,7 @@
  * netlify.toml 스케줄: "0 18 * * *"
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -93,14 +94,14 @@ export default async (_req: Request) => {
 
     console.log(`[cron-donor-status-sync] 완료`, JSON.stringify(payload, null, 2));
 
-    return new Response(JSON.stringify(payload, null, 2), {
+    return new Response(jsonKST(payload, null, 2), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error(`[cron-donor-status-sync] Step 2 치명적 오류:`, err);
     return new Response(
-      JSON.stringify(
+      jsonKST(
         {
           ok: false,
           hyosungSyncCount,

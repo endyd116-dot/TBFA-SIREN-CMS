@@ -7,6 +7,7 @@
  *
  * 진행 현황은 admin-rag-status GET이 ai_rag_documents 문서 수를 집계 → 폴링.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 
@@ -16,7 +17,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405, headers: JSON_HEADER });
   }
 
   try {
@@ -30,7 +31,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
 
     if (!secret) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false,
         error: "INTERNAL_TRIGGER_SECRET 미설정 — 재색인 비활성(fail-closed)",
       }), { status: 503, headers: JSON_HEADER });
@@ -55,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
       console.warn("[rag-reindex] background 트리거 실패:", bgError);
     }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         started: true,
@@ -66,7 +67,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }), { status: 202, headers: JSON_HEADER });
 
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "재색인 시작 실패",
       detail: String(err?.message || err).slice(0, 500),

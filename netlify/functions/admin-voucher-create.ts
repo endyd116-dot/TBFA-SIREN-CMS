@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -7,7 +8,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-voucher-create" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "전표 작성 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -16,7 +17,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -35,7 +36,7 @@ export default async function handler(req: Request, _ctx: Context) {
   } = body;
 
   if (!voucherDate || !accountCode || !description || amount === undefined) {
-    return new Response(JSON.stringify({ ok: false, error: "voucherDate, accountCode, description, amount 필수" }),
+    return new Response(jsonKST({ ok: false, error: "voucherDate, accountCode, description, amount 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -47,7 +48,7 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const ac = (acR?.rows ?? acR ?? [])[0];
     if (!ac) {
-      return new Response(JSON.stringify({ ok: false, error: `존재하지 않는 계정과목 코드: ${accountCode}` }),
+      return new Response(jsonKST({ ok: false, error: `존재하지 않는 계정과목 코드: ${accountCode}` }),
         { status: 422, headers: { "Content-Type": "application/json" } });
     }
     accountName = ac.name;
@@ -86,7 +87,7 @@ export default async function handler(req: Request, _ctx: Context) {
       return (result?.rows ?? result ?? [])[0];
     });
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         voucherId: Number(created.id),

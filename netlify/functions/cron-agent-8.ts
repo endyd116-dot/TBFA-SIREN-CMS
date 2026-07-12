@@ -13,7 +13,7 @@
  *   4. AI 실패 시 폴백 — 데이터 기반 단순 요약
  */
 
-import { nowKST } from "../../lib/kst";
+import { nowKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, dailyBriefings } from "../../db/schema";
@@ -291,7 +291,7 @@ export default async (_req: Request, _ctx: Context) => {
     if (!admins.length) {
       console.info("[agent-8] 활성 admin 없음 — 종료");
       return new Response(
-        JSON.stringify({ ok: true, processed: 0, message: "활성 admin 없음" }),
+        jsonKST({ ok: true, processed: 0, message: "활성 admin 없음" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -312,7 +312,7 @@ export default async (_req: Request, _ctx: Context) => {
     console.info(`[agent-8] 완료 ${success}/${admins.length}건 (${durationMs}ms)`);
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         total: admins.length,
         success,
@@ -325,7 +325,7 @@ export default async (_req: Request, _ctx: Context) => {
   } catch (err: any) {
     console.error("[agent-8] fatal:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "unknown" }),
+      jsonKST({ ok: false, error: err?.message || "unknown" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

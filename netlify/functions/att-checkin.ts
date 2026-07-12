@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords, attWorkplaces, attHolidays, attLeaveRequests } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -37,12 +38,12 @@ async function autoOpenDoor(
 export const config = { path: "/api/att-checkin" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "출근 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -64,7 +65,7 @@ async function verifyLocation(
         id: attWorkplaces.id, name: attWorkplaces.name, address: attWorkplaces.address,
         lat: attWorkplaces.lat, lng: attWorkplaces.lng, radius: attWorkplaces.radius,
       }).from(attWorkplaces).where(and(eq(attWorkplaces.isActive, true), eq(attWorkplaces.type, "FIELD")));
-      return { workplaceId: null, errorRes: new Response(JSON.stringify({
+      return { workplaceId: null, errorRes: new Response(jsonKST({
         ok: false, needsWorkplaceSelection: true, error: "외근지를 선택해 주세요", workplaces: fieldList,
       }), { status: 422, headers: { "Content-Type": "application/json" } }) };
     } catch (err) { console.warn("[att-checkin] FIELD 거점 목록 조회 실패:", err); }
@@ -98,7 +99,7 @@ async function verifyLocation(
     if (workplace && workplace.lat != null && workplace.lng != null) {
       const dist = Math.round(haversineDistance(lat, lng, Number(workplace.lat), Number(workplace.lng)));
       if (!isWithinRadius(lat, lng, Number(workplace.lat), Number(workplace.lng), workplace.radius)) {
-        return { workplaceId: null, errorRes: new Response(JSON.stringify({
+        return { workplaceId: null, errorRes: new Response(jsonKST({
           ok: false, error: `사무실 반경 ${dist}m 초과`, step: "radius_check",
           detail: `허용 반경: ${workplace.radius}m, 현재 거리: ${dist}m`,
         }), { status: 400, headers: { "Content-Type": "application/json" } }) };
@@ -150,7 +151,7 @@ export default async function handler(req: Request) {
     const sessions = normalizeSessions(existing);
 
     if (isWorking(sessions)) {
-      return new Response(JSON.stringify({ ok: false, error: "이미 출근 상태입니다", step: "already_working" }),
+      return new Response(jsonKST({ ok: false, error: "이미 출근 상태입니다", step: "already_working" }),
         { status: 409, headers: { "Content-Type": "application/json" } });
     }
 
@@ -160,7 +161,7 @@ export default async function handler(req: Request) {
     if (!reentryMode) {
       const last = sessions[sessions.length - 1];
       const reMsg = inWork ? "재출근 또는 퇴근 취소를 선택하세요" : "업무시간 외입니다. 재출근만 가능합니다(기존 퇴근 기록은 보존).";
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, needsReentryChoice: true, inWorkHours: inWork,
         lastCheckOut: last?.out ?? existing.checkOutTime ?? null,
         error: reMsg, message: reMsg,
@@ -170,7 +171,7 @@ export default async function handler(req: Request) {
     // 퇴근 취소 (업무시간 내만) — 마지막 세션의 퇴근을 되돌려 근무중 복귀
     if (reentryMode === "reopen") {
       if (!inWork) {
-        return new Response(JSON.stringify({ ok: false, error: "업무시간이 지나 퇴근 취소는 불가합니다. 재출근만 가능합니다.", step: "reopen_after_hours" }),
+        return new Response(jsonKST({ ok: false, error: "업무시간이 지나 퇴근 취소는 불가합니다. 재출근만 가능합니다.", step: "reopen_after_hours" }),
           { status: 400, headers: { "Content-Type": "application/json" } });
       }
       const ns = sessions.slice();
@@ -250,7 +251,7 @@ export default async function handler(req: Request) {
         sql`${attLeaveRequests.startDate} <= ${today}::date AND ${attLeaveRequests.endDate} >= ${today}::date`,
       )).limit(1);
       if (pendingLeaves.length > 0 && !pendingLeaves[0].isHalfDay) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false,
           error: "결재 대기 중인 휴가 신청이 있습니다. 운영자의 결재가 완료된 후 출근하거나, 휴가를 철회한 후 다시 시도하세요",
           step: "leave_pending",
@@ -318,7 +319,7 @@ export default async function handler(req: Request) {
     return jsonOk({ ...record, remoteReportRequired: workMode.mode === "REMOTE", autoCardId, door }, 201);
   } catch (err) {
     if (String(err).includes("unique") || String(err).includes("att_records_member_date_uq")) {
-      return new Response(JSON.stringify({ ok: false, error: "이미 출근 처리됨", step: "insert_conflict" }),
+      return new Response(jsonKST({ ok: false, error: "이미 출근 처리됨", step: "insert_conflict" }),
         { status: 409, headers: { "Content-Type": "application/json" } });
     }
     return jsonError("insert_record", err);

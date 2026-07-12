@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -6,7 +7,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-budget-plan-create" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예산안 생성 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -15,7 +16,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -28,7 +29,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const { fiscalYear, title } = body;
   if (!fiscalYear || typeof fiscalYear !== "number") {
-    return new Response(JSON.stringify({ ok: false, error: "fiscalYear(숫자) 필수" }),
+    return new Response(jsonKST({ ok: false, error: "fiscalYear(숫자) 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -40,7 +41,7 @@ export default async function handler(req: Request, _ctx: Context) {
       SELECT id FROM budget_plans WHERE fiscal_year = ${fiscalYear} LIMIT 1
     `);
     if ((dup?.rows ?? dup ?? []).length > 0) {
-      return new Response(JSON.stringify({ ok: false, error: `${fiscalYear}년도 예산안이 이미 존재합니다` }),
+      return new Response(jsonKST({ ok: false, error: `${fiscalYear}년도 예산안이 이미 존재합니다` }),
         { status: 409, headers: { "Content-Type": "application/json" } });
     }
   } catch (err: any) {
@@ -109,7 +110,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("insert_lines", err);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       planId: newPlanId,

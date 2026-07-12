@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -16,7 +17,7 @@ export default async function handler(req: Request): Promise<Response> {
       .from(expenseCategories)
       .orderBy(asc(expenseCategories.sortOrder), asc(expenseCategories.id));
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "지출 카테고리 목록 조회 실패", step: "select_categories",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
@@ -33,7 +34,7 @@ export default async function handler(req: Request): Promise<Response> {
     isActive: r.isActive,
   }));
 
-  return new Response(JSON.stringify({ ok: true, data: { items } }), {
+  return new Response(jsonKST({ ok: true, data: { items } }), {
     headers: { "Content-Type": "application/json" },
   });
 }

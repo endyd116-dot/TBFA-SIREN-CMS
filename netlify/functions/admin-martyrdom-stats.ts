@@ -13,6 +13,7 @@
  *   trend:      [{ month, approved }]
  * }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -21,7 +22,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-stats" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -30,7 +31,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -117,7 +118,7 @@ export default async (req: Request, _ctx: Context) => {
     }));
   } catch (err: any) { console.warn("[martyrdom-stats] trend 집계 실패", err?.message); }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     totals,
     recognitionRate,

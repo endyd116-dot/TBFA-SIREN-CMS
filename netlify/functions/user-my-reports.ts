@@ -1,5 +1,6 @@
 // user-my-reports.ts — 사용자 본인 신고 목록 (3종 통합 + 단계 확인)
 // GET /api/user-my-reports?type=all|incident|harassment|legal&page=1
+import { jsonKST } from "../../lib/kst";
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
 import { incidentReports, harassmentReports, legalConsultations } from "../../db/schema";
@@ -8,7 +9,7 @@ import { eq, desc, count, sql } from "drizzle-orm";
 export const config = { path: "/api/user-my-reports" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "내 신고 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -17,7 +18,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -189,7 +190,7 @@ export default async (req: Request) => {
   }
 
   /* R41 Q2-012: total·limit·totalPages 추가 (페이지네이션이 실제 전체 건수 사용) */
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     page,
     limit,

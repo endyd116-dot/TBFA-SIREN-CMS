@@ -13,6 +13,7 @@
 //   - newPassword 입력 시 currentPassword 필수 (재인증)
 //   - newPassword는 8자 이상, 현재 비밀번호와 달라야 함
 
+import { jsonKST } from "../../lib/kst";
 import { eq, and, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db, members } from "../../db";
@@ -24,7 +25,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS || 10);
 
 function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: JSON_HEADER });
+  return new Response(jsonKST(data), { status, headers: JSON_HEADER });
 }
 function badRequest(msg: string) { return json({ ok: false, error: msg }, 400); }
 function conflict(msg: string)   { return json({ ok: false, error: msg }, 409); }

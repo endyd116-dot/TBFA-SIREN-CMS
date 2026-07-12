@@ -1,4 +1,4 @@
-import { nowKST } from "../../lib/kst";
+import { nowKST, jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -7,12 +7,12 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 export const config = { path: "/api/att-my-calendar" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "캘린더 조회 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),

@@ -5,6 +5,7 @@
  * Query: q, eventName, linked(all|yes|no), page, pageSize
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -13,7 +14,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 export const config = { path: "/api/admin/potential-donor-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "잠재 후원자 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +23,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, Authorization" } });
-  if (req.method !== "GET") return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  if (req.method !== "GET") return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
@@ -105,7 +106,7 @@ export default async (req: Request, _ctx: Context) => {
     createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
   }));
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true, message: null,
     data: { ok: true, data, page, pageSize, total, kpi },
   }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });

@@ -7,6 +7,7 @@
  *
  * 권한: requireAdmin + canAccess('martyrdom_external_review')
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { roleForbidden } from "../../lib/admin-role";
@@ -17,14 +18,14 @@ export const config = { path: "/api/admin-martyrdom-external-search" };
 const FEATURE = "martyrdom_external_review";
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "외부 검색 트리거 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -69,7 +70,7 @@ export default async (req: Request, _ctx: Context) => {
       const txt = (await resp.text().catch(() => "")).slice(0, 200);
       return jsonError("background_trigger", new Error(`status=${resp.status} ${txt}`));
     }
-    return new Response(JSON.stringify({ ok: true, queued: engines.length, jobId }),
+    return new Response(jsonKST({ ok: true, queued: engines.length, jobId }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError("background_fetch", err);

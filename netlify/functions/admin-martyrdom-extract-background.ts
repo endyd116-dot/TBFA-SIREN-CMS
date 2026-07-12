@@ -13,6 +13,7 @@
  *   → extract_status 갱신 + 알림 (담당 어드민·super_admin)
  *   → 사건 active이면 analyze-background 트리거
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -103,7 +104,7 @@ async function notifyAdmins(caseId: number, assignedAdminId: number | null, msg:
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -113,12 +114,12 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   const docId = Number(body?.docId || 0);
   if (!docId) {
-    return new Response(JSON.stringify({ ok: false, error: "docId 필수" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "docId 필수" }), { status: 400 });
   }
   const reindex = Boolean(body?.reindex);
 
@@ -142,7 +143,7 @@ export default async (req: Request, _ctx: Context) => {
     const doc = (docRes?.rows ?? docRes ?? [])[0];
     if (!doc) {
       console.warn(`[martyrdom-extract-bg] docId=${docId} 없음`);
-      return new Response(JSON.stringify({ ok: false, error: "문서 없음" }), { status: 404 });
+      return new Response(jsonKST({ ok: false, error: "문서 없음" }), { status: 404 });
     }
 
     const caseId = Number(doc.caseId);
@@ -184,7 +185,7 @@ export default async (req: Request, _ctx: Context) => {
       if (!bytes || bytes.length === 0) {
         await markFailed(docId, "R2 다운로드 실패 — 파일 없음");
         await notifyAdmins(caseId, assignedAdminId, `[순직 자료 추출 실패] ${fileName} — R2 파일 없음`);
-        return new Response(JSON.stringify({ ok: false, error: "R2 다운로드 실패" }), { status: 500 });
+        return new Response(jsonKST({ ok: false, error: "R2 다운로드 실패" }), { status: 500 });
       }
 
       if (isMediaFile(mimeType, fileName)) {
@@ -208,7 +209,7 @@ export default async (req: Request, _ctx: Context) => {
       }
     } else {
       await markFailed(docId, "blob_key 없음");
-      return new Response(JSON.stringify({ ok: false, error: "blob_key 없음" }), { status: 400 });
+      return new Response(jsonKST({ ok: false, error: "blob_key 없음" }), { status: 400 });
     }
 
     /* 텍스트 미추출 → failed (수동 입력 유도) */
@@ -224,7 +225,7 @@ export default async (req: Request, _ctx: Context) => {
       `));
       await notifyAdmins(caseId, assignedAdminId, `[순직 자료 추출 실패] ${fileName} — ${errMsg}`);
       console.warn(`[martyrdom-extract-bg] docId=${docId} 추출 실패: ${errMsg}`);
-      return new Response(JSON.stringify({ ok: false, docId, error: errMsg }));
+      return new Response(jsonKST({ ok: false, docId, error: errMsg }));
     }
 
     /* ── 3. 자동 분류 (텍스트·이미지 분기) + 증거강도 판정(P2·§P2.0 #8) ── */
@@ -374,14 +375,14 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     console.info(`[martyrdom-extract-bg] done docId=${docId} chunks=${indexedCount} docType=${docTypeAuto}`);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, docId, caseId, docTypeAuto, indexedCount,
     }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error(`[martyrdom-extract-bg] docId=${docId} 예외:`, err?.message, err?.stack);
     await markFailed(docId, String(err?.message || err).slice(0, 500)).catch(() => {});
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: String(err?.message || err).slice(0, 300),
     }), { status: 500 });
   }

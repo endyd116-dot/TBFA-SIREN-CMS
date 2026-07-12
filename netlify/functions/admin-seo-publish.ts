@@ -2,6 +2,7 @@
 // R42 SEO — Draft → 운영 일괄 적용 + 선택적 Netlify 빌드 hook 트리거.
 // body: { path?: string | "all" }   생략 시 "all".
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { publishDrafts } from "../../lib/site-settings";
@@ -10,13 +11,13 @@ import { publishPageMeta } from "../../lib/seo-meta";
 export const config = { path: "/api/admin-seo-publish" };
 
 function jsonOk(body: any) {
-  return new Response(JSON.stringify(body), {
+  return new Response(jsonKST(body), {
     status: 200,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 function jsonError(status: number, error: string) {
-  return new Response(JSON.stringify({ ok: false, error }), {
+  return new Response(jsonKST({ ok: false, error }), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });

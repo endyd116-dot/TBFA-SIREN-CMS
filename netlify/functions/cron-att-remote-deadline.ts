@@ -12,6 +12,7 @@
  *
  * 이미 낸 보고서(SUBMITTED)·관리자 예외 인정(EXEMPTED)은 대상에서 빠진다.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Config, Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -54,7 +55,7 @@ export default async function handler(_req: Request, _ctx: Context) {
     rows = ((r as any).rows ?? r ?? []) as any[];
   } catch (err: any) {
     summary.fatal = `대상 조회 실패: ${String(err?.message ?? err).slice(0, 300)}`;
-    return new Response(JSON.stringify({ ok: false, summary }), {
+    return new Response(jsonKST({ ok: false, summary }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
@@ -131,7 +132,7 @@ export default async function handler(_req: Request, _ctx: Context) {
   }
 
   summary.elapsedMs = Date.now() - started;
-  return new Response(JSON.stringify({ ok: true, summary }), {
+  return new Response(jsonKST({ ok: true, summary }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }

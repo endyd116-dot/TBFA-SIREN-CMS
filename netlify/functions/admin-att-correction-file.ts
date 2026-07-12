@@ -10,6 +10,7 @@
  * 권한: 관리자 (requireAdmin)
  * 응답: { url, name }  — 5분 유효한 내려받기 주소
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attCorrections } from "../../db/schema";
 import { eq } from "drizzle-orm";
@@ -20,19 +21,19 @@ import { logAdminAction } from "../../lib/audit";
 export const config = { path: "/api/admin-att-correction-file" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "증빙 자료 열람 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }

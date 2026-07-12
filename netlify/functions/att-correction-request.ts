@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attCorrections, members } from "../../db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -9,12 +10,12 @@ import { normalizeEvidenceFiles } from "../../lib/att-evidence";
 export const config = { path: "/api/att-correction-request" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "수정 요청 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),

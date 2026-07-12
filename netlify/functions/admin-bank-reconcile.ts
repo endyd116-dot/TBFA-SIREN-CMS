@@ -12,6 +12,7 @@
  *  - 출금(debit):  reconcileExpense → 거래처/키워드/AI → ≥threshold면 voucher draft 자동 생성
  *  - IBK 통장 월 수십~수백 건 — 동기 처리로 충분
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -25,7 +26,7 @@ import { nextVoucherNumber } from "../../lib/voucher-number";
 export const config = { path: "/api/admin-bank-reconcile" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "대사 실행 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -65,7 +66,7 @@ async function createVoucherDraftTx(tx: any, params: {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -97,7 +98,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   if (txns.length === 0) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { processed: 0, message: "대사할 pending 거래 0건" },
     }), { headers: { "Content-Type": "application/json" } });
@@ -234,7 +235,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       ...stats,

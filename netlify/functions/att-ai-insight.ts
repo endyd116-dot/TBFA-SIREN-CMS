@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRemoteWorkReports, attRecords, workspaceTasks } from "../../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -7,12 +8,12 @@ import { callGeminiJSON } from "../../lib/ai-gemini";
 export const config = { path: "/api/att/ai-insight" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "AI 흐름파악 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -34,7 +35,7 @@ export default async function handler(req: Request) {
   const memberId: number = memberUid;
 
   if (!startDate || !endDate) {
-    return new Response(JSON.stringify({ ok: false, error: "startDate, endDate 필수", step: "validate" }),
+    return new Response(jsonKST({ ok: false, error: "startDate, endDate 필수", step: "validate" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 

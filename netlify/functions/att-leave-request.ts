@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, members } from "../../db/schema";
 import { eq, and, sql, inArray, gte, lte, isNotNull, notInArray } from "drizzle-orm";
@@ -8,12 +8,12 @@ import { notifyAllOperators } from "../../lib/notify";
 export const config = { path: "/api/att-leave-request" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "휴가 신청 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -161,7 +161,7 @@ export default async function handler(req: Request) {
     }
     const effectiveRemaining = remaining - pendingDays;
     if (effectiveRemaining < days) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false,
         error: `휴가 잔여일이 부족합니다 (잔여: ${effectiveRemaining}일${pendingDays > 0 ? ` · 승인대기 ${pendingDays}일 차감 후` : ""}, 신청: ${days}일)`,
         step: "balance_check",
@@ -181,7 +181,7 @@ export default async function handler(req: Request) {
         ))
         .limit(1);
       if (overlap.length > 0) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false,
           error: "해당 기간에 이미 휴가 신청이 존재합니다",
           step: "overlap_check",
@@ -210,7 +210,7 @@ export default async function handler(req: Request) {
           ))
           .limit(1);
         if (attOverlap.length > 0) {
-          return new Response(JSON.stringify({
+          return new Response(jsonKST({
             ok: false,
             error: `해당 기간(${attOverlap[0].date})에 이미 출근 기록이 있습니다. 반차로 신청하거나 관리자에게 출근 기록 정정을 문의하세요`,
             step: "attendance_overlap",

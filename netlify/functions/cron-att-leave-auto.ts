@@ -15,6 +15,7 @@
  * 정책 설정 UI: /api/admin-att-leave-policy (슈퍼어드민). 정책 부재 시 기본값(모드 A).
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, attLeaveBalances, attLeaveTypes, attPolicies } from "../../db/schema";
@@ -87,7 +88,7 @@ export default async (_req: Request, _ctx: Context) => {
     const annualLeaveType = leaveTypes.find(t => t.name.includes("연차")) ?? leaveTypes[0];
     if (!annualLeaveType) {
       console.warn("[cron-att-leave-auto] 연차 휴가 타입 없음 — 종료");
-      return new Response(JSON.stringify({ ok: true, message: "연차 타입 없음" }),
+      return new Response(jsonKST({ ok: true, message: "연차 타입 없음" }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -252,7 +253,7 @@ export default async (_req: Request, _ctx: Context) => {
     const durationMs = Date.now() - start;
     console.info(`[cron-att-leave-auto] 완료 — 모드:${policy.mode} 만근:${perfectAttendanceCount} 근속:${anniversaryCount} 촉진알림:${expiryAlertCount} (${durationMs}ms)`);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       mode: policy.mode,
       perfectAttendanceCount,
@@ -264,7 +265,7 @@ export default async (_req: Request, _ctx: Context) => {
 
   } catch (err: any) {
     console.error("[cron-att-leave-auto] 오류:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message ?? err) }),
+    return new Response(jsonKST({ ok: false, error: String(err?.message ?? err) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

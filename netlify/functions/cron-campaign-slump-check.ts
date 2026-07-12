@@ -6,6 +6,7 @@
 // - 진행률이 예상치 -15% 이하로 떨어진 캠페인 감지
 // - 같은 캠페인에 7일 내 1회만 알림 (중복 방지)
 
+import { jsonKST } from "../../lib/kst";
 import { eq, and, sql, isNotNull, or, isNull, lt } from "drizzle-orm";
 import { db } from "../../db";
 import { campaigns } from "../../db/schema";
@@ -120,13 +121,13 @@ export default async (req: Request) => {
       detail: summary,
     }).catch(() => {});
 
-    return new Response(JSON.stringify(summary), {
+    return new Response(jsonKST(summary), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error("[cron-campaign-slump-check] 전체 실패:", err);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: err?.message || "cron 실행 중 오류",
     }), {

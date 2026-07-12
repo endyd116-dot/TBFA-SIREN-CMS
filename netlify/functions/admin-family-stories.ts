@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -40,12 +41,12 @@ export default async function handler(req: Request, _ctx: Context) {
     const ytUrl = url.searchParams.get("ytOembed") || "";
     const youtubeId = extractYoutubeId(ytUrl);
     if (!youtubeId) {
-      return new Response(JSON.stringify({ ok: false, error: "올바른 유튜브 URL이 아닙니다" }), {
+      return new Response(jsonKST({ ok: false, error: "올바른 유튜브 URL이 아닙니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
     const oembed = await fetchOembed(ytUrl);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { oembed: {
         title: oembed.title || null,
@@ -62,7 +63,7 @@ export default async function handler(req: Request, _ctx: Context) {
         .from(familyStories)
         .orderBy(asc(familyStories.sortOrder), asc(familyStories.createdAt));
 
-      return new Response(JSON.stringify({ ok: true, data: { stories: rows } }), {
+      return new Response(jsonKST({ ok: true, data: { stories: rows } }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -82,7 +83,7 @@ export default async function handler(req: Request, _ctx: Context) {
     } = body;
 
     if (!title) {
-      return new Response(JSON.stringify({ ok: false, error: "제목은 필수입니다" }), {
+      return new Response(jsonKST({ ok: false, error: "제목은 필수입니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -105,7 +106,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
       // 발행 검증
       if (status === "published" && !youtubeId) {
-        return new Response(JSON.stringify({ ok: false, error: "영상 URL을 먼저 입력하세요" }), {
+        return new Response(jsonKST({ ok: false, error: "영상 URL을 먼저 입력하세요" }), {
           status: 400, headers: { "Content-Type": "application/json" },
         });
       }
@@ -128,7 +129,7 @@ export default async function handler(req: Request, _ctx: Context) {
       };
       const [row] = await db.insert(familyStories).values(insertValues).returning();
 
-      return new Response(JSON.stringify({ ok: true, data: { story: row }, message: "저장되었습니다" }), {
+      return new Response(jsonKST({ ok: true, data: { story: row }, message: "저장되었습니다" }), {
         status: 201, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -140,7 +141,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "PATCH") {
     const id = parseInt(url.searchParams.get("id") || "0", 10);
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -152,7 +153,7 @@ export default async function handler(req: Request, _ctx: Context) {
       // 기존 레코드 확인
       const existing = await db.select().from(familyStories).where(eq(familyStories.id, id)).limit(1);
       if (!existing.length) {
-        return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 이야기입니다" }), {
+        return new Response(jsonKST({ ok: false, error: "존재하지 않는 이야기입니다" }), {
           status: 404, headers: { "Content-Type": "application/json" },
         });
       }
@@ -187,7 +188,7 @@ export default async function handler(req: Request, _ctx: Context) {
       if (body.status !== undefined) {
         const finalYoutubeId = updates.youtubeId ?? existing[0].youtubeId;
         if (body.status === "published" && !finalYoutubeId) {
-          return new Response(JSON.stringify({ ok: false, error: "영상 URL을 먼저 입력하세요" }), {
+          return new Response(jsonKST({ ok: false, error: "영상 URL을 먼저 입력하세요" }), {
             status: 400, headers: { "Content-Type": "application/json" },
           });
         }
@@ -199,7 +200,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
       const [row] = await db.update(familyStories).set(updates).where(eq(familyStories.id, id)).returning();
 
-      return new Response(JSON.stringify({ ok: true, data: { story: row }, message: "수정되었습니다" }), {
+      return new Response(jsonKST({ ok: true, data: { story: row }, message: "수정되었습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -211,14 +212,14 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "DELETE") {
     const id = parseInt(url.searchParams.get("id") || "0", 10);
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
 
     try {
       await db.delete(familyStories).where(eq(familyStories.id, id));
-      return new Response(JSON.stringify({ ok: true, message: "삭제되었습니다" }), {
+      return new Response(jsonKST({ ok: true, message: "삭제되었습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -226,13 +227,13 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "처리 중 오류가 발생했습니다",
     step,

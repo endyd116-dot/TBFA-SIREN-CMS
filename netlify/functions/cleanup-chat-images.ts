@@ -14,6 +14,7 @@
  *
  * 스케줄 설정: export const config 의 schedule 또는 netlify.toml
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { eq, lt, and, inArray, isNotNull } from "drizzle-orm";
@@ -139,7 +140,7 @@ export default async (req: Request, _ctx: Context) => {
     console.error("[cleanup-chat-images] 치명적 오류:", err);
     log.push(`치명적 오류: ${err.message}`);
     return new Response(
-      JSON.stringify(
+      jsonKST(
         {
           ok: false,
           error: err.message,
@@ -169,7 +170,7 @@ function responseOk(
   );
 
   return new Response(
-    JSON.stringify(
+    jsonKST(
       {
         ok: true,
         message: "채팅 이미지 정리 완료",

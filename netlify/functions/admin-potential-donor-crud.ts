@@ -6,6 +6,7 @@
  * POST   /api/admin/potential-donor-crud?action=unmap      — 매핑 해제 (body.id 필수)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -15,7 +16,7 @@ import { logAdminAction } from "../../lib/audit";
 export const config = { path: "/api/admin/potential-donor-crud" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "잠재 후원자 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -23,13 +24,13 @@ function jsonError(step: string, err: any) {
 }
 
 function ok(data: object, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message: message || null, ...data }), {
+  return new Response(jsonKST({ ok: true, message: message || null, ...data }), {
     status: 200, headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 
 function badRequest(message: string) {
-  return new Response(JSON.stringify({ ok: false, error: message }), {
+  return new Response(jsonKST({ ok: false, error: message }), {
     status: 400, headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
@@ -156,7 +157,7 @@ export default async (req: Request, _ctx: Context) => {
     } catch (err) { return jsonError("delete", err); }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+  return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
     status: 405, headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 };

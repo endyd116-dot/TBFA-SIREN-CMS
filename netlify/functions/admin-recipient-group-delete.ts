@@ -1,6 +1,7 @@
 // netlify/functions/admin-recipient-group-delete.ts
 // Phase 10 R2 — 수신자 그룹 soft delete (is_active=false)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -18,7 +19,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -30,13 +31,13 @@ export default async function handler(req: Request, _ctx: Context) {
     const rows = existsRes?.rows ?? existsRes ?? [];
     if (rows.length === 0) {
       return new Response(
-        JSON.stringify({ ok: false, error: "그룹을 찾을 수 없습니다.", step: "not_found" }),
+        jsonKST({ ok: false, error: "그룹을 찾을 수 없습니다.", step: "not_found" }),
         { status: 404, headers: JSON_HEADER },
       );
     }
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "그룹 조회 실패", step: "select_existing",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),
@@ -59,7 +60,7 @@ export default async function handler(req: Request, _ctx: Context) {
       usedTriggers = Number((tr?.rows ?? tr ?? [])[0]?.n || 0);
     } catch {}
     if (usedJobs > 0 || usedTriggers > 0) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, step: "in_use",
         error: `이 그룹은 예약·대기 발송 ${usedJobs}건, 자동발송 트리거 ${usedTriggers}건에서 사용 중입니다. 삭제하면 해당 발송이 발송 시점에 실패합니다. 먼저 발송을 취소·변경하거나, 강제 삭제(force=1)로 진행하세요.`,
         inUse: { jobs: usedJobs, triggers: usedTriggers },
@@ -74,10 +75,10 @@ export default async function handler(req: Request, _ctx: Context) {
       SET is_active = false, updated_by = ${adminId}, updated_at = NOW()
       WHERE id = ${id}
     `);
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: true }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "그룹 삭제 실패", step: "update",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

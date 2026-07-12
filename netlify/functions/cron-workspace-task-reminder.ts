@@ -5,6 +5,7 @@
 // remindAt <= NOW()+2min 이고 firedAt 미기록인 태스크를 조회하여
 // 담당자에게 WORKSPACE_ACTIVITY 알림 발송 후 firedAt 마킹.
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -38,7 +39,7 @@ export default async (_req: Request, _ctx: Context) => {
     rows = (Array.isArray(res) ? res : (res as any).rows ?? []) as ReminderRow[];
   } catch (err: any) {
     console.error("[cron-task-reminder] 조회 실패:", err);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: { "Content-Type": "application/json" } });
@@ -85,7 +86,7 @@ export default async (_req: Request, _ctx: Context) => {
 
   const ms = Date.now() - startedAt;
   console.log("[cron-task-reminder] done", { totalSent, totalSkipped, ms });
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     totalSent,
     totalSkipped,

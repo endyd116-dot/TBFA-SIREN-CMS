@@ -1,6 +1,7 @@
 // netlify/functions/incident-report-update.ts
 // PATCH /api/incident-report-update — 사건 제보 수정 (본인, submitted 상태만)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db";
@@ -52,7 +53,7 @@ export default async (req: Request, _ctx: Context) => {
     /* check_status — R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정 허용 */
     if (row.status !== "submitted" && row.status !== "ai_analyzed" && row.status !== "rejected") {
       return new Response(
-        JSON.stringify({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
+        jsonKST({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }

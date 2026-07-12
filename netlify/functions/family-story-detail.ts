@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { familyStories } from "../../db/schema";
@@ -9,7 +10,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+    return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
@@ -23,7 +24,7 @@ export default async function handler(req: Request, _ctx: Context) {
       .limit(1);
 
     if (!rows.length) {
-      return new Response(JSON.stringify({ ok: false, error: "준비 중인 이야기입니다" }), {
+      return new Response(jsonKST({ ok: false, error: "준비 중인 이야기입니다" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
@@ -34,7 +35,7 @@ export default async function handler(req: Request, _ctx: Context) {
       .catch((e) => console.warn("[family-story] view_count 증가 실패:", e));
 
     const s = rows[0];
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         story: {
@@ -55,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "상세 조회 실패",
       step: "select_story",

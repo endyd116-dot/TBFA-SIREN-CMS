@@ -8,6 +8,7 @@
  * 변수 치환 지원:
  *   {{기관명}} {{신고번호}} {{피해자명}} {{발생일시}} {{사건내용}} {{AI요약}} {{AI심각도}} {{인계일시}} {{인계담당자}}
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -100,7 +101,7 @@ async function buildReferralPDF(templateBody: string, vars: Record<string, strin
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "인계 처리 실패",
       step,
@@ -113,7 +114,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
+    return new Response(jsonKST({ ok: false, error: "POST only" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -133,13 +134,13 @@ export default async (req: Request, _ctx: Context) => {
   const { agencyId, sourceType, sourceId } = body;
   if (!agencyId || !sourceType || !sourceId) {
     return new Response(
-      JSON.stringify({ ok: false, error: "agencyId, sourceType, sourceId는 필수입니다" }),
+      jsonKST({ ok: false, error: "agencyId, sourceType, sourceId는 필수입니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
   if (!["incident", "harassment", "legal"].includes(sourceType)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "sourceType은 incident|harassment|legal 중 하나여야 합니다" }),
+      jsonKST({ ok: false, error: "sourceType은 incident|harassment|legal 중 하나여야 합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -161,7 +162,7 @@ export default async (req: Request, _ctx: Context) => {
 
   if (!agency) {
     return new Response(
-      JSON.stringify({ ok: false, error: "기관을 찾을 수 없습니다" }),
+      jsonKST({ ok: false, error: "기관을 찾을 수 없습니다" }),
       { status: 404, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -204,7 +205,7 @@ export default async (req: Request, _ctx: Context) => {
 
   if (!source) {
     return new Response(
-      JSON.stringify({ ok: false, error: "신고 원본을 찾을 수 없습니다" }),
+      jsonKST({ ok: false, error: "신고 원본을 찾을 수 없습니다" }),
       { status: 404, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -223,7 +224,7 @@ export default async (req: Request, _ctx: Context) => {
     const dupRows = Array.isArray(dup) ? dup : ((dup as any)?.rows ?? []);
     if (dupRows.length > 0) {
       return new Response(
-        JSON.stringify({
+        jsonKST({
           ok: false,
           error: "이미 동일 기관으로 인계된 신고입니다 (중복 인계 방지)",
           duplicateLogId: dupRows[0].id,
@@ -296,7 +297,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, logId, pdfAvailable: !!pdfStorageKey }),
+    jsonKST({ ok: true, logId, pdfAvailable: !!pdfStorageKey }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
 };

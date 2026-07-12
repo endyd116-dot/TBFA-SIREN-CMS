@@ -3,17 +3,18 @@
 // 응답: { ok:true, data:{ results:[{ address, roadAddress, lat, lng, placeName }] } }
 //
 // KAKAO_REST_API_KEY 환경변수 필수. 미설정 시 503 + 안내 메시지.
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/att-geocode-search" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "주소 검색 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -28,7 +29,7 @@ export default async function handler(req: Request) {
 
   const kakaoKey = process.env.KAKAO_REST_API_KEY;
   if (!kakaoKey) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "거점 주소 검색 환경변수가 등록되지 않았습니다 (KAKAO_REST_API_KEY)",
       step: "env_missing",
@@ -47,7 +48,7 @@ export default async function handler(req: Request) {
     });
 
     if (addrRes.status === 401 || addrRes.status === 403) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false,
         error: "거점 주소 검색 환경변수가 등록되지 않았습니다 (KAKAO_REST_API_KEY)",
         step: "kakao_auth",

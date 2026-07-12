@@ -4,11 +4,12 @@
  * 모든 클라이언트는 소유자/super_admin 검증이 있는 `/api/admin-workspace-file-share`로 일원화됨
  * (public/js/workspace-files.js). 이 경로는 더 이상 어떤 쓰기도 수행하지 않고 410을 반환한다.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 
 export default async (_req: Request, _ctx: Context) => {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "이 엔드포인트는 폐기되었습니다. /api/admin-workspace-file-share 를 사용하세요.",
       step: "deprecated",

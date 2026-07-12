@@ -3,6 +3,7 @@
  * 단일 대화의 메시지 전체 + 도구 호출 로그
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -13,7 +14,7 @@ export const config = { path: "/api/admin-ai-conversation-detail" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
-  if (req.method !== "GET") return new Response(JSON.stringify({ ok: false, error: "GET만" }),
+  if (req.method !== "GET") return new Response(jsonKST({ ok: false, error: "GET만" }),
     { status: 405, headers: JSON_HEADER });
 
   const auth = await requireAdmin(req);
@@ -21,7 +22,7 @@ export default async (req: Request, _ctx: Context) => {
 
   const url = new URL(req.url);
   const id = Number(url.searchParams.get("id") || 0);
-  if (!id) return new Response(JSON.stringify({ ok: false, error: "id 필수" }),
+  if (!id) return new Response(jsonKST({ ok: false, error: "id 필수" }),
     { status: 400, headers: JSON_HEADER });
 
   try {
@@ -32,12 +33,12 @@ export default async (req: Request, _ctx: Context) => {
        WHERE c.id = ${id} LIMIT 1
     `);
     const conv = (cr?.rows ?? cr ?? [])[0];
-    if (!conv) return new Response(JSON.stringify({ ok: false, error: "대화 없음" }),
+    if (!conv) return new Response(jsonKST({ ok: false, error: "대화 없음" }),
       { status: 404, headers: JSON_HEADER });
     // R45 OP-010: 본인 대화만(super_admin은 전체) — id 추측으로 타인 대화·도구 입출력(PII) 노출 차단
     const meId = (auth as any).ctx?.member?.id ?? null;
     if ((auth as any).ctx?.member?.role !== "super_admin" && conv.admin_id !== meId) {
-      return new Response(JSON.stringify({ ok: false, error: "본인 대화만 조회할 수 있습니다" }),
+      return new Response(jsonKST({ ok: false, error: "본인 대화만 조회할 수 있습니다" }),
         { status: 403, headers: JSON_HEADER });
     }
 
@@ -49,10 +50,10 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const logs = lr?.rows ?? lr ?? [];
 
-    return new Response(JSON.stringify({ ok: true, conversation: conv, logs }),
+    return new Response(jsonKST({ ok: true, conversation: conv, logs }),
       { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "조회 실패",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });

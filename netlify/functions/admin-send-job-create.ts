@@ -2,6 +2,7 @@
 // Phase 10 R3 — 신규 발송 작업 등록 (즉시·예약)
 // 등록 시점에는 수신자 INSERT 안 함. cron이 pending → processing 전환 시 그룹 resolve + 수신자 스냅샷 생성.
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -16,7 +17,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "발송 작업 등록 실패",
       step,
@@ -30,7 +31,7 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ ok: false, error: "POST만 허용", step: "method" }),
+      jsonKST({ ok: false, error: "POST만 허용", step: "method" }),
       { status: 405, headers: JSON_HEADER },
     );
   }
@@ -39,7 +40,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (!auth.ok) return (auth as any).res;
   // R45 §4-7: 대량 발송은 admin+ (비용·평판 비가역·운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
-    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
   }
   /* fix(R3): BUG-5 패턴 회귀 — auth.admin?.id / user?.id는 항상 undefined.
      실제 어드민 ID는 auth.ctx.admin.uid에 있음. silent NULL 저장 방지. */
@@ -72,7 +73,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const invalidChannels = rawChannels.filter((c) => !VALID_CHANNELS.includes(c));
   if (invalidChannels.length > 0) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: `지원하지 않는 채널: ${invalidChannels.join(", ")}`,
         step: "validate_channels",
@@ -104,7 +105,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (name.length < 1 || name.length > 200) {
     return new Response(
-      JSON.stringify({ ok: false, error: "발송 이름은 1~200자여야 합니다.", step: "validate_name" }),
+      jsonKST({ ok: false, error: "발송 이름은 1~200자여야 합니다.", step: "validate_name" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -124,7 +125,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (!validation.ok) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: validation.errors[0] || "검증 실패",
         errors: validation.errors,
@@ -228,7 +229,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       id: createdIds[0] || 0,
       ids: createdIds,

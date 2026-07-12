@@ -8,6 +8,7 @@
  *
  * 권한: requireAdmin + canAccess('martyrdom_external_review')
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -21,14 +22,14 @@ export const config = { path: "/api/admin-martyrdom-external-review" };
 const FEATURE = "martyrdom_external_review";
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "검토 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -56,7 +57,7 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
-      return new Response(JSON.stringify({ ok: false, error: "외부 자료를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "외부 자료를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
     if (String(row.status) === "approved") return badRequest("이미 승급된 자료입니다");
@@ -71,7 +72,7 @@ export default async (req: Request, _ctx: Context) => {
       if (!r.ok || !r.promotedCaseId) {
         return jsonError("promote_index", new Error(r.error || "promoteToCase 실패"));
       }
-      return new Response(JSON.stringify({ ok: true, promotedCaseId: r.promotedCaseId }),
+      return new Response(jsonKST({ ok: true, promotedCaseId: r.promotedCaseId }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("promote_index", err);
@@ -87,7 +88,7 @@ export default async (req: Request, _ctx: Context) => {
              rejection_reason=${reason}
        WHERE id = ${id}
     `);
-    return new Response(JSON.stringify({ ok: true }),
+    return new Response(jsonKST({ ok: true }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError("update_reject", err);

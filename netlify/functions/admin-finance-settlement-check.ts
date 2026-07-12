@@ -6,6 +6,7 @@
  *
  * Phase 22-D-R3 §3.1
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -14,7 +15,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-finance-settlement-check" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "결산 점검 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -72,7 +73,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const unsettledVouchers = draftCount + submittedCount;
   const totalIssues = unsettledVouchers + pendingBankTxn;
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       year, month,

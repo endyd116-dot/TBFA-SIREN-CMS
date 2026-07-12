@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -8,7 +9,7 @@ import { createNotification } from "../../lib/notify";
 export const config = { path: "/api/admin-memorial-moderation" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "모더레이션 처리 실패",
     step,
@@ -48,7 +49,7 @@ export default async function handler(req: Request, _ctx: Context) {
           .from(memorialLetters)
           .orderBy(...order)
           .limit(500);
-        return new Response(JSON.stringify({ ok: true, data: { items } }), {
+        return new Response(jsonKST({ ok: true, data: { items } }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       }
@@ -69,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
         .from(memorialMessages)
         .orderBy(...order)
         .limit(500);
-      return new Response(JSON.stringify({ ok: true, data: { items } }), {
+      return new Response(jsonKST({ ok: true, data: { items } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -81,7 +82,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "PATCH") {
     const id = parseInt(url.searchParams.get("id") || "0", 10);
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -118,7 +119,7 @@ export default async function handler(req: Request, _ctx: Context) {
           });
         } catch (e) { console.warn("[admin-memorial-moderation] 숨김 통지 실패:", (e as any)?.message); }
       }
-      return new Response(JSON.stringify({ ok: true, message: isHidden ? "숨김 처리했습니다" : "다시 공개했습니다" }), {
+      return new Response(jsonKST({ ok: true, message: isHidden ? "숨김 처리했습니다" : "다시 공개했습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -130,7 +131,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "DELETE") {
     const id = parseInt(url.searchParams.get("id") || "0", 10);
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -161,7 +162,7 @@ export default async function handler(req: Request, _ctx: Context) {
           });
         } catch (e) { console.warn("[admin-memorial-moderation] 삭제 통지 실패:", (e as any)?.message); }
       }
-      return new Response(JSON.stringify({ ok: true, message: "삭제되었습니다" }), {
+      return new Response(jsonKST({ ok: true, message: "삭제되었습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -169,7 +170,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

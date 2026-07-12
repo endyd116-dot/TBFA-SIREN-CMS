@@ -9,6 +9,7 @@
  *
  * 2026-07-11 — 발송 시점에 교부 문서를 저장소에 고정(해시 포함)하고, 직원에게 수령확인(전자서명)을 요청한다.
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { payrollSlips, members } from "../../db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -25,19 +26,19 @@ const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 500;
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "급여 명세서 발송 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
@@ -77,14 +78,14 @@ export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
   const admin = (auth as any).ctx.member;
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 전용" }), {
+    return new Response(jsonKST({ ok: false, error: "POST 전용" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }

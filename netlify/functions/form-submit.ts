@@ -21,6 +21,7 @@
  *   - notify_on_submit=true면 admin_notify_email 또는 createdBy에 알림
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -34,20 +35,20 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
 
   let body: any = {};
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱 실패" }),
       { status: 400, headers: JSON_HEADER });
   }
 
   const slug = String(body?.slug || "").trim();
   const data = body?.data;
   if (!slug || !data || typeof data !== "object") {
-    return new Response(JSON.stringify({ ok: false, error: "slug·data 필수" }),
+    return new Response(jsonKST({ ok: false, error: "slug·data 필수" }),
       { status: 400, headers: JSON_HEADER });
   }
 
@@ -63,16 +64,16 @@ export default async (req: Request, _ctx: Context) => {
        LIMIT 1
     `);
     const form = (fr?.rows ?? fr ?? [])[0];
-    if (!form) return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 폼" }),
+    if (!form) return new Response(jsonKST({ ok: false, error: "존재하지 않는 폼" }),
       { status: 404, headers: JSON_HEADER });
 
     if (!form.is_active || !form.is_published) {
-      return new Response(JSON.stringify({ ok: false, error: "현재 응답을 받지 않는 폼입니다" }),
+      return new Response(jsonKST({ ok: false, error: "현재 응답을 받지 않는 폼입니다" }),
         { status: 410, headers: JSON_HEADER });
     }
 
     if (form.max_responses != null && Number(form.response_count) >= Number(form.max_responses)) {
-      return new Response(JSON.stringify({ ok: false, error: "응답 정원이 마감되었습니다" }),
+      return new Response(jsonKST({ ok: false, error: "응답 정원이 마감되었습니다" }),
         { status: 410, headers: JSON_HEADER });
     }
 
@@ -81,7 +82,7 @@ export default async (req: Request, _ctx: Context) => {
     const user = authenticateUser(req);
     if (form.access_level === "members_only" || form.requires_auth) {
       if (!user) {
-        return new Response(JSON.stringify({ ok: false, error: "회원 로그인이 필요한 폼입니다", requiresLogin: true }),
+        return new Response(jsonKST({ ok: false, error: "회원 로그인이 필요한 폼입니다", requiresLogin: true }),
           { status: 401, headers: JSON_HEADER });
       }
       memberId = user.uid;
@@ -98,7 +99,7 @@ export default async (req: Request, _ctx: Context) => {
          LIMIT 1
       `);
       if ((dup?.rows ?? dup ?? []).length > 0) {
-        return new Response(JSON.stringify({ ok: false, error: "이미 응답하신 폼입니다" }),
+        return new Response(jsonKST({ ok: false, error: "이미 응답하신 폼입니다" }),
           { status: 409, headers: JSON_HEADER });
       }
     }
@@ -136,7 +137,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     if (Object.keys(fieldErrors).length > 0) {
-      return new Response(JSON.stringify({ ok: false, error: "입력값 검증 실패", fieldErrors }),
+      return new Response(jsonKST({ ok: false, error: "입력값 검증 실패", fieldErrors }),
         { status: 400, headers: JSON_HEADER });
     }
 
@@ -172,11 +173,11 @@ export default async (req: Request, _ctx: Context) => {
       } catch {}
     }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, submissionId, message: "응답이 제출되었습니다. 감사합니다.",
     }), { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "응답 저장 실패", step: "insert",
       detail: String(e?.message || e).slice(0, 500),
       stack: String(e?.stack || "").slice(0, 1000),

@@ -23,7 +23,7 @@
  *     - 둘 다면 가장 최근 변경 채널 우선 (toss.deactivated_at vs hyosung_synced_at 비교)
  */
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -84,7 +84,7 @@ const CANCELLED_HYOSUNG_STATUSES = ["cancelled", "suspended", "expired", "termin
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "잠재 후원자 조회 실패",
       step,
@@ -111,7 +111,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -199,7 +199,7 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[admin-donor-prospect-list] KPI 조회 실패", err);
     }
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         message: null,
         data: { ok: true, data: [], page, pageSize, total, kpi },
@@ -508,7 +508,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 7. 응답 */
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       message: null,
       data: { ok: true, data, page, pageSize, total, kpi },

@@ -10,6 +10,7 @@
  * 권한: super_admin 전용 (member.role === 'super_admin')
  * R37 1일차 — API 골격. 자동 집계·발송은 후속 일차에서 구현.
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { payrollSlips, payrollAudit, members } from "../../db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -21,20 +22,20 @@ import { callGemini } from "../../lib/ai-gemini";
 export const config = { path: "/api/admin-payroll" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status,
     headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "급여 명세서 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
@@ -43,7 +44,7 @@ export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
@@ -612,7 +613,7 @@ export default async function handler(req: Request) {
     return jsonBadRequest("action 값 부적합 (approve|hold|paid|recalculate|analyze)");
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

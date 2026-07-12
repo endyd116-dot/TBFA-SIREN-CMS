@@ -2,6 +2,7 @@
  * GET /api/admin-members-contract-export
  * 회원 내역 엑셀 내보내기 — 단계별 진단 강화 버전.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, hyosungContracts } from "../../db/schema";
@@ -25,7 +26,7 @@ function jsonError(step: string, err: any) {
   const message = err?.message || String(err);
   const stack = err?.stack ? String(err.stack).slice(0, 1000) : null;
   console.error(`[members-contract-export][${step}]`, err);
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "회원 내역 내보내기 실패",
     step,
@@ -36,7 +37,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET 만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET 만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -162,7 +163,7 @@ export default async (req: Request, _ctx: Context) => {
       };
     });
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { items, total: items.length },
     }), { status: 200, headers: { "Content-Type": "application/json" } });

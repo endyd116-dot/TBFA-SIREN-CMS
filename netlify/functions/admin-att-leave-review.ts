@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, attLeaveTypes, members } from "../../db/schema";
 import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
@@ -8,12 +9,12 @@ import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 export const config = { path: "/api/admin-att-leave-review" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "휴가 결재 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -25,7 +26,7 @@ export default async function handler(req: Request) {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-1: 근태 일상 결재는 운영자 허용(att_manage)·정책/마스터/기록수정은 super 유지
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "att_manage"))) {
-    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다" }), {
+    return new Response(jsonKST({ ok: false, error: "근태 관리 권한이 없습니다" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

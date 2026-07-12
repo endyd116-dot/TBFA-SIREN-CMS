@@ -6,6 +6,7 @@
 // 처리: status → 'pending', retry_count++, updated_at 갱신
 //        → cron이 다음 tick에 자동 처리
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
@@ -19,11 +20,11 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   // R45 §4-7: 개별 재발송은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
-    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), {
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), {
       status: 405,
       headers: { "Content-Type": "application/json" },
     });
@@ -43,7 +44,7 @@ export default async function handler(req: Request) {
   }
   if (!recipientId || isNaN(recipientId)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "수신자 ID(id)가 필요합니다" }),
+      jsonKST({ ok: false, error: "수신자 ID(id)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -59,14 +60,14 @@ export default async function handler(req: Request) {
     const recipient = (r?.rows ?? r ?? [])[0];
     if (!recipient) {
       return new Response(
-        JSON.stringify({ ok: false, error: "수신자를 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "수신자를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
 
     if (recipient.status !== "failed") {
       return new Response(
-        JSON.stringify({
+        jsonKST({
           ok: false,
           error: `재발송은 실패 상태에서만 가능합니다 (현재: ${recipient.status})`,
         }),
@@ -104,12 +105,12 @@ export default async function handler(req: Request) {
     void triggerDispatchBackground().catch(() => {});
 
     return new Response(
-      JSON.stringify({ ok: true, recipientId, message: "재발송 대기열에 추가됐습니다" }),
+      jsonKST({ ok: true, recipientId, message: "재발송 대기열에 추가됐습니다" }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "재발송 처리 실패",
         step: "update",

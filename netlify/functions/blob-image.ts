@@ -4,6 +4,7 @@
 // - storage_provider='r2': Pre-signed GET URL 생성 → 302 리다이렉트
 //   (R2 egress 무료 + Netlify Function CPU 절약)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { eq } from "drizzle-orm";
@@ -23,7 +24,7 @@ export default async (req: Request, _ctx: Context) => {
     const download = url.searchParams.get("download") === "1";
 
     if (!id || !/^\d+$/.test(id)) {
-      return new Response(JSON.stringify({ error: "id required" }), {
+      return new Response(jsonKST({ error: "id required" }), {
         status: 400,
         headers: { "content-type": "application/json" },
       });
@@ -111,7 +112,7 @@ export default async (req: Request, _ctx: Context) => {
   } catch (e: any) {
     console.error("[blob-image]", e);
     return new Response(
-      JSON.stringify({ error: e?.message || "internal error" }),
+      jsonKST({ error: e?.message || "internal error" }),
       { status: 500, headers: { "content-type": "application/json" } }
     );
   }

@@ -9,6 +9,7 @@
  *   ?page=1                  (기본 1)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db, reportSnapshots, members } from "../../db";
 import { desc, eq } from "drizzle-orm";
@@ -16,7 +17,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({ ok: false, error: "보고서 목록 조회 실패", step, detail: String(err?.message || err).slice(0, 500) }),
+    jsonKST({ ok: false, error: "보고서 목록 조회 실패", step, detail: String(err?.message || err).slice(0, 500) }),
     { status, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 }
@@ -25,7 +26,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, Authorization" } });
   }
-  if (req.method !== "GET") return new Response(JSON.stringify({ ok: false, error: "GET only" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  if (req.method !== "GET") return new Response(jsonKST({ ok: false, error: "GET only" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
@@ -58,7 +59,7 @@ export default async (req: Request, _ctx: Context) => {
   } catch (err) { return jsonError("select_reports", err); }
 
   return new Response(
-    JSON.stringify({ ok: true, data: { reports: rows, page, limit } }),
+    jsonKST({ ok: true, data: { reports: rows, page, limit } }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 };

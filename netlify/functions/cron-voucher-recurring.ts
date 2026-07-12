@@ -13,6 +13,7 @@
  *
  * fire-and-forget — throw 안 함, 실패해도 다음 템플릿 진행.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -57,7 +58,7 @@ export default async (_req: Request, _ctx: Context) => {
     if (!templates.length) {
       console.info("[cron-voucher-recurring] 오늘 도래 템플릿 없음 — 종료");
       return new Response(
-        JSON.stringify({ ok: true, created: 0, skipped: 0, message: "오늘 도래 템플릿 없음" }),
+        jsonKST({ ok: true, created: 0, skipped: 0, message: "오늘 도래 템플릿 없음" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -116,7 +117,7 @@ export default async (_req: Request, _ctx: Context) => {
     console.info(`[cron-voucher-recurring] 완료 — 생성 ${created} / 스킵 ${skipped} / 실패 ${failed} (${durationMs}ms)`);
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         date: voucherDate,
         templatesFound: templates.length,
@@ -130,7 +131,7 @@ export default async (_req: Request, _ctx: Context) => {
     // fire-and-forget — fatal 도 200 으로 (cron 재시도 폭주 방지)
     console.error("[cron-voucher-recurring] fatal:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300), created, skipped, failed }),
+      jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300), created, skipped, failed }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   }

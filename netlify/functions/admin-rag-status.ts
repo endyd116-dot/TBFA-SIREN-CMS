@@ -3,6 +3,7 @@
  * POST /api/admin-rag-status — body: { query } → 검색 테스트 top-K
  * super_admin 전용
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -15,7 +16,7 @@ export const config = { path: "/api/admin-rag-status" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "RAG 상태 조회 실패",
     step,
@@ -45,7 +46,7 @@ export default async function handler(req: Request, ctx: Context) {
         .filter((m: any) => (m.supportedGenerationMethods || []).includes("generateContent"))
         .map((m: any) => String(m.name).replace(/^models\//, ""))
         .filter((n: string) => n.startsWith("gemini"));
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: {
           httpStatus: r.status,
@@ -101,7 +102,7 @@ export default async function handler(req: Request, ctx: Context) {
         if (featureRow) enabled = featureRow.enabled !== false;
       } catch { /* 마이그 전 — 기본 true */ }
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: { total, byType, lastIndexedAt, enabled },
       }), { headers: JSON_HEADER });
@@ -115,7 +116,7 @@ export default async function handler(req: Request, ctx: Context) {
 
       const query = String(body?.query || "").trim();
       if (!query) {
-        return new Response(JSON.stringify({ ok: false, error: "query 필드 필요" }), { status: 400, headers: JSON_HEADER });
+        return new Response(jsonKST({ ok: false, error: "query 필드 필요" }), { status: 400, headers: JSON_HEADER });
       }
 
       /* featureKey 체크 (OFF여도 테스트는 허용 — admin 도구이므로) */
@@ -132,13 +133,13 @@ export default async function handler(req: Request, ctx: Context) {
         snippet: h.content.slice(0, 150),
       }));
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: { hits: mapped },
       }), { headers: JSON_HEADER });
     }
 
-    return new Response(JSON.stringify({ ok: false, error: "GET·POST만 허용" }), { status: 405, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "GET·POST만 허용" }), { status: 405, headers: JSON_HEADER });
 
   } catch (err: any) {
     return jsonError(step, err);

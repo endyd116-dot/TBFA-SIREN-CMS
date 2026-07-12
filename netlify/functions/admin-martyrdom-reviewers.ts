@@ -4,6 +4,7 @@
  * GET  : members operator_active = true (검토자 배정 드롭다운)
  * 응답: { ok, reviewers:[{ id, name, role }] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -13,7 +14,7 @@ export const config = { path: "/api/admin-martyrdom-reviewers" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -30,11 +31,11 @@ export default async (req: Request, _ctx: Context) => {
       name: row.name ? String(row.name) : `운영자#${row.id}`,
       role: row.role ? String(row.role) : "operator",
     }));
-    return new Response(JSON.stringify({ ok: true, reviewers }), {
+    return new Response(jsonKST({ ok: true, reviewers }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "처리 실패", step: "reviewers",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: { "Content-Type": "application/json" } });

@@ -10,7 +10,7 @@
  *   ?startDate=&endDate=  기간 필터 (YYYY-MM-DD)
  *   ?page=1&limit=50
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -20,7 +20,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-bank-transactions-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "거래 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -32,7 +32,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-2: 은행 거래내역 열람은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess(auth.ctx.member.role ?? "", "finance_view"))) {
-    return new Response(JSON.stringify({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
@@ -87,7 +87,7 @@ export default async function handler(req: Request, _ctx: Context) {
       total = Number((c?.rows ?? c ?? [])[0]?.n ?? 0);
     } catch { /* total 보조 */ }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         transactions: rows.map((x: any) => ({

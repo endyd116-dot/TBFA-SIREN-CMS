@@ -8,6 +8,7 @@
  * 중복 방지: 같은 matchType의 pending/matched/active 매칭이 이미 있으면 거절
  */
 
+import { jsonKST } from "../../lib/kst";
 import { eq, and } from "drizzle-orm";
 import { db, expertMatches } from "../../db";
 import { requireActiveUser } from "../../lib/auth";
@@ -24,7 +25,7 @@ import {
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "매칭 신청 실패",
       step,
@@ -111,7 +112,7 @@ export default async (req: Request) => {
   }
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       message: "매칭 신청이 접수되었습니다. 어드민 검토 후 전문가가 배정됩니다.",
       data: { match },

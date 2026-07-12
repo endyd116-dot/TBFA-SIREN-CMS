@@ -11,6 +11,7 @@
  *
  * 멤버별 격리, 실패해도 다음 진행. 동시 호출 제한 (배치 5개씩).
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { workspaceTasks, members } from "../../db/schema";
@@ -49,7 +50,7 @@ export default async (_req: Request, _ctx: Context) => {
     if (!tasks.length) {
       console.info("[cron-task-risk] 후보 task 없음 — 종료");
       return new Response(
-        JSON.stringify({ ok: true, processed: 0, message: "후보 없음" }),
+        jsonKST({ ok: true, processed: 0, message: "후보 없음" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -119,7 +120,7 @@ export default async (_req: Request, _ctx: Context) => {
     console.info(`[cron-task-risk] 완료 ${success}/${tasks.length}건, 고위험 ${highRisk.length}, 알림 ${notifSent} (${durationMs}ms)`);
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         total: tasks.length,
         success,
@@ -134,7 +135,7 @@ export default async (_req: Request, _ctx: Context) => {
   } catch (err: any) {
     console.error("[cron-task-risk] fatal:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "unknown" }),
+      jsonKST({ ok: false, error: err?.message || "unknown" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

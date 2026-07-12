@@ -1,6 +1,7 @@
 // netlify/functions/support-update.ts
 // PATCH /api/support-update — 유가족 지원 신청 수정 (본인, submitted 상태만)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db";
@@ -50,7 +51,7 @@ export default async (req: Request, _ctx: Context) => {
     /* check_status */
     if (row.status !== "submitted") {
       return new Response(
-        JSON.stringify({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
+        jsonKST({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }

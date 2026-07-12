@@ -2,6 +2,7 @@
 // R42 SEO — 단체 구조화 데이터 (org:*) GET/POST.
 // 즉시 운영 반영 (Draft 시스템 사용 안 함).
 
+import { jsonKST } from "../../lib/kst";
 import { and, eq, like } from "drizzle-orm";
 import { db } from "../../db";
 import { siteSettings } from "../../db/schema";
@@ -12,13 +13,13 @@ import { getOrgMeta, saveSeoKey } from "../../lib/seo-meta";
 export const config = { path: "/api/admin-seo-org" };
 
 function jsonOk(body: any) {
-  return new Response(JSON.stringify(body), {
+  return new Response(jsonKST(body), {
     status: 200,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 function jsonError(status: number, error: string) {
-  return new Response(JSON.stringify({ ok: false, error }), {
+  return new Response(jsonKST({ ok: false, error }), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });

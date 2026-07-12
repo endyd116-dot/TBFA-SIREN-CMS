@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { billingKeys, notifications } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -9,7 +10,7 @@ export const config = { path: "/api/admin-billing-key-reactivate" };
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "빌링키 재활성화 실패",
       step,
@@ -23,7 +24,7 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ ok: false, error: "POST만 허용", step: "method" }),
+      jsonKST({ ok: false, error: "POST만 허용", step: "method" }),
       { status: 405, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -45,13 +46,13 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (!Number.isFinite(billingKeyId) || billingKeyId <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "billingKeyId가 유효하지 않습니다", step: "validate_id" }),
+      jsonKST({ ok: false, error: "billingKeyId가 유효하지 않습니다", step: "validate_id" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
   if (reason.length < 5) {
     return new Response(
-      JSON.stringify({ ok: false, error: "사유는 5자 이상 입력해야 합니다", step: "validate_reason" }),
+      jsonKST({ ok: false, error: "사유는 5자 이상 입력해야 합니다", step: "validate_reason" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -70,7 +71,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (!existing.length) {
     return new Response(
-      JSON.stringify({ ok: false, error: "존재하지 않는 빌링키입니다", step: "not_found" }),
+      jsonKST({ ok: false, error: "존재하지 않는 빌링키입니다", step: "not_found" }),
       { status: 404, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -79,7 +80,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (bk.isActive) {
     return new Response(
-      JSON.stringify({ ok: false, error: "이미 활성 상태인 빌링키입니다", step: "already_active" }),
+      jsonKST({ ok: false, error: "이미 활성 상태인 빌링키입니다", step: "already_active" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -136,7 +137,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       data: {
         billingKeyId: result.id,

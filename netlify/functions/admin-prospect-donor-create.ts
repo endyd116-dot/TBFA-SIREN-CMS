@@ -14,6 +14,7 @@
  * Response: { ok, id, message }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -22,7 +23,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 export const config = { path: "/api/admin/prospect-donor-create" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예비 후원자 등록 실패", step,
     detail: String(err?.message || err).slice(0, 500),
   }), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
@@ -30,7 +31,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405, headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }
@@ -61,7 +62,7 @@ export default async (req: Request, _ctx: Context) => {
       `);
       const dup = (Array.isArray(dupRes) ? dupRes[0] : (dupRes as any).rows?.[0]);
       if (dup) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false, error: `이미 회원으로 등록되어 있습니다 (#${dup.id} ${dup.name})`,
           step: "duplicate", duplicateMemberId: dup.id,
         }), { status: 409, headers: { "Content-Type": "application/json; charset=utf-8" } });
@@ -118,7 +119,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* memo가 있으면 별도 컬럼이 없으므로 audit_logs에 기록 (선택) */
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true, id: newId, message: "예비 후원자로 등록되었습니다",
   }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 };

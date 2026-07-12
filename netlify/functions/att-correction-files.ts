@@ -10,6 +10,7 @@
  * 파일 종류 제한 없음 (한글·워드·PDF·이미지 등) · 용량 20MB.
  * 권한: 로그인한 직원 본인 (requireOperator — 관리자 토큰도 통과)
  */
+import { jsonKST } from "../../lib/kst";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { db } from "../../db/index";
@@ -25,19 +26,19 @@ import {
 export const config = { path: "/api/att-correction-files" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "증빙 자료 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }

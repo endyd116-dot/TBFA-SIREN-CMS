@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -7,7 +8,7 @@ import { canAccess } from "../../lib/role-permission-check";
 import { badRequest, serverError, corsPreflight, methodNotAllowed, parseJson } from "../../lib/response";
 
 function jsonOk(data: object) {
-  return new Response(JSON.stringify(data), {
+  return new Response(jsonKST(data), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
@@ -21,7 +22,7 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   // R45 §4-6: 댓글·게시판 신고 중재는 운영자 허용(comment_moderation·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "comment_moderation"))) {
-    return new Response(JSON.stringify({ ok: false, error: "댓글 중재 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "댓글 중재 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   let reportId: number, status: string, action: string;

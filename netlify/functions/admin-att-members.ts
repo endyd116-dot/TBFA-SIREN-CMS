@@ -5,6 +5,7 @@
  *
  * 슈퍼어드민 전용.
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { members } from "../../db/schema";
 import { and, eq, isNull, asc, inArray } from "drizzle-orm";
@@ -14,12 +15,12 @@ import { canAccess } from "../../lib/role-permission-check";
 export const config = { path: "/api/admin-att-members" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "직원 목록 조회 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -32,7 +33,7 @@ export default async function handler(req: Request) {
   // P1-19 fix: 직원 목록은 근태 현황(att_manage) 화면이 함께 부르는 조회 API → 국장(admin)도 허용
   //            (admin-att-records와 동일 게이트). GET 전용이라 쓰기 노출 없음.
   if (!(await canAccess(auth.ctx.member.role ?? "", "att_manage"))) {
-    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다", step: "role_check" }), {
+    return new Response(jsonKST({ ok: false, error: "근태 관리 권한이 없습니다", step: "role_check" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

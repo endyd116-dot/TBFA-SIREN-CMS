@@ -10,6 +10,7 @@
  *   { ok: true, items: [{ name, phone, address, birthdate, eventName, entryPath, memo, confidence }] }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { callGeminiJSON } from "../../lib/ai-gemini";
@@ -32,7 +33,7 @@ interface ExtractedItem {
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "AI 추출 실패",
       step,
@@ -44,7 +45,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -137,7 +138,7 @@ ${parsedText || "(파일 첨부 본문 분석)"}
       }));
 
     return new Response(
-      JSON.stringify({ ok: true, items: cleaned, modelUsed: aiRes.modelUsed || null }),
+      jsonKST({ ok: true, items: cleaned, modelUsed: aiRes.modelUsed || null }),
       { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } }
     );
   } catch (err) {

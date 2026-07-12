@@ -6,6 +6,7 @@
  *
  * 응답: { ok, outputId, status, outline:{ sections }, sections:[…], reviews:[…] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -14,7 +15,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-draft" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -23,7 +24,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -31,7 +32,7 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const caseId = Number(url.searchParams.get("caseId"));
   if (!caseId) {
-    return new Response(JSON.stringify({ ok: false, error: "caseId 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "caseId 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -47,7 +48,7 @@ export default async (req: Request, _ctx: Context) => {
     const draftRow = (dr?.rows ?? dr ?? [])[0];
 
     if (!draftRow) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true, outputId: null, status: null, outline: { sections: [] }, sections: [], reviews: [],
       }), { headers: { "Content-Type": "application/json" } });
     }
@@ -105,7 +106,7 @@ export default async (req: Request, _ctx: Context) => {
       }));
     } catch (e: any) { console.warn("[martyrdom-draft] 검토 로드 실패", e?.message); }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, outputId, status: String(draftRow.status || "draft"), outline, sections, reviews,
     }), { headers: { "Content-Type": "application/json" } });
   } catch (err: any) {

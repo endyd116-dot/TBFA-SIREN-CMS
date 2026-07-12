@@ -6,6 +6,7 @@
  *
  * 응답: { ok, outputId, status }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -15,21 +16,21 @@ import { logAdminAction } from "../../lib/audit";
 export const config = { path: "/api/admin-martyrdom-output-review" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "PATCH") {
-    return new Response(JSON.stringify({ ok: false, error: "PATCH만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "PATCH만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -49,7 +50,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     const exists: any = await db.execute(sql.raw(`SELECT id FROM martyrdom_ai_outputs WHERE id = ${outputId} LIMIT 1`));
     if (!(exists?.rows ?? exists ?? []).length) {
-      return new Response(JSON.stringify({ ok: false, error: "산출물을 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "산출물을 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }
@@ -68,7 +69,7 @@ export default async (req: Request, _ctx: Context) => {
       target: String(outputId), detail: { status },
     });
 
-    return new Response(JSON.stringify({ ok: true, outputId, status }), {
+    return new Response(jsonKST({ ok: true, outputId, status }), {
       headers: { "Content-Type": "application/json" },
     });
 

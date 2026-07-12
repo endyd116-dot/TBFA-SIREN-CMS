@@ -12,7 +12,7 @@
  * AI 실패 시:
  *   { ok: false, error: "AI 검색에 실패했어요. 키워드 검색을 사용해주세요.", step: "call_ai" }
  */
-import { nowKST } from "../../lib/kst";
+import { nowKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { workspaceTasks, members } from "../../db/schema";
@@ -23,7 +23,7 @@ import { parseNaturalSearchQuery } from "../../lib/natural-search";
 export const config = { path: "/api/admin-workspace-task-search" };
 
 function jsonError(step: string, error: string, err?: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error, step,
     detail: err ? String(err?.message || err).slice(0, 500) : undefined,
     stack: err?.stack ? String(err.stack).slice(0, 1000) : undefined,
@@ -31,7 +31,7 @@ function jsonError(step: string, error: string, err?: any, status = 500) {
 }
 
 function jsonOk(data: any) {
-  return new Response(JSON.stringify({ ok: true, data }),
+  return new Response(jsonKST({ ok: true, data }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 

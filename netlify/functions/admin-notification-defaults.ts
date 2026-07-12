@@ -5,7 +5,7 @@
 // PATCH /api/admin-notification-defaults          → 이벤트 1건 기본 채널 수정
 // GET   /api/admin-notification-defaults?history=1 → 변경 이력 (감사 로그)
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -30,12 +30,12 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 function jsonOk(data: any) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "어드민 기본 정책 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -126,18 +126,18 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "PATCH") {
     let body: any;
     try { body = await req.json(); } catch {
-      return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 오류" }), {
+      return new Response(jsonKST({ ok: false, error: "JSON 파싱 오류" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
 
     const { event_type, default_channels } = body ?? {};
     if (!event_type || !VALID_EVENTS.includes(event_type))
-      return new Response(JSON.stringify({ ok: false, error: "유효하지 않은 event_type" }), {
+      return new Response(jsonKST({ ok: false, error: "유효하지 않은 event_type" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     if (!Array.isArray(default_channels))
-      return new Response(JSON.stringify({ ok: false, error: "default_channels는 배열이어야 합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "default_channels는 배열이어야 합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
 
@@ -188,7 +188,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "GET/PATCH only" }), {
+  return new Response(jsonKST({ ok: false, error: "GET/PATCH only" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

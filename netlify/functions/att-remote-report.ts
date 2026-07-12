@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRemoteWorkReports, members } from "../../db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
@@ -11,12 +12,12 @@ import {
 export const config = { path: "/api/att/remote-report" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "보고서 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -25,7 +26,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 /** 제출 기한(재택일 +3일)이 지난 날짜는 저장·제출을 막는다. 예외는 관리자 인정으로만. */
 function closedResponse(date: string) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: `제출 기한이 지났습니다 (${date} 재택 → ${reportDeadline(date)} 자정 마감). ` +
       `그 날은 근무로 인정되지 않습니다. 사정이 있으면 관리자에게 예외 인정을 요청하세요.`,
@@ -202,7 +203,7 @@ export default async function handler(req: Request) {
     const content: string = body.content ?? "";
 
     if (!content.trim()) {
-      return new Response(JSON.stringify({ ok: false, error: "보고서 내용을 입력해 주세요", step: "validate" }),
+      return new Response(jsonKST({ ok: false, error: "보고서 내용을 입력해 주세요", step: "validate" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
@@ -250,7 +251,7 @@ export default async function handler(req: Request) {
         .limit(1);
       if (!rows.length) return jsonOk({ deleted: false, message: "삭제할 보고서가 없습니다" });
       if (rows[0].status === "SUBMITTED") {
-        return new Response(JSON.stringify({ ok: false, error: "제출된 보고서는 삭제할 수 없습니다. 먼저 '수정'으로 되돌린 뒤 삭제하세요.", step: "submitted_lock" }),
+        return new Response(jsonKST({ ok: false, error: "제출된 보고서는 삭제할 수 없습니다. 먼저 '수정'으로 되돌린 뒤 삭제하세요.", step: "submitted_lock" }),
           { status: 409, headers: { "Content-Type": "application/json" } });
       }
       await db.delete(attRemoteWorkReports).where(and(

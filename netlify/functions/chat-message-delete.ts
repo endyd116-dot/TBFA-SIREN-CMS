@@ -9,6 +9,7 @@
  *
  * schema.ts의 is_deleted/deleted_at 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,7 +20,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(status: number, step: string, error: string, detail?: any) {
   return new Response(
-    JSON.stringify({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
+    jsonKST({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
     { status, headers: JSON_HEADER }
   );
 }
@@ -61,7 +62,7 @@ export default async (req: Request, _ctx: Context) => {
     }
     if (row.is_deleted) {
       /* 멱등 — 이미 삭제된 경우 ok */
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: JSON_HEADER });
+      return new Response(jsonKST({ ok: true }), { status: 200, headers: JSON_HEADER });
     }
 
     /* Q3-051 fix: 종료(closed)된 채팅방의 메시지는 삭제 금지 (기록 불변성 — 전송 경로와 일관) */
@@ -80,7 +81,7 @@ export default async (req: Request, _ctx: Context) => {
        WHERE id = ${messageId}
     `);
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: true }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
     console.error("[chat-message-delete]", err);
     return jsonError(500, "update", "메시지 삭제 실패", err?.message);

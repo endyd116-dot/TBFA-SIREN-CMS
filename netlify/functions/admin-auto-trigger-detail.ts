@@ -3,6 +3,7 @@
 //
 // GET ?id=X
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -17,7 +18,7 @@ export default async function handler(req: Request) {
   const id = Number(url.searchParams.get("id"));
   if (!id || isNaN(id)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "트리거 ID(id)가 필요합니다" }),
+      jsonKST({ ok: false, error: "트리거 ID(id)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -39,7 +40,7 @@ export default async function handler(req: Request) {
     const trigger = (trigRes?.rows ?? trigRes ?? [])[0];
     if (!trigger) {
       return new Response(
-        JSON.stringify({ ok: false, error: "트리거를 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "트리거를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -60,12 +61,12 @@ export default async function handler(req: Request) {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, trigger, recentRuns }),
+      jsonKST({ ok: true, trigger, recentRuns }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "트리거 상세 조회 실패",
         step: "select", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

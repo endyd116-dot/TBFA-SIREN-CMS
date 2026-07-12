@@ -1,6 +1,7 @@
 // netlify/functions/google-calendar-auth.ts
 // GET /api/google-calendar-auth  : Google OAuth2 URL 생성
 
+import { jsonKST } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { serverError, methodNotAllowed } from "../../lib/response";
@@ -35,7 +36,7 @@ export default async (req: Request, _ctx: Context) => {
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     const secure = String(process.env.SITE_URL || "").startsWith("https") ? " Secure;" : "";
-    return new Response(JSON.stringify({ ok: true, data: { authUrl } }), {
+    return new Response(jsonKST({ ok: true, data: { authUrl } }), {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",

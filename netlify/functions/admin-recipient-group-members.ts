@@ -1,6 +1,7 @@
 // netlify/functions/admin-recipient-group-members.ts
 // Phase 10 R2 — 저장된 그룹의 현재 시점 회원 목록 (페이지네이션)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -22,7 +23,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -38,14 +39,14 @@ export default async function handler(req: Request, _ctx: Context) {
     const rows = res?.rows ?? res ?? [];
     if (rows.length === 0) {
       return new Response(
-        JSON.stringify({ ok: false, error: "그룹을 찾을 수 없습니다.", step: "not_found" }),
+        jsonKST({ ok: false, error: "그룹을 찾을 수 없습니다.", step: "not_found" }),
         { status: 404, headers: JSON_HEADER },
       );
     }
     criteria = rows[0].criteria as RecipientCriteria;
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "그룹 조회 실패", step: "select_group",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),
@@ -57,7 +58,7 @@ export default async function handler(req: Request, _ctx: Context) {
   try {
     const result = await resolveRecipients(criteria as RecipientCriteria, { limit, offset });
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         members: result.members || [],
         total: result.count,
@@ -66,7 +67,7 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "회원 목록 조회 실패", step: "resolve",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

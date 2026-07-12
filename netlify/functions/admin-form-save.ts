@@ -13,6 +13,7 @@
  *                    acceptFileTypes?, maxFileSize?, sortOrder, isVisible }] }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -26,7 +27,7 @@ const VALID_TYPES = new Set(["text", "email", "tel", "number", "textarea", "sele
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST" && req.method !== "PATCH") {
-    return new Response(JSON.stringify({ ok: false, error: "POST/PATCH만" }),
+    return new Response(jsonKST({ ok: false, error: "POST/PATCH만" }),
       { status: 405, headers: JSON_HEADER });
   }
   const auth = await requireAdmin(req);
@@ -35,15 +36,15 @@ export default async (req: Request, _ctx: Context) => {
 
   let body: any = {};
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱" }),
       { status: 400, headers: JSON_HEADER });
   }
 
   const title = String(body.title || "").trim().slice(0, 200);
   const slug  = String(body.slug || "").trim().slice(0, 100).toLowerCase();
-  if (!title) return new Response(JSON.stringify({ ok: false, error: "title 필수" }),
+  if (!title) return new Response(jsonKST({ ok: false, error: "title 필수" }),
     { status: 400, headers: JSON_HEADER });
-  if (!/^[a-z0-9_-]+$/.test(slug)) return new Response(JSON.stringify({ ok: false, error: "slug는 영문/숫자/언더스코어/하이픈" }),
+  if (!/^[a-z0-9_-]+$/.test(slug)) return new Response(jsonKST({ ok: false, error: "slug는 영문/숫자/언더스코어/하이픈" }),
     { status: 400, headers: JSON_HEADER });
 
   const accessLevel = VALID_ACCESS.has(body.accessLevel) ? body.accessLevel : "public";
@@ -52,15 +53,15 @@ export default async (req: Request, _ctx: Context) => {
   /* 필드 검증 */
   for (const f of fields) {
     if (!f.fieldKey || !/^[a-z0-9_]+$/i.test(f.fieldKey)) {
-      return new Response(JSON.stringify({ ok: false, error: `필드 key '${f.fieldKey}' 유효하지 않음 (영문·숫자·_만)` }),
+      return new Response(jsonKST({ ok: false, error: `필드 key '${f.fieldKey}' 유효하지 않음 (영문·숫자·_만)` }),
         { status: 400, headers: JSON_HEADER });
     }
     if (!VALID_TYPES.has(f.type)) {
-      return new Response(JSON.stringify({ ok: false, error: `필드 타입 '${f.type}' 유효하지 않음` }),
+      return new Response(jsonKST({ ok: false, error: `필드 타입 '${f.type}' 유효하지 않음` }),
         { status: 400, headers: JSON_HEADER });
     }
     if (!f.label) {
-      return new Response(JSON.stringify({ ok: false, error: `필드 '${f.fieldKey}' 라벨 필수` }),
+      return new Response(jsonKST({ ok: false, error: `필드 '${f.fieldKey}' 라벨 필수` }),
         { status: 400, headers: JSON_HEADER });
     }
   }
@@ -69,7 +70,7 @@ export default async (req: Request, _ctx: Context) => {
   const keys = new Set<string>();
   for (const f of fields) {
     if (keys.has(f.fieldKey)) {
-      return new Response(JSON.stringify({ ok: false, error: `중복 필드 key: ${f.fieldKey}` }),
+      return new Response(jsonKST({ ok: false, error: `중복 필드 key: ${f.fieldKey}` }),
         { status: 400, headers: JSON_HEADER });
     }
     keys.add(f.fieldKey);
@@ -81,7 +82,7 @@ export default async (req: Request, _ctx: Context) => {
       SELECT id FROM forms WHERE slug = ${slug} ${body.id ? sql`AND id != ${Number(body.id)}` : sql``} LIMIT 1
     `);
     if ((dup?.rows ?? dup ?? []).length > 0) {
-      return new Response(JSON.stringify({ ok: false, error: "이미 사용 중인 slug입니다" }),
+      return new Response(jsonKST({ ok: false, error: "이미 사용 중인 slug입니다" }),
         { status: 409, headers: JSON_HEADER });
     }
 
@@ -142,12 +143,12 @@ export default async (req: Request, _ctx: Context) => {
       `);
     }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, formId, mode: isUpdate ? "updated" : "created",
       publicUrl: `https://tbfa.co.kr/form.html?slug=${slug}`,
     }), { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "저장 실패", step: "save",
       detail: String(e?.message || e).slice(0, 500),
       stack: String(e?.stack || "").slice(0, 1000),

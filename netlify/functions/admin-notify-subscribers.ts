@@ -2,13 +2,14 @@
 // POST /api/admin-notify-subscribers  body: { postId, commentId }
 // US-036/037: 실제 발송 로직은 lib/board-notify 로 단일화(댓글 작성 직후 board-comment-create 가 직접 호출).
 //   이 엔드포인트는 하위호환용 얇은 래퍼 — 본인(댓글 작성자) 검증·링크 정합은 lib 내부에서 처리.
+import { jsonKST } from "../../lib/kst";
 import { requireActiveUser } from "../../lib/auth";
 import { notifyPostSubscribers } from "../../lib/board-notify";
 
 export const config = { path: "/api/admin-notify-subscribers" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "구독자 알림 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -17,7 +18,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -40,14 +41,14 @@ export default async (req: Request) => {
   const postId = Number(body.postId);
   const commentId = Number(body.commentId);
   if (!postId || !commentId) {
-    return new Response(JSON.stringify({ ok: false, error: "postId, commentId 필요" }), {
+    return new Response(jsonKST({ ok: false, error: "postId, commentId 필요" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   try {
     const notified = await notifyPostSubscribers(postId, commentId, auth.user.uid as number);
-    return new Response(JSON.stringify({ ok: true, notified }), {
+    return new Response(jsonKST({ ok: true, notified }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {

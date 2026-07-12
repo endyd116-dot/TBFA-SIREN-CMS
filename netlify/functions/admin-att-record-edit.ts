@@ -15,6 +15,7 @@
  *
  * 응답: { ok:true, data: { record, edit } }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -28,16 +29,16 @@ export const config = { path: "/api/admin-att-record-edit" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), { status: 200, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: true, data }), { status: 200, headers: JSON_HEADER });
 }
 function jsonErr(error: string, status = 400, detail?: string) {
   return new Response(
-    JSON.stringify({ ok: false, error, ...(detail ? { detail } : {}) }),
+    jsonKST({ ok: false, error, ...(detail ? { detail } : {}) }),
     { status, headers: JSON_HEADER },
   );
 }
 function jsonStepErr(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "출퇴근 직접 수정 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 800),

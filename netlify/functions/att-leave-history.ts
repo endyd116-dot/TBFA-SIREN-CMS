@@ -3,7 +3,7 @@
  * 본인의 휴가 신청 이력 (최근 30건).
  * 응답: { ok:true, data: [{ id, typeName, startDate, endDate, days, reason, status, ... }] }
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -11,12 +11,12 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 export const config = { path: "/api/att-leave-history" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "휴가 이력 조회 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),

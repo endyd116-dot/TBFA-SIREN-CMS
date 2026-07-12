@@ -1,7 +1,7 @@
 // netlify/functions/admin-send-job-detail.ts
 // Phase 10 R3 — 발송 작업 단일 상세 (진행률·통계 포함)
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -13,7 +13,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "발송 작업 상세 조회 실패",
       step,
@@ -32,7 +32,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -72,7 +72,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
       return new Response(
-        JSON.stringify({ ok: false, error: "발송 작업을 찾을 수 없습니다.", step: "not_found" }),
+        jsonKST({ ok: false, error: "발송 작업을 찾을 수 없습니다.", step: "not_found" }),
         { status: 404, headers: JSON_HEADER },
       );
     }
@@ -140,7 +140,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, job: { ...job, recipientStats: stats } }),
+    jsonKST({ ok: true, job: { ...job, recipientStats: stats } }),
     { status: 200, headers: JSON_HEADER },
   );
 }

@@ -6,7 +6,7 @@
  * - 현재 단계 직책을 승인 권한 있는 사람만 결재(super_admin 전권·위임 반영).
  * - 마지막 단계 승인 시: 지출(expenses) 생성·예산 목에 집행 물림 + 지출결의서 정식번호 발행.
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -18,14 +18,14 @@ import { uploadToR2 } from "../../lib/r2-server";
 export const config = { path: "/api/admin-approval-decide" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "결재 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function bad(msg: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status, headers: { "Content-Type": "application/json" } });
 }
 async function rowsOf(q: any): Promise<any[]> { return q?.rows ?? q ?? []; }
@@ -117,7 +117,7 @@ export default async function handler(req: Request, _ctx: Context) {
         });
       }
     } catch (err: any) { return jsonError("reject", err); }
-    return new Response(JSON.stringify({ ok: true, data: { status: "rejected" } }),
+    return new Response(jsonKST({ ok: true, data: { status: "rejected" } }),
       { headers: { "Content-Type": "application/json" } });
   }
 
@@ -148,7 +148,7 @@ export default async function handler(req: Request, _ctx: Context) {
         });
       }
     } catch (err: any) { return jsonError("advance", err); }
-    return new Response(JSON.stringify({ ok: true, data: { status: "pending", advancedTo: curIdx + 1 } }),
+    return new Response(jsonKST({ ok: true, data: { status: "pending", advancedTo: curIdx + 1 } }),
       { headers: { "Content-Type": "application/json" } });
   }
 
@@ -234,7 +234,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   } catch (err: any) { return jsonError("final_approve", err); }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: { status: "approved", expenseId, resolutionNo },
   }), { headers: { "Content-Type": "application/json" } });

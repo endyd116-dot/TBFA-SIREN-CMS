@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -14,7 +14,7 @@ export const config = { path: "/api/admin-approval-delegations" };
    ========================================================= */
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "결재 위임 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +22,7 @@ function jsonError(step: string, err: any) {
 }
 
 function jsonBad(step: string, message: string, extra?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: message, step, ...(extra || {}),
   }), { status: 400, headers: { "Content-Type": "application/json" } });
 }
@@ -56,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") return handleGet(req);
   if (req.method === "POST") return handlePost(req, auth);
 
-  return new Response(JSON.stringify({ ok: false, error: "허용되지 않은 메서드입니다" }),
+  return new Response(jsonKST({ ok: false, error: "허용되지 않은 메서드입니다" }),
     { status: 405, headers: { "Content-Type": "application/json" } });
 }
 
@@ -89,7 +89,7 @@ async function handleGet(req: Request) {
         `);
     const delegations = rowsOf(res).map(mapDelegation);
     return new Response(
-      JSON.stringify({ ok: true, data: { delegations } }),
+      jsonKST({ ok: true, data: { delegations } }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) { return jsonError("select_delegations", err); }
@@ -156,7 +156,7 @@ async function actionCreate(body: any, auth: any) {
                 start_at, end_at, reason, is_active, created_by, created_at
     `);
     const r = rowsOf(res)[0];
-    return new Response(JSON.stringify({ ok: true, data: { delegation: mapDelegation(r) } }),
+    return new Response(jsonKST({ ok: true, data: { delegation: mapDelegation(r) } }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("insert", err); }
 }
@@ -179,7 +179,7 @@ async function actionDeactivate(body: any) {
                 start_at, end_at, reason, is_active, created_by, created_at
     `);
     const r = rowsOf(res)[0];
-    return new Response(JSON.stringify({ ok: true, data: { delegation: mapDelegation(r) } }),
+    return new Response(jsonKST({ ok: true, data: { delegation: mapDelegation(r) } }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("deactivate", err); }
 }

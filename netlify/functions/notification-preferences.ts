@@ -1,4 +1,5 @@
 ﻿import type { Context } from "@netlify/functions";
+import { jsonKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { notificationPreferences } from "../../db/schema";
@@ -7,7 +8,7 @@ import { badRequest, serverError, corsPreflight, methodNotAllowed, parseJson } f
 import { sql } from "drizzle-orm";
 
 function jsonOk(data: object) {
-  return new Response(JSON.stringify(data), {
+  return new Response(jsonKST(data), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

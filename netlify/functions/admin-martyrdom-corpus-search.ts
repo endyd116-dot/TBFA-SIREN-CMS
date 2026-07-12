@@ -6,6 +6,7 @@
  *
  * 응답: { ok, query, hits:[{ id, sourceType, sourceRef, title, snippet, score }] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { searchRag } from "../../lib/ai-embedding";
@@ -15,7 +16,7 @@ export const config = { path: "/api/admin-martyrdom-corpus-search" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -23,14 +24,14 @@ export default async (req: Request, _ctx: Context) => {
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패" }), {
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   const query = String(body.q || body.query || "").trim();
   if (!query) {
-    return new Response(JSON.stringify({ ok: false, error: "검색어(q) 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "검색어(q) 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -52,12 +53,12 @@ export default async (req: Request, _ctx: Context) => {
       detail: { query: query.slice(0, 100), hits: mapped.length },
     });
 
-    return new Response(JSON.stringify({ ok: true, query, hits: mapped }), {
+    return new Response(jsonKST({ ok: true, query, hits: mapped }), {
       headers: { "Content-Type": "application/json" },
     });
 
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "검색 실패", detail: String(err?.message || err).slice(0, 300),
     }), { status: 500, headers: { "Content-Type": "application/json" } });
   }

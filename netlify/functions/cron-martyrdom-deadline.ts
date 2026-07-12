@@ -9,7 +9,7 @@
  *
  * notifyMartyrdomAdmins 재사용(notifications·신규 테이블 0).
  */
-import { todayKST } from "../../lib/kst";
+import { todayKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -96,10 +96,10 @@ export default async (_req: Request, _ctx: Context) => {
     } catch (e: any) { console.warn("[cron-martyrdom-deadline] 용량 점검 실패", e?.message); }
 
     console.info(`[cron-martyrdom-deadline] done — 임박 ${result.imminent} · 경과 ${result.overdue} · 용량알림 ${result.storageAlert}`);
-    return new Response(JSON.stringify({ ok: true, ...result }), { headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: true, ...result }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error("[cron-martyrdom-deadline] 예외:", err?.message, err?.stack);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
+    return new Response(jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
   }
 };

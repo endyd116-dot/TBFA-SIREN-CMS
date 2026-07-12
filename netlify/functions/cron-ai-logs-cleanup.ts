@@ -9,6 +9,7 @@
  * 동작 안 해도 운영에 즉시 영향 없음 — 단순 용량 관리
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -49,7 +50,7 @@ export default async (_req: Request) => {
   }
 
   console.info("[cron-ai-logs-cleanup]", JSON.stringify(results));
-  return new Response(JSON.stringify({ ok: true, results }, null, 2),
+  return new Response(jsonKST({ ok: true, results }, null, 2),
     { status: 200, headers: { "Content-Type": "application/json" } });
 };
 

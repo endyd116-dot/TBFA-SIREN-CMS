@@ -9,6 +9,7 @@
 // 3. 성공/실패 모두 anniversary_emails_log에 기록
 // 4. 최종 요약을 audit_logs에 기록 + super_admin에게 알림
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import {
   getAllAnniversaryCandidates,
@@ -176,7 +177,7 @@ export default async (req: Request, _ctx: Context) => {
       }
     }
 
-    return new Response(JSON.stringify(summary), {
+    return new Response(jsonKST(summary), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -195,7 +196,7 @@ export default async (req: Request, _ctx: Context) => {
     } catch (_) {}
 
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "cron 실행 중 오류" }),
+      jsonKST({ ok: false, error: err?.message || "cron 실행 중 오류" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

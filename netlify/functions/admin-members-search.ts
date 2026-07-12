@@ -8,6 +8,7 @@
 // admin-members 함수는 list·pagination·donorTypeCounts·typeCounts 등 무거운
 // 응답이라 수동 명단 검색 화면에는 과함. 검색 전용 가벼운 응답.
 
+import { jsonKST } from "../../lib/kst";
 import { db, members } from "../../db";
 import { or, like, desc, and, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -19,7 +20,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "회원 검색 실패",
       step,
@@ -35,12 +36,12 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as any).res;
   // R45 §4-3: 회원 검색(연락처 포함)은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "member_directory_export"))) {
-    return new Response(JSON.stringify({ ok: false, error: "회원 검색 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "회원 검색 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
   }
 
   if (req.method !== "GET") {
     return new Response(
-      JSON.stringify({ ok: false, error: "GET만 허용" }),
+      jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: JSON_HEADER },
     );
   }
@@ -53,7 +54,7 @@ export default async function handler(req: Request) {
 
     if (q.length < 1) {
       return new Response(
-        JSON.stringify({ ok: true, members: [], total: 0 }),
+        jsonKST({ ok: true, members: [], total: 0 }),
         { status: 200, headers: JSON_HEADER },
       );
     }
@@ -84,7 +85,7 @@ export default async function handler(req: Request) {
       .limit(limit);
 
     return new Response(
-      JSON.stringify({ ok: true, members: rows, total: rows.length }),
+      jsonKST({ ok: true, members: rows, total: rows.length }),
       { status: 200, headers: JSON_HEADER },
     );
   } catch (err) {

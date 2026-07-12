@@ -18,7 +18,7 @@
  *   cumulativeAmount = 위 SUM
  */
 
-import { nowKST, isoUTC } from "../../lib/kst";
+import { nowKST, isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -94,7 +94,7 @@ export interface AdminDonorRegularResponse {
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "정기 후원자 조회 실패",
       step,
@@ -121,7 +121,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -216,7 +216,7 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[admin-donor-regular-list] KPI 조회 실패", err);
     }
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         message: null,
         data: { ok: true, data: [], page, pageSize, total, kpi },
@@ -533,7 +533,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 7. 응답 — ok 헬퍼 wrap (Phase 1과 동일 패턴, res.data?.data?.data) */
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       message: null,
       data: { ok: true, data, page, pageSize, total, kpi },

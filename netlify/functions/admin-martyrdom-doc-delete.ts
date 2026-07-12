@@ -7,6 +7,7 @@
  * 각 자료 삭제 시: R2 원본 객체 + RAG 색인 청크(ai_rag_documents) + blob_uploads 행 + 자료 행
  * (사건 자체는 유지 — 자료만 비움. 분석 산출물은 자료 없으면 의미 없으나 별도 정리 안 함.)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -16,7 +17,7 @@ import { deleteFromR2 } from "../../lib/r2-delete";
 export const config = { path: "/api/admin-martyrdom-doc-delete" };
 
 function json(body: any, status = 200) {
-  return new Response(JSON.stringify(body), {
+  return new Response(jsonKST(body), {
     status, headers: { "Content-Type": "application/json" },
   });
 }

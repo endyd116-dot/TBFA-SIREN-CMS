@@ -17,6 +17,7 @@
  *   }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -34,13 +35,13 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   // R45 §4(AI): AI 기능 토글·월한도·통계는 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "ai_config"))) {
-    return new Response(JSON.stringify({ ok: false, error: "AI 설정 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "AI 설정 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
   }
 
   if (req.method === "GET") return handleGet();
   if (req.method === "POST") return handlePost(req);
 
-  return new Response(JSON.stringify({ ok: false, error: "GET 또는 POST" }),
+  return new Response(jsonKST({ ok: false, error: "GET 또는 POST" }),
     { status: 405, headers: JSON_HEADER });
 };
 
@@ -52,7 +53,7 @@ async function handleGet(): Promise<Response> {
     ]);
     const percentUsed = stats.limit > 0 ? (stats.month.cost / stats.limit) * 100 : 0;
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       totals: {
         today: stats.today,
@@ -65,7 +66,7 @@ async function handleGet(): Promise<Response> {
       registered: FEATURE_REGISTRY.length,
     }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "기능 목록 조회 실패",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });
@@ -75,17 +76,17 @@ async function handleGet(): Promise<Response> {
 async function handlePost(req: Request): Promise<Response> {
   let body: any = {};
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱 실패" }),
       { status: 400, headers: JSON_HEADER });
   }
 
   const featureKey = String(body?.featureKey || "").trim();
   if (!featureKey) {
-    return new Response(JSON.stringify({ ok: false, error: "featureKey 필수" }),
+    return new Response(jsonKST({ ok: false, error: "featureKey 필수" }),
       { status: 400, headers: JSON_HEADER });
   }
   if (!isKnownFeature(featureKey)) {
-    return new Response(JSON.stringify({ ok: false, error: `등록되지 않은 기능: ${featureKey}` }),
+    return new Response(jsonKST({ ok: false, error: `등록되지 않은 기능: ${featureKey}` }),
       { status: 400, headers: JSON_HEADER });
   }
 
@@ -103,7 +104,7 @@ async function handlePost(req: Request): Promise<Response> {
     } else {
       const n = Number(body.monthlyBudgetUsd);
       if (!Number.isFinite(n) || n < 0) {
-        return new Response(JSON.stringify({ ok: false, error: "monthlyBudgetUsd는 0 이상 숫자 또는 null" }),
+        return new Response(jsonKST({ ok: false, error: "monthlyBudgetUsd는 0 이상 숫자 또는 null" }),
           { status: 400, headers: JSON_HEADER });
       }
       updates.push("budget_num");
@@ -112,7 +113,7 @@ async function handlePost(req: Request): Promise<Response> {
   }
 
   if (updates.length === 0) {
-    return new Response(JSON.stringify({ ok: false, error: "변경 항목 없음 (enabled 또는 monthlyBudgetUsd)" }),
+    return new Response(jsonKST({ ok: false, error: "변경 항목 없음 (enabled 또는 monthlyBudgetUsd)" }),
       { status: 400, headers: JSON_HEADER });
   }
 
@@ -155,9 +156,9 @@ async function handlePost(req: Request): Promise<Response> {
     /* 캐시 무효화 (30초 TTL 우회 즉시 반영) */
     invalidateFeatureCache(featureKey);
 
-    return new Response(JSON.stringify({ ok: true, featureKey }), { status: 200, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: true, featureKey }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "기능 설정 변경 실패",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });

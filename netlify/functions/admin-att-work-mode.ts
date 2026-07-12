@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attSchedules, attScheduleOverrides } from "../../db/schema";
 import { eq, and, lte, gte, or, isNull } from "drizzle-orm";
@@ -7,12 +8,12 @@ import { canAccess } from "../../lib/role-permission-check";
 export const config = { path: "/api/admin/att/work-mode" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "근무형태 관리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -27,7 +28,7 @@ export default async function handler(req: Request) {
   if (req.method === "GET"
         ? !(_role === "super_admin" || await canAccess(_role, "att_config"))
         : _role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용", step: "role_check" }), {
+    return new Response(jsonKST({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용", step: "role_check" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
@@ -37,7 +38,7 @@ export default async function handler(req: Request) {
     const url = new URL(req.url);
     const memberUid = url.searchParams.get("memberUid");
     if (!memberUid) {
-      return new Response(JSON.stringify({ ok: false, error: "memberUid 필수", step: "validate" }),
+      return new Response(jsonKST({ ok: false, error: "memberUid 필수", step: "validate" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
@@ -72,13 +73,13 @@ export default async function handler(req: Request) {
 
     const { memberUid, workMode, recurringRule, startDate, endDate, workplaceId, note } = body;
     if (!memberUid || !workMode || !startDate) {
-      return new Response(JSON.stringify({ ok: false, error: "memberUid, workMode, startDate 필수", step: "validate" }),
+      return new Response(jsonKST({ ok: false, error: "memberUid, workMode, startDate 필수", step: "validate" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     const validModes = ["OFFICE", "REMOTE", "FIELD", "BUSINESS_TRIP", "HYBRID"];
     if (!validModes.includes(workMode)) {
-      return new Response(JSON.stringify({ ok: false, error: `workMode는 ${validModes.join("|")} 중 하나여야 합니다`, step: "validate" }),
+      return new Response(jsonKST({ ok: false, error: `workMode는 ${validModes.join("|")} 중 하나여야 합니다`, step: "validate" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
@@ -112,7 +113,7 @@ export default async function handler(req: Request) {
     } catch (e) { console.warn("[work-mode] 겹침 조회 실패:", e); }
 
     if (overlaps.length > 0 && !body.replaceConflicts) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, needsReplaceConfirm: true,
         message: "겹치는 근무형태가 있습니다. 기존을 종료하고 대체할까요?",
         conflicts: overlaps.map(c => ({ id: c.id, workMode: c.workMode, startDate: c.startDate, endDate: c.endDate })),
@@ -161,7 +162,7 @@ export default async function handler(req: Request) {
 
     const { id, type } = body;
     if (!id || !type) {
-      return new Response(JSON.stringify({ ok: false, error: "id, type 필수", step: "validate" }),
+      return new Response(jsonKST({ ok: false, error: "id, type 필수", step: "validate" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
@@ -171,7 +172,7 @@ export default async function handler(req: Request) {
       } else if (type === "override") {
         await db.delete(attScheduleOverrides).where(eq(attScheduleOverrides.id, id));
       } else {
-        return new Response(JSON.stringify({ ok: false, error: 'type은 "schedule"|"override" 중 하나', step: "validate" }),
+        return new Response(jsonKST({ ok: false, error: 'type은 "schedule"|"override" 중 하나', step: "validate" }),
           { status: 400, headers: { "Content-Type": "application/json" } });
       }
       return jsonOk({ message: "삭제 완료" });

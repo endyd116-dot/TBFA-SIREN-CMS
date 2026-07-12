@@ -12,7 +12,7 @@
  *                                         이전 서명은 이 문서에 대한 것이 아니므로 수령확인을 다시 받는다.
  *                                         (이전 서명 증적은 지우지 않고 그대로 남는다)
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -27,13 +27,13 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const ZIP_MAX = 200;   // 안전 상한 (한 번에 묶는 문서 수)
 
 function jsonOk(data: unknown, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message, data }), { status: 200, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: true, message, data }), { status: 200, headers: JSON_HEADER });
 }
 function jsonErr(error: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error }), { status, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: false, error }), { status, headers: JSON_HEADER });
 }
 function jsonStepErr(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "증빙 보관함 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 800),

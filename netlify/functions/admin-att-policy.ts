@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attPolicies } from "../../db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -8,12 +9,12 @@ import { getFlexRangeMins } from "../../lib/att-utils";
 export const config = { path: "/api/admin-att-policy" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "정책 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -28,7 +29,7 @@ export default async function handler(req: Request) {
   if (req.method === "GET"
         ? !(_role === "super_admin" || await canAccess(_role, "att_config"))
         : _role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

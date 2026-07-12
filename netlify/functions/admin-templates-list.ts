@@ -1,7 +1,7 @@
 // netlify/functions/admin-templates-list.ts
 // Phase 10 R1 — 발송 템플릿 목록 조회 (필터·페이지네이션)
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -16,7 +16,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "템플릿 목록 조회 실패",
       step,
@@ -40,13 +40,13 @@ export default async function handler(req: Request, _ctx: Context) {
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0", 10), 0);
 
   if (channel && !VALID_CHANNELS.includes(channel)) {
-    return new Response(JSON.stringify({ ok: false, error: "채널 값이 올바르지 않습니다." }), {
+    return new Response(jsonKST({ ok: false, error: "채널 값이 올바르지 않습니다." }), {
       status: 400,
       headers: JSON_HEADER,
     });
   }
   if (category && !VALID_CATEGORIES.includes(category)) {
-    return new Response(JSON.stringify({ ok: false, error: "카테고리 값이 올바르지 않습니다." }), {
+    return new Response(jsonKST({ ok: false, error: "카테고리 값이 올바르지 않습니다." }), {
       status: 400,
       headers: JSON_HEADER,
     });
@@ -128,7 +128,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
     const total = ((countRes?.rows ?? countRes)[0] ?? {}).n ?? 0;
 
-    return new Response(JSON.stringify({ ok: true, rows, total }), {
+    return new Response(jsonKST({ ok: true, rows, total }), {
       status: 200,
       headers: JSON_HEADER,
     });

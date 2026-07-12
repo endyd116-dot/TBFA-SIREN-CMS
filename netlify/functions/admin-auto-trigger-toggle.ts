@@ -3,6 +3,7 @@
 //
 // POST ?id=X → is_active 반전
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -14,14 +15,14 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
   const id = Number(url.searchParams.get("id"));
   if (!id || isNaN(id)) {
-    return new Response(JSON.stringify({ ok: false, error: "트리거 ID(id)가 필요합니다" }),
+    return new Response(jsonKST({ ok: false, error: "트리거 ID(id)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -32,7 +33,7 @@ export default async function handler(req: Request) {
     `);
     const trigger = (existRes?.rows ?? existRes ?? [])[0];
     if (!trigger) {
-      return new Response(JSON.stringify({ ok: false, error: "트리거를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "트리거를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
 
@@ -44,12 +45,12 @@ export default async function handler(req: Request) {
     `);
 
     return new Response(
-      JSON.stringify({ ok: true, id, isActive: newActive }),
+      jsonKST({ ok: true, id, isActive: newActive }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "트리거 토글 실패",
         step: "toggle", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

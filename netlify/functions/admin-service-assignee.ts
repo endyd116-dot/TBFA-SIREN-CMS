@@ -11,6 +11,7 @@
  * 4) 알림·활동 로그
  * 5) 무한 루프 방지 — workspace-sync 내부 origin 잠금
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -28,7 +29,7 @@ const KIND_TABLE: Record<string, { table: string; col: string }> = {
 };
 
 function jsonError(status: number, error: string, step?: string, err?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error, step,
     detail: err ? String(err?.message || err).slice(0, 500) : undefined,
     stack:  err?.stack ? String(err.stack).slice(0, 1000) : undefined,
@@ -36,7 +37,7 @@ function jsonError(status: number, error: string, step?: string, err?: any) {
 }
 
 function jsonOk(data: any, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message: message ?? null, data }),
+  return new Response(jsonKST({ ok: true, message: message ?? null, data }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 

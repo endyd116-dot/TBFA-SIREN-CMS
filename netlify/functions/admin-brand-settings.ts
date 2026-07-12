@@ -8,6 +8,7 @@
 // 권한: super_admin 또는 content/all 카테고리 (사이트 전역 변경이라 제한).
 /* 2026-07-02: assignedCategories canEdit → role_permissions canAccess('content_edit') 교체 — 권한설계 화면에서 중앙 제어 */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -21,7 +22,7 @@ const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "i
 const MAX_BYTES = 3 * 1024 * 1024; // 3MB
 
 function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: JSON_HEADER });
+  return new Response(jsonKST(data), { status, headers: JSON_HEADER });
 }
 
 async function canEdit(member: any): Promise<boolean> {

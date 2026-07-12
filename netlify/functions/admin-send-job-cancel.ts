@@ -3,6 +3,7 @@
 // pending: 즉시 'cancelled' (수신자 INSERT 안 됐음)
 // processing: 'cancelled' 마킹 — cron이 다음 chunk 시점에 미발송 수신자 cancelled 처리
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -15,7 +16,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "발송 취소 실패",
       step,
@@ -29,7 +30,7 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ ok: false, error: "POST만 허용", step: "method" }),
+      jsonKST({ ok: false, error: "POST만 허용", step: "method" }),
       { status: 405, headers: JSON_HEADER },
     );
   }
@@ -38,14 +39,14 @@ export default async function handler(req: Request, _ctx: Context) {
   if (!auth.ok) return (auth as any).res;
   // R45 §4-7: 대량 발송 취소는 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
-    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
   }
 
   const url = new URL(req.url);
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -59,7 +60,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
       return new Response(
-        JSON.stringify({ ok: false, error: "발송 작업을 찾을 수 없습니다.", step: "not_found" }),
+        jsonKST({ ok: false, error: "발송 작업을 찾을 수 없습니다.", step: "not_found" }),
         { status: 404, headers: JSON_HEADER },
       );
     }
@@ -70,7 +71,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (currentStatus !== "pending" && currentStatus !== "processing") {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: `현재 상태(${currentStatus})에서는 취소할 수 없습니다.`,
         step: "status_invalid",
@@ -101,7 +102,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, status: "cancelled" }),
+    jsonKST({ ok: true, status: "cancelled" }),
     { status: 200, headers: JSON_HEADER },
   );
 }

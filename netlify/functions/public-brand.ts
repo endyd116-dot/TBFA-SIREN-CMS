@@ -11,6 +11,7 @@
 //
 // 미설정 시 logoUrl/faviconUrl = null → 클라이언트가 기존 정적 기본값 그대로 사용(fallback-safe).
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
@@ -60,10 +61,10 @@ export default async (req: Request, _ctx: Context) => {
       faviconUrl: cfg.favicon ? `/api/public/brand?asset=favicon&v=${version}` : null,
       version,
     };
-    return new Response(JSON.stringify(body), { status: 200, headers: JSON_HEADER });
+    return new Response(jsonKST(body), { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
     /* 실패해도 빈 설정 반환 → 클라이언트는 정적 기본값 사용 */
-    return new Response(JSON.stringify({ siteName: null, homeTitle: null, logoUrl: null, faviconUrl: null, version: 0 }),
+    return new Response(jsonKST({ siteName: null, homeTitle: null, logoUrl: null, faviconUrl: null, version: 0 }),
       { status: 200, headers: { "content-type": "application/json; charset=utf-8" } });
   }
 };

@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialMessages, memorialMessageLikes } from "../../db/schema";
@@ -11,7 +12,7 @@ export const config = { path: "/api/memorial-messages" };
 const PAGE_SIZE = 20;
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "추모 메시지 처리 실패",
     step,
@@ -83,7 +84,7 @@ export default async function handler(req: Request, _ctx: Context) {
         isMine:    !!(user && r.memberId === user.uid),
       }));
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: { messages, pagination: { page, total, hasMore: page * PAGE_SIZE < total } },
       }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -102,13 +103,13 @@ export default async function handler(req: Request, _ctx: Context) {
 
     /* 공감 토글 */
     if (action === "like") {
-      if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!id) return new Response(jsonKST({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
         /* R41 Q2-047: 존재·미숨김 메시지에만 공감 허용 (삭제·숨김 글에 고아 좋아요 방지) */
         const [msg] = await db.select({ id: memorialMessages.id, isHidden: memorialMessages.isHidden })
           .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
         if (!msg || msg.isHidden) {
-          return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
         }
         const existing = await db
           .select({ id: memorialMessageLikes.id })
@@ -133,7 +134,7 @@ export default async function handler(req: Request, _ctx: Context) {
         const setLike: any = { likeCount };
         await db.update(memorialMessages).set(setLike).where(eq(memorialMessages.id, id));
 
-        return new Response(JSON.stringify({ ok: true, data: { likeCount, liked } }), {
+        return new Response(jsonKST({ ok: true, data: { likeCount, liked } }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       } catch (err: any) {
@@ -143,17 +144,17 @@ export default async function handler(req: Request, _ctx: Context) {
 
     /* 신고 */
     if (action === "report") {
-      if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!id) return new Response(jsonKST({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
         /* R41 Q2-047: 존재하는 메시지에만 신고 누적 */
         const [msg] = await db.select({ id: memorialMessages.id, memberId: memorialMessages.memberId })
           .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
         if (!msg) {
-          return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
         }
         /* US-030: 본인 글 신고 차단 */
         if (msg.memberId === user.uid) {
-          return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 글은 신고할 수 없습니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "본인이 작성한 글은 신고할 수 없습니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
         }
         /* US-030: 1인 1신고 멱등 — memorial_report_logs UNIQUE(member_id,ref_table,ref_id).
            마이그(migrate-r45-memorial-report-log) 적용 전이면 테이블이 없어 catch로 degrade(기존 동작). */
@@ -171,7 +172,7 @@ export default async function handler(req: Request, _ctx: Context) {
           console.warn("[memorial-messages] report dedup 생략(테이블 미존재 가능)", e);
         }
         if (alreadyReported) {
-          return new Response(JSON.stringify({ ok: true, message: "이미 신고하신 글입니다." }), {
+          return new Response(jsonKST({ ok: true, message: "이미 신고하신 글입니다." }), {
             status: 200, headers: { "Content-Type": "application/json" },
           });
         }
@@ -179,7 +180,7 @@ export default async function handler(req: Request, _ctx: Context) {
         await db.update(memorialMessages)
           .set(setReport)
           .where(eq(memorialMessages.id, id));
-        return new Response(JSON.stringify({ ok: true, message: "신고가 접수되었습니다. 운영자가 확인합니다." }), {
+        return new Response(jsonKST({ ok: true, message: "신고가 접수되었습니다. 운영자가 확인합니다." }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       } catch (err: any) {
@@ -189,19 +190,19 @@ export default async function handler(req: Request, _ctx: Context) {
 
     /* US-028: 본인 추모 메시지 삭제 (작성자 본인만) */
     if (action === "delete") {
-      if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!id) return new Response(jsonKST({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
         const [msg] = await db.select({ id: memorialMessages.id, memberId: memorialMessages.memberId })
           .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
         if (!msg) {
-          return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
         }
         if (msg.memberId !== user.uid) {
-          return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 글만 삭제할 수 있습니다" }), { status: 403, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "본인이 작성한 글만 삭제할 수 있습니다" }), { status: 403, headers: { "Content-Type": "application/json" } });
         }
         await db.delete(memorialMessageLikes).where(eq(memorialMessageLikes.messageId, id));
         await db.delete(memorialMessages).where(and(eq(memorialMessages.id, id), eq(memorialMessages.memberId, user.uid)));
-        return new Response(JSON.stringify({ ok: true, message: "추모 메시지가 삭제되었습니다." }), {
+        return new Response(jsonKST({ ok: true, message: "추모 메시지가 삭제되었습니다." }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       } catch (err: any) {
@@ -217,10 +218,10 @@ export default async function handler(req: Request, _ctx: Context) {
     const bodyTeacherId: number | null = body.teacherId ? Number(body.teacherId) : null;
 
     if (!content) {
-      return new Response(JSON.stringify({ ok: false, error: "추모 메시지를 입력해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return new Response(jsonKST({ ok: false, error: "추모 메시지를 입력해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
     if (content.length > 1000) {
-      return new Response(JSON.stringify({ ok: false, error: "메시지는 1000자 이내로 작성해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return new Response(jsonKST({ ok: false, error: "메시지는 1000자 이내로 작성해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     try {
@@ -252,7 +253,7 @@ export default async function handler(req: Request, _ctx: Context) {
         }).catch(() => {});
       }
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: { message: {
           id: row.id,
@@ -269,7 +270,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

@@ -6,6 +6,7 @@
  *
  * 감사 로그: 사건 조회마다 기록
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -15,12 +16,12 @@ import { logAdminAction } from "../../lib/audit";
 export const config = { path: "/api/admin-martyrdom-case-detail" };
 
 function jsonOk(data: object) {
-  return new Response(JSON.stringify({ ok: true, ...data }), {
+  return new Response(jsonKST({ ok: true, ...data }), {
     headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -29,7 +30,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -39,7 +40,7 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const id = Number(url.searchParams.get("id"));
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "id 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -72,7 +73,7 @@ export default async (req: Request, _ctx: Context) => {
     } catch (err: any) { return jsonError("select_case", err); }
 
     if (!caseRow) {
-      return new Response(JSON.stringify({ ok: false, error: "사건을 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "사건을 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }

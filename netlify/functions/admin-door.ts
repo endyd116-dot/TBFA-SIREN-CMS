@@ -2,6 +2,7 @@
 //   GET  /api/admin-door        — 어댑터/모드 + 도어 상태 + 최근 개방 이력
 //   POST /api/admin-door {action:"open"} — 원격 개방
 // (ON admin-door 이식. 출입문 어댑터는 lib/adapters/door.)
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { doorCommand, members } from "../../db/schema";
 import { desc, inArray } from "drizzle-orm";
@@ -12,10 +13,10 @@ export const config = { path: "/api/admin-door" };
 const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), { status, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: true, data }), { status, headers: JSON_HEADER });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "문 제어 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),

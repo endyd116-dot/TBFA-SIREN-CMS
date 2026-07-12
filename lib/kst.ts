@@ -129,6 +129,27 @@ export function isoUTC(v: any): any {
 }
 
 /**
+ * 응답 JSON 직렬화 — **모든 API 응답은 이걸로 만든다.**
+ *
+ * 왜 단일 관문이 필요한가:
+ *   시각이 시간대 표시 없이 새어 나가는 경로가 한둘이 아니다 —
+ *     · xxxAt: r.xxx_at            (필드별 매핑)
+ *     · { ...r }  /  jsonOk(rows)  (raw 행 통째로)
+ *     · SELECT created_at AS "createdAt"   (SQL 별칭)
+ *     · date: s.decided_at         (이름이 At 으로 안 끝남)
+ *   패턴을 하나씩 쫓으면 반드시 빠뜨린다. 그래서 **나가는 길목 한 곳**에서 막는다.
+ *   여기를 통과하면 어떤 모양으로 담겼든 시각은 UTC 표시(Z)가 붙는다.
+ *
+ * 안전: isoUTC 는 날짜 전용("2026-07-12")·이미 시간대 붙은 값·숫자·일반 문자열을 건드리지 않는다.
+ *       Date 객체는 JSON 이 먼저 ISO(Z 포함)로 바꾸므로 그대로 통과한다.
+ */
+export function jsonKST(body: unknown, _replacer?: unknown, space?: string | number): string {
+  /* JSON.stringify 를 그대로 대체할 수 있게 인자 모양을 맞춘다.
+     replacer 자리는 우리가 쓰므로 무시하고, 들여쓰기(space)만 그대로 넘긴다. */
+  return JSON.stringify(body, (_key, value) => isoUTC(value), space);
+}
+
+/**
  * SQL 안에서 '한국 기준 오늘'.
  *
  * Postgres의 CURRENT_DATE 는 세션 시간대(기본 UTC) 기준이라 한국 새벽엔 어제가 나온다.

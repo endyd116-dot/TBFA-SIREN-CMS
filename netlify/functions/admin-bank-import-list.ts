@@ -4,7 +4,7 @@
  *
  * Query: ?page=1&limit=30
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -13,7 +13,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-bank-import-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "업로드 이력 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -44,7 +44,7 @@ export default async function handler(req: Request, _ctx: Context) {
       total = Number((c?.rows ?? c ?? [])[0]?.n ?? 0);
     } catch { /* total은 보조 — 실패해도 계속 */ }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         imports: rows.map((x: any) => ({

@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -13,7 +14,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-2: 전사 재무(손익) 열람은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess(auth.ctx.member.role ?? "", "finance_view"))) {
-    return new Response(JSON.stringify({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
@@ -29,7 +30,7 @@ export default async function handler(req: Request): Promise<Response> {
   const cacheKey = `pl-summary-v1:${period}:${startDate}:${endDate}:${fiscalYear ?? "-"}:${includeMonthly ? "m" : "-"}`;
   const cached = await getCache<Record<string, any>>(cacheKey);
   if (cached) {
-    return new Response(JSON.stringify({ ok: true, data: { ...cached, cached: true } }), {
+    return new Response(jsonKST({ ok: true, data: { ...cached, cached: true } }), {
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -258,7 +259,7 @@ export default async function handler(req: Request): Promise<Response> {
   /* 캐시 저장 (실패해도 응답에 영향 없음) */
   await setCache(cacheKey, responseData, 3 * 60);
 
-  return new Response(JSON.stringify({ ok: true, data: responseData }), {
+  return new Response(jsonKST({ ok: true, data: responseData }), {
     headers: { "Content-Type": "application/json" },
   });
 }

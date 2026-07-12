@@ -1,6 +1,7 @@
 // netlify/functions/att-door-open.ts — 직원 수동 "문 열기"(모바일 키).
 // 근무 중(오늘 출근 세션이 열려 있는) 운영자가 문 앞에서 직접 개방할 때.
 // (ON access-door-open 이식. 출입문 어댑터는 lib/adapters/door.)
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -12,12 +13,12 @@ import { openDoor } from "../../lib/adapters/door";
 export const config = { path: "/api/att-door-open" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "문 열기 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
   }), { status, headers: { "Content-Type": "application/json" } });
@@ -40,7 +41,7 @@ export default async function handler(req: Request) {
   } catch (err) { return jsonError("select_record", err); }
 
   if (!existing || !isWorking(normalizeSessions(existing))) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "출근(근무 중) 상태에서만 문을 열 수 있습니다", step: "not_working",
     }), { status: 409, headers: { "Content-Type": "application/json" } });
   }

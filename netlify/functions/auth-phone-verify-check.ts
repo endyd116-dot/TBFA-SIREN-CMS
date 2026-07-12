@@ -15,6 +15,7 @@
  *     - "new":              매칭 없음 (신규 가입)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import {
   normalizePhone, verifyCode, findMatchedMemberByPhone,
@@ -26,20 +27,20 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
 
   let body: any = {};
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱 실패" }),
       { status: 400, headers: JSON_HEADER });
   }
 
   const phoneRaw = String(body?.phone || "").trim();
   const code = String(body?.code || "").trim();
   if (!phoneRaw || !code) {
-    return new Response(JSON.stringify({ ok: false, error: "전화번호와 인증번호를 입력해 주세요" }),
+    return new Response(jsonKST({ ok: false, error: "전화번호와 인증번호를 입력해 주세요" }),
       { status: 400, headers: JSON_HEADER });
   }
 
@@ -54,7 +55,7 @@ export default async (req: Request, _ctx: Context) => {
       mismatch: "인증번호가 일치하지 않습니다.",
     };
     const errorMsg = errorMap[result.reason || ""] || "인증 실패";
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: errorMsg, reason: result.reason,
     }), { status: 400, headers: JSON_HEADER });
   }
@@ -71,7 +72,7 @@ export default async (req: Request, _ctx: Context) => {
     }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     verifyToken: result.verifyToken,
     expiresAt: result.tokenExpiresAt,

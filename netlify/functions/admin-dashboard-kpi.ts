@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -5,7 +6,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "KPI 조회 실패",
       step,
@@ -39,7 +40,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -305,7 +306,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, period: periodParam, donation, member, siren, send }),
+    jsonKST({ ok: true, period: periodParam, donation, member, siren, send }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 };

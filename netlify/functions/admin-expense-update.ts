@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -8,7 +9,7 @@ export const config = { path: "/api/admin-expense-update" };
 export default async function handler(req: Request): Promise<Response> {
   // BUG-007 fix: PUT·PATCH 둘 다 허용 (전체 교체·부분 수정 양쪽 지원)
   if (req.method !== "PUT" && req.method !== "PATCH") {
-    return new Response(JSON.stringify({ ok: false, error: "PUT 또는 PATCH만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "PUT 또는 PATCH만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -18,34 +19,34 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
   }
 
   const { id, fiscalYear, occurredAt, categoryId, amount, payeeName, description, receiptUrl } = body;
 
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 필수", step: "validate" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "id 필수", step: "validate" }), { status: 400 });
   }
 
   let existing: typeof expenses.$inferSelect[] = [];
   try {
     existing = await db.select().from(expenses).where(eq(expenses.id, Number(id))).limit(1);
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "지출 조회 실패", step: "select_expense",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
     }), { status: 500 });
   }
   if (!existing.length) {
-    return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 지출 항목", step: "not_found" }), { status: 404 });
+    return new Response(jsonKST({ ok: false, error: "존재하지 않는 지출 항목", step: "not_found" }), { status: 404 });
   }
 
   const exp = existing[0];
 
   // approved 상태는 수정 불가
   if (exp.status === "approved") {
-    return new Response(JSON.stringify({ ok: false, error: "승인된 항목은 수정할 수 없습니다", step: "validate_status" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "승인된 항목은 수정할 수 없습니다", step: "validate_status" }), { status: 400 });
   }
   // AD-012: 반려된 항목은 수정 후 재제출(draft 복귀) 허용 — '막다른 카드' 방지(전표·예산안과 일관)
   const wasRejected = exp.status === "rejected";
@@ -54,7 +55,7 @@ export default async function handler(req: Request): Promise<Response> {
   const adminRole = auth.ctx.member.role;
   const adminUid = auth.ctx.member.id;
   if (adminRole !== "super_admin" && adminRole !== "admin" && exp.recordedBy !== adminUid) {
-    return new Response(JSON.stringify({ ok: false, error: "수정 권한이 없습니다 (등록자 또는 슈퍼어드민만 가능)", step: "auth_check" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "수정 권한이 없습니다 (등록자 또는 슈퍼어드민만 가능)", step: "auth_check" }), { status: 403 });
   }
 
   // 카테고리 확인 (변경 시)
@@ -63,22 +64,22 @@ export default async function handler(req: Request): Promise<Response> {
     try {
       catRows = await db.select().from(expenseCategories).where(eq(expenseCategories.id, Number(categoryId))).limit(1);
     } catch (err: any) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, error: "카테고리 확인 실패", step: "select_category",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),
       }), { status: 500 });
     }
     if (!catRows.length) {
-      return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 카테고리", step: "validate_category" }), { status: 400 });
+      return new Response(jsonKST({ ok: false, error: "존재하지 않는 카테고리", step: "validate_category" }), { status: 400 });
     }
     if (!catRows[0].isActive) {
-      return new Response(JSON.stringify({ ok: false, error: "비활성화된 카테고리입니다", step: "validate_category_active" }), { status: 400 });
+      return new Response(jsonKST({ ok: false, error: "비활성화된 카테고리입니다", step: "validate_category_active" }), { status: 400 });
     }
   }
 
   if (amount !== undefined && Number(amount) <= 0) {
-    return new Response(JSON.stringify({ ok: false, error: "금액은 0보다 커야 합니다", step: "validate_amount" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "금액은 0보다 커야 합니다", step: "validate_amount" }), { status: 400 });
   }
 
   const updateData: Record<string, any> = { updatedAt: new Date() };
@@ -96,7 +97,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     updated = await db.update(expenses).set(updateData as any).where(eq(expenses.id, Number(id))).returning();
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "지출 수정 실패", step: "update",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
@@ -104,7 +105,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const r = updated[0];
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       expense: {

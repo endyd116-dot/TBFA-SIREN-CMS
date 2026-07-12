@@ -2,7 +2,7 @@
 // Phase M-12: 회원 목록 CSV 추출 (Excel 호환)
 // GET /api/admin/members-export?type=&category=&status=&q=&source=
 
-import { todayKST, toKST } from "../../lib/kst";
+import { todayKST, toKST, jsonKST } from "../../lib/kst";
 import { eq, and, or, like, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { members, signupSources, donations } from "../../db/schema";
@@ -66,7 +66,7 @@ export default async (req: Request) => {
   const { admin } = guard.ctx;
   // R45 §4-3: 회원 명단 엑셀 내보내기는 admin+ (전 회원 PII 대량추출·운영자 차단·권한정책 토글)
   if (!(await canAccess(guard.ctx.member.role ?? "", "member_directory_export"))) {
-    return new Response(JSON.stringify({ ok: false, error: "회원 내보내기 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "회원 내보내기 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   try {

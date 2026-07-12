@@ -9,6 +9,7 @@
 // 2. workspace_folders: deletedAt < now - 30days → DB hard delete
 // 3. 감사 로그 + 슈퍼관리자 알림
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { lt, isNotNull, and, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
@@ -171,7 +172,7 @@ export default async (req: Request, context: Context) => {
     console.log(`[cron-trash] 완료: 파일 ${filesPurged}/${filesProcessed}, 폴더 ${foldersPurged}, R2 ${r2Deleted}/${r2Failed}, blob orphan ${blobOrphansDeleted}, stale ${staleUploadsPurged}, ${durationMs}ms`);
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         filesProcessed,
         filesPurged,
@@ -189,7 +190,7 @@ export default async (req: Request, context: Context) => {
   } catch (err: any) {
     console.error("[cron-trash] fatal:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "unknown" }),
+      jsonKST({ ok: false, error: err?.message || "unknown" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

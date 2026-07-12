@@ -1,6 +1,7 @@
 // netlify/functions/admin-seo-get.ts
 // R42 SEO — 단일 페이지 SEO 상세 (published + draft).
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { getPageMetaSplit } from "../../lib/seo-meta";
@@ -8,13 +9,13 @@ import { getPageMetaSplit } from "../../lib/seo-meta";
 export const config = { path: "/api/admin-seo-get" };
 
 function jsonOk(body: any) {
-  return new Response(JSON.stringify(body), {
+  return new Response(jsonKST(body), {
     status: 200,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 function jsonError(status: number, error: string) {
-  return new Response(JSON.stringify({ ok: false, error }), {
+  return new Response(jsonKST({ ok: false, error }), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });

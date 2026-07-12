@@ -5,6 +5,7 @@
 // 조건: 해당 job의 failed 수신자 전체를 pending으로 일괄 전환
 // 처리: failed → pending 일괄 UPDATE, job status 복구
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
@@ -18,11 +19,11 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   // R45 §4-7: 실패자 일괄 재발송은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
-    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), {
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), {
       status: 405,
       headers: { "Content-Type": "application/json" },
     });
@@ -42,7 +43,7 @@ export default async function handler(req: Request) {
   }
   if (!jobId || isNaN(jobId)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "작업 ID(id)가 필요합니다" }),
+      jsonKST({ ok: false, error: "작업 ID(id)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -55,14 +56,14 @@ export default async function handler(req: Request) {
     const job = (jobRes?.rows ?? jobRes ?? [])[0];
     if (!job) {
       return new Response(
-        JSON.stringify({ ok: false, error: "발송 작업을 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "발송 작업을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
 
     if (job.status === "cancelled") {
       return new Response(
-        JSON.stringify({ ok: false, error: "취소된 작업은 재발송할 수 없습니다" }),
+        jsonKST({ ok: false, error: "취소된 작업은 재발송할 수 없습니다" }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -77,7 +78,7 @@ export default async function handler(req: Request) {
 
     if (failedCount === 0) {
       return new Response(
-        JSON.stringify({ ok: true, retriedCount: 0, message: "재발송할 실패 수신자가 없습니다" }),
+        jsonKST({ ok: true, retriedCount: 0, message: "재발송할 실패 수신자가 없습니다" }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -106,7 +107,7 @@ export default async function handler(req: Request) {
     void triggerDispatchBackground().catch(() => {});
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         jobId,
         retriedCount: failedCount,
@@ -116,7 +117,7 @@ export default async function handler(req: Request) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "일괄 재발송 처리 실패",
         step: "bulk_update",

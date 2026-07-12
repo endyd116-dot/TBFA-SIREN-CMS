@@ -9,6 +9,7 @@
  *
  * 응답 계약: §P4.2 JSON 계약 1글자도 안 바꿈
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -23,14 +24,14 @@ export const config = { path: "/api/admin-martyrdom-publication" };
 const PUB_WRITE_FEATURE = "martyrdom_publication";
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -59,7 +60,7 @@ export default async (req: Request, _ctx: Context) => {
         createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
       }));
       const canWrite = await canAccess(member.role ?? "", PUB_WRITE_FEATURE);
-      return new Response(JSON.stringify({ ok: true, publications, canWrite }), {
+      return new Response(jsonKST({ ok: true, publications, canWrite }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -82,7 +83,7 @@ export default async (req: Request, _ctx: Context) => {
       const row = (r?.rows ?? r ?? [])[0];
       if (!row) return badRequest("발간물을 찾을 수 없습니다");
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         publication: {
           id:            Number(row.id),
@@ -170,7 +171,7 @@ export default async (req: Request, _ctx: Context) => {
 
       await logAdminAction(req, admin.uid, String(member.name || ""), "martyrdom_publication_create", { target: `martyrdom_publications:${pubId}`, detail: { pubType } });
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true, queued: true, id: pubId, pubType, status: "draft",
         bgStatus, bgError: bgError || undefined,
       }), { status: 201, headers: { "Content-Type": "application/json" } });
@@ -240,7 +241,7 @@ export default async (req: Request, _ctx: Context) => {
 
       await logAdminAction(req, admin.uid, String(member.name || ""), "martyrdom_publication_status", { target: `martyrdom_publications:${id}`, detail: { status } });
 
-      return new Response(JSON.stringify({ ok: true, id, status }),
+      return new Response(jsonKST({ ok: true, id, status }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("patch_publication", err);
@@ -255,12 +256,12 @@ export default async (req: Request, _ctx: Context) => {
     try {
       await db.execute(sql.raw(`DELETE FROM martyrdom_publications WHERE id = ${idParam}`));
       await logAdminAction(req, admin.uid, String(member.name || ""), "martyrdom_publication_delete", { target: `martyrdom_publications:${idParam}` });
-      return new Response(JSON.stringify({ ok: true, id: idParam }),
+      return new Response(jsonKST({ ok: true, id: idParam }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("delete_publication", err);
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "GET·POST·PATCH·DELETE만 허용" }), { status: 405 });
+  return new Response(jsonKST({ ok: false, error: "GET·POST·PATCH·DELETE만 허용" }), { status: 405 });
 };

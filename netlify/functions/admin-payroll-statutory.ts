@@ -12,6 +12,7 @@
  * 주민등록번호는 다루지 않는다 — 신고서에 옮겨 적을 '숫자'만 만든다.
  * 권한: super_admin 전용 (급여 열람 = 최고 민감 정보)
  */
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import {
   payrollLedger, withholdingReport, annualSummary, insuranceBase, simplifiedStatement,
@@ -22,19 +23,19 @@ import { logAdminAction } from "../../lib/audit";
 export const config = { path: "/api/admin-payroll-statutory" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "신고 자료 생성 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
@@ -67,7 +68,7 @@ export default async function handler(req: Request) {
   if (guardFailed(auth)) return auth.res;
   const admin = (auth as any).ctx.member;
   if (admin.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

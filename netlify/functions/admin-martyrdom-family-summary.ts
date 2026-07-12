@@ -6,6 +6,7 @@
  *
  * 응답: { ok, summary: { id, outputType, contentText, nextSteps, status } }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -15,18 +16,18 @@ import { buildFamilySummary } from "../../lib/martyrdom-ai";
 export const config = { path: "/api/admin-martyrdom-family-summary" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 function ok(data: any) {
-  return new Response(JSON.stringify({ ok: true, ...data }),
+  return new Response(jsonKST({ ok: true, ...data }),
     { status: 200, headers: { "Content-Type": "application/json" } });
 }
 
@@ -82,5 +83,5 @@ export default async (req: Request, _ctx: Context) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "GET·POST만 허용" }), { status: 405 });
+  return new Response(jsonKST({ ok: false, error: "GET·POST만 허용" }), { status: 405 });
 };

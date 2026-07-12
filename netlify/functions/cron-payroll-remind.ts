@@ -9,6 +9,7 @@
  *   - 이의 제기한 건은 독촉하지 않는다 (이미 담당자 처리 대기 중)
  * 미서명자가 여럿이면 슈퍼어드민에게도 현황을 한 번 알린다.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Config, Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -47,7 +48,7 @@ export default async function handler(_req: Request, _ctx: Context) {
     targets = ((r as any).rows ?? r ?? []) as any[];
   } catch (err: any) {
     summary.fatal = `대상 조회 실패: ${String(err?.message ?? err).slice(0, 300)}`;
-    return new Response(JSON.stringify({ ok: false, summary }), {
+    return new Response(jsonKST({ ok: false, summary }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
@@ -106,7 +107,7 @@ export default async function handler(_req: Request, _ctx: Context) {
   }
 
   summary.elapsedMs = Date.now() - started;
-  return new Response(JSON.stringify({ ok: true, summary }), {
+  return new Response(jsonKST({ ok: true, summary }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }

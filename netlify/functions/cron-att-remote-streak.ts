@@ -9,6 +9,7 @@
  * 임계값은 att_policies.remoteMaxPerMonth가 있지만 streak 임계는 별도라 환경변수·상수.
  * ?dryRun=1 로 검증 가능.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members } from "../../db/schema";
@@ -62,7 +63,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (overThreshold.length === 0) {
       console.info("[cron-att-remote-streak] 임계 도달자 없음");
-      return new Response(JSON.stringify({ ok: true, durationMs: Date.now() - start, alertCount: 0 }),
+      return new Response(jsonKST({ ok: true, durationMs: Date.now() - start, alertCount: 0 }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -118,7 +119,7 @@ export default async (req: Request, _ctx: Context) => {
     const durationMs = Date.now() - start;
     console.info(`[cron-att-remote-streak] 완료 — 임계도달:${overThreshold.length}명 알림:${alertCount}건 (${durationMs}ms)${dryRun ? " [dryRun]" : ""}`);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, dryRun, threshold: STREAK_THRESHOLD,
       overThreshold: overThreshold.map(o => ({ uid: o.uid, streak: o.streak, name: nameMap.get(Number(o.uid)) ?? null })),
       alertCount, durationMs,
@@ -126,7 +127,7 @@ export default async (req: Request, _ctx: Context) => {
 
   } catch (err: any) {
     console.error("[cron-att-remote-streak] 오류:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message ?? err) }),
+    return new Response(jsonKST({ ok: false, error: String(err?.message ?? err) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

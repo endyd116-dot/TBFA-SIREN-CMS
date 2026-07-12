@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialSettings } from "../../db/schema";
@@ -48,7 +49,7 @@ export default async function handler(_req: Request, _ctx: Context) {
       console.warn("[memorial-summary] settings 조회 실패", err);
     }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         counters: { people, candles, messages },
@@ -57,7 +58,7 @@ export default async function handler(_req: Request, _ctx: Context) {
       },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "추모관 요약 조회 실패",
       step: "summary",

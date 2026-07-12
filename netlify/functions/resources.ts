@@ -15,6 +15,7 @@
 //
 // private 자료는 어드민이 아닌 사용자에게는 404로 위장 (존재 노출 차단)
 
+import { jsonKST } from "../../lib/kst";
 import { eq, and, desc, sql, or, like, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { resources, resourceCategories, members, blobUploads } from "../../db/schema";
@@ -133,7 +134,7 @@ export default async (req: Request) => {
       if (!canViewerAccess(r.accessLevel, viewer)) {
         if (r.accessLevel === "members_only") {
           return new Response(
-            JSON.stringify({
+            jsonKST({
               ok: false,
               error: "로그인이 필요한 자료입니다",
               requireLogin: true,
@@ -197,7 +198,7 @@ export default async (req: Request) => {
       if (!canViewerAccess(r.accessLevel, viewer)) {
         if (r.accessLevel === "members_only") {
           return new Response(
-            JSON.stringify({
+            jsonKST({
               ok: false,
               error: "로그인이 필요한 자료입니다",
               requireLogin: true,

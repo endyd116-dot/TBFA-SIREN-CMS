@@ -9,12 +9,13 @@
  *   secret: 내부 호출 검증용 (process.env.INTERNAL_TRIGGER_SECRET)
  *           설정 없으면 모두 허용 (어차피 Netlify Functions 외부 노출 제한적)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { generateTaskSummary } from "../../lib/ai-task";
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -22,7 +23,7 @@ export default async (req: Request, _ctx: Context) => {
 
   const taskId = Number(body?.taskId || 0);
   if (!taskId) {
-    return new Response(JSON.stringify({ ok: false, error: "taskId 필수" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "taskId 필수" }), { status: 400 });
   }
 
   const secret = String(body?.secret || "");
@@ -31,13 +32,13 @@ export default async (req: Request, _ctx: Context) => {
      외부에서 무제한 Gemini 호출 가능했음. 시크릿이 없거나 불일치하면 차단.
      (호출부 admin-workspace-tasks가 같은 env로 secret 전달 → 설정 시 정상 동작) */
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   console.info(`[ai-summary-bg] start taskId=${taskId}`);
   const r = await generateTaskSummary(taskId);
   console.info(`[ai-summary-bg] done taskId=${taskId} ok=${r.ok}`);
-  return new Response(JSON.stringify(r), {
+  return new Response(jsonKST(r), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

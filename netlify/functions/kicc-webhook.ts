@@ -8,7 +8,7 @@
  *
  * 응답: 항상 200 + { resCd:"0000", resMsg:"정상" } (처리 실패해도 ack — 무한 재전송 방지)
  */
-import { todayKST } from "../../lib/kst";
+import { todayKST, jsonKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { logAudit } from "../../lib/audit";
@@ -18,7 +18,7 @@ import { ensureProspectFromDonation } from "../../lib/prospect-from-donation";
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 
 function ack(extra?: Record<string, any>): Response {
-  return new Response(JSON.stringify({ resCd: "0000", resMsg: "정상", ...(extra || {}) }), {
+  return new Response(jsonKST({ resCd: "0000", resMsg: "정상", ...(extra || {}) }), {
     status: 200,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });

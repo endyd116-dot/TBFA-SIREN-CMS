@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attSchedules } from "../../db/schema";
 import { eq } from "drizzle-orm";
@@ -7,12 +8,12 @@ import { canAccess } from "../../lib/role-permission-check";
 export const config = { path: "/api/admin-att-schedules" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "스케줄 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -27,7 +28,7 @@ export default async function handler(req: Request) {
   if (req.method === "GET"
         ? !(_role === "super_admin" || await canAccess(_role, "att_manage"))
         : _role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: req.method === "GET" ? "근태 관리 권한이 없습니다" : "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: req.method === "GET" ? "근태 관리 권한이 없습니다" : "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

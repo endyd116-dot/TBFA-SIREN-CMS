@@ -12,7 +12,7 @@
  *   AI_MONTHLY_BUDGET_USD / AI_WARN_THRESHOLD_USD (lib/ai-cost-monitor에서 사용)
  */
 
-import { todayKST } from "../../lib/kst";
+import { todayKST, jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -76,7 +76,7 @@ export default async (_req: Request) => {
       html,
     });
 
-    return new Response(JSON.stringify({ ok: true, sent: messages.length }), {
+    return new Response(jsonKST({ ok: true, sent: messages.length }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {

@@ -6,6 +6,7 @@
  * Body: { periodStart: string (ISO), periodEnd: string (ISO), reportType?: 'custom' }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db, reportSnapshots, members } from "../../db";
 import { eq, inArray } from "drizzle-orm";
@@ -15,7 +16,7 @@ import { callGeminiJSON } from "../../lib/ai-gemini";
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({ ok: false, error: "보고서 생성 실패", step, detail: String(err?.message || err).slice(0, 500), stack: String(err?.stack || "").slice(0, 1000) }),
+    jsonKST({ ok: false, error: "보고서 생성 실패", step, detail: String(err?.message || err).slice(0, 500), stack: String(err?.stack || "").slice(0, 1000) }),
     { status, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 }
@@ -70,7 +71,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, Authorization" } });
   }
-  if (req.method !== "POST") return new Response(JSON.stringify({ ok: false, error: "POST only" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  if (req.method !== "POST") return new Response(jsonKST({ ok: false, error: "POST only" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
@@ -81,17 +82,17 @@ export default async (req: Request, _ctx: Context) => {
 
   const periodStart = body.periodStart ? new Date(body.periodStart) : null;
   const periodEnd   = body.periodEnd   ? new Date(body.periodEnd)   : null;
-  if (!periodStart || isNaN(periodStart.getTime())) return new Response(JSON.stringify({ ok: false, error: "periodStart 필요 (ISO 날짜)" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
-  if (!periodEnd   || isNaN(periodEnd.getTime()))   return new Response(JSON.stringify({ ok: false, error: "periodEnd 필요 (ISO 날짜)" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  if (!periodStart || isNaN(periodStart.getTime())) return new Response(jsonKST({ ok: false, error: "periodStart 필요 (ISO 날짜)" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  if (!periodEnd   || isNaN(periodEnd.getTime()))   return new Response(jsonKST({ ok: false, error: "periodEnd 필요 (ISO 날짜)" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
   // R41 Q2-034: 기간 논리·상한 검증 — 종료일이 시작일보다 이후여야 하고, 과도한 기간(1100일 초과) 금지
   if (periodEnd.getTime() <= periodStart.getTime()) {
-    return new Response(JSON.stringify({ ok: false, error: "종료일은 시작일보다 이후여야 합니다" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
+    return new Response(jsonKST({ ok: false, error: "종료일은 시작일보다 이후여야 합니다" }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
   }
   const MAX_RANGE_DAYS = 1100;
   const rangeDays = (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24);
   if (rangeDays > MAX_RANGE_DAYS) {
-    return new Response(JSON.stringify({ ok: false, error: `보고 기간이 너무 깁니다 (최대 ${MAX_RANGE_DAYS}일)` }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
+    return new Response(jsonKST({ ok: false, error: `보고 기간이 너무 깁니다 (최대 ${MAX_RANGE_DAYS}일)` }), { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } });
   }
 
   /* 통계 수집 */
@@ -124,7 +125,7 @@ export default async (req: Request, _ctx: Context) => {
   } catch (err) { return jsonError("insert_report", err); }
 
   return new Response(
-    JSON.stringify({ ok: true, message: "보고서 생성 완료", data: { reportId: insertedId, periodStart, periodEnd } }),
+    jsonKST({ ok: true, message: "보고서 생성 완료", data: { reportId: insertedId, periodStart, periodEnd } }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 };

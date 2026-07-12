@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-budget-plan-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예산안 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -56,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }));
 
     return new Response(
-      JSON.stringify({ ok: true, data: { plans, total: plans.length } }),
+      jsonKST({ ok: true, data: { plans, total: plans.length } }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) {

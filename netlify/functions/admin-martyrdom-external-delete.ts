@@ -8,6 +8,7 @@
  *
  * 권한: requireAdmin (조회는 운영자 포함이지만 삭제는 admin만)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -16,14 +17,14 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-external-delete" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "삭제 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -43,7 +44,7 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
-      return new Response(JSON.stringify({ ok: false, error: "외부 자료를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "외부 자료를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
     if (String(row.status) !== "rejected") {
@@ -66,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     await db.execute(sql`DELETE FROM martyrdom_external_research WHERE id = ${id}`);
-    return new Response(JSON.stringify({ ok: true }),
+    return new Response(jsonKST({ ok: true }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError("delete_row", err);

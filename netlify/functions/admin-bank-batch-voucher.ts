@@ -13,6 +13,7 @@
  *
  * 응답: { ok, data: { total, succeeded, skipped, failed, results:[{id, ok, voucherNumber?, error?}] } }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -23,7 +24,7 @@ import { nextVoucherNumber } from "../../lib/voucher-number";
 export const config = { path: "/api/admin-bank-batch-voucher" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "일괄 전표 확정 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -32,7 +33,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -50,11 +51,11 @@ export default async function handler(req: Request, _ctx: Context) {
   const learnCp = body.learnCounterparty !== false;
 
   if (ids.length === 0) {
-    return new Response(JSON.stringify({ ok: false, error: "transactionIds 배열 필수" }),
+    return new Response(jsonKST({ ok: false, error: "transactionIds 배열 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
   if (ids.length > 200) {
-    return new Response(JSON.stringify({ ok: false, error: "한 번에 처리 가능한 건수는 200건입니다" }),
+    return new Response(jsonKST({ ok: false, error: "한 번에 처리 가능한 건수는 200건입니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -185,7 +186,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       total: ids.length,

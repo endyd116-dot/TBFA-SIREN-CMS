@@ -8,6 +8,7 @@
  *
  * 쓰기는 super_admin 전용(외부 발간·심사 기준 변경 책임).
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -18,17 +19,17 @@ import { logAdminAction } from "../../lib/audit";
 export const config = { path: "/api/admin-martyrdom-criteria" };
 
 function jsonOk(data: object) {
-  return new Response(JSON.stringify({ ok: true, ...data }), { headers: { "Content-Type": "application/json" } });
+  return new Response(jsonKST({ ok: true, ...data }), { headers: { "Content-Type": "application/json" } });
 }
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), { status: 400, headers: { "Content-Type": "application/json" } });
+  return new Response(jsonKST({ ok: false, error: msg }), { status: 400, headers: { "Content-Type": "application/json" } });
 }
 const q = (v: any, max: number) => `'${String(v).slice(0, max).replace(/'/g, "''")}'`;
 
@@ -128,5 +129,5 @@ export default async (req: Request, _ctx: Context) => {
     } catch (err: any) { return jsonError("delete", err); }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드" }), { status: 405 });
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드" }), { status: 405 });
 };

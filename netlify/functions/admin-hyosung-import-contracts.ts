@@ -5,6 +5,7 @@
 // ★ D1 (Phase 3): hyosung_member_no 우선 매칭 + 미매칭 시 신규 회원 자동 생성
 //                  toContractStatusCode 영문 코드 즉시 반영 (cron 의존 제거)
 
+import { jsonKST } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import {
@@ -112,7 +113,7 @@ export default async (req: Request, ctx: Context) => {
     } catch (err: any) {
       console.error("[hyosung-contracts GET]", err);
       return new Response(
-        JSON.stringify({
+        jsonKST({
           ok: false,
           error: "계약 목록 조회 실패",
           detail: String(err?.message || err).slice(0, 500),

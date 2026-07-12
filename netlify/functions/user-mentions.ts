@@ -1,5 +1,6 @@
 // user-mentions.ts — 내 멘션 목록 조회
 // GET /api/user-mentions?page=1&unreadOnly=true
+import { jsonKST } from "../../lib/kst";
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
 import { mentions, members } from "../../db/schema";
@@ -8,7 +9,7 @@ import { eq, desc, and, inArray } from "drizzle-orm";
 export const config = { path: "/api/user-mentions" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "멘션 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -17,7 +18,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -77,7 +78,7 @@ export default async (req: Request) => {
     }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     page,
     items: rows.map((r) => ({

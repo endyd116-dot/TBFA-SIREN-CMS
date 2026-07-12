@@ -6,6 +6,7 @@
  *
  * 권한: requireAdmin (settings 편집은 admin만 — 운영자도 조회는 가능하지만 일관성 위해 admin로)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -14,14 +15,14 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-external-settings" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "설정 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -56,7 +57,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "GET") {
     try {
       const settings = await loadSettings();
-      return new Response(JSON.stringify({ ok: true, settings }),
+      return new Response(jsonKST({ ok: true, settings }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("select_settings", err);
@@ -100,13 +101,13 @@ export default async (req: Request, _ctx: Context) => {
         `);
       }
       const settings = await loadSettings();
-      return new Response(JSON.stringify({ ok: true, settings }),
+      return new Response(jsonKST({ ok: true, settings }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("update_settings", err);
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "GET·PATCH만 허용" }),
+  return new Response(jsonKST({ ok: false, error: "GET·PATCH만 허용" }),
     { status: 405, headers: { "Content-Type": "application/json" } });
 };

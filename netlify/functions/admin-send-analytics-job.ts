@@ -3,6 +3,7 @@
 //
 // GET ?id=X
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -16,7 +17,7 @@ export default async function handler(req: Request) {
   const url = new URL(req.url);
   const jobId = Number(url.searchParams.get("id"));
   if (!jobId || isNaN(jobId)) {
-    return new Response(JSON.stringify({ ok: false, error: "작업 ID(id)가 필요합니다" }),
+    return new Response(jsonKST({ ok: false, error: "작업 ID(id)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -36,7 +37,7 @@ export default async function handler(req: Request) {
     `);
     const job = (jobRes?.rows ?? jobRes ?? [])[0];
     if (!job) {
-      return new Response(JSON.stringify({ ok: false, error: "발송 작업을 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "발송 작업을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
 
@@ -91,7 +92,7 @@ export default async function handler(req: Request) {
     } catch (e) { console.warn("[analytics-job] topErrors 실패", e); }
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         job,
         analytics: {
@@ -108,7 +109,7 @@ export default async function handler(req: Request) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "작업 분석 조회 실패",
         step: "aggregate", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

@@ -4,6 +4,7 @@
 // GET ?limit=20&offset=0&from=&to=
 // 인증: 사용자 JWT (httpOnly 쿠키)
 
+import { jsonKST } from "../../lib/kst";
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -58,12 +59,12 @@ export default async function handler(req: Request) {
     const total = ((totalRes?.rows ?? totalRes)[0] ?? {}).n ?? 0;
 
     return new Response(
-      JSON.stringify({ ok: true, rows, total }),
+      jsonKST({ ok: true, rows, total }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "수신 이력 조회 실패",
         step: "select",

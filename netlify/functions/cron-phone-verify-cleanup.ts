@@ -7,6 +7,7 @@
  * (verified 여부 무관 — verifyToken은 10분 만료라 1일이면 어차피 무효)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -24,11 +25,11 @@ export default async () => {
     `);
     const deleted = Number(r?.rowCount ?? r?.count ?? 0);
     console.log(`[cron-phone-verify-cleanup] 완료 ${startedAt.toISOString()} — 삭제 ${deleted}건`);
-    return new Response(JSON.stringify({ ok: true, deleted, startedAt: startedAt.toISOString() }),
+    return new Response(jsonKST({ ok: true, deleted, startedAt: startedAt.toISOString() }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error(`[cron-phone-verify-cleanup] 실패:`, e?.message || e);
-    return new Response(JSON.stringify({ ok: false, error: String(e?.message || e).slice(0, 300) }),
+    return new Response(jsonKST({ ok: false, error: String(e?.message || e).slice(0, 300) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

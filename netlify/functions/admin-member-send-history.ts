@@ -3,6 +3,7 @@
 //
 // GET ?memberId={id}&limit=50&offset=0&from=&to=
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -17,7 +18,7 @@ export default async function handler(req: Request) {
   const memberId = Number(url.searchParams.get("memberId"));
   if (!memberId || isNaN(memberId)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "회원 ID(memberId)가 필요합니다" }),
+      jsonKST({ ok: false, error: "회원 ID(memberId)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -35,7 +36,7 @@ export default async function handler(req: Request) {
     const member = (memberRes?.rows ?? memberRes ?? [])[0];
     if (!member) {
       return new Response(
-        JSON.stringify({ ok: false, error: "회원을 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "회원을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -78,7 +79,7 @@ export default async function handler(req: Request) {
     const total = ((totalRes?.rows ?? totalRes)[0] ?? {}).n ?? 0;
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         member: { id: member.id, name: member.name, email: member.email },
         rows,
@@ -88,7 +89,7 @@ export default async function handler(req: Request) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "발송 이력 조회 실패",
         step: "select",

@@ -6,7 +6,7 @@
  * 응답: { ok, totalCases, statusCounts, kindCounts, upcomingDeadlines, readiness, storage }
  *   storage: { bytes, gb, alertGb, over } — over=true면 임계 초과(운영자 수동 파기 권장)
  */
-import { todayKST } from "../../lib/kst";
+import { todayKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -15,7 +15,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-dashboard" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -30,7 +30,7 @@ function dDay(due: string): number {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -140,7 +140,7 @@ export default async (req: Request, _ctx: Context) => {
       summary.avgReadiness = activeScores.length ? Math.round(activeScores.reduce((a, b) => a + b, 0) / activeScores.length) : 0;
     } catch (err: any) { console.warn("[martyrdom-dashboard] cases 실패", err?.message); }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, totalCases, statusCounts, kindCounts, upcomingDeadlines, readiness, storage,
       cases, summary,
     }), { headers: { "Content-Type": "application/json" } });

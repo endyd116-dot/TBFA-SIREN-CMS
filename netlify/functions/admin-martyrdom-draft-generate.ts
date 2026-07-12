@@ -9,6 +9,7 @@
  *   1섹션 : { ok, section:{ id, sectionKey, title, content, ragSources, status, wordCount } }
  *   전체  : { ok, queued:true, total, outputId }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -20,14 +21,14 @@ import { notifyMartyrdomAdmins } from "../../lib/martyrdom-notify";
 export const config = { path: "/api/admin-martyrdom-draft-generate" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
@@ -65,7 +66,7 @@ async function triggerBg(caseId: number, outputId: number): Promise<{ bgStatus: 
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -132,7 +133,7 @@ export default async (req: Request, _ctx: Context) => {
         });
       }
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         section: {
           id: sectionId, sectionKey: String(secRow.sectionKey), title: String(secRow.title || ""),
@@ -160,7 +161,7 @@ export default async (req: Request, _ctx: Context) => {
       target: String(caseId), detail: { total },
     });
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, queued: true, total, outputId,
       bgStatus: bg.bgStatus, bgError: bg.bgError || undefined,
     }), { headers: { "Content-Type": "application/json" } });

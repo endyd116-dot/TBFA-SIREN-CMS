@@ -12,6 +12,7 @@
  * 진행 현황은 별도 상태 테이블 없이 admin-rag-status GET이
  * ai_rag_documents 문서 수를 직접 집계 → UPSERT 진행에 따라 자연 폴링.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -76,7 +77,7 @@ function readFileSafe(relPath: string): string {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -86,7 +87,7 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   const adminId = Number(body?.adminId) || null;
@@ -201,13 +202,13 @@ export default async (req: Request, _ctx: Context) => {
       });
     } catch { /* 비용 기록 실패는 무시 */ }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { indexed, qna: qnaCount, manual: manualCount, martyrLaw: martyrLawCount, elapsedMs },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error("[rag-reindex-bg] 치명적 실패:", err?.message);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), { status: 500 });
+    return new Response(jsonKST({ ok: false, error: String(err?.message || err) }), { status: 500 });
   }
 };

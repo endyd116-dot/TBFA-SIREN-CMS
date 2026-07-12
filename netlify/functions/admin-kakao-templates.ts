@@ -13,6 +13,7 @@
  *
  * 조회는 운영자 이상, 쓰기는 관리자(admin) 이상.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -27,13 +28,13 @@ import {
 export const config = { path: "/api/admin-kakao-templates" };
 
 function ok(data: object, status = 200) {
-  return new Response(JSON.stringify({ ok: true, ...data }), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(jsonKST({ ok: true, ...data }), { status, headers: { "Content-Type": "application/json" } });
 }
 function bad(msg: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(jsonKST({ ok: false, error: msg }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500), stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });

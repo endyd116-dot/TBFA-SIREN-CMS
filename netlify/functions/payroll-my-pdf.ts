@@ -7,6 +7,7 @@
  *   signed=1 이면 서명본(서명란이 찍힌 증빙 문서).
  *   고정 문서가 없던 옛 명세서만 즉석 생성으로 폴백한다.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { payrollSlips } from "../../db/schema";
@@ -17,14 +18,14 @@ import { fetchPayrollDocument } from "../../lib/payroll-document";
 export const config = { path: "/api/payroll-my-pdf" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "본인 PDF 다운로드 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }

@@ -7,6 +7,7 @@
  *
  * APPROVED 시 att_schedule_overrides UPSERT (해당 날짜 근무형태 재정의)
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attWorkmodeChangeRequests, attScheduleOverrides, members } from "../../db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -17,12 +18,12 @@ import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 export const config = { path: "/api/admin-att-workmode-change-review" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "근무형태 변경 결재 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -34,7 +35,7 @@ export default async function handler(req: Request) {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-1: 근무형태 변경 결재는 운영자 허용(att_manage)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "att_manage"))) {
-    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다" }), {
+    return new Response(jsonKST({ ok: false, error: "근태 관리 권한이 없습니다" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

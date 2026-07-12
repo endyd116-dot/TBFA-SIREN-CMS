@@ -8,6 +8,7 @@
  *   targetId: number          연결할 donations.id / other_revenues.id / vouchers.id
  * }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -16,7 +17,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-bank-transaction-match" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "수동 매칭 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -25,7 +26,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -38,7 +39,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const { transactionId, matchTo, targetId } = body;
 
   if (!transactionId || !["donation", "revenue", "voucher"].includes(matchTo) || !targetId) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "transactionId, matchTo(donation|revenue|voucher), targetId 필수",
     }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
@@ -53,7 +54,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("select_txn", err);
   }
   if (!txn) {
-    return new Response(JSON.stringify({ ok: false, error: "거래를 찾을 수 없음" }),
+    return new Response(jsonKST({ ok: false, error: "거래를 찾을 수 없음" }),
       { status: 404, headers: { "Content-Type": "application/json" } });
   }
 
@@ -69,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
       exists = await db.execute(sql`SELECT id FROM vouchers WHERE id = ${tid} LIMIT 1`);
     }
     if ((exists?.rows ?? exists ?? []).length === 0) {
-      return new Response(JSON.stringify({ ok: false, error: `대상 ${matchTo} #${tid}를 찾을 수 없음` }),
+      return new Response(jsonKST({ ok: false, error: `대상 ${matchTo} #${tid}를 찾을 수 없음` }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
   } catch (err: any) {
@@ -104,7 +105,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("update_match", err);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       transactionId: Number(txn.id),

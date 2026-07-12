@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -8,7 +9,7 @@ export const config = { path: "/api/admin-account-code-update" };
 const VALID_CATEGORIES = ["personnel", "program", "admin_ops", "fundraising", "income"];
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "계정과목 수정 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +23,7 @@ function jsonError(step: string, err: any, status = 500) {
  */
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }),
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -83,7 +84,7 @@ export default async function handler(req: Request, _ctx: Context) {
       RETURNING id, code, name, parent_code, category, is_active, sort_order`);
     const updated = (upd?.rows ?? upd ?? [])[0];
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         id: Number(updated.id), code: updated.code, name: updated.name,

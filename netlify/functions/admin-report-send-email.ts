@@ -7,6 +7,7 @@
  * body: { reportId: number }
  * 응답: { ok: true, data: { sentCount, sentTo } }
  */
+import { jsonKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db, reportSnapshots, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -220,7 +221,7 @@ export default async (req: Request) => {
   // R41 Q2-033: 전체 실패(0건 발송)는 ok 대신 명시적 경고 응답으로 가시화
   // serverError는 본문에 집계를 싣지 못하므로 직접 Response 구성(프론트가 sentCount=0 인지)
   if (sentCount === 0) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "이메일을 한 건도 발송하지 못했습니다",
       step: "send_email_all_failed",

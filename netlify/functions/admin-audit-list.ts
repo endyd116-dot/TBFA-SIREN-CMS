@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { auditLogs } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -7,7 +8,7 @@ import { desc, eq, and, sql, ilike, gte } from "drizzle-orm";
 export const config = { path: "/api/admin-audit-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "감사 로그 조회 실패",
     step,
@@ -18,7 +19,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request) {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), { status: 405 });
   }
 
   let auth: Awaited<ReturnType<typeof requireAdmin>>;
@@ -30,7 +31,7 @@ export default async function handler(req: Request) {
   }
   // R45 SU-018: 감사 로그 열람 권한 — DB 역할(admin=super 기본·operator 차단·UI 토글). 메뉴 숨김만으론 API 미차단
   if (!(await canAccess(auth.ctx.member.role ?? "", "audit_view"))) {
-    return new Response(JSON.stringify({ ok: false, error: "감사 로그 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "감사 로그 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
@@ -120,7 +121,7 @@ export default async function handler(req: Request) {
     logs = logs.filter((l) => l.riskLevel === riskLevel);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     total,
     page,

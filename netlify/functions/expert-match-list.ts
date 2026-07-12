@@ -8,6 +8,7 @@
  * 응답: { active: [...], closed: [...] }  — active = pending/matched/active, closed = closed/rejected
  */
 
+import { jsonKST } from "../../lib/kst";
 import { or, eq, desc } from "drizzle-orm";
 import { inArray } from "drizzle-orm";
 import { db, expertMatches, members } from "../../db";
@@ -16,7 +17,7 @@ import { ok, corsPreflight, methodNotAllowed } from "../../lib/response";
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "매칭 내역 조회 실패",
       step,

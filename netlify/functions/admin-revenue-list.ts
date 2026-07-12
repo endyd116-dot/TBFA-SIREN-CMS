@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { otherRevenues, revenueCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -92,7 +93,7 @@ export default async function handler(req: Request): Promise<Response> {
       .limit(limit)
       .offset(offset);
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "수입 목록 조회 실패", step: "select_revenues",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
@@ -124,7 +125,7 @@ export default async function handler(req: Request): Promise<Response> {
     };
   });
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       items, total, page, limit, summary,

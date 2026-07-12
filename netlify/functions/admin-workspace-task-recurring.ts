@@ -7,6 +7,7 @@
  * 요청: { parentTaskId, title?, dueDate }
  * 응답: { ok, id, recurringParentId }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db, workspaceTasks } from "../../db";
@@ -17,7 +18,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(status: number, step: string, error: string, detail?: any) {
   return new Response(
-    JSON.stringify({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
+    jsonKST({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
     { status, headers: JSON_HEADER }
   );
 }
@@ -83,7 +84,7 @@ export default async (req: Request, _ctx: Context) => {
     const [created]: any = await db.insert(workspaceTasks).values(insertData).returning();
 
     return new Response(
-      JSON.stringify({ ok: true, id: created.id, recurringParentId: parentTaskId }),
+      jsonKST({ ok: true, id: created.id, recurringParentId: parentTaskId }),
       { status: 200, headers: JSON_HEADER }
     );
   } catch (err: any) {

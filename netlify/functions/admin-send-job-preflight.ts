@@ -2,6 +2,7 @@
 // Phase 10 R3 — 등록 전 미리보기 (DB 저장 X)
 // - 채널·템플릿명·그룹명·예상 수신자 수·샘플 회원 5명·렌더링 본문 1건·경고 목록
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -18,7 +19,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "미리보기 실패",
       step,
@@ -32,7 +33,7 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ ok: false, error: "POST만 허용", step: "method" }),
+      jsonKST({ ok: false, error: "POST만 허용", step: "method" }),
       { status: 405, headers: JSON_HEADER },
     );
   }
@@ -52,7 +53,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (!Number.isInteger(templateId) || templateId <= 0 ||
       !Number.isInteger(recipientGroupId) || recipientGroupId <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "templateId·recipientGroupId가 필요합니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "templateId·recipientGroupId가 필요합니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -79,7 +80,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
   if (!template) {
     return new Response(
-      JSON.stringify({ ok: false, error: "템플릿을 찾을 수 없습니다.", step: "template_not_found" }),
+      jsonKST({ ok: false, error: "템플릿을 찾을 수 없습니다.", step: "template_not_found" }),
       { status: 404, headers: JSON_HEADER },
     );
   }
@@ -103,7 +104,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
   if (!group) {
     return new Response(
-      JSON.stringify({ ok: false, error: "수신자 그룹을 찾을 수 없습니다.", step: "group_not_found" }),
+      jsonKST({ ok: false, error: "수신자 그룹을 찾을 수 없습니다.", step: "group_not_found" }),
       { status: 404, headers: JSON_HEADER },
     );
   }
@@ -159,7 +160,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       preflight: {
         channel: template.channel,

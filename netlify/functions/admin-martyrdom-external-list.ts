@@ -6,6 +6,7 @@
  *
  * 권한: requireAdmin (조회는 admin 전체 — 검토 권한 없어도 목록은 봄)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -16,7 +17,7 @@ export const config = { path: "/api/admin-martyrdom-external-list" };
 const ALLOWED_STATUS = new Set(["pending", "reviewing", "approved", "rejected", "all"]);
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -25,7 +26,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
   const auth = await requireAdmin(req);
@@ -36,7 +37,7 @@ export default async (req: Request, _ctx: Context) => {
   const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || "50")), 200);
 
   if (!ALLOWED_STATUS.has(status)) {
-    return new Response(JSON.stringify({ ok: false, error: "status는 pending|reviewing|approved|rejected|all" }),
+    return new Response(jsonKST({ ok: false, error: "status는 pending|reviewing|approved|rejected|all" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -75,7 +76,7 @@ export default async (req: Request, _ctx: Context) => {
       status:       String(r.status || "pending"),
     }));
 
-    return new Response(JSON.stringify({ ok: true, items }),
+    return new Response(jsonKST({ ok: true, items }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError("select_list", err);

@@ -5,6 +5,7 @@
  *
  * 응답: { ok, fileName, mimeType, base64 }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -22,14 +23,14 @@ export const config = { path: "/api/admin-martyrdom-publication-export" };
 const PUB_EXPORT_FEATURE = "martyrdom_pub_export";
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }),
+  return new Response(jsonKST({ ok: false, error: msg }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -187,7 +188,7 @@ async function buildPublicationPdf(pub: any): Promise<Uint8Array> {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -219,7 +220,7 @@ export default async (req: Request, _ctx: Context) => {
 <style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px}h1{color:#7a1e2b}h2{color:#7a1e2b}</style>
 </head><body>${htmlContent}<hr><p style="color:#888;font-size:12px">본 보고서는 AI 보조 초안입니다. 외부 발간 전 전문가 검수 필수.</p></body></html>`;
       const base64 = Buffer.from(fullHtml).toString("base64");
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         fileName: `${safeTitle}.html`,
         mimeType: "text/html",
@@ -230,7 +231,7 @@ export default async (req: Request, _ctx: Context) => {
     /* PDF */
     const bytes = await buildPublicationPdf(pub);
     const base64 = Buffer.from(bytes).toString("base64");
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       fileName: `${safeTitle}.pdf`,
       mimeType: "application/pdf",

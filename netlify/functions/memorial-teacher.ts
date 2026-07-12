@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialTeachers } from "../../db/schema";
@@ -20,7 +21,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+    return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -33,7 +34,7 @@ export default async function handler(req: Request, _ctx: Context) {
       .limit(1);
 
     if (!t) {
-      return new Response(JSON.stringify({ ok: false, error: "공개된 추모 공간을 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "공개된 추모 공간을 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }
@@ -57,11 +58,11 @@ export default async function handler(req: Request, _ctx: Context) {
       letterCount,
     };
 
-    return new Response(JSON.stringify({ ok: true, data: { teacher } }), {
+    return new Response(jsonKST({ ok: true, data: { teacher } }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "선생님 상세 조회 실패",
       step: "select_teacher",

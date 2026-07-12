@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -6,7 +7,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-budget-lines-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예산 항목 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -27,7 +28,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const year = parseInt(url.searchParams.get("year") || "0", 10);
   const accountCode = (url.searchParams.get("accountCode") || "").trim();
   if (!year || year < 2000 || year > 2999) {
-    return new Response(JSON.stringify({ ok: false, error: "유효한 year 파라미터가 필요합니다." }),
+    return new Response(jsonKST({ ok: false, error: "유효한 year 파라미터가 필요합니다." }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -46,7 +47,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   // 승인된 예산안 없음 — 빈 목록으로 정상 반환 (예산 항목 없이도 전표 확정 가능)
   if (!plan) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { plan: null, lines: [], suggestedLineId: null },
     }), { headers: { "Content-Type": "application/json" } });
@@ -87,7 +88,7 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch { /* 추천 실패해도 목록은 정상 반환 */ }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       plan: { id: Number(plan.id), fiscalYear: Number(plan.fiscal_year), title: plan.title },

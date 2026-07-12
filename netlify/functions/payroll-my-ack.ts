@@ -13,6 +13,7 @@
  *    (무엇에 서명했는지가 문서 자체로 남도록)
  *  - 서명 증적(시각·IP·기기·동의항목·문서지문)은 지우지 않는 별도 기록에 쌓는다
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -29,13 +30,13 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const MAX_SIGNATURE_BYTES = 2 * 1024 * 1024;   // 손글씨 PNG 상한 (보통 수십 KB)
 
 function jsonOk(data: unknown, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message, data }), { status: 200, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: true, message, data }), { status: 200, headers: JSON_HEADER });
 }
 function jsonErr(error: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error }), { status, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: false, error }), { status, headers: JSON_HEADER });
 }
 function jsonStepErr(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "수령 확인 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 800),

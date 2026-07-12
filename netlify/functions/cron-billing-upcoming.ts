@@ -3,6 +3,7 @@
 // 매일 KST 10:00 (UTC 01:00) 실행. members.next_billing_date = 오늘+3 인 활성 회원 대상.
 // 솔라피 알림톡 SOLAPI_TPL_BILLING_UPCOMING (어댑터 처리). env 미설정 시 placeholder(미발송).
 
+import { jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -54,12 +55,12 @@ export default async (_req: Request) => {
     }
 
     console.log(`[cron-billing-upcoming] 출금예정(${ymd}) 대상 ${rows.length}건 발송 ${sent}`);
-    return new Response(JSON.stringify({ ok: true, chargeDate: ymd, count: sent }), {
+    return new Response(jsonKST({ ok: true, chargeDate: ymd, count: sent }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error("[cron-billing-upcoming] 오류:", error);
-    return new Response(JSON.stringify({ ok: false, error: error?.message }), {
+    return new Response(jsonKST({ ok: false, error: error?.message }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }

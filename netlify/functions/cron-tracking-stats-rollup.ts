@@ -8,6 +8,7 @@
 //   - track-open/track-click 동시성 race로 누락된 카운터 보정
 //   - 배치 보정으로 분석 정확도 향상
 
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -78,7 +79,7 @@ export default async function handler(_req: Request) {
   } catch (err: any) {
     console.error("[cron-tracking-rollup] 실패", err);
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "통계 롤업 실패",
         detail: String(err?.message || err).slice(0, 500),
@@ -94,7 +95,7 @@ export default async function handler(_req: Request) {
   );
 
   return new Response(
-    JSON.stringify({ ok: true, durationMs: Date.now() - t0, updatedRecipients }),
+    jsonKST({ ok: true, durationMs: Date.now() - t0, updatedRecipients }),
     { status: 200, headers: { "Content-Type": "application/json" } },
   );
 }

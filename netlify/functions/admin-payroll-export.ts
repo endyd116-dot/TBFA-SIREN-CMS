@@ -9,6 +9,7 @@
  * R37 1일차 — 골격 + 실 CSV 출력 (외부 라이브러리 없이 직접 생성).
  * 권한: super_admin 전용.
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { payrollSlips, members } from "../../db/schema";
 import { and, eq, inArray } from "drizzle-orm";
@@ -17,7 +18,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-payroll-export" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "급여 CSV export 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -36,7 +37,7 @@ export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
@@ -45,7 +46,7 @@ export default async function handler(req: Request) {
   const year = Number(url.searchParams.get("year") || 0);
   const month = Number(url.searchParams.get("month") || 0);
   if (!year || !month) {
-    return new Response(JSON.stringify({ ok: false, error: "year·month 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "year·month 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }

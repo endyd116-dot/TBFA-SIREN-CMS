@@ -16,6 +16,7 @@
  * 클라이언트는 fetch + ReadableStream으로 처리 (EventSource는 POST 불가).
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -64,7 +65,7 @@ interface GeminiContent { role: "user" | "model"; parts: any[] }
 
 /** sse 응답 전 검증 단계에서 사용 — JSON 에러 응답 */
 function jsonError(step: string, message: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error: message, step }),
+  return new Response(jsonKST({ ok: false, error: message, step }),
     { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 

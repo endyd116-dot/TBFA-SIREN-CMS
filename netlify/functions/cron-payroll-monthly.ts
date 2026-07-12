@@ -12,6 +12,7 @@
  *     - payroll_slips UPSERT (DRAFT — REVIEWED 이상 보존)
  *  3. 슈퍼어드민 알림 발송 — "{YYYY}년 {MM}월 급여 명세서 N건 생성, 검토 필요"
  */
+import { jsonKST } from "../../lib/kst";
 import type { Config, Context } from "@netlify/functions";
 import { calculatePayrollForMonth, previousMonthKST } from "../../lib/payroll-calc";
 import { notifyAllSuperAdmins } from "../../lib/notify";
@@ -71,7 +72,7 @@ export default async function handler(_req: Request, _ctx: Context) {
 
   summary.elapsedMs = Date.now() - started;
 
-  return new Response(JSON.stringify({ ok: !summary.fatal, summary }), {
+  return new Response(jsonKST({ ok: !summary.fatal, summary }), {
     status: summary.fatal ? 500 : 200,
     headers: { "Content-Type": "application/json" },
   });

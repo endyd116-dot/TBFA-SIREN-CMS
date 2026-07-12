@@ -14,6 +14,7 @@
  *   adminNote? : string
  */
 
+import { jsonKST } from "../../lib/kst";
 import { eq, and, notInArray, desc } from "drizzle-orm";
 import { db, members, chatRooms, expertMatches } from "../../db";
 import { supportRequests, legalConsultations } from "../../db/schema";
@@ -29,7 +30,7 @@ import {
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "직접 배정 실패",
       step,
@@ -42,7 +43,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 function badRequest(msg: string) {
   return new Response(
-    JSON.stringify({ ok: false, error: msg, step: "validate" }),
+    jsonKST({ ok: false, error: msg, step: "validate" }),
     { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 }
@@ -61,7 +62,7 @@ export default async (req: Request) => {
     });
   }
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
+    return new Response(jsonKST({ ok: false, error: "POST only" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -257,7 +258,7 @@ export default async (req: Request) => {
   } catch (err) { console.warn("[admin-expert-direct-assign] 전문가 알림 실패:", (err as any)?.message); }
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       message: "전문가 직접 배정 완료 + 채팅방 생성됨",
       data: { matchId, chatRoomId, expertId, userId, expertName, userName, matchType, sourceDomain },

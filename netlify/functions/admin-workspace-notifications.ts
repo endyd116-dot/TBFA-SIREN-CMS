@@ -10,6 +10,7 @@
  *  응답 키: actionUrl (linkUrl 아님 — 기존 workspaceNotifications 컬럼)
  *  카테고리 컬럼: category (Phase 21 R2+R3 신규)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { and, eq, desc, isNull, sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -22,7 +23,7 @@ const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 10;
 
 function jsonError(status: number, error: string, step?: string, err?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error, step,
     detail: err ? String(err?.message || err).slice(0, 500) : undefined,
     stack:  err?.stack ? String(err.stack).slice(0, 1000) : undefined,
@@ -30,7 +31,7 @@ function jsonError(status: number, error: string, step?: string, err?: any) {
 }
 
 function jsonOk(data: any, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message: message ?? null, data }),
+  return new Response(jsonKST({ ok: true, message: message ?? null, data }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 

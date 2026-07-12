@@ -12,12 +12,13 @@
  *
  * fail-closed(INTERNAL_TRIGGER_SECRET) — 외부에서 임의 호출 차단.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { runDispatcher } from "../../lib/communication-dispatcher-core";
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
 
   let body: any = {};
@@ -26,7 +27,7 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   console.info("[send-dispatch-bg] start");
@@ -34,14 +35,14 @@ export default async (req: Request, _ctx: Context) => {
     /* 15분 백그라운드 한도 안에서 안전하게 — 12분 예산으로 drain */
     const stats = await runDispatcher({ maxMs: 12 * 60 * 1000 });
     console.info("[send-dispatch-bg] done", stats);
-    return new Response(JSON.stringify({ ok: true, stats }), {
+    return new Response(jsonKST({ ok: true, stats }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error("[send-dispatch-bg] 실패", err);
     return new Response(
-      JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }),
+      jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }

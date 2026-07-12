@@ -4,6 +4,7 @@
 // POST body: { name, description?, triggerType, templateId, recipientGroupId?,
 //              channel, delayHours?, cooldownDays?, conditions? }
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -18,13 +19,13 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱 실패" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -42,7 +43,7 @@ export default async function handler(req: Request) {
   const cooldownDays = Number(body?.cooldownDays ?? 30);
 
   if (errors.length > 0) {
-    return new Response(JSON.stringify({ ok: false, error: errors.join(", ") }),
+    return new Response(jsonKST({ ok: false, error: errors.join(", ") }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -52,9 +53,9 @@ export default async function handler(req: Request) {
       SELECT id, is_active FROM communication_templates WHERE id = ${templateId} LIMIT 1
     `);
     const tpl = (tplRes?.rows ?? tplRes ?? [])[0];
-    if (!tpl) return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 템플릿입니다" }),
+    if (!tpl) return new Response(jsonKST({ ok: false, error: "존재하지 않는 템플릿입니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
-    if (!tpl.is_active) return new Response(JSON.stringify({ ok: false, error: "비활성 템플릿입니다" }),
+    if (!tpl.is_active) return new Response(jsonKST({ ok: false, error: "비활성 템플릿입니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
 
     const recipientGroupId = body?.recipientGroupId ? Number(body.recipientGroupId) : null;
@@ -76,12 +77,12 @@ export default async function handler(req: Request) {
     const newId = ((insRes?.rows ?? insRes)[0] ?? {}).id;
 
     return new Response(
-      JSON.stringify({ ok: true, id: newId }),
+      jsonKST({ ok: true, id: newId }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "트리거 등록 실패",
         step: "insert", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

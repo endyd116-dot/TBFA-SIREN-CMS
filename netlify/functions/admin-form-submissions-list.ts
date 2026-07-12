@@ -3,7 +3,7 @@
  * 응답 목록 + 필드 정의 (CSV·통계용)
  */
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -13,7 +13,7 @@ export const config = { path: "/api/admin-form-submissions-list" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
-  if (req.method !== "GET") return new Response(JSON.stringify({ ok: false, error: "GET만" }),
+  if (req.method !== "GET") return new Response(jsonKST({ ok: false, error: "GET만" }),
     { status: 405, headers: JSON_HEADER });
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
@@ -21,7 +21,7 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const formId = Number(url.searchParams.get("formId") || 0);
   const limit = Math.min(Number(url.searchParams.get("limit") || 200), 1000);
-  if (!formId) return new Response(JSON.stringify({ ok: false, error: "formId 필수" }),
+  if (!formId) return new Response(jsonKST({ ok: false, error: "formId 필수" }),
     { status: 400, headers: JSON_HEADER });
 
   try {
@@ -29,7 +29,7 @@ export default async (req: Request, _ctx: Context) => {
       SELECT title, slug FROM forms WHERE id = ${formId} LIMIT 1
     `);
     const form = (fr?.rows ?? fr ?? [])[0];
-    if (!form) return new Response(JSON.stringify({ ok: false, error: "폼 없음" }),
+    if (!form) return new Response(jsonKST({ ok: false, error: "폼 없음" }),
       { status: 404, headers: JSON_HEADER });
 
     const ffr: any = await db.execute(sql`
@@ -62,7 +62,7 @@ export default async (req: Request, _ctx: Context) => {
       createdAt: isoUTC(s.created_at),
     }));
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       form: { id: formId, title: form.title, slug: form.slug },
       fields,
@@ -70,7 +70,7 @@ export default async (req: Request, _ctx: Context) => {
       total: submissions.length,
     }, null, 2), { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "조회 실패", detail: String(e?.message || e).slice(0, 300),
     }), { status: 500, headers: JSON_HEADER });
   }

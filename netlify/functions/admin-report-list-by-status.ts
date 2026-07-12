@@ -1,5 +1,6 @@
 // admin-report-list-by-status.ts — 단계별 신고 현황 (어드민 대시보드)
 // GET /api/admin-report-list-by-status?reportType=all|incident|harassment|legal&status=&page=1
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { incidentReports, harassmentReports, legalConsultations } from "../../db/schema";
@@ -8,7 +9,7 @@ import { eq, desc, and, ilike, count } from "drizzle-orm";
 export const config = { path: "/api/admin-report-list-by-status" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "신고 현황 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -17,7 +18,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -155,7 +156,7 @@ export default async (req: Request) => {
 
   results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return new Response(JSON.stringify({ ok: true, page, limit, total, items: results }), {
+  return new Response(jsonKST({ ok: true, page, limit, total, items: results }), {
     headers: { "Content-Type": "application/json" },
   });
 };

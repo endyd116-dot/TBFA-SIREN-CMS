@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { donations, members } from "../../db/schema";
@@ -163,7 +164,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         data: {
           year,
@@ -189,7 +190,7 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "수입 집계 조회 실패",
         step: "query",

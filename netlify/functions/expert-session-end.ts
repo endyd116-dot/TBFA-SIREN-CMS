@@ -15,6 +15,7 @@
  *      b. chat_rooms → status='closed', closedAt, closedBy (chatRoomId가 있는 경우)
  */
 
+import { jsonKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db, expertMatches, chatRooms } from "../../db";
 import { authenticateAdmin, requireActiveUser } from "../../lib/auth";
@@ -32,7 +33,7 @@ import {
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "세션 종료 실패",
       step,

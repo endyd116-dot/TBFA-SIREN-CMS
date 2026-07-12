@@ -7,6 +7,7 @@
 //   3. auto_trigger_runs에 실행 기록
 //   4. 발송 job이 생성됐으면 발송 큐 백그라운드 드레이너를 즉시 fire(자동 트리거 발송 지연 0)
 
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { evaluateTrigger, executeTrigger, type TriggerType } from "../../lib/communication-auto-trigger";
@@ -33,7 +34,7 @@ export default async function handler(_req: Request) {
   } catch (err) {
     console.error("[cron-auto-trigger] 트리거 목록 조회 실패", err);
     return new Response(
-      JSON.stringify({ ok: false, error: "트리거 목록 조회 실패", stats }),
+      jsonKST({ ok: false, error: "트리거 목록 조회 실패", stats }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -147,7 +148,7 @@ export default async function handler(_req: Request) {
   );
 
   return new Response(
-    JSON.stringify({ ok: true, durationMs: Date.now() - t0, stats }),
+    jsonKST({ ok: true, durationMs: Date.now() - t0, stats }),
     { status: 200, headers: { "Content-Type": "application/json" } },
   );
 }

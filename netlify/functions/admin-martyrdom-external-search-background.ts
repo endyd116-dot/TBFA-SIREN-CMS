@@ -11,11 +11,12 @@
  *
  * config.path 안 붙임 (-background 함수는 .netlify/functions/* 경로로만 호출)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { runExternalResearch, SearchEngine } from "../../lib/martyrdom-external";
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "백그라운드 검색 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -24,7 +25,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -34,7 +35,7 @@ export default async (req: Request, _ctx: Context) => {
   /* fail-closed — secret 미일치 시 즉시 차단 */
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || expected !== String(body?.secret || "")) {
-    return new Response(JSON.stringify({ ok: false, error: "internal secret 불일치" }),
+    return new Response(jsonKST({ ok: false, error: "internal secret 불일치" }),
       { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
@@ -52,7 +53,7 @@ export default async (req: Request, _ctx: Context) => {
     const r = await runExternalResearch(queries, engines);
     console.info(`[external-search-bg] done jobId=${jobId} inserted=${r.inserted} duplicated=${r.duplicated} errors=${r.errors.length}`);
     if (r.errors.length) console.warn(`[external-search-bg] errors: ${r.errors.slice(0, 5).join(" | ")}`);
-    return new Response(JSON.stringify({ ok: r.ok, jobId, inserted: r.inserted, duplicated: r.duplicated, errors: r.errors }),
+    return new Response(jsonKST({ ok: r.ok, jobId, inserted: r.inserted, duplicated: r.duplicated, errors: r.errors }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     console.error(`[external-search-bg] 예외 jobId=${jobId}:`, err?.message);

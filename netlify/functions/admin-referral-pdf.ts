@@ -5,6 +5,7 @@
  * 1순위: R2에 저장된 원본 반환
  * 2순위: 이력 데이터로 PDF 재생성 (폴백)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
@@ -68,7 +69,7 @@ async function buildFallbackPDF(log: any): Promise<Uint8Array> {
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "PDF 조회 실패",
       step,
@@ -89,7 +90,7 @@ export default async (req: Request, _ctx: Context) => {
   const referralId = Number(url.searchParams.get("referralId") || "0");
   if (!referralId) {
     return new Response(
-      JSON.stringify({ ok: false, error: "referralId는 필수입니다" }),
+      jsonKST({ ok: false, error: "referralId는 필수입니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -112,7 +113,7 @@ export default async (req: Request, _ctx: Context) => {
 
   if (!log) {
     return new Response(
-      JSON.stringify({ ok: false, error: "인계 이력을 찾을 수 없습니다" }),
+      jsonKST({ ok: false, error: "인계 이력을 찾을 수 없습니다" }),
       { status: 404, headers: { "Content-Type": "application/json" } }
     );
   }

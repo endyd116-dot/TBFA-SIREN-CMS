@@ -14,6 +14,7 @@
  * 보조 SELECT(통계 SUM/COUNT) 실패해도 0 폴백 — 메인 SELECT 보존.
  */
 
+import { jsonKST } from "../../lib/kst";
 import { eq, desc, and, sql, count } from "drizzle-orm";
 import { db, members, donations } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -59,7 +60,7 @@ export interface AdminMemberDonationsResponse {
 /** 단계별 에러 응답 (CLAUDE.md §6.2) */
 function jsonError(step: string, err: any, status: number = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "회원 후원 내역 조회 실패",
       step,

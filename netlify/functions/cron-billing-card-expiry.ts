@@ -13,7 +13,7 @@
 //    알림(인앱·이메일·SMS·알림톡)을 발송한다(사후·반응형). 사전 안내가 꼭 필요하면 KICC에 빌키
 //    조회로 만료월을 받을 수 있는지 별도 확인 필요(현 명세엔 없음).
 
-import { nowKST } from "../../lib/kst";
+import { nowKST, jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import {
@@ -103,13 +103,13 @@ export default async (_req: Request) => {
     console.log(`[cron-card-expiry] 완료`, JSON.stringify(summary, null, 2));
 
     return new Response(
-      JSON.stringify({ ok: true, summary }, null, 2),
+      jsonKST({ ok: true, summary }, null, 2),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error(`[cron-card-expiry] 치명적 오류:`, error);
     return new Response(
-      JSON.stringify({ ok: false, error: error?.message }, null, 2),
+      jsonKST({ ok: false, error: error?.message }, null, 2),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

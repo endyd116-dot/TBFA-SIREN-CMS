@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { familyStories } from "../../db/schema";
@@ -22,12 +23,12 @@ export default async function handler(_req: Request, _ctx: Context) {
       .where(eq(familyStories.status, "published"))
       .orderBy(asc(familyStories.sortOrder), asc(familyStories.publishedAt));
 
-    return new Response(JSON.stringify({ ok: true, data: { stories: rows } }), {
+    return new Response(jsonKST({ ok: true, data: { stories: rows } }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "목록 조회 실패",
       step: "select_stories",

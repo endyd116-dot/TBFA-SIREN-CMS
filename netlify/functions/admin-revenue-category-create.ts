@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -6,7 +7,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-revenue-category-create" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "매출 카테고리 추가 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -19,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
  */
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }),
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -75,7 +76,7 @@ export default async function handler(req: Request, _ctx: Context) {
       RETURNING id, code, name, description, parent_id, is_system, sort_order, is_active`);
     const row = (ins?.rows ?? ins ?? [])[0];
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         id: Number(row.id), code: row.code, name: row.name, description: row.description,

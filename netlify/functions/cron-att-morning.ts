@@ -8,6 +8,7 @@
  * 3. 슈퍼어드민(super_admin 역할)에게 미출근 요약 알림
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, attRecords, attSchedules, attHolidays } from "../../db/schema";
@@ -34,7 +35,7 @@ export default async (_req: Request, _ctx: Context) => {
     const isHoliday = (Array.isArray(holidayCheck) ? holidayCheck.length : (holidayCheck as any).rows?.length) > 0;
     if (isHoliday) {
       console.info("[cron-att-morning] 오늘은 공휴일 — 알림 스킵");
-      return new Response(JSON.stringify({ ok: true, message: "공휴일", absentCount: 0 }),
+      return new Response(jsonKST({ ok: true, message: "공휴일", absentCount: 0 }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -42,7 +43,7 @@ export default async (_req: Request, _ctx: Context) => {
     const kstDow = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCDay(); // 0=일, 6=토 (KST 기준)
     if (kstDow === 0 || kstDow === 6) {
       console.info("[cron-att-morning] 주말 — 알림 스킵");
-      return new Response(JSON.stringify({ ok: true, message: "주말", absentCount: 0 }),
+      return new Response(jsonKST({ ok: true, message: "주말", absentCount: 0 }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -67,7 +68,7 @@ export default async (_req: Request, _ctx: Context) => {
 
     if (!scheduledIds.length) {
       console.info("[cron-att-morning] 오늘 출근 예정 직원 없음");
-      return new Response(JSON.stringify({ ok: true, message: "출근 예정 직원 없음" }),
+      return new Response(jsonKST({ ok: true, message: "출근 예정 직원 없음" }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -87,7 +88,7 @@ export default async (_req: Request, _ctx: Context) => {
     const absentIds = scheduledIds.filter(id => !checkedInIds.has(id));
     if (!absentIds.length) {
       console.info("[cron-att-morning] 전원 출근 완료");
-      return new Response(JSON.stringify({ ok: true, message: "전원 출근 완료", absentCount: 0 }),
+      return new Response(jsonKST({ ok: true, message: "전원 출근 완료", absentCount: 0 }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -150,13 +151,13 @@ export default async (_req: Request, _ctx: Context) => {
     const durationMs = Date.now() - start;
     console.info(`[cron-att-morning] 완료 미출근 ${absentIds.length}명 (${durationMs}ms)`);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, absentCount: absentIds.length, absentNames, durationMs,
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error("[cron-att-morning] 오류:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message ?? err) }),
+    return new Response(jsonKST({ ok: false, error: String(err?.message ?? err) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

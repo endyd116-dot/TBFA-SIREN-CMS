@@ -13,6 +13,7 @@
  *   - 각 match에 userName, expertName 포함 (별도 조회)
  */
 
+import { jsonKST } from "../../lib/kst";
 import { eq, desc, sql } from "drizzle-orm";
 import { inArray } from "drizzle-orm";
 import { db, expertMatches, members } from "../../db";
@@ -27,7 +28,7 @@ import { EXPERT_MATCH_STATUSES } from "../../lib/expert-match";
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "매칭 목록 조회 실패",
       step,

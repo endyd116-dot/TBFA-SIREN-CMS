@@ -6,6 +6,7 @@
  *   수집·분석·INSERT를 여기서 수행 → org_news_reports에 trigger_type='manual'로 기록.
  *   프론트는 admin-org-news-get 폴링으로 새 보고서 등장 확인.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -25,7 +26,7 @@ export default async function handler(req: Request, _ctx: Context) {
   /* 내부 호출 인증 (fail-closed) */
   const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!secret || body.secret !== secret) {
-    return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "forbidden" }), { status: 403 });
   }
   const adminId = body.adminId != null ? Number(body.adminId) : null;
 
@@ -113,5 +114,5 @@ export default async function handler(req: Request, _ctx: Context) {
     return new Response("insert error", { status: 200 });
   }
 
-  return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(jsonKST({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
 }

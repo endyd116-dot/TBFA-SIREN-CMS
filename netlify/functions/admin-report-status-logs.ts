@@ -1,5 +1,6 @@
 // admin-report-status-logs.ts — 신고 단계 변경 이력 조회
 // GET /api/admin-report-status-logs?reportType=incident&reportId=1
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { reportStatusLogs, members } from "../../db/schema";
@@ -8,7 +9,7 @@ import { and, eq, desc, inArray } from "drizzle-orm";
 export const config = { path: "/api/admin-report-status-logs" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "단계 이력 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -17,7 +18,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -30,7 +31,7 @@ export default async (req: Request) => {
   const reportId = url.searchParams.get("reportId") ? Number(url.searchParams.get("reportId")) : undefined;
 
   if (!reportType || !reportId) {
-    return new Response(JSON.stringify({ ok: false, error: "reportType, reportId 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "reportType, reportId 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -68,7 +69,7 @@ export default async (req: Request) => {
     }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     items: rows.map((r) => ({ ...r, changedByName: r.changedBy ? (nameMap.get(r.changedBy) || "") : "" })),
   }), { headers: { "Content-Type": "application/json" } });

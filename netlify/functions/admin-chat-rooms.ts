@@ -11,6 +11,7 @@
  * DELETE /api/admin/chat/rooms?action=blacklist&memberId=N — 블랙 해제
  * GET    /api/admin/chat/rooms?listType=blacklist — 블랙리스트 목록
  */
+import { jsonKST } from "../../lib/kst";
 import { eq, and, desc, like, or, count, sql, inArray } from "drizzle-orm";
 import { db, chatRooms, chatMessages, chatBlacklist, members, donations, supportRequests } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -74,7 +75,7 @@ export default async (req: Request) => {
         if (!room) return notFound("채팅방을 찾을 수 없습니다");
         // R45 §4-4(OP-056): 민감 1:1 상담(법률·심리) 상세는 admin+ 만(운영자 차단·권한정책 토글)
         if ((room as any).roomType === "expert_1on1" && !(await canAccess(guard.ctx.member.role ?? "", "chat_expert_view"))) {
-          return new Response(JSON.stringify({ ok: false, error: "민감 상담 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "민감 상담 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
         }
 
         /* 회원 정보 */
@@ -216,7 +217,7 @@ export default async (req: Request) => {
     if (req.method === "POST" && action === "blacklist") {
       // R45 §4-4(OP-058): 채팅 블랙리스트 등록은 admin+ (운영자 차단·권한정책 토글)
       if (!(await canAccess(guard.ctx.member.role ?? "", "chat_blacklist"))) {
-        return new Response(JSON.stringify({ ok: false, error: "채팅 블랙리스트 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+        return new Response(jsonKST({ ok: false, error: "채팅 블랙리스트 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
       }
       const body = await parseJson(req);
       const memberId = Number(body?.memberId);
@@ -268,7 +269,7 @@ export default async (req: Request) => {
     if (req.method === "DELETE" && action === "blacklist") {
       // R45 §4-4(OP-058): 채팅 블랙 해제도 admin+ (운영자 차단·권한정책 토글)
       if (!(await canAccess(guard.ctx.member.role ?? "", "chat_blacklist"))) {
-        return new Response(JSON.stringify({ ok: false, error: "채팅 블랙리스트 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+        return new Response(jsonKST({ ok: false, error: "채팅 블랙리스트 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
       }
       const memberId = Number(url.searchParams.get("memberId"));
       if (!Number.isFinite(memberId)) return badRequest("memberId가 필요합니다");

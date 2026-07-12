@@ -9,6 +9,7 @@
  *   recentCsvImports: 최근 효성 업로드 이력 (hyosung_import_logs)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -53,7 +54,7 @@ export interface AdminDonationDashboard {
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "대시보드 조회 실패",
       step,
@@ -80,7 +81,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -100,7 +101,7 @@ export default async (req: Request, _ctx: Context) => {
   const cached = await getCache<AdminDonationDashboard & { cached?: boolean }>(CACHE_KEY);
   if (cached) {
     return new Response(
-      JSON.stringify({ ok: true, data: { ...cached, cached: true } }),
+      jsonKST({ ok: true, data: { ...cached, cached: true } }),
       { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
     );
   }
@@ -349,7 +350,7 @@ export default async (req: Request, _ctx: Context) => {
   await setCache(CACHE_KEY, dashboard, CACHE_TTL);
 
   return new Response(
-    JSON.stringify({ ok: true, data: dashboard }),
+    jsonKST({ ok: true, data: dashboard }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 };

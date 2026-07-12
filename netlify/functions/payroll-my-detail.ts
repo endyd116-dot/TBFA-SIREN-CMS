@@ -9,7 +9,7 @@
  * - 처음 열어본 시각을 기록한다 (교부 증빙)
  * - 이미 서명했으면 서명 증적도 함께 준다
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -21,13 +21,13 @@ export const config = { path: "/api/payroll-my-detail" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), { status: 200, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: true, data }), { status: 200, headers: JSON_HEADER });
 }
 function jsonErr(error: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error }), { status, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: false, error }), { status, headers: JSON_HEADER });
 }
 function jsonStepErr(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "급여명세서 상세 조회 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 800),

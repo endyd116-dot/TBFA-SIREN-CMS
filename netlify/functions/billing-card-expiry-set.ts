@@ -13,6 +13,7 @@
  * 보안: 만료월은 비밀정보가 아니고(카드번호·CVC 아님) 본인이 막 결제한 화면에서의 입력이라,
  *       donationId→활성 빌키 매칭만 확인한다(없으면 404). 잘못 입력해도 알림만 빗나갈 뿐.
  */
+import { jsonKST } from "../../lib/kst";
 import { db, donations } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import { eq, sql } from "drizzle-orm";
@@ -20,7 +21,7 @@ import { eq, sql } from "drizzle-orm";
 export const config = { path: "/api/billing-card-expiry-set" };
 
 function json(status: number, data: unknown) {
-  return new Response(JSON.stringify(data), {
+  return new Response(jsonKST(data), {
     status, headers: { "Content-Type": "application/json" },
   });
 }

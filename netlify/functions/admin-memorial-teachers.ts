@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -7,7 +8,7 @@ import { eq, asc, sql } from "drizzle-orm";
 export const config = { path: "/api/admin-memorial-teachers" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "선생님 관리 처리 실패",
     step,
@@ -42,7 +43,7 @@ export default async function handler(req: Request, _ctx: Context) {
         .select()
         .from(memorialTeachers)
         .orderBy(asc(memorialTeachers.sortOrder), asc(memorialTeachers.id));
-      return new Response(JSON.stringify({ ok: true, data: { teachers: rows.map(withPhotoUrl) } }), {
+      return new Response(jsonKST({ ok: true, data: { teachers: rows.map(withPhotoUrl) } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -57,7 +58,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
     const name = (body.name || "").toString().trim();
     if (!name) {
-      return new Response(JSON.stringify({ ok: false, error: "성함은 필수입니다" }), {
+      return new Response(jsonKST({ ok: false, error: "성함은 필수입니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -78,7 +79,7 @@ export default async function handler(req: Request, _ctx: Context) {
       };
       const [row] = await db.insert(memorialTeachers).values(insertData).returning();
 
-      return new Response(JSON.stringify({ ok: true, data: { teacher: withPhotoUrl(row) }, message: "저장되었습니다" }), {
+      return new Response(jsonKST({ ok: true, data: { teacher: withPhotoUrl(row) }, message: "저장되었습니다" }), {
         status: 201, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -90,7 +91,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "PATCH") {
     const id = parseInt(url.searchParams.get("id") || "0", 10);
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -101,7 +102,7 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const existing = await db.select().from(memorialTeachers).where(eq(memorialTeachers.id, id)).limit(1);
       if (!existing.length) {
-        return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 선생님입니다" }), {
+        return new Response(jsonKST({ ok: false, error: "존재하지 않는 선생님입니다" }), {
           status: 404, headers: { "Content-Type": "application/json" },
         });
       }
@@ -120,7 +121,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
       const [row] = await db.update(memorialTeachers).set(updates).where(eq(memorialTeachers.id, id)).returning();
 
-      return new Response(JSON.stringify({ ok: true, data: { teacher: withPhotoUrl(row) }, message: "수정되었습니다" }), {
+      return new Response(jsonKST({ ok: true, data: { teacher: withPhotoUrl(row) }, message: "수정되었습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -132,7 +133,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "DELETE") {
     const id = parseInt(url.searchParams.get("id") || "0", 10);
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -146,7 +147,7 @@ export default async function handler(req: Request, _ctx: Context) {
         await tx.delete(memorialOfferings).where(eq(memorialOfferings.teacherId, id));
         await tx.delete(memorialTeachers).where(eq(memorialTeachers.id, id));
       });
-      return new Response(JSON.stringify({ ok: true, message: "선생님과 관련 헌화·방명록·편지를 모두 삭제했습니다" }), {
+      return new Response(jsonKST({ ok: true, message: "선생님과 관련 헌화·방명록·편지를 모두 삭제했습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -154,7 +155,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

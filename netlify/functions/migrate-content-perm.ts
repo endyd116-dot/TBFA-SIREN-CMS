@@ -11,6 +11,7 @@
  *
  * 멱등: ON CONFLICT (feature_key) DO NOTHING. 호출 성공 후 즉시 파일 삭제 + commit (§6.8).
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -34,7 +35,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const already = rows.length > 0;
 
     if (!run) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true, mode: "diagnose",
         content_edit_exists: already,
         current: rows[0] || null,
@@ -55,13 +56,13 @@ export default async function handler(req: Request, _ctx: Context) {
       ON CONFLICT (feature_key) DO NOTHING
     `));
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, mode: "executed",
       inserted: !already,
       hint: "권한정책관리 → 통합 CMS 탭에 '콘텐츠 편집'이 노출됩니다. 어드민은 기본 허용. 성공 확인 후 이 파일 삭제 + commit.",
     }, null, 2), { headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "마이그 실패", step,
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),

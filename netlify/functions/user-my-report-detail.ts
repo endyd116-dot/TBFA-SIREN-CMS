@@ -1,5 +1,6 @@
 // user-my-report-detail.ts — 사용자 본인 신고 상세 + 단계 타임라인
 // GET /api/user-my-report-detail?reportType=incident|harassment|legal&reportId=1
+import { jsonKST } from "../../lib/kst";
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
 import {
@@ -17,7 +18,7 @@ const REPORT_TABLES = {
 } as const;
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "신고 상세 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -26,7 +27,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -45,7 +46,7 @@ export default async (req: Request) => {
   const reportId = url.searchParams.get("reportId") ? Number(url.searchParams.get("reportId")) : undefined;
 
   if (!reportType || !["incident", "harassment", "legal"].includes(reportType) || !reportId) {
-    return new Response(JSON.stringify({ ok: false, error: "reportType, reportId 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "reportType, reportId 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -64,14 +65,14 @@ export default async (req: Request) => {
     return jsonError("select_report", err);
   }
   if (!report) {
-    return new Response(JSON.stringify({ ok: false, error: "신고 없음" }), {
+    return new Response(jsonKST({ ok: false, error: "신고 없음" }), {
       status: 404, headers: { "Content-Type": "application/json" },
     });
   }
 
   // 본인 신고인지 확인
   if (report.memberId !== memberId) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), {
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
@@ -104,7 +105,7 @@ export default async (req: Request) => {
   // AI 분석 결과는 공개 (사용자에게 유익)
   // 어드민 메모·응답 관련 필드는 그대로 노출 (공개 범위 정책상)
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     report: safeReport,
     timeline,

@@ -8,6 +8,7 @@
  * 응답: { ok, output:{ id, outputType:'readiness', version, contentJson, status } }
  *   contentJson 키: score·breakdown·max·gaps·aiNote·label (§P2.2 계약 고정)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -18,7 +19,7 @@ import { computeReadiness } from "../../lib/martyrdom-ai";
 export const config = { path: "/api/admin-martyrdom-readiness" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -27,7 +28,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -36,14 +37,14 @@ export default async (req: Request, _ctx: Context) => {
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패" }), {
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   const caseId = Number(body.caseId);
   if (!caseId) {
-    return new Response(JSON.stringify({ ok: false, error: "caseId 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "caseId 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -51,7 +52,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     const cr: any = await db.execute(sql.raw(`SELECT id FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1`));
     if (!(cr?.rows ?? cr ?? []).length) {
-      return new Response(JSON.stringify({ ok: false, error: "사건을 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "사건을 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }
@@ -76,7 +77,7 @@ export default async (req: Request, _ctx: Context) => {
       target: String(caseId), detail: { score: result.contentJson.score },
     });
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       output: { id: outputId, outputType: "readiness", version: ver, contentJson: result.contentJson, status: "draft" },
     }), { headers: { "Content-Type": "application/json" } });

@@ -18,6 +18,7 @@
  *   }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
@@ -33,7 +34,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
 
@@ -41,7 +42,7 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   // R45 §4(AI): AI 비용 통계는 admin+ (경영 데이터·운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "ai_config"))) {
-    return new Response(JSON.stringify({ ok: false, error: "AI 비용 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "AI 비용 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
   }
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
 
@@ -65,7 +66,7 @@ export default async (req: Request, _ctx: Context) => {
       rateLimit:   rl,
     } : undefined;
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       today: stats.today,
       month: stats.month,
@@ -80,7 +81,7 @@ export default async (req: Request, _ctx: Context) => {
       ...(infra ? { infra } : {}),
     }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "비용 통계 조회 실패",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });

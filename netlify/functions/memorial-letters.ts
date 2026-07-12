@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialLetters } from "../../db/schema";
@@ -9,7 +10,7 @@ import { eq, and, desc } from "drizzle-orm";
 export const config = { path: "/api/memorial-letters" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "기억의 편지 처리 실패",
     step,
@@ -26,7 +27,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "GET") {
     const teacherId = parseInt(url.searchParams.get("teacherId") || "0", 10);
     if (!teacherId) {
-      return new Response(JSON.stringify({ ok: false, error: "teacherId 파라미터가 필요합니다" }), {
+      return new Response(jsonKST({ ok: false, error: "teacherId 파라미터가 필요합니다" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -55,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
         isMine: !!(viewer && r.memberId === viewer.uid),
       }));
 
-      return new Response(JSON.stringify({ ok: true, data: { letters } }), {
+      return new Response(jsonKST({ ok: true, data: { letters } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -72,18 +73,18 @@ export default async function handler(req: Request, _ctx: Context) {
     /* US-028: 본인 편지 삭제 (작성자 본인만) */
     if (url.searchParams.get("action") === "delete") {
       const lid = parseInt(url.searchParams.get("id") || "0", 10);
-      if (!lid) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!lid) return new Response(jsonKST({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
         const [letter] = await db.select({ id: memorialLetters.id, memberId: memorialLetters.memberId })
           .from(memorialLetters).where(eq(memorialLetters.id, lid)).limit(1);
         if (!letter) {
-          return new Response(JSON.stringify({ ok: false, error: "대상 편지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "대상 편지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
         }
         if (letter.memberId !== user.uid) {
-          return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 편지만 삭제할 수 있습니다" }), { status: 403, headers: { "Content-Type": "application/json" } });
+          return new Response(jsonKST({ ok: false, error: "본인이 작성한 편지만 삭제할 수 있습니다" }), { status: 403, headers: { "Content-Type": "application/json" } });
         }
         await db.delete(memorialLetters).where(and(eq(memorialLetters.id, lid), eq(memorialLetters.memberId, user.uid)));
-        return new Response(JSON.stringify({ ok: true, message: "편지가 삭제되었습니다." }), {
+        return new Response(jsonKST({ ok: true, message: "편지가 삭제되었습니다." }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       } catch (err: any) {
@@ -100,10 +101,10 @@ export default async function handler(req: Request, _ctx: Context) {
     const isAnonymous = !!body.isAnonymous;
 
     if (!teacherId) {
-      return new Response(JSON.stringify({ ok: false, error: "어느 선생님께 드리는 편지인지 지정해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return new Response(jsonKST({ ok: false, error: "어느 선생님께 드리는 편지인지 지정해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
     if (!content) {
-      return new Response(JSON.stringify({ ok: false, error: "편지 내용을 입력해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return new Response(jsonKST({ ok: false, error: "편지 내용을 입력해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     try {
@@ -136,7 +137,7 @@ export default async function handler(req: Request, _ctx: Context) {
         }).catch(() => {});
       }
 
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: { letter: {
           id: row.id,
@@ -152,7 +153,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

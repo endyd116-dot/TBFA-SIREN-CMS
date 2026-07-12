@@ -9,6 +9,7 @@
 // - 지수 백오프: 1s(1차) → 5s(2차) → 25s(3차) — lib/notify-dispatcher.ts retryLog 위임
 // - 3회 전부 실패 → status='dead' + super_admin 인앱 알림 (메타-알림은 재시도 없음)
 
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { retryLog } from "../../lib/notify-dispatcher";
@@ -61,13 +62,13 @@ export default async (_req: Request) => {
   } catch (err: any) {
     console.error("[cron-notification-retry] 실행 오류:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: String(err?.message || err) }),
+      jsonKST({ ok: false, error: String(err?.message || err) }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
   console.log("[cron-notification-retry] 완료", stats);
-  return new Response(JSON.stringify({ ok: true, ...stats }), {
+  return new Response(jsonKST({ ok: true, ...stats }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

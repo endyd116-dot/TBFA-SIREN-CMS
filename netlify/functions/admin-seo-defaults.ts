@@ -2,6 +2,7 @@
 // R42 SEO — 사이트 전역 기본값 (default:*) GET/POST.
 // 즉시 운영 반영.
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { getDefaultMeta, saveSeoKey } from "../../lib/seo-meta";
@@ -9,13 +10,13 @@ import { getDefaultMeta, saveSeoKey } from "../../lib/seo-meta";
 export const config = { path: "/api/admin-seo-defaults" };
 
 function jsonOk(body: any) {
-  return new Response(JSON.stringify(body), {
+  return new Response(jsonKST(body), {
     status: 200,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 function jsonError(status: number, error: string) {
-  return new Response(JSON.stringify({ ok: false, error }), {
+  return new Response(jsonKST({ ok: false, error }), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });

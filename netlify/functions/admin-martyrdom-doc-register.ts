@@ -7,6 +7,7 @@
  *   → admin-martyrdom-extract-background 트리거 (fire-and-forget)
  *   → { ok, docId, extractQueued: true }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { blobUploads } from "../../db/schema";
@@ -17,7 +18,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-doc-register" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -48,7 +49,7 @@ async function triggerExtract(docId: number): Promise<{ bgStatus: number; bgErro
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -56,14 +57,14 @@ export default async (req: Request, _ctx: Context) => {
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패" }), {
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   const docId = Number(body.docId);
   if (!docId) {
-    return new Response(JSON.stringify({ ok: false, error: "docId 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "docId 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -78,7 +79,7 @@ export default async (req: Request, _ctx: Context) => {
     `));
     const doc = (docRes?.rows ?? docRes ?? [])[0];
     if (!doc) {
-      return new Response(JSON.stringify({ ok: false, error: "문서를 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "문서를 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }
@@ -100,7 +101,7 @@ export default async (req: Request, _ctx: Context) => {
     /* extract-background 트리거 (await로 전송 보장) */
     const bg = await triggerExtract(docId);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       docId,
       extractQueued: true,

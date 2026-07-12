@@ -8,6 +8,7 @@
  *   offset
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,7 +20,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
   const auth = await requireAdmin(req);
@@ -65,10 +66,10 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const total = Number((cntRes?.rows ?? cntRes)[0]?.n) || 0;
 
-    return new Response(JSON.stringify({ ok: true, total, rows }),
+    return new Response(jsonKST({ ok: true, total, rows }),
       { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "대화 이력 조회 실패",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });

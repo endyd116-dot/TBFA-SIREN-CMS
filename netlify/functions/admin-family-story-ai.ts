@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { callGeminiJSON } from "../../lib/ai-gemini";
@@ -20,7 +21,7 @@ async function fetchOembedTitle(youtubeUrl: string): Promise<string | null> {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 지원합니다" }), {
+    return new Response(jsonKST({ ok: false, error: "POST만 지원합니다" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -40,7 +41,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   if (!resolvedTitle && !adminNotes) {
-    return new Response(JSON.stringify({ ok: false, error: "제목 또는 운영자 메모가 필요합니다" }), {
+    return new Response(jsonKST({ ok: false, error: "제목 또는 운영자 메모가 필요합니다" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -70,7 +71,7 @@ JSON 응답 형식 (다른 텍스트 없이 JSON만):
 
     if (!result.ok || !result.data) {
       // 폴백: 빈 초안 + 안내 메시지
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: {
           draft: {
@@ -83,14 +84,14 @@ JSON 응답 형식 (다른 텍스트 없이 JSON만):
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { draft: result.data },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     // 예외 시에도 폴백 초안 반환
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { draft: { subtitle: "", summary: "", detailHtml: "" } },
       warning: "AI 초안 생성 중 오류가 발생했습니다. 직접 작성해 주세요.",

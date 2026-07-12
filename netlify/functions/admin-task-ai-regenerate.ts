@@ -6,6 +6,7 @@
  * 어드민 인증 후 동기 호출. 사용자가 칸반 카드 모달에서 "재생성" 버튼 누르면 호출.
  * 동기 실행이라 5~15초 정도 걸릴 수 있음 (UI에서 로딩 표시 권장).
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db, workspaceTasks } from "../../db";
@@ -42,7 +43,7 @@ export default async (req: Request, _ctx: Context) => {
       .from(workspaceTasks).where(eq(workspaceTasks.id, id)).limit(1);
     if (!t) return badRequest("작업을 찾을 수 없습니다");
     if (!(t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId)) {
-      return new Response(JSON.stringify({ ok: false, error: "본인 관련 작업만 재생성할 수 있습니다", step: "auth" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      return new Response(jsonKST({ ok: false, error: "본인 관련 작업만 재생성할 수 있습니다", step: "auth" }), { status: 403, headers: { "Content-Type": "application/json" } });
     }
   }
 
@@ -51,7 +52,7 @@ export default async (req: Request, _ctx: Context) => {
   const nowMs = Date.now();
   if (nowMs - (lastRegenAt.get(cooldownKey) || 0) < REGEN_COOLDOWN_MS) {
     return new Response(
-      JSON.stringify({ ok: false, error: "방금 재생성했습니다. 잠시 후 다시 시도해 주세요.", step: "cooldown" }),
+      jsonKST({ ok: false, error: "방금 재생성했습니다. 잠시 후 다시 시도해 주세요.", step: "cooldown" }),
       { status: 429, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -70,7 +71,7 @@ export default async (req: Request, _ctx: Context) => {
     if (!result.ok) {
       /* OP-048: AI 실패를 HTTP 200으로 감싸 보내면 프론트가 성공으로 오인 → 비-200 + step 표준 에러 */
       return new Response(
-        JSON.stringify({ ok: false, error: result.error || "AI 처리 실패", step: "ai_generate" }),
+        jsonKST({ ok: false, error: result.error || "AI 처리 실패", step: "ai_generate" }),
         { status: 502, headers: { "Content-Type": "application/json" } }
       );
     }

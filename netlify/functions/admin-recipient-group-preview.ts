@@ -1,6 +1,7 @@
 // netlify/functions/admin-recipient-group-preview.ts
 // Phase 10 R2 — criteria 미리보기 (DB 저장 X, 인원 수 + 샘플 5명 + 요약)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
@@ -23,7 +24,7 @@ export default async function handler(req: Request, _ctx: Context) {
     body = await req.json();
   } catch {
     return new Response(
-      JSON.stringify({ ok: false, error: "요청 본문을 파싱할 수 없습니다.", step: "parse" }),
+      jsonKST({ ok: false, error: "요청 본문을 파싱할 수 없습니다.", step: "parse" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -32,7 +33,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const v = validateCriteria(criteria);
   if (!v.ok) {
     return new Response(
-      JSON.stringify({ ok: false, error: (v as any).error, step: "validate" }),
+      jsonKST({ ok: false, error: (v as any).error, step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -45,7 +46,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         preview: {
           memberCount: result.count,
@@ -62,7 +63,7 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "미리보기 실패", step: "resolve",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

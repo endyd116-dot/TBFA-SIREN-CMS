@@ -9,7 +9,7 @@
  * pl-summary / budget-list / balance-sheet / cashflow 집계 로직 재사용 → pdf-lib A4 PDF
  * 한글 폰트: assets/fonts/NotoSansKR-Regular.ttf
  */
-import { yearKST } from "../../lib/kst";
+import { yearKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
@@ -34,7 +34,7 @@ function loadKoreanFont(): Uint8Array {
 }
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "회계 보고서 PDF 생성 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -656,7 +656,7 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
   const orgName = process.env.ORG_NAME || "(사)교사유가족협의회";
 
   if (type !== "pl" && type !== "budget" && type !== "balance" && type !== "cashflow") {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "type 파라미터는 pl, budget, balance, cashflow 중 하나여야 합니다",
     }), { status: 400, headers: { "Content-Type": "application/json" } });
   }

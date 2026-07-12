@@ -14,7 +14,7 @@
  *
  * Phase M-16: 핵심 4종 중 자동 정리 cron
  */
-import { todayKST } from "../../lib/kst";
+import { todayKST, jsonKST } from "../../lib/kst";
 import { sql, lt, and, inArray, not } from "drizzle-orm";
 import { db } from "../../db";
 import { auditLogs } from "../../db/schema";
@@ -113,7 +113,7 @@ export default async (_req: Request) => {
       },
     }).catch(() => {});
 
-    return new Response(JSON.stringify(summary), {
+    return new Response(jsonKST(summary), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -129,7 +129,7 @@ export default async (_req: Request) => {
       success: false,
     }).catch(() => {});
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: err?.message || "cron 실행 중 오류",
     }), {

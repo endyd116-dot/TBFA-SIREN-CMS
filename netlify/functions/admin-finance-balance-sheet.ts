@@ -8,6 +8,7 @@
  * 데이터 소스: bank_transactions 최신 balance_after (asOf 이하 거래 중 가장 최근)
  * 비현금 자산·부채는 SIREN 데이터 한계상 "해당 없음" 명시
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -17,7 +18,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-finance-balance-sheet" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "재정상태표 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -29,7 +30,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-2: 전사 재무 열람은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess(auth.ctx.member.role ?? "", "finance_view"))) {
-    return new Response(JSON.stringify({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
@@ -64,7 +65,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const totalLiability = 0;               // 부채 데이터 없음
   const netAsset      = totalAsset - totalLiability;
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       asOf,

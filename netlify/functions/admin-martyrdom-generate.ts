@@ -9,6 +9,7 @@
  * 응답: 비동기 type → { ok, queued:true, outputId, status:'processing' }
  *       readiness   → { ok, output:{ id, outputType, version, contentJson, status } }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -27,14 +28,14 @@ const TYPE_MAP: Record<string, string> = {
 };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
@@ -69,7 +70,7 @@ async function triggerGenerate(caseId: number, type: string, outputId: number): 
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -89,7 +90,7 @@ export default async (req: Request, _ctx: Context) => {
     /* 사건 존재 확인 */
     const cr: any = await db.execute(sql.raw(`SELECT id FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1`));
     if (!(cr?.rows ?? cr ?? []).length) {
-      return new Response(JSON.stringify({ ok: false, error: "사건을 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "사건을 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }
@@ -110,7 +111,7 @@ export default async (req: Request, _ctx: Context) => {
         RETURNING id
       `));
       const outputId = Number((ins?.rows ?? ins ?? [])[0]?.id || 0);
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         output: { id: outputId, outputType: "readiness", version: ver, contentJson: result.contentJson, status: "draft" },
       }), { headers: { "Content-Type": "application/json" } });
@@ -127,7 +128,7 @@ export default async (req: Request, _ctx: Context) => {
 
     const bg = await triggerGenerate(caseId, type, outputId);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, queued: true, outputId, outputType, version: ver, status: "processing",
       bgStatus: bg.bgStatus, bgError: bg.bgError || undefined,
     }), { headers: { "Content-Type": "application/json" } });

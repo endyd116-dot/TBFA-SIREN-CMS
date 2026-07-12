@@ -13,6 +13,7 @@
  *   rows: RawBankRow[]   // §1.1 12컬럼 매핑
  * }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -22,7 +23,7 @@ import { normalizeBankRows } from "../../lib/bank-reconcile";
 export const config = { path: "/api/admin-bank-import" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "통장 업로드 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -31,7 +32,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -44,7 +45,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const { filename, bankName, periodFrom, periodTo, rows } = body;
   if (!filename || !Array.isArray(rows) || rows.length === 0) {
-    return new Response(JSON.stringify({ ok: false, error: "filename, rows(비어있지 않은 배열) 필수" }),
+    return new Response(jsonKST({ ok: false, error: "filename, rows(비어있지 않은 배열) 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -60,7 +61,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   if (normalized.length === 0) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "적재할 유효 거래 0건",
       skippedSummary, skippedInvalid,
     }), { status: 422, headers: { "Content-Type": "application/json" } });
@@ -99,7 +100,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const duplicateCount = normalized.length - toInsert.length;
 
   if (toInsert.length === 0) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         importId: null,
@@ -152,7 +153,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("insert_import_txn", err);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       importId,

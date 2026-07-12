@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -7,7 +8,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-budget-plan-approve" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예산안 승인 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -16,7 +17,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -32,7 +33,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const { planId } = body;
   if (!planId) {
-    return new Response(JSON.stringify({ ok: false, error: "planId 필수" }),
+    return new Response(jsonKST({ ok: false, error: "planId 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -42,11 +43,11 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const plan = (planRows?.rows ?? planRows ?? [])[0];
     if (!plan) {
-      return new Response(JSON.stringify({ ok: false, error: "예산안을 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "예산안을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
     if (plan.status !== "submitted") {
-      return new Response(JSON.stringify({ ok: false, error: `submitted 상태에서만 승인 가능 (현재: ${plan.status})` }),
+      return new Response(jsonKST({ ok: false, error: `submitted 상태에서만 승인 가능 (현재: ${plan.status})` }),
         { status: 422, headers: { "Content-Type": "application/json" } });
     }
 
@@ -60,7 +61,7 @@ export default async function handler(req: Request, _ctx: Context) {
       WHERE id = ${Number(planId)}
     `);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { message: `${plan.fiscal_year}년도 예산안이 승인되었습니다.` },
     }), { status: 200, headers: { "Content-Type": "application/json" } });

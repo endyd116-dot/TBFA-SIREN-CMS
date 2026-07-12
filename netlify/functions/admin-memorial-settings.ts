@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -10,7 +11,7 @@ const DEFAULT_HERO_ID = "l97eBPM_d9E";
 const DEFAULT_HERO_COPY = "우리는 당신들을 기억합니다";
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "추모관 설정 처리 실패",
     step,
@@ -37,7 +38,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "GET") {
     try {
       const [s] = await db.select().from(memorialSettings).orderBy(desc(memorialSettings.id)).limit(1);
-      return new Response(JSON.stringify({ ok: true, data: { settings: shape(s) } }), {
+      return new Response(jsonKST({ ok: true, data: { settings: shape(s) } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -69,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
         [row] = await db.insert(memorialSettings).values(insertData).returning();
       }
 
-      return new Response(JSON.stringify({ ok: true, data: { settings: shape(row) }, message: "저장되었습니다" }), {
+      return new Response(jsonKST({ ok: true, data: { settings: shape(row) }, message: "저장되었습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -77,7 +78,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+  return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

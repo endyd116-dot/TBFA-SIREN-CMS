@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-voucher-detail" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "전표 상세 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -21,7 +21,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const id = parseInt(url.searchParams.get("id") || "0");
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 파라미터 필요" }),
+    return new Response(jsonKST({ ok: false, error: "id 파라미터 필요" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -43,7 +43,7 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const voucher = (rows?.rows ?? rows ?? [])[0];
     if (!voucher) {
-      return new Response(JSON.stringify({ ok: false, error: "전표를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "전표를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
 
@@ -70,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
       } catch { /* 보조 조회 실패 무시 */ }
     }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         voucher: {

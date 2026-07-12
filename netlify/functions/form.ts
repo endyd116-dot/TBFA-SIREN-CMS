@@ -9,6 +9,7 @@
  *   { ok: false, error }  (없음·비공개·비활성·정원 초과)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,14 +20,14 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
 
   const url = new URL(req.url);
   const slug = String(url.searchParams.get("slug") || "").trim();
   if (!slug) {
-    return new Response(JSON.stringify({ ok: false, error: "slug 필수" }),
+    return new Response(jsonKST({ ok: false, error: "slug 필수" }),
       { status: 400, headers: JSON_HEADER });
   }
 
@@ -43,12 +44,12 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const form = (r?.rows ?? r ?? [])[0];
     if (!form) {
-      return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 폼" }),
+      return new Response(jsonKST({ ok: false, error: "존재하지 않는 폼" }),
         { status: 404, headers: JSON_HEADER });
     }
 
     if (!form.is_active || !form.is_published) {
-      return new Response(JSON.stringify({ ok: false, error: "현재 응답을 받지 않는 폼입니다", isClosed: true }),
+      return new Response(jsonKST({ ok: false, error: "현재 응답을 받지 않는 폼입니다", isClosed: true }),
         { status: 410, headers: JSON_HEADER });
     }
 
@@ -81,7 +82,7 @@ export default async (req: Request, _ctx: Context) => {
       showConditions:  f.show_conditions,
     }));
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       form: {
         id:            Number(form.id),
@@ -99,7 +100,7 @@ export default async (req: Request, _ctx: Context) => {
       },
     }, null, 2), { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "조회 실패", detail: String(e?.message || e).slice(0, 300),
     }), { status: 500, headers: JSON_HEADER });
   }

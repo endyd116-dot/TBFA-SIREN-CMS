@@ -9,6 +9,7 @@
  * 화면 배지용 — cron 이메일 알림 없음 (Phase 22-D-R3 §3.2)
  * 데이터 소스: vouchers status='approved' (전표 = 확정 지출)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -17,7 +18,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-finance-anomaly" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "이상 패턴 감지 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -100,7 +101,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const surgeItems = items.filter((i) => i.surge);
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       year, month, threshold,

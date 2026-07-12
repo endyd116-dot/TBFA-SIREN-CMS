@@ -1,7 +1,7 @@
 // netlify/functions/admin-send-job-recipients.ts
 // Phase 10 R3 — 작업의 수신자 목록 (status 필터·페이지네이션)
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -16,7 +16,7 @@ const VALID_STATUS = ["pending", "sending", "sent", "failed", "cancelled"];
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "수신자 목록 조회 실패",
       step,
@@ -39,7 +39,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -148,7 +148,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, recipients: rows, total, isPreview }),
+    jsonKST({ ok: true, recipients: rows, total, isPreview }),
     { status: 200, headers: JSON_HEADER },
   );
 }

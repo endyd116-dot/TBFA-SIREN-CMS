@@ -10,6 +10,7 @@
  *                  또는 WBS 기본 보기 { defaultWbsView: 'board'|'list'|'calendar' }
  *  DELETE        : 부재 즉시 해제
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,7 +20,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-user-preferences" };
 
 function jsonError(status: number, error: string, step?: string, err?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error, step,
     detail: err ? String(err?.message || err).slice(0, 500) : undefined,
     stack:  err?.stack ? String(err.stack).slice(0, 1000) : undefined,
@@ -27,7 +28,7 @@ function jsonError(status: number, error: string, step?: string, err?: any) {
 }
 
 function jsonOk(data: any, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message: message ?? null, data }),
+  return new Response(jsonKST({ ok: true, message: message ?? null, data }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 

@@ -19,6 +19,7 @@
  *   learnCounterparty?: boolean   true면 counterparties에 학습 등록 (기본 true)
  * }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -28,7 +29,7 @@ import { learnCounterparty } from "../../lib/bank-reconcile";
 export const config = { path: "/api/admin-bank-transaction-confirm" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "거래 확인 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -37,7 +38,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -52,7 +53,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const learnCp = body.learnCounterparty !== false;
 
   if (!transactionId || !["donation", "revenue", "voucher", "ignored", "unignore"].includes(action)) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "transactionId, action(donation|revenue|voucher|ignored|unignore) 필수",
     }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
@@ -69,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("select_txn", err);
   }
   if (!txn) {
-    return new Response(JSON.stringify({ ok: false, error: "거래를 찾을 수 없음" }),
+    return new Response(jsonKST({ ok: false, error: "거래를 찾을 수 없음" }),
       { status: 404, headers: { "Content-Type": "application/json" } });
   }
 
@@ -92,7 +93,7 @@ export default async function handler(req: Request, _ctx: Context) {
     // ════════ action=unignore — 무시 해제 → 미처리(pending)로 복원 ════════
     } else if (action === "unignore") {
       if (txn.status !== "ignored") {
-        return new Response(JSON.stringify({ ok: false, error: "무시 상태인 거래만 해제할 수 있습니다" }),
+        return new Response(jsonKST({ ok: false, error: "무시 상태인 거래만 해제할 수 있습니다" }),
           { status: 422, headers: { "Content-Type": "application/json" } });
       }
       await db.execute(sql`
@@ -105,12 +106,12 @@ export default async function handler(req: Request, _ctx: Context) {
     // ════════ action=donation ════════
     } else if (action === "donation") {
       if (txn.txn_type !== "credit") {
-        return new Response(JSON.stringify({ ok: false, error: "출금 거래는 후원으로 등록할 수 없음" }),
+        return new Response(jsonKST({ ok: false, error: "출금 거래는 후원으로 등록할 수 없음" }),
           { status: 422, headers: { "Content-Type": "application/json" } });
       }
       const donorName = body.donorName || txn.counterpart_name;
       if (!donorName && !body.memberId) {
-        return new Response(JSON.stringify({ ok: false, error: "donorName 또는 memberId 필수" }),
+        return new Response(jsonKST({ ok: false, error: "donorName 또는 memberId 필수" }),
           { status: 400, headers: { "Content-Type": "application/json" } });
       }
       // 회원 연결 시 회원명 보강
@@ -142,11 +143,11 @@ export default async function handler(req: Request, _ctx: Context) {
     // ════════ action=revenue ════════
     } else if (action === "revenue") {
       if (txn.txn_type !== "credit") {
-        return new Response(JSON.stringify({ ok: false, error: "출금 거래는 매출로 등록할 수 없음" }),
+        return new Response(jsonKST({ ok: false, error: "출금 거래는 매출로 등록할 수 없음" }),
           { status: 422, headers: { "Content-Type": "application/json" } });
       }
       if (!body.revenueCategoryId) {
-        return new Response(JSON.stringify({ ok: false, error: "revenueCategoryId 필수" }),
+        return new Response(jsonKST({ ok: false, error: "revenueCategoryId 필수" }),
           { status: 400, headers: { "Content-Type": "application/json" } });
       }
       const payerName = body.payerName || txn.counterpart_name || "(미상)";
@@ -170,11 +171,11 @@ export default async function handler(req: Request, _ctx: Context) {
     // ════════ action=voucher ════════
     } else if (action === "voucher") {
       if (txn.txn_type !== "debit") {
-        return new Response(JSON.stringify({ ok: false, error: "입금 거래는 전표로 등록할 수 없음" }),
+        return new Response(jsonKST({ ok: false, error: "입금 거래는 전표로 등록할 수 없음" }),
           { status: 422, headers: { "Content-Type": "application/json" } });
       }
       if (!body.accountCode) {
-        return new Response(JSON.stringify({ ok: false, error: "accountCode 필수" }),
+        return new Response(jsonKST({ ok: false, error: "accountCode 필수" }),
           { status: 400, headers: { "Content-Type": "application/json" } });
       }
       // 계정과목 검증
@@ -182,7 +183,7 @@ export default async function handler(req: Request, _ctx: Context) {
         SELECT name FROM account_codes WHERE code = ${body.accountCode} AND is_active = TRUE LIMIT 1`);
       const acRow = (ac?.rows ?? ac ?? [])[0];
       if (!acRow) {
-        return new Response(JSON.stringify({ ok: false, error: `존재하지 않는 계정과목: ${body.accountCode}` }),
+        return new Response(jsonKST({ ok: false, error: `존재하지 않는 계정과목: ${body.accountCode}` }),
           { status: 422, headers: { "Content-Type": "application/json" } });
       }
       // voucher_number 생성
@@ -245,7 +246,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       transactionId: Number(txn.id),

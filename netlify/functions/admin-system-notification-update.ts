@@ -25,6 +25,7 @@
  *   - 카카오 본문 수정 시 응답에 카카오 콘솔 재심사 안내 메시지 포함
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -44,7 +45,7 @@ const TEMPLATE_COL = {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "PATCH" && req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "PATCH 또는 POST" }),
+    return new Response(jsonKST({ ok: false, error: "PATCH 또는 POST" }),
       { status: 405, headers: JSON_HEADER });
   }
 
@@ -54,13 +55,13 @@ export default async (req: Request, _ctx: Context) => {
 
   let body: any = {};
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱 실패" }),
       { status: 400, headers: JSON_HEADER });
   }
 
   const eventType = String(body?.eventType || "").trim();
   if (!eventType) {
-    return new Response(JSON.stringify({ ok: false, error: "eventType 필수" }),
+    return new Response(jsonKST({ ok: false, error: "eventType 필수" }),
       { status: 400, headers: JSON_HEADER });
   }
 
@@ -71,7 +72,7 @@ export default async (req: Request, _ctx: Context) => {
   `);
   const curRows = cur?.rows ?? cur ?? [];
   if (curRows.length === 0) {
-    return new Response(JSON.stringify({ ok: false, error: `이벤트 ${eventType} 없음` }),
+    return new Response(jsonKST({ ok: false, error: `이벤트 ${eventType} 없음` }),
       { status: 404, headers: JSON_HEADER });
   }
   const setting = curRows[0];
@@ -106,7 +107,7 @@ export default async (req: Request, _ctx: Context) => {
       `);
       updates.push("setting_updated");
     } catch (e: any) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, error: "설정 업데이트 실패", detail: String(e?.message || e).slice(0, 300),
       }), { status: 500, headers: JSON_HEADER });
     }
@@ -158,6 +159,6 @@ export default async (req: Request, _ctx: Context) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, eventType, updates, warnings }, null, 2),
+  return new Response(jsonKST({ ok: true, eventType, updates, warnings }, null, 2),
     { status: 200, headers: JSON_HEADER });
 };

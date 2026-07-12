@@ -10,6 +10,7 @@
  *
  * fail-closed(INTERNAL_TRIGGER_SECRET) · throw 안 함 · notify로 완료/실패 가시화.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -29,7 +30,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -39,14 +40,14 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   const caseId = Number(body?.caseId || 0);
   const type = String(body?.type || "");
   const outputId = Number(body?.outputId || 0);
   if (!caseId || !TYPE_MAP[type]) {
-    return new Response(JSON.stringify({ ok: false, error: "caseId·type 필수" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "caseId·type 필수" }), { status: 400 });
   }
   const outputType = TYPE_MAP[type];
 
@@ -58,7 +59,7 @@ export default async (req: Request, _ctx: Context) => {
     const cr: any = await db.execute(sql.raw(`SELECT assigned_admin_id AS "a" FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1`));
     const row = (cr?.rows ?? cr ?? [])[0];
     if (!row) {
-      return new Response(JSON.stringify({ ok: false, error: "사건 없음" }), { status: 404 });
+      return new Response(jsonKST({ ok: false, error: "사건 없음" }), { status: 404 });
     }
     assignedAdminId = row.a ? Number(row.a) : null;
   } catch (_) {}
@@ -119,7 +120,7 @@ export default async (req: Request, _ctx: Context) => {
     });
 
     console.info(`[martyrdom-generate-bg] done caseId=${caseId} type=${type} outputId=${finalOutputId}`);
-    return new Response(JSON.stringify({ ok: true, caseId, type, outputId: finalOutputId }), {
+    return new Response(jsonKST({ ok: true, caseId, type, outputId: finalOutputId }), {
       headers: { "Content-Type": "application/json" },
     });
 
@@ -139,6 +140,6 @@ export default async (req: Request, _ctx: Context) => {
       message: `[${TYPE_LABEL[type] || type}] 생성 실패 — 재시도 필요`,
       severity: "warning",
     });
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
+    return new Response(jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
   }
 };

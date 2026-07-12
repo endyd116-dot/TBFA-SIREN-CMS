@@ -1,4 +1,4 @@
-import { todayKST } from "../../lib/kst";
+import { todayKST, jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords, attLeaveRequests, attHolidays, members } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
@@ -8,12 +8,12 @@ import { canAccess } from "../../lib/role-permission-check";
 export const config = { path: "/api/admin-att-records" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "근태 현황 조회 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -25,7 +25,7 @@ export default async function handler(req: Request) {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-1: 근태 현황 조회는 운영자 허용(att_manage)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "att_manage"))) {
-    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다" }), {
+    return new Response(jsonKST({ ok: false, error: "근태 관리 권한이 없습니다" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
@@ -45,12 +45,12 @@ export default async function handler(req: Request) {
       // 기간 형식 검증 (YYYY-MM-DD)
       const dateRe = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRe.test(dateFromQ) || !dateRe.test(dateToQ)) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false, error: "dateFrom·dateTo 형식이 잘못되었습니다 (YYYY-MM-DD 필수)",
         }), { status: 400, headers: { "Content-Type": "application/json" } });
       }
       if (dateFromQ > dateToQ) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false, error: "dateFrom이 dateTo보다 늦을 수 없습니다",
         }), { status: 400, headers: { "Content-Type": "application/json" } });
       }

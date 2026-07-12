@@ -1,7 +1,7 @@
 // netlify/functions/admin-template-detail.ts
 // Phase 10 R1 — 발송 템플릿 단일 상세 조회
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -18,7 +18,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 파라미터가 필요합니다." }), {
+    return new Response(jsonKST({ ok: false, error: "id 파라미터가 필요합니다." }), {
       status: 400,
       headers: JSON_HEADER,
     });
@@ -63,14 +63,14 @@ export default async function handler(req: Request, _ctx: Context) {
     const rows = res?.rows ?? res ?? [];
     const row = rows[0];
     if (!row) {
-      return new Response(JSON.stringify({ ok: false, error: "템플릿을 찾을 수 없습니다." }), {
+      return new Response(jsonKST({ ok: false, error: "템플릿을 찾을 수 없습니다." }), {
         status: 404,
         headers: JSON_HEADER,
       });
     }
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         template: {
           id:           row.id,
@@ -98,7 +98,7 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: "템플릿 조회 실패",
         step: "select_detail",

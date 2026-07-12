@@ -3,6 +3,7 @@
 //
 // GET ?triggerId=X&limit=50&offset=0&status=ok|skipped|error
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -16,7 +17,7 @@ export default async function handler(req: Request) {
   const url = new URL(req.url);
   const triggerId = Number(url.searchParams.get("triggerId"));
   if (!triggerId || isNaN(triggerId)) {
-    return new Response(JSON.stringify({ ok: false, error: "트리거 ID(triggerId)가 필요합니다" }),
+    return new Response(jsonKST({ ok: false, error: "트리거 ID(triggerId)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -47,12 +48,12 @@ export default async function handler(req: Request) {
     const total = ((totalRes?.rows ?? totalRes)[0] ?? {}).n ?? 0;
 
     return new Response(
-      JSON.stringify({ ok: true, rows, total }),
+      jsonKST({ ok: true, rows, total }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "실행 이력 조회 실패",
         step: "select", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

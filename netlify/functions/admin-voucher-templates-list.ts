@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -38,11 +38,11 @@ export default async function handler(req: Request, _ctx: Context) {
     }));
 
     return new Response(
-      JSON.stringify({ ok: true, data: { templates, total: templates.length } }),
+      jsonKST({ ok: true, data: { templates, total: templates.length } }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "전표 템플릿 목록 조회 실패", step: "select",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),

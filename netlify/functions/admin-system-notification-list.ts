@@ -9,6 +9,7 @@
  *                       sms:   ..., kakao: ..., inapp: ... } }] }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -63,7 +64,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
 
@@ -150,10 +151,10 @@ export default async (req: Request, _ctx: Context) => {
       },
     }));
 
-    return new Response(JSON.stringify({ ok: true, events }, null, 2),
+    return new Response(jsonKST({ ok: true, events }, null, 2),
       { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "조회 실패", detail: String(e?.message || e).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });
   }

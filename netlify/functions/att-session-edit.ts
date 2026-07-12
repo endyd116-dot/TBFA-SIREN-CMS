@@ -6,6 +6,7 @@
  *  - 업무시간(정책 표준 출퇴근 시각) 외에는 거부 (어드민 정정 안내)
  *  - 요약(checkInTime·checkOutTime·workingMins) 재계산 + isManuallyAdjusted 표시
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -16,10 +17,10 @@ import { normalizeSessions, recomputeSummary, isWithinWorkHours, type AttSession
 export const config = { path: "/api/att-session-edit" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(jsonKST({ ok: true, data }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "시각 수정 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
   }), { status, headers: { "Content-Type": "application/json" } });

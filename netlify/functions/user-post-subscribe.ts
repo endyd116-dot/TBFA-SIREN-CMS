@@ -1,6 +1,7 @@
 // user-post-subscribe.ts — 게시글/게시판 구독 토글
 // POST /api/user-post-subscribe  body: { postId? | boardCategory? }
 // DELETE /api/user-post-subscribe?postId=&boardCategory=
+import { jsonKST } from "../../lib/kst";
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
 import { postSubscriptions } from "../../db/schema";
@@ -9,7 +10,7 @@ import { and, eq, isNull } from "drizzle-orm";
 export const config = { path: "/api/user-post-subscribe" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "구독 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -39,12 +40,12 @@ export default async (req: Request) => {
     const boardCategory: string | undefined = body.boardCategory || undefined;
 
     if (!postId && !boardCategory) {
-      return new Response(JSON.stringify({ ok: false, error: "postId 또는 boardCategory 필요" }), {
+      return new Response(jsonKST({ ok: false, error: "postId 또는 boardCategory 필요" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
     if (postId && boardCategory) {
-      return new Response(JSON.stringify({ ok: false, error: "postId와 boardCategory 동시 사용 불가" }), {
+      return new Response(jsonKST({ ok: false, error: "postId와 boardCategory 동시 사용 불가" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -61,7 +62,7 @@ export default async (req: Request) => {
     }
 
     if (existing.length > 0) {
-      return new Response(JSON.stringify({ ok: true, subscribed: true, message: "이미 구독 중입니다." }), {
+      return new Response(jsonKST({ ok: true, subscribed: true, message: "이미 구독 중입니다." }), {
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -72,7 +73,7 @@ export default async (req: Request) => {
       return jsonError("insert_sub", err);
     }
 
-    return new Response(JSON.stringify({ ok: true, subscribed: true }), {
+    return new Response(jsonKST({ ok: true, subscribed: true }), {
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -83,7 +84,7 @@ export default async (req: Request) => {
     const boardCategory = url.searchParams.get("boardCategory") || undefined;
 
     if (!postId && !boardCategory) {
-      return new Response(JSON.stringify({ ok: false, error: "postId 또는 boardCategory 필요" }), {
+      return new Response(jsonKST({ ok: false, error: "postId 또는 boardCategory 필요" }), {
         status: 400, headers: { "Content-Type": "application/json" },
       });
     }
@@ -97,12 +98,12 @@ export default async (req: Request) => {
       return jsonError("delete_sub", err);
     }
 
-    return new Response(JSON.stringify({ ok: true, subscribed: false }), {
+    return new Response(jsonKST({ ok: true, subscribed: false }), {
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+  return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 };

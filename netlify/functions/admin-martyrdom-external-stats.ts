@@ -5,6 +5,7 @@
  *
  * 권한: requireAdmin
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -13,7 +14,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-external-stats" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "통계 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +23,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
   const auth = await requireAdmin(req);
@@ -61,6 +62,6 @@ export default async (req: Request, _ctx: Context) => {
     console.warn(`[external-stats] last_cron_at 조회 실패: ${err?.message}`);
   }
 
-  return new Response(JSON.stringify({ ok: true, pending, approved, rejected, lastCronAt }),
+  return new Response(jsonKST({ ok: true, pending, approved, rejected, lastCronAt }),
     { status: 200, headers: { "Content-Type": "application/json" } });
 };

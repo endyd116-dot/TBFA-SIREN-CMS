@@ -1,6 +1,7 @@
 // admin-anonymous-reveal.ts — 익명 신고자 신원 단계적 식별 + 감사 로그
 // POST /api/admin-anonymous-reveal
 // body: { reportType: 'incident'|'harassment'|'legal', reportId, revealLevel: 1|2, reason }
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
@@ -19,7 +20,7 @@ const REPORT_TABLES = {
 } as const;
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "신원 식별 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -28,7 +29,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -37,7 +38,7 @@ export default async (req: Request) => {
   if (guardFailed(auth)) return auth.res;
   // R45 CLUSTER-2(AD-003/OP-008): 익명 신원 식별은 권한 게이트 — DB 역할(operator 차단·super는 UI에서 admin까지 제한 가능)
   if (!(await canAccess(auth.ctx.member.role ?? "", "anonymous_reveal"))) {
-    return new Response(JSON.stringify({ ok: false, error: "신원 식별 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "신원 식별 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
   const adminId = auth.ctx.member.id as number;
 
@@ -54,7 +55,7 @@ export default async (req: Request) => {
   const reason: string | undefined = body.reason;
 
   if (!["incident", "harassment", "legal"].includes(reportType) || !reportId || ![1, 2].includes(revealLevel)) {
-    return new Response(JSON.stringify({ ok: false, error: "reportType, reportId, revealLevel(1|2) 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "reportType, reportId, revealLevel(1|2) 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -73,12 +74,12 @@ export default async (req: Request) => {
     return jsonError("select_report", err);
   }
   if (!report) {
-    return new Response(JSON.stringify({ ok: false, error: "신고 없음" }), {
+    return new Response(jsonKST({ ok: false, error: "신고 없음" }), {
       status: 404, headers: { "Content-Type": "application/json" },
     });
   }
   if (!report.isAnonymous) {
-    return new Response(JSON.stringify({ ok: false, error: "익명 신고가 아닙니다." }), {
+    return new Response(jsonKST({ ok: false, error: "익명 신고가 아닙니다." }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -145,7 +146,7 @@ export default async (req: Request) => {
     responseData.reporterEmail = report.reporterEmail;
   }
 
-  return new Response(JSON.stringify(responseData), {
+  return new Response(jsonKST(responseData), {
     headers: { "Content-Type": "application/json" },
   });
 };

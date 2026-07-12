@@ -7,6 +7,7 @@
  * 처리 단계:
  *  auth → validate → select_task → permission → transfer(이력+카드 갱신+알림+활동로그)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -17,7 +18,7 @@ import { transferWorkspaceTask } from "../../lib/workspace-sync";
 export const config = { path: "/api/admin-workspace-task-transfer" };
 
 function jsonError(status: number, error: string, step?: string, err?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error,
     step,
@@ -93,7 +94,7 @@ export default async (req: Request, _ctx: Context) => {
     if (!result) return jsonError(500, "토스 처리 실패", step);
 
     step = "respond";
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         transferId: result.transferId,

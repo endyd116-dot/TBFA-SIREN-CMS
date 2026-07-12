@@ -11,6 +11,7 @@
  *
  * 응답: { ok, candidates:[{ code,category,title,description,evidenceHint,lawRef,weight,exists }] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -32,7 +33,7 @@ function readFileSafe(relPath: string): string {
   try { return fs.readFileSync(path.resolve(process.cwd(), relPath), "utf-8"); } catch { return ""; }
 }
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -41,7 +42,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -51,7 +52,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     const lawText = LAW_FILES.map(f => readFileSafe(f)).filter(Boolean).join("\n\n=====\n\n");
     if (!lawText) {
-      return new Response(JSON.stringify({ ok: false, error: "법령 문서를 읽을 수 없습니다(번들 included_files 확인)" }), {
+      return new Response(jsonKST({ ok: false, error: "법령 문서를 읽을 수 없습니다(번들 included_files 확인)" }), {
         status: 500, headers: { "Content-Type": "application/json" },
       });
     }
@@ -77,7 +78,7 @@ export default async (req: Request, _ctx: Context) => {
     );
 
     if (!res.ok || !res.data || !Array.isArray(res.data.candidates)) {
-      return new Response(JSON.stringify({ ok: false, error: "법령 파싱 실패 — 다시 시도해주세요", detail: res.error || "" }), {
+      return new Response(jsonKST({ ok: false, error: "법령 파싱 실패 — 다시 시도해주세요", detail: res.error || "" }), {
         status: 502, headers: { "Content-Type": "application/json" },
       });
     }
@@ -107,7 +108,7 @@ export default async (req: Request, _ctx: Context) => {
       detail: { count: candidates.length },
     });
 
-    return new Response(JSON.stringify({ ok: true, candidates }), {
+    return new Response(jsonKST({ ok: true, candidates }), {
       headers: { "Content-Type": "application/json" },
     });
 

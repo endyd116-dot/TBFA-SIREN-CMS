@@ -9,6 +9,7 @@
  *  - 기존 수신자 스냅샷이 있으면 모두 삭제 (startJob이 다시 만듦)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -21,7 +22,7 @@ export const config = { path: "/api/admin-send-job-restart" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "재시도 실패", step,
     detail: String(err?.message || err).slice(0, 500),
   }), { status, headers: JSON_HEADER });
@@ -29,14 +30,14 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
   // R45 §4-7: 대량 발송 재시작은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
-    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
   }
 
   const url = new URL(req.url);
@@ -91,7 +92,7 @@ export default async function handler(req: Request, _ctx: Context) {
     /* 2026-06-25 즉시 처리: 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire. */
     void triggerDispatchBackground().catch(() => {});
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, id, resumed: true,
       message: "이미 발송된 수신자는 제외하고 미발송분만 재개합니다 (즉시 시작).",
     }), { status: 200, headers: JSON_HEADER });
@@ -122,7 +123,7 @@ export default async function handler(req: Request, _ctx: Context) {
   /* 2026-06-25 즉시 처리: 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire. */
   void triggerDispatchBackground().catch(() => {});
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true, id, message: "재시도 대기열에 등록되었습니다 (즉시 시작)",
   }), { status: 200, headers: JSON_HEADER });
 }

@@ -5,6 +5,7 @@
  *
  * 권한: requireAdmin
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -13,7 +14,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 export const config = { path: "/api/admin-martyrdom-external-detail" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "상세 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +23,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
   const auth = await requireAdmin(req);
@@ -31,7 +32,7 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const id = Number(url.searchParams.get("id") || "0");
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 필수" }),
+    return new Response(jsonKST({ ok: false, error: "id 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -45,7 +46,7 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
-      return new Response(JSON.stringify({ ok: false, error: "외부 자료를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "외부 자료를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
     const item = {
@@ -66,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
       meta:            row.meta || {},
       createdAt:       row.created_at ? new Date(row.created_at).toISOString() : null,
     };
-    return new Response(JSON.stringify({ ok: true, item }),
+    return new Response(jsonKST({ ok: true, item }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError("select_detail", err);

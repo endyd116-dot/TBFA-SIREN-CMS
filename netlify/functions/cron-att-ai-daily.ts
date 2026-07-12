@@ -8,6 +8,7 @@
  * 3. 슈퍼어드민에게 인앱 알림 발송
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, attRecords, attRemoteWorkReports } from "../../db/schema";
@@ -133,13 +134,13 @@ export default async (_req: Request, _ctx: Context) => {
     const durationMs = Date.now() - start;
     console.info(`[cron-att-ai-daily] 완료 (${durationMs}ms)`);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, today, checkedIn, absent, summaryText, durationMs,
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error("[cron-att-ai-daily] 오류:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message ?? err) }),
+    return new Response(jsonKST({ ok: false, error: String(err?.message ?? err) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

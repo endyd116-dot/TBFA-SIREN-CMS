@@ -1,4 +1,4 @@
-import { yearKST } from "../../lib/kst";
+import { yearKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -14,7 +14,7 @@ export const config = { path: "/api/admin-approval-request-create" };
    ========================================================= */
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "지출 결재 기안 생성 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +22,7 @@ function jsonError(step: string, err: any) {
 }
 
 function jsonBad(step: string, message: string) {
-  return new Response(JSON.stringify({ ok: false, error: message, step }),
+  return new Response(jsonKST({ ok: false, error: message, step }),
     { status: 400, headers: { "Content-Type": "application/json" } });
 }
 
@@ -32,7 +32,7 @@ function rowsOf(res: any): any[] {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -173,7 +173,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   /* ===== 9) 응답 ===== */
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       id: newId,

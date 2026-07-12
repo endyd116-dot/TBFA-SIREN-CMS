@@ -8,6 +8,7 @@
  *
  * ?dryRun=1 로 검증 가능.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members } from "../../db/schema";
@@ -45,7 +46,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (list.length === 0) {
       console.info("[cron-att-late-streak] 임계 도달자 없음");
-      return new Response(JSON.stringify({ ok: true, durationMs: Date.now() - start, alertCount: 0 }),
+      return new Response(jsonKST({ ok: true, durationMs: Date.now() - start, alertCount: 0 }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -130,14 +131,14 @@ export default async (req: Request, _ctx: Context) => {
     const durationMs = Date.now() - start;
     console.info(`[cron-att-late-streak] 완료 — 임계도달:${list.length}명 본인:${selfAlertCount} 슈퍼:${supAlertCount} (${durationMs}ms)${dryRun ? " [dryRun]" : ""}`);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, dryRun, threshold: LATE_THRESHOLD, windowDays: WINDOW_DAYS,
       detail, selfAlertCount, supAlertCount, durationMs,
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error("[cron-att-late-streak] 오류:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message ?? err) }),
+    return new Response(jsonKST({ ok: false, error: String(err?.message ?? err) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

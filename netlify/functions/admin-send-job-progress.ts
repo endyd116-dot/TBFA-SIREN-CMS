@@ -1,6 +1,7 @@
 // netlify/functions/admin-send-job-progress.ts
 // Phase 10 R3 — 진행률 폴링용 가벼운 응답 (5~10초 간격 호출 가정)
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -12,7 +13,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "진행률 조회 실패",
       step,
@@ -31,7 +32,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -46,7 +47,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
       return new Response(
-        JSON.stringify({ ok: false, error: "발송 작업을 찾을 수 없습니다.", step: "not_found" }),
+        jsonKST({ ok: false, error: "발송 작업을 찾을 수 없습니다.", step: "not_found" }),
         { status: 404, headers: JSON_HEADER },
       );
     }
@@ -74,7 +75,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const pendingCount = Math.max(0, totalRecipients - done);
     const progressPercent = totalRecipients > 0 ? Math.round((done / totalRecipients) * 1000) / 10 : 0;
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         progress: {
           status: row.status,

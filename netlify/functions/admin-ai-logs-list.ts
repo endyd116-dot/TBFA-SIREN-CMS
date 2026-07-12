@@ -6,6 +6,7 @@
  * 또는 ?stats=1 → 도구별 집계
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -16,7 +17,7 @@ export const config = { path: "/api/admin-ai-logs-list" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async (req: Request, _ctx: Context) => {
-  if (req.method !== "GET") return new Response(JSON.stringify({ ok: false, error: "GET만" }),
+  if (req.method !== "GET") return new Response(jsonKST({ ok: false, error: "GET만" }),
     { status: 405, headers: JSON_HEADER });
 
   const auth = await requireAdmin(req);
@@ -40,7 +41,7 @@ export default async (req: Request, _ctx: Context) => {
           GROUP BY tool_name
           ORDER BY total_count DESC
       `);
-      return new Response(JSON.stringify({ ok: true, stats: r?.rows ?? r ?? [] }),
+      return new Response(jsonKST({ ok: true, stats: r?.rows ?? r ?? [] }),
         { status: 200, headers: JSON_HEADER });
     }
 
@@ -73,10 +74,10 @@ export default async (req: Request, _ctx: Context) => {
     const cntRes: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM ai_agent_logs ${where}`);
     const total = Number((cntRes?.rows ?? cntRes)[0]?.n) || 0;
 
-    return new Response(JSON.stringify({ ok: true, total, rows }),
+    return new Response(jsonKST({ ok: true, total, rows }),
       { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "로그 조회 실패",
       detail: String(err?.message || err).slice(0, 500),
     }), { status: 500, headers: JSON_HEADER });

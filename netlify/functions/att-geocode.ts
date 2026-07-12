@@ -1,14 +1,15 @@
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/att-geocode" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "지오코딩 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -23,7 +24,7 @@ export default async function handler(req: Request) {
 
   const kakaoKey = process.env.KAKAO_REST_API_KEY;
   if (!kakaoKey) {
-    return new Response(JSON.stringify({ ok: false, error: "카카오 API 키 미설정" }), {
+    return new Response(jsonKST({ ok: false, error: "카카오 API 키 미설정" }), {
       status: 503, headers: { "Content-Type": "application/json" },
     });
   }
@@ -48,7 +49,7 @@ export default async function handler(req: Request) {
     const doc = kakaoData.documents?.[0];
 
     if (!doc) {
-      return new Response(JSON.stringify({ ok: false, error: "주소를 찾을 수 없습니다", step: "no_result" }), {
+      return new Response(jsonKST({ ok: false, error: "주소를 찾을 수 없습니다", step: "no_result" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }

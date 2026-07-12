@@ -5,6 +5,7 @@
  * 요청: { submissionId }  (body or ?submissionId=)
  * 응답: { ok }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db, formSubmissions } from "../../db";
@@ -16,7 +17,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(status: number, step: string, error: string, detail?: any) {
   return new Response(
-    JSON.stringify({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
+    jsonKST({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
     { status, headers: JSON_HEADER }
   );
 }
@@ -63,7 +64,7 @@ export default async (req: Request, _ctx: Context) => {
       req,
     });
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: JSON_HEADER });
+    return new Response(jsonKST({ ok: true }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
     console.error("[admin-form-submission-delete]", err);
     return jsonError(500, "delete", "응답 삭제 실패", err?.message);

@@ -1,10 +1,11 @@
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
 
 export const config = { path: "/api/admin-security-alert" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "보안 알림 전송 실패",
     step,
@@ -15,7 +16,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), { status: 405 });
   }
 
   let auth: Awaited<ReturnType<typeof requireAdmin>>;
@@ -30,13 +31,13 @@ export default async function handler(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패" }), { status: 400 });
   }
 
   const { alertType, targetUserId, message, riskLevel } = body;
 
   if (!alertType || !message) {
-    return new Response(JSON.stringify({ ok: false, error: "alertType과 message는 필수입니다" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "alertType과 message는 필수입니다" }), { status: 400 });
   }
 
   try {
@@ -52,7 +53,7 @@ export default async function handler(req: Request) {
   // 실제 알림 발송 로직 (이메일·슬랙 등)은 추후 연동
   // 현재는 감사 로그 기록 후 sent: true 응답
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     sent: true,
   }), { headers: { "Content-Type": "application/json" } });

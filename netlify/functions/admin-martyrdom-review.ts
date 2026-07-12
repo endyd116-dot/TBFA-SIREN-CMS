@@ -11,6 +11,7 @@
  *   PATCH { ok, reviewId, status }
  *   GET   { ok, reviews:[…] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -21,14 +22,14 @@ import { notifyMartyrdomAdmins } from "../../lib/martyrdom-notify";
 export const config = { path: "/api/admin-martyrdom-review" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status: 400, headers: { "Content-Type": "application/json" },
   });
 }
@@ -73,7 +74,7 @@ export default async (req: Request, _ctx: Context) => {
         severity: "info",
       });
 
-      return new Response(JSON.stringify({ ok: true, reviewId, status: "pending", assignedTo }), {
+      return new Response(jsonKST({ ok: true, reviewId, status: "pending", assignedTo }), {
         headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -96,13 +97,13 @@ export default async (req: Request, _ctx: Context) => {
       const rv: any = await db.execute(sql.raw(`SELECT id, case_id AS "caseId", output_id AS "outputId", status, assigned_to AS "assignedTo" FROM martyrdom_reviews WHERE id = ${reviewId} LIMIT 1`));
       const row = (rv?.rows ?? rv ?? [])[0];
       if (!row) {
-        return new Response(JSON.stringify({ ok: false, error: "검토 배정을 찾을 수 없습니다" }), {
+        return new Response(jsonKST({ ok: false, error: "검토 배정을 찾을 수 없습니다" }), {
           status: 404, headers: { "Content-Type": "application/json" },
         });
       }
       const curStatus = String(row.status || "pending");
       if (curStatus !== "pending") {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false,
           error: curStatus === "approved" ? "이미 승인된 검토입니다" : "이미 수정 요청된 검토입니다",
           step: "already_decided",
@@ -112,7 +113,7 @@ export default async (req: Request, _ctx: Context) => {
 
       /* R45 AD-021: 배정된 검토자(또는 super_admin)만 결정 가능 — UI 차단 외 서버 검증(책임 추적) */
       if (member.role !== "super_admin" && Number(row.assignedTo) !== Number(member.id)) {
-        return new Response(JSON.stringify({ ok: false, error: "배정된 검토자만 검토 결정을 할 수 있습니다", step: "reviewer_check" }), { status: 403, headers: { "Content-Type": "application/json" } });
+        return new Response(jsonKST({ ok: false, error: "배정된 검토자만 검토 결정을 할 수 있습니다", step: "reviewer_check" }), { status: 403, headers: { "Content-Type": "application/json" } });
       }
 
       /* pending → 결정으로만 원자 전이 (동시 PATCH 경합 방어) */
@@ -123,7 +124,7 @@ export default async (req: Request, _ctx: Context) => {
         RETURNING id
       `));
       if (!(upd?.rows ?? upd ?? []).length) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false, error: "이미 처리된 검토입니다", step: "already_decided",
         }), { status: 409, headers: { "Content-Type": "application/json" } });
       }
@@ -147,7 +148,7 @@ export default async (req: Request, _ctx: Context) => {
         severity: status === "approved" ? "info" : "warning",
       });
 
-      return new Response(JSON.stringify({ ok: true, reviewId, status }), {
+      return new Response(jsonKST({ ok: true, reviewId, status }), {
         headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -177,11 +178,11 @@ export default async (req: Request, _ctx: Context) => {
         createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
         decidedAt: row.decidedAt ? new Date(row.decidedAt).toISOString() : null,
       }));
-      return new Response(JSON.stringify({ ok: true, reviews }), { headers: { "Content-Type": "application/json" } });
+      return new Response(jsonKST({ ok: true, reviews }), { headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("review_list", err);
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "POST·PATCH·GET만 허용" }), { status: 405 });
+  return new Response(jsonKST({ ok: false, error: "POST·PATCH·GET만 허용" }), { status: 405 });
 };

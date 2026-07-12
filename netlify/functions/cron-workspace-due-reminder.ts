@@ -10,6 +10,7 @@
  *
  * Phase 21 R2+R3 — category="due"
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -151,7 +152,7 @@ export default async (_req: Request, _ctx: Context) => {
 
   const ms = Date.now() - startedAt;
   console.log("[cron-due] done", { totalSent, totalSkipped, ms });
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     totalSent,
     totalSkipped,

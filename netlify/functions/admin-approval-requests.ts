@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -15,7 +15,7 @@ export const config = { path: "/api/admin-approval-requests" };
    ========================================================= */
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "지출 결재 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -43,7 +43,7 @@ function canApprove(myRole: string, stepRole: string | null): boolean {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "GET 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -70,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
    ========================================================= */
 async function handleDetail(id: number) {
   if (!Number.isFinite(id)) {
-    return new Response(JSON.stringify({ ok: false, error: "id가 올바르지 않습니다" }),
+    return new Response(jsonKST({ ok: false, error: "id가 올바르지 않습니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -93,7 +93,7 @@ async function handleDetail(id: number) {
     `);
     reqRow = rowsOf(res)[0];
     if (!reqRow) {
-      return new Response(JSON.stringify({ ok: false, error: "결재 요청을 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "결재 요청을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
   } catch (err: any) { return jsonError("select_request", err); }
@@ -171,7 +171,7 @@ async function handleDetail(id: number) {
     decidedAt:         isoUTC(reqRow.decided_at),
   };
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: { request, steps, budgetPath },
   }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -245,7 +245,7 @@ async function handleList(box: string, statusFilter: string | null, myId: number
 
   const items = mapped.map(({ _stepRole, ...rest }) => rest);
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: { box, items, total: items.length },
   }), { status: 200, headers: { "Content-Type": "application/json" } });

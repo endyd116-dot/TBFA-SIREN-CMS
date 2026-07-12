@@ -6,7 +6,7 @@
  *        ?q=...          이름·계좌번호 검색 (선택)
  *        ?page=1&limit=50
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -15,7 +15,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-counterparties-list" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "거래처 목록 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -59,7 +59,7 @@ export default async function handler(req: Request, _ctx: Context) {
       total = Number((c?.rows ?? c ?? [])[0]?.n ?? 0);
     } catch { /* total 보조 */ }
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         counterparties: rows.map((x: any) => ({

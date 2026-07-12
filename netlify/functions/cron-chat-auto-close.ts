@@ -14,6 +14,7 @@
  *
  * Scheduled Functions는 path 지정 불가 — schedule만 선언(cron 전용 호출).
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { and, eq, lt, ne, inArray } from "drizzle-orm";
 import { db, chatRooms } from "../../db";
@@ -63,13 +64,13 @@ export default async (_req: Request, _ctx: Context) => {
     const elapsedMs = Date.now() - startedAt;
     console.log(`[cron-chat-auto-close] scanned=${stats.scanned} closed=${stats.closed} elapsed=${elapsedMs}ms`);
     return new Response(
-      JSON.stringify({ ok: true, message: "장기 방치 상담 자동 종료 완료", stats, elapsedMs }, null, 2),
+      jsonKST({ ok: true, message: "장기 방치 상담 자동 종료 완료", stats, elapsedMs }, null, 2),
       { status: 200, headers: { "content-type": "application/json" } }
     );
   } catch (err: any) {
     console.error("[cron-chat-auto-close] 오류:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || String(err), stats }),
+      jsonKST({ ok: false, error: err?.message || String(err), stats }),
       { status: 500, headers: { "content-type": "application/json" } }
     );
   }

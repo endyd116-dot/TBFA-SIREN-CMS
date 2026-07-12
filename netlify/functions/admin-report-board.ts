@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -5,7 +6,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "이사회 보고 조회 실패",
       step,
@@ -50,7 +51,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -66,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
   const quarter = Math.min(4, Math.max(1, Number(url.searchParams.get("quarter") || Math.ceil((now.getUTCMonth() + 1) / 3))));
 
   if (!Number.isFinite(year) || year < 2020 || year > 2100) {
-    return new Response(JSON.stringify({ ok: false, error: "유효하지 않은 연도" }), {
+    return new Response(jsonKST({ ok: false, error: "유효하지 않은 연도" }), {
       status: 400,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -201,7 +202,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, type, period, donation, member, siren, beneficiary }),
+    jsonKST({ ok: true, type, period, donation, member, siren, beneficiary }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
   );
 };

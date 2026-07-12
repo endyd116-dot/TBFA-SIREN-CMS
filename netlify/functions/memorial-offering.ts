@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { createHash } from "crypto";
 import { db } from "../../db";
@@ -40,7 +41,7 @@ async function scopedCounts(teacherId: number | null): Promise<{ candles: number
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method.toUpperCase() !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드입니다" }), {
+    return new Response(jsonKST({ ok: false, error: "지원하지 않는 메서드입니다" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -89,11 +90,11 @@ export default async function handler(req: Request, _ctx: Context) {
     }
 
     const counts = await scopedCounts(teacherId);
-    return new Response(JSON.stringify({ ok: true, data: counts }), {
+    return new Response(jsonKST({ ok: true, data: counts }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "헌화 처리 실패",
       step: "insert_offering",

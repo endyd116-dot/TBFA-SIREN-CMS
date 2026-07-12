@@ -6,6 +6,7 @@
  *
  * Phase 22-D-R3 §4.1 — is_template=true 전표만 대상
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -14,7 +15,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-voucher-template-update" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "반복 템플릿 설정 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -23,7 +24,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "PUT") {
-    return new Response(JSON.stringify({ ok: false, error: "PUT 메서드만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "PUT 메서드만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
@@ -36,7 +37,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const { id, recurringDay, recurringActive } = body;
 
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 필수" }),
+    return new Response(jsonKST({ ok: false, error: "id 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -45,7 +46,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (recurringDay !== undefined && recurringDay !== null && recurringDay !== "") {
     day = parseInt(String(recurringDay));
     if (!Number.isFinite(day) || day < 0 || day > 31) {
-      return new Response(JSON.stringify({ ok: false, error: "recurringDay는 0~31 사이 (0=말일)" }),
+      return new Response(jsonKST({ ok: false, error: "recurringDay는 0~31 사이 (0=말일)" }),
         { status: 422, headers: { "Content-Type": "application/json" } });
     }
   }
@@ -53,7 +54,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   // active=true 인데 day 없으면 거절 (자동 생성일 미지정)
   if (active && day === null) {
-    return new Response(JSON.stringify({ ok: false, error: "자동 생성을 켜려면 생성일(recurringDay)을 지정해야 합니다" }),
+    return new Response(jsonKST({ ok: false, error: "자동 생성을 켜려면 생성일(recurringDay)을 지정해야 합니다" }),
       { status: 422, headers: { "Content-Type": "application/json" } });
   }
 
@@ -66,11 +67,11 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     tpl = (rows?.rows ?? rows ?? [])[0];
     if (!tpl) {
-      return new Response(JSON.stringify({ ok: false, error: "전표를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "전표를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
     if (!tpl.is_template) {
-      return new Response(JSON.stringify({ ok: false, error: "반복 주기는 템플릿 전표에만 설정 가능합니다" }),
+      return new Response(jsonKST({ ok: false, error: "반복 주기는 템플릿 전표에만 설정 가능합니다" }),
         { status: 422, headers: { "Content-Type": "application/json" } });
     }
   } catch (err: any) {
@@ -86,7 +87,7 @@ export default async function handler(req: Request, _ctx: Context) {
       WHERE id = ${Number(id)}
     `);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         id: Number(id),

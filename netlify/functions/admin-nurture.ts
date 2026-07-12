@@ -6,6 +6,7 @@
  *
  * 인증: requireAdmin (admin+). 발송 자체는 엔진/디스패처가 수행.
  */
+import { jsonKST } from "../../lib/kst";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -17,7 +18,7 @@ export const config = { path: "/api/admin-nurture" };
 const H = { "Content-Type": "application/json; charset=utf-8" };
 
 function err(step: string, e: any, status = 500) {
-  return new Response(JSON.stringify({ ok: false, error: "너처링 처리 실패", step, detail: String(e?.message || e).slice(0, 500) }), { status, headers: H });
+  return new Response(jsonKST({ ok: false, error: "너처링 처리 실패", step, detail: String(e?.message || e).slice(0, 500) }), { status, headers: H });
 }
 function rows(r: any): any[] { return (r?.rows ?? r ?? []) as any[]; }
 
@@ -77,11 +78,11 @@ export default async function handler(req: Request) {
           (SELECT COUNT(*) FROM nurture_sends s JOIN nurture_enrollments e ON e.id=s.enrollment_id WHERE e.journey_id=j.id)::int AS "sentCount"
         FROM nurture_journeys j ORDER BY j.id
       `));
-      return new Response(JSON.stringify({ ok: true, data: { journeys, steps, evergreen, templates, kpi } }), { status: 200, headers: H });
+      return new Response(jsonKST({ ok: true, data: { journeys, steps, evergreen, templates, kpi } }), { status: 200, headers: H });
     } catch (e) { return err("get_state", e); }
   }
 
-  if (req.method !== "POST") return new Response(JSON.stringify({ ok: false, error: "GET/POST만" }), { status: 405, headers: H });
+  if (req.method !== "POST") return new Response(jsonKST({ ok: false, error: "GET/POST만" }), { status: 405, headers: H });
 
   let body: any = {};
   try { body = await req.json(); } catch (e) { return err("parse", e, 400); }
@@ -93,7 +94,7 @@ export default async function handler(req: Request) {
         const id = Number(body.journeyId); const on = body.isActive === true;
         if (!id) return err("validate", "journeyId 필요", 400);
         await db.execute(sql`UPDATE nurture_journeys SET is_active = ${on}, updated_at = NOW() WHERE id = ${id}`);
-        return new Response(JSON.stringify({ ok: true, journeyId: id, isActive: on }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true, journeyId: id, isActive: on }), { status: 200, headers: H });
       }
       case "saveStep": {
         const journeyId = Number(body.journeyId);
@@ -113,18 +114,18 @@ export default async function handler(req: Request) {
             UPDATE nurture_steps SET day_offset=${dayOffset}, channel=${channel}, template_id=${templateId}, email_template_id=${emailTemplateId},
               label=${label}, is_active=${isActive}, conditions=${conditions}::jsonb, updated_at=NOW()
             WHERE id=${Number(body.id)}`);
-          return new Response(JSON.stringify({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
+          return new Response(jsonKST({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
         }
         const r = rows(await db.execute(sql`
           INSERT INTO nurture_steps (journey_id, day_offset, channel, template_id, email_template_id, label, is_active, conditions, sort_order)
           VALUES (${journeyId}, ${dayOffset}, ${channel}, ${templateId}, ${emailTemplateId}, ${label}, ${isActive}, ${conditions}::jsonb, ${dayOffset})
           RETURNING id`));
-        return new Response(JSON.stringify({ ok: true, id: r[0]?.id }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true, id: r[0]?.id }), { status: 200, headers: H });
       }
       case "deleteStep": {
         const id = Number(body.id); if (!id) return err("validate", "id 필요", 400);
         await db.execute(sql`DELETE FROM nurture_steps WHERE id=${id}`);
-        return new Response(JSON.stringify({ ok: true }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true }), { status: 200, headers: H });
       }
       case "saveEvergreen": {
         const journeyId = Number(body.journeyId);
@@ -140,15 +141,15 @@ export default async function handler(req: Request) {
         if (typeof body.bodyText === "string") templateId = await upsertTpl({ id: templateId, channel, subject: body.subject ?? null, body: body.bodyText, label, imageUrl: body.imageUrl ?? null, hasImageKey: "imageUrl" in body });
         if (body.id) {
           await db.execute(sql`UPDATE nurture_evergreen_rules SET cadence=${cadence}, channel=${channel}, template_id=${templateId}, email_template_id=${emailTemplateId}, label=${label}, is_active=${isActive}, updated_at=NOW() WHERE id=${Number(body.id)}`);
-          return new Response(JSON.stringify({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
+          return new Response(jsonKST({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
         }
         const r = rows(await db.execute(sql`INSERT INTO nurture_evergreen_rules (journey_id, cadence, channel, template_id, email_template_id, label, is_active) VALUES (${journeyId}, ${cadence}, ${channel}, ${templateId}, ${emailTemplateId}, ${label}, ${isActive}) RETURNING id`));
-        return new Response(JSON.stringify({ ok: true, id: r[0]?.id }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true, id: r[0]?.id }), { status: 200, headers: H });
       }
       case "deleteEvergreen": {
         const id = Number(body.id); if (!id) return err("validate", "id 필요", 400);
         await db.execute(sql`DELETE FROM nurture_evergreen_rules WHERE id=${id}`);
-        return new Response(JSON.stringify({ ok: true }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true }), { status: 200, headers: H });
       }
       case "analytics": {
         /* 성과 대시보드 — 여정 퍼널·발송·채널·단계별 */
@@ -177,12 +178,12 @@ export default async function handler(req: Request) {
                  COUNT(DISTINCT r.id) FILTER (WHERE r.clicked_at IS NOT NULL)::int AS clicks
           FROM nurture_sends ns JOIN communication_send_recipients r ON r.job_id = ns.job_id
           WHERE ns.job_id IS NOT NULL`))[0] || {};
-        return new Response(JSON.stringify({ ok: true, data: { journeys, funnel, sentByJourney, stepSends, channelTotals, recent, emailTracking } }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true, data: { journeys, funnel, sentByJourney, stepSends, channelTotals, recent, emailTracking } }), { status: 200, headers: H });
       }
       case "preview": {
         /* 오늘 실제로 무엇이 발송될지(dryRun) — 아무것도 안 보냄 */
         const summary = await runNurture({ dryRun: true });
-        return new Response(JSON.stringify({ ok: true, summary }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: true, summary }), { status: 200, headers: H });
       }
       case "testSend": {
         const templateId = Number(body.templateId);
@@ -196,7 +197,7 @@ export default async function handler(req: Request) {
         const bodyHtml = renderTemplate(String(t.body_template || ""), vars, sample as any).rendered;
         const m = await sendEmail({ to: toEmail, subject: `[테스트] ${subject}`, html: bodyHtml });
         void adminId;
-        return new Response(JSON.stringify({ ok: !!m.ok, sentTo: toEmail }), { status: 200, headers: H });
+        return new Response(jsonKST({ ok: !!m.ok, sentTo: toEmail }), { status: 200, headers: H });
       }
       default:
         return err("action", `알 수 없는 action: ${action}`, 400);

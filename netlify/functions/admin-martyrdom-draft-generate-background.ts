@@ -9,6 +9,7 @@
  *
  * fail-closed(INTERNAL_TRIGGER_SECRET).
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -19,7 +20,7 @@ function q(v: string): string { return `'${String(v).replace(/'/g, "''")}'`; }
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -28,13 +29,13 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   const caseId = Number(body?.caseId || 0);
   const outputId = Number(body?.outputId || 0);
   if (!caseId || !outputId) {
-    return new Response(JSON.stringify({ ok: false, error: "caseId·outputId 필수" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "caseId·outputId 필수" }), { status: 400 });
   }
 
   console.info(`[martyrdom-draft-gen-bg] start caseId=${caseId} outputId=${outputId}`);
@@ -93,11 +94,11 @@ export default async (req: Request, _ctx: Context) => {
     });
 
     console.info(`[martyrdom-draft-gen-bg] done caseId=${caseId} outputId=${outputId} done=${done} failed=${failed}`);
-    return new Response(JSON.stringify({ ok: true, caseId, outputId, done, failed }), {
+    return new Response(jsonKST({ ok: true, caseId, outputId, done, failed }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error(`[martyrdom-draft-gen-bg] caseId=${caseId} 예외:`, err?.message, err?.stack);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
+    return new Response(jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
   }
 };

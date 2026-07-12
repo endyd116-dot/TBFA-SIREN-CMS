@@ -9,13 +9,14 @@
  *
  * fail-closed(INTERNAL_TRIGGER_SECRET) · throw 안 함.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { learnFromClosedCase, indexApprovedReport } from "../../lib/martyrdom-ai";
 import { notifyMartyrdomAdmins } from "../../lib/martyrdom-notify";
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -24,12 +25,12 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   const caseId = Number(body?.caseId || 0);
   if (!caseId) {
-    return new Response(JSON.stringify({ ok: false, error: "caseId 필수" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "caseId 필수" }), { status: 400 });
   }
 
   console.info(`[martyrdom-close-learn] start caseId=${caseId}`);
@@ -56,11 +57,11 @@ export default async (req: Request, _ctx: Context) => {
       });
     }
     console.info(`[martyrdom-close-learn] done caseId=${caseId} ok=${r.ok} promoted=${r.promoted} approvedIndexed=${approvedIndexed}`);
-    return new Response(JSON.stringify({ ok: r.ok, caseId, promoted: r.promoted, approvedIndexed, error: r.error }), {
+    return new Response(jsonKST({ ok: r.ok, caseId, promoted: r.promoted, approvedIndexed, error: r.error }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error(`[martyrdom-close-learn] caseId=${caseId} 예외:`, err?.message, err?.stack);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
+    return new Response(jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }), { status: 500 });
   }
 };

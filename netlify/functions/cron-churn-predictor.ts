@@ -7,6 +7,7 @@
 //
 // 외부 호출 차단 — Scheduled Function만 호출 가능
 
+import { jsonKST } from "../../lib/kst";
 import { evaluateAllActiveDonors } from "../../lib/churn-predictor";
 import { logAudit } from "../../lib/audit";
 import { notifyAllSuperAdmins } from "../../lib/notify";
@@ -69,7 +70,7 @@ export default async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify(summary), {
+    return new Response(jsonKST(summary), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -85,7 +86,7 @@ export default async (req: Request) => {
       success: false,
     }).catch(() => {});
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: err?.message || "cron 실행 중 오류",
     }), {

@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords, attRemoteWorkReports, attWorkplaces } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -10,12 +11,12 @@ import { openDoor } from "../../lib/adapters/door";
 export const config = { path: "/api/att-checkout" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "퇴근 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -48,13 +49,13 @@ export default async function handler(req: Request) {
   } catch (err) { return jsonError("select_record", err); }
 
   if (!existing) {
-    return new Response(JSON.stringify({ ok: false, error: "출근 기록 없음 — 출근 먼저 처리해 주세요", step: "no_checkin" }),
+    return new Response(jsonKST({ ok: false, error: "출근 기록 없음 — 출근 먼저 처리해 주세요", step: "no_checkin" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   const sessions = normalizeSessions(existing);
   if (!isWorking(sessions)) {
-    return new Response(JSON.stringify({ ok: false, error: "이미 퇴근 처리됨", step: "already_checkout" }),
+    return new Response(jsonKST({ ok: false, error: "이미 퇴근 처리됨", step: "already_checkout" }),
       { status: 409, headers: { "Content-Type": "application/json" } });
   }
 
@@ -114,7 +115,7 @@ export default async function handler(req: Request) {
     if (workplace && workplace.lat != null && workplace.lng != null) {
       const dist = Math.round(haversineDistance(lat, lng, Number(workplace.lat), Number(workplace.lng)));
       if (!isWithinRadius(lat, lng, Number(workplace.lat), Number(workplace.lng), workplace.radius)) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false, error: `사무실 반경 ${dist}m 초과 — 퇴근은 사무실에서 가능합니다`, step: "radius_check",
           detail: `허용 반경: ${workplace.radius}m, 현재 거리: ${dist}m`,
         }), { status: 400, headers: { "Content-Type": "application/json" } });

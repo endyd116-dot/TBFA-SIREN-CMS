@@ -8,7 +8,7 @@
  *
  * schema.ts의 is_deleted 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,7 +19,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(status: number, step: string, error: string, detail?: any) {
   return new Response(
-    JSON.stringify({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
+    jsonKST({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
     { status, headers: JSON_HEADER }
   );
 }
@@ -71,7 +71,7 @@ export default async (req: Request, _ctx: Context) => {
     }));
 
     return new Response(
-      JSON.stringify({ ok: true, messages }),
+      jsonKST({ ok: true, messages }),
       { status: 200, headers: JSON_HEADER }
     );
   } catch (err: any) {

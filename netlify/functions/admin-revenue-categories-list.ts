@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
@@ -36,7 +37,7 @@ export default async function handler(req: Request): Promise<Response> {
         ORDER BY sort_order ASC, id ASC`);
       rows = r?.rows ?? r ?? [];
     } catch (err: any) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, error: "카테고리 목록 조회 실패", step: "select_categories",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),
@@ -55,7 +56,7 @@ export default async function handler(req: Request): Promise<Response> {
     isActive:    r.is_active,
   }));
 
-  return new Response(JSON.stringify({ ok: true, data: { items, hasHierarchy } }), {
+  return new Response(jsonKST({ ok: true, data: { items, hasHierarchy } }), {
     headers: { "Content-Type": "application/json" },
   });
 }

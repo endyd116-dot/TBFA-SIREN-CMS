@@ -8,6 +8,7 @@
 // - 등급 상승 시 알림 + 메일 자동 발송 (recalculateGrade 내부에서)
 // - 결과 요약을 audit_logs에 system 액션으로 기록
 
+import { jsonKST } from "../../lib/kst";
 import { db, auditLogs } from "../../db";
 import { recalculateAllGrades } from "../../lib/grade-calculator";
 
@@ -39,7 +40,7 @@ export default async (req: Request) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, ...result, elapsedMs }, null, 2),
+    jsonKST({ ok: true, ...result, elapsedMs }, null, 2),
     { status: 200, headers: { "Content-Type": "application/json" } },
   );
 };

@@ -1,6 +1,7 @@
 // admin-report-status-update.ts — 신고 단계 변경 + 이력 기록 + 사용자 알림
 // PATCH /api/admin-report-status-update
 // body: { reportType: 'incident'|'harassment'|'legal', reportId, toStatus, note? }
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import {
@@ -38,7 +39,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "단계 변경 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -47,7 +48,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "PATCH") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -70,14 +71,14 @@ export default async (req: Request) => {
   const note: string | undefined = body.note;
 
   if (!["incident", "harassment", "legal"].includes(reportType) || !reportId || !toStatus) {
-    return new Response(JSON.stringify({ ok: false, error: "reportType, reportId, toStatus 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "reportType, reportId, toStatus 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   // ★ R41 Q2-022: toStatus를 reportType별 허용 status 화이트리스트와 대조
   if (!VALID_STATUSES[reportType].includes(toStatus)) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: `허용되지 않는 상태값입니다 (${reportType})`,
       detail: `허용: ${VALID_STATUSES[reportType].join(", ")}`,
@@ -98,14 +99,14 @@ export default async (req: Request) => {
     return jsonError("select_current", err);
   }
   if (!current) {
-    return new Response(JSON.stringify({ ok: false, error: "신고 없음" }), {
+    return new Response(jsonKST({ ok: false, error: "신고 없음" }), {
       status: 404, headers: { "Content-Type": "application/json" },
     });
   }
 
   const fromStatus = current.status as string;
   if (fromStatus === toStatus) {
-    return new Response(JSON.stringify({ ok: true, changed: false, message: "이미 해당 단계입니다." }), {
+    return new Response(jsonKST({ ok: true, changed: false, message: "이미 해당 단계입니다." }), {
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -177,7 +178,7 @@ export default async (req: Request) => {
     console.warn("[admin-report-status-update] 감사 로그 기록 실패", err);
   }
 
-  return new Response(JSON.stringify({ ok: true, changed: true, fromStatus, toStatus, notified }), {
+  return new Response(jsonKST({ ok: true, changed: true, fromStatus, toStatus, notified }), {
     headers: { "Content-Type": "application/json" },
   });
 };

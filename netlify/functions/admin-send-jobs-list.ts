@@ -1,7 +1,7 @@
 // netlify/functions/admin-send-jobs-list.ts
 // Phase 10 R3 — 발송 작업 목록 (status·기간·검색·페이지네이션)
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -15,7 +15,7 @@ const VALID_STATUS = ["pending", "processing", "completed", "failed", "cancelled
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "발송 작업 목록 조회 실패",
       step,
@@ -110,7 +110,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, rows, total }),
+    jsonKST({ ok: true, rows, total }),
     { status: 200, headers: JSON_HEADER },
   );
 }

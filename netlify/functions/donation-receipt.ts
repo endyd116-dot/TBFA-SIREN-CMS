@@ -7,6 +7,7 @@
  * - 재발급 시 R2에서 캐시된 PDF 반환 (동일 영수증 일관성 보장)
  * - regenerate=1 쿼리로 강제 재생성 가능 (관리자만)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db, donations } from "../../db";
@@ -27,7 +28,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!id || !/^\d+$/.test(id)) {
       return new Response(
-        JSON.stringify({ ok: false, error: "id required" }),
+        jsonKST({ ok: false, error: "id required" }),
         { status: 400, headers: { "content-type": "application/json" } }
       );
     }
@@ -43,7 +44,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!d) {
       return new Response(
-        JSON.stringify({ ok: false, error: "후원 내역을 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "후원 내역을 찾을 수 없습니다" }),
         { status: 404, headers: { "content-type": "application/json" } }
       );
     }
@@ -56,7 +57,7 @@ export default async (req: Request, _ctx: Context) => {
       const user = authenticateUser(req);
       if (!user) {
         return new Response(
-          JSON.stringify({ ok: false, error: "로그인이 필요합니다" }),
+          jsonKST({ ok: false, error: "로그인이 필요합니다" }),
           { status: 401, headers: { "content-type": "application/json" } }
         );
       }
@@ -67,7 +68,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!allowed) {
       return new Response(
-        JSON.stringify({ ok: false, error: "접근 권한이 없습니다" }),
+        jsonKST({ ok: false, error: "접근 권한이 없습니다" }),
         { status: 403, headers: { "content-type": "application/json" } }
       );
     }
@@ -75,7 +76,7 @@ export default async (req: Request, _ctx: Context) => {
     /* 3) 발급 조건: 결제 완료된 후원만 */
     if ((d as any).status !== "completed") {
       return new Response(
-        JSON.stringify({
+        jsonKST({
           ok: false,
           error: "결제 완료된 후원만 영수증 발급이 가능합니다",
           currentStatus: (d as any).status,
@@ -102,7 +103,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (forceRegenerate && !admin) {
       return new Response(
-        JSON.stringify({ ok: false, error: "강제 재생성은 관리자만 가능합니다" }),
+        jsonKST({ ok: false, error: "강제 재생성은 관리자만 가능합니다" }),
         { status: 403, headers: { "content-type": "application/json" } }
       );
     }
@@ -194,7 +195,7 @@ export default async (req: Request, _ctx: Context) => {
   } catch (e: any) {
     console.error("[donation-receipt] error", e);
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: e?.message || "internal error",
         stack: process.env.NODE_ENV === "development" ? e?.stack : undefined,

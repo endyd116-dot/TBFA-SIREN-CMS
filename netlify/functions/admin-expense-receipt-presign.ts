@@ -10,6 +10,7 @@
  *   4. 프론트 → /api/blob-confirm 호출 (uploadStatus: pending → completed)
  *   5. expenses.receipt_url 에 fileUrl 저장
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -34,7 +35,7 @@ const ALLOWED_MIME = [
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -44,7 +45,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
   }
 
   const fileName = String(body.fileName || "").slice(0, 300).trim();
@@ -52,21 +53,21 @@ export default async (req: Request, _ctx: Context) => {
   const sizeBytes = body.sizeBytes !== undefined ? Number(body.sizeBytes) : null;
 
   if (!fileName) {
-    return new Response(JSON.stringify({ ok: false, error: "fileName 필수", step: "validate" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "fileName 필수", step: "validate" }), { status: 400 });
   }
   if (!contentType) {
-    return new Response(JSON.stringify({ ok: false, error: "contentType 필수", step: "validate" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "contentType 필수", step: "validate" }), { status: 400 });
   }
   if (!ALLOWED_MIME.includes(contentType)) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: `지원하지 않는 파일 형식: ${contentType} (jpg/png/gif/webp/pdf/xlsx/hwp 만 가능)`, step: "validate_mime",
     }), { status: 400 });
   }
   if (sizeBytes !== null && (!Number.isFinite(sizeBytes) || sizeBytes <= 0)) {
-    return new Response(JSON.stringify({ ok: false, error: "sizeBytes 유효하지 않음", step: "validate_size" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "sizeBytes 유효하지 않음", step: "validate_size" }), { status: 400 });
   }
   if (sizeBytes !== null && sizeBytes > FILE_MAX) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: `파일 크기는 ${FILE_MAX / 1024 / 1024}MB 이하여야 합니다`, step: "validate_size",
     }), { status: 400 });
   }
@@ -101,7 +102,7 @@ export default async (req: Request, _ctx: Context) => {
     });
     const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 900 });
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         id,
@@ -112,7 +113,7 @@ export default async (req: Request, _ctx: Context) => {
       },
     }), { headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "업로드 URL 발급 실패", step: "presign",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),

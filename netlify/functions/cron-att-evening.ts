@@ -14,6 +14,7 @@
  * 디버그/검증 모드: 어떤 URL이든 ?dryRun=1 → DB 변경·알림 발송 없이 탐지 명단만 JSON 반환
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, attRecords, attRemoteWorkReports } from "../../db/schema";
@@ -298,7 +299,7 @@ export default async (req: Request, _ctx: Context) => {
     const durationMs = Date.now() - start;
     console.info(`[cron-att-evening] 완료 — 미퇴근:${missingNames.length}명 보고서알림:${reportAlertCount} 초과근무알림:${overtimeAlertCount} (${durationMs}ms)${dryRun ? " [dryRun]" : ""}`);
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       dryRun,
       missingCheckout: { count: missingNames.length, names: missingNames, alertSent: missingCheckoutAlertCount },
@@ -310,7 +311,7 @@ export default async (req: Request, _ctx: Context) => {
 
   } catch (err: any) {
     console.error("[cron-att-evening] 오류:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message ?? err) }),
+    return new Response(jsonKST({ ok: false, error: String(err?.message ?? err) }),
       { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };

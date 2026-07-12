@@ -12,6 +12,7 @@
 //   }
 // }
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -226,7 +227,7 @@ export default async function handler(req: Request) {
     }
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         overview: {
           totalJobs, totalRecipients, delivered, deliveryRate,
@@ -239,7 +240,7 @@ export default async function handler(req: Request) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "발송 통계 조회 실패",
         step: "aggregate", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialTeachers } from "../../db/schema";
@@ -46,11 +47,11 @@ export default async function handler(_req: Request, _ctx: Context) {
       messageCount: messageMap.get(t.id) ?? 0,
     }));
 
-    return new Response(JSON.stringify({ ok: true, data: { teachers } }), {
+    return new Response(jsonKST({ ok: true, data: { teachers } }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: "선생님 목록 조회 실패",
       step: "select_teachers",

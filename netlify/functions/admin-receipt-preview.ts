@@ -9,6 +9,7 @@
  *   - 관리자가 영수증 설정을 저장한 후, 실제로 어떻게 보이는지 확인하는 용도
  *   - 권한: 관리자만
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { generateReceiptPDF } from "../../lib/pdf-receipt";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -59,7 +60,7 @@ export default async (req: Request, _ctx: Context) => {
   } catch (e: any) {
     console.error("[admin-receipt-preview] error", e);
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false,
         error: e?.message || "internal error",
       }),

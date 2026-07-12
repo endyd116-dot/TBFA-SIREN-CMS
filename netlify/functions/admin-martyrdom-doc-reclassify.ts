@@ -8,6 +8,7 @@
  *
  * extractedText 제공 시 → extract_method='manual', 텍스트 재청킹·임베딩 트리거
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -17,7 +18,7 @@ import { MARTYRDOM_DOC_TYPES } from "../../lib/martyrdom-ai";
 export const config = { path: "/api/admin-martyrdom-doc-reclassify" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -44,7 +45,7 @@ const VALID_DOC_TYPES = Object.keys(MARTYRDOM_DOC_TYPES);
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "PATCH") {
-    return new Response(JSON.stringify({ ok: false, error: "PATCH만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "PATCH만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -52,14 +53,14 @@ export default async (req: Request, _ctx: Context) => {
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패" }), {
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   const docId = Number(body.docId);
   if (!docId) {
-    return new Response(JSON.stringify({ ok: false, error: "docId 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "docId 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -68,14 +69,14 @@ export default async (req: Request, _ctx: Context) => {
   const extractedText = body.extractedText ? String(body.extractedText).slice(0, 200000) : null;
 
   if (docType && !VALID_DOC_TYPES.includes(docType)) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: `유효하지 않은 docType. 허용: ${VALID_DOC_TYPES.join(", ")}`,
     }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   if (!docType && !extractedText) {
-    return new Response(JSON.stringify({ ok: false, error: "docType 또는 extractedText 필수" }), {
+    return new Response(jsonKST({ ok: false, error: "docType 또는 extractedText 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
@@ -90,7 +91,7 @@ export default async (req: Request, _ctx: Context) => {
     `));
     const doc = (docRes?.rows ?? docRes ?? [])[0];
     if (!doc) {
-      return new Response(JSON.stringify({ ok: false, error: "문서를 찾을 수 없습니다" }), {
+      return new Response(jsonKST({ ok: false, error: "문서를 찾을 수 없습니다" }), {
         status: 404, headers: { "Content-Type": "application/json" },
       });
     }
@@ -125,7 +126,7 @@ export default async (req: Request, _ctx: Context) => {
 
     const finalDocType = docType || String(doc.docType || "other");
 
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       docId,
       docType: finalDocType,

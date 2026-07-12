@@ -4,6 +4,7 @@
 // - APPROVED → 'approved'(approved_at·사유 초기화) / REJECTED → 'rejected'(반려사유 저장) / INSPECTING → 'inspecting'
 // - 운영자가 CMS에서 등록·검수요청한 템플릿이 승인되면 사람 개입 없이 '사용가능'으로 전환.
 
+import { jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -71,12 +72,12 @@ export default async () => {
       console.log(`[kakao-tpl-status] id=${row.id} ${row.status} → ${next} (solapi=${solapiStatus})`);
     }
 
-    return new Response(JSON.stringify({ ok: true, checked, updated }), {
+    return new Response(jsonKST({ ok: true, checked, updated }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error("[kakao-tpl-status] 오류", err?.message);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }), {
+    return new Response(jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }

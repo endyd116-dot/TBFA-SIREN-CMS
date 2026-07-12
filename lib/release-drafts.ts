@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.18";
+export const APP_VERSION = "2026-07-12.19";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)

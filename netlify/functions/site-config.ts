@@ -7,6 +7,7 @@
  * 응답:
  *   { ok:true, data: { kakaoJsAppKey: string|null, kakaoJsAvailable: boolean } }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireActiveUser } from "../../lib/auth";
 
@@ -16,7 +17,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "GET만 지원" }), {
+    return new Response(jsonKST({ ok: false, error: "GET만 지원" }), {
       status: 405, headers: JSON_HEADER,
     });
   }
@@ -26,7 +27,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const kakaoJsAppKey = process.env.KAKAO_JS_APP_KEY || null;
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       kakaoJsAppKey,

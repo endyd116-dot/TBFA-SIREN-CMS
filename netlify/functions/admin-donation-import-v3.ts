@@ -14,6 +14,7 @@
  * SOT 원칙 (DESIGN §10.2): SIREN → 효성 푸시 절대 금지 (일방향 흡수만)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql, eq, and } from "drizzle-orm";
 import { db } from "../../db";
@@ -89,7 +90,7 @@ export interface HyosungBillingsImportResult {
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "가져오기 실패",
       step,

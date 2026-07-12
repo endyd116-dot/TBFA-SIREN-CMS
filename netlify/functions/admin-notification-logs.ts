@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -7,7 +8,7 @@ export const config = { path: "/api/admin-notification-logs" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "GET")
-    return new Response(JSON.stringify({ ok: false, error: "GET only" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "GET only" }), { status: 405 });
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
@@ -111,7 +112,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const topErrors = errorsRes?.rows ?? errorsRes;
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         data: {
           items,
@@ -126,7 +127,7 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "발송 로그 조회 실패", step: "query",
         detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),

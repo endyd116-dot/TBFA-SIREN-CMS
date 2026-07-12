@@ -12,6 +12,7 @@
  *
  * extract-background에서 자동 호출 + admin-martyrdom-reanalyze에서 수동 호출
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -37,7 +38,7 @@ async function triggerStrategy(caseId: number): Promise<void> {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false }), { status: 405 });
+    return new Response(jsonKST({ ok: false }), { status: 405 });
   }
 
   let body: any = {};
@@ -47,12 +48,12 @@ export default async (req: Request, _ctx: Context) => {
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!expected || secret !== expected) {
-    return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 
   const caseId = Number(body?.caseId || 0);
   if (!caseId) {
-    return new Response(JSON.stringify({ ok: false, error: "caseId 필수" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "caseId 필수" }), { status: 400 });
   }
 
   console.info(`[martyrdom-analyze-bg] start caseId=${caseId}`);
@@ -65,7 +66,7 @@ export default async (req: Request, _ctx: Context) => {
     const mc = (caseRes?.rows ?? caseRes ?? [])[0];
     if (!mc) {
       console.warn(`[martyrdom-analyze-bg] caseId=${caseId} 없음`);
-      return new Response(JSON.stringify({ ok: false, error: "사건 없음" }), { status: 404 });
+      return new Response(jsonKST({ ok: false, error: "사건 없음" }), { status: 404 });
     }
 
     /* ── 2. 추출 완료된 자료 수집 ── */
@@ -91,7 +92,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (docs.length === 0) {
       console.info(`[martyrdom-analyze-bg] caseId=${caseId} 추출 완료 자료 없음 — 스킵`);
-      return new Response(JSON.stringify({ ok: true, caseId, skipped: true, reason: "추출 완료 자료 없음" }));
+      return new Response(jsonKST({ ok: true, caseId, skipped: true, reason: "추출 완료 자료 없음" }));
     }
 
     /* ── 3. 사건 구조 추출 (§2.5) — reference 사건만 recognitionPattern 추출 ── */
@@ -133,14 +134,14 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     console.info(`[martyrdom-analyze-bg] done caseId=${caseId} outputId=${outputId} v=${nextVersion} confidence=${extraction.confidence}`);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, caseId, outputId, version: nextVersion,
       confidence: extraction.confidence,
     }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error(`[martyrdom-analyze-bg] caseId=${caseId} 예외:`, err?.message, err?.stack);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: String(err?.message || err).slice(0, 300),
     }), { status: 500 });
   }

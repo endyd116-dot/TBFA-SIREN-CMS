@@ -6,6 +6,7 @@
  *   type?     — agency_type 필터
  *   active?   — 1: 활성만, 0: 비활성만 (기본: 전체)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 
@@ -13,7 +14,7 @@ export const config = { path: "/api/admin-agency-list" };
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "기관 목록 조회 실패",
       step,
@@ -72,7 +73,7 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, agencies: rows }),
+    jsonKST({ ok: true, agencies: rows }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
 };

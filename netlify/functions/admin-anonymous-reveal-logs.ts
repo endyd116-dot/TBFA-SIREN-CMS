@@ -1,5 +1,6 @@
 // admin-anonymous-reveal-logs.ts — 익명 식별 감사 로그 조회
 // GET /api/admin-anonymous-reveal-logs?reportType=&reportId=&page=1
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
@@ -9,7 +10,7 @@ import { and, eq, desc, inArray, sql } from "drizzle-orm";
 export const config = { path: "/api/admin-anonymous-reveal-logs" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "감사 로그 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -18,7 +19,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "허용되지 않는 메서드" }), {
+    return new Response(jsonKST({ ok: false, error: "허용되지 않는 메서드" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -27,7 +28,7 @@ export default async (req: Request) => {
   if (guardFailed(auth)) return auth.res;
   // R45 CLUSTER-2: 신원 식별 감사로그 조회도 같은 권한 게이트(operator 차단)
   if (!(await canAccess(auth.ctx.member.role ?? "", "anonymous_reveal"))) {
-    return new Response(JSON.stringify({ ok: false, error: "신원 식별 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "신원 식별 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
@@ -105,7 +106,7 @@ export default async (req: Request) => {
     console.warn("[admin-anonymous-reveal-logs] stats 집계 실패", err);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     page,
     total: stats.totalCount,

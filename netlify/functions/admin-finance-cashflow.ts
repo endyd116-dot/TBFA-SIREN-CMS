@@ -10,6 +10,7 @@
  *   - 기말 잔액: 기간 마지막 거래의 balance_after
  *   - 카테고리별 내역: match_type 기준 (donation/revenue/voucher/미분류)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -20,7 +21,7 @@ import { resolvePeriod } from "../../lib/period-filter";
 export const config = { path: "/api/admin-finance-cashflow" };
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "현금흐름표 조회 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -43,7 +44,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
   // R45 §4-2: 전사 재무 열람은 admin+ (운영자 차단·권한정책 토글)
   if (!(await canAccess(auth.ctx.member.role ?? "", "finance_view"))) {
-    return new Response(JSON.stringify({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
@@ -134,7 +135,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const computedClosing = openingBalance + netCashFlow;
   const finalClosing = hasClosingData ? closingBalance! : computedClosing;
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       period,

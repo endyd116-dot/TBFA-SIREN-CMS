@@ -10,6 +10,7 @@
  *   4. 에러 시 last_result에 에러 저장, throw 안 함 (fire-and-forget)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -92,7 +93,7 @@ export default async (_req: Request, _ctx: Context) => {
     if (!schedules.length) {
       console.info("[cron-ai-schedule-runner] 실행 대상 없음");
       return new Response(
-        JSON.stringify({ ok: true, processed: 0, message: "실행 대상 없음" }),
+        jsonKST({ ok: true, processed: 0, message: "실행 대상 없음" }),
         { status: 200, headers: JSON_HEADER }
       );
     }
@@ -126,7 +127,7 @@ export default async (_req: Request, _ctx: Context) => {
     console.info(`[cron-ai-schedule-runner] 완료 ${success}/${schedules.length}건 (${durationMs}ms)`);
 
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: true,
         total: schedules.length,
         success,
@@ -139,7 +140,7 @@ export default async (_req: Request, _ctx: Context) => {
   } catch (err: any) {
     console.error("[cron-ai-schedule-runner] fatal:", err);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "unknown" }),
+      jsonKST({ ok: false, error: err?.message || "unknown" }),
       { status: 500, headers: JSON_HEADER }
     );
   }

@@ -22,6 +22,7 @@
  *   }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -127,7 +128,7 @@ const TOOL_RESULT_COMPRESS_THRESHOLD = 1200;  /* 문자 수 — 너무 작으면
    /admin-ai-config.html에서 DB 값 갱신. */
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "AI 에이전트 오류", step,
     detail: String(err?.message || err).slice(0, 500),
   }), { status, headers: JSON_HEADER });
@@ -501,7 +502,7 @@ async function callGeminiWithTools(
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: JSON_HEADER });
   }
   if (!GEMINI_API_KEY) {
@@ -513,13 +514,13 @@ export default async (req: Request, _ctx: Context) => {
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
   // R45 §4-AI: AI 비서 채팅 진입 권한(ai_agent_chat·운영자 허용·권한정책 토글)
   if (!(await canAccess((auth as any).ctx?.member?.role ?? "", "ai_agent_chat"))) {
-    return new Response(JSON.stringify({ ok: false, error: "AI 비서 사용 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: false, error: "AI 비서 사용 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   /* === Phase 1.5: 'AI 비서 채팅' 기능 토글 + 기능별·전체 월 한도 체크 === */
   const featureCheck = await checkFeatureBeforeCall(AGENT_FEATURE_KEY);
   if (!featureCheck.ok) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false,
       error: featureCheck.reason === "disabled" ? "AI 비서가 비활성화되었습니다" : "AI 비용 한도 초과",
       step: featureCheck.reason || "feature_blocked",
@@ -532,7 +533,7 @@ export default async (req: Request, _ctx: Context) => {
   /* === Phase 3: 사용자별 Rate Limit (분 10 / 시간 50 / 일 500) === */
   const rl = await checkRateLimit(adminId);
   if (!rl.ok) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "AI 호출 횟수 한도 초과", step: "rate_limit",
       detail: rl.message, retryAtMs: rl.retryAtMs,
     }), { status: 429, headers: JSON_HEADER });
@@ -628,7 +629,7 @@ export default async (req: Request, _ctx: Context) => {
       if (isShortReject) {
         /* 거부 — pendingApproval 없음으로 정리, 친근한 응답 */
         const reply = `'${pendingCall.name}' 작업을 취소했습니다.`;
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: true, conversationId, reply, toolCalls: [], pendingApproval: null,
         }), { status: 200, headers: JSON_HEADER });
       }
@@ -650,7 +651,7 @@ export default async (req: Request, _ctx: Context) => {
            WHERE id = ${conversationId}
         `);
       } catch (_) {}
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true, conversationId, reply,
         toolCalls: [{ name: pendingCall.name, args: finalArgs, result }],
         pendingApproval: null,
@@ -772,7 +773,7 @@ export default async (req: Request, _ctx: Context) => {
     return n;
   }, 0);
   if (priorToolCount >= MAX_TOOLS_PER_CONV) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, conversationId,
       reply: `이 대화에서 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)를 초과했습니다. 새 대화를 시작해주세요.`,
       toolCalls: [], pendingApproval: null,
@@ -787,7 +788,7 @@ export default async (req: Request, _ctx: Context) => {
   /* === 비용 폭탄 방지 — 누적 input 토큰 추정 한도 === */
   const estimatedInputTokens = estimateInputTokens(messages, systemPrompt, toolDeclarations);
   if (estimatedInputTokens > MAX_INPUT_TOKENS_PER_CONV) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, conversationId,
       reply: `이 대화의 누적 입력이 한도(${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()} 토큰, 추정 ${estimatedInputTokens.toLocaleString()})를 초과해 비용 폭증 위험이 있습니다. 새 대화를 시작해주세요.`,
       toolCalls: [], pendingApproval: null,
@@ -971,7 +972,7 @@ export default async (req: Request, _ctx: Context) => {
     replyWithWarn += `\n\n개인정보 ${piiResult.redactCount}건 자동 마스킹 처리됨 (주민번호·카드·계좌)`;
   }
 
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     conversationId,
     reply: replyWithWarn,

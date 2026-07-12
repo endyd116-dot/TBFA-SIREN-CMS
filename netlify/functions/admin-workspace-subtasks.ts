@@ -4,6 +4,7 @@
  *
  * 응답: { ok, subtasks: [{ id, title, status, assignedTo, dueDate, progress }] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq, asc } from "drizzle-orm";
 import { db, workspaceTasks } from "../../db";
@@ -14,7 +15,7 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonError(status: number, step: string, error: string, detail?: any) {
   return new Response(
-    JSON.stringify({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
+    jsonKST({ ok: false, error, step, detail: detail ? String(detail).slice(0, 500) : undefined }),
     { status, headers: JSON_HEADER }
   );
 }
@@ -55,7 +56,7 @@ export default async (req: Request, _ctx: Context) => {
       .limit(500);
 
     return new Response(
-      JSON.stringify({ ok: true, subtasks: rows }),
+      jsonKST({ ok: true, subtasks: rows }),
       { status: 200, headers: JSON_HEADER }
     );
   } catch (err: any) {

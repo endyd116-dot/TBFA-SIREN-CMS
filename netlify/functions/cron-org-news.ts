@@ -10,6 +10,7 @@
  *   4. org_news_reports INSERT (trigger_type='cron', generated_by=NULL)
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -56,7 +57,7 @@ export default async (_req: Request, _ctx: Context) => {
   if (!autoEnabled) {
     console.info("[cron-org-news] auto_enabled=false — 건너뜀");
     return new Response(
-      JSON.stringify({ ok: true, skipped: true, reason: "auto_enabled=false" }),
+      jsonKST({ ok: true, skipped: true, reason: "auto_enabled=false" }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -68,7 +69,7 @@ export default async (_req: Request, _ctx: Context) => {
     if (!result.ok) {
       console.error("[cron-org-news] 수집 실패:", result.error);
       return new Response(
-        JSON.stringify({ ok: false, error: result.error }),
+        jsonKST({ ok: false, error: result.error }),
         { status: 502, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -76,7 +77,7 @@ export default async (_req: Request, _ctx: Context) => {
   } catch (err: any) {
     console.error("[cron-org-news] 수집 exception:", err?.message);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "수집 실패" }),
+      jsonKST({ ok: false, error: err?.message || "수집 실패" }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -98,7 +99,7 @@ export default async (_req: Request, _ctx: Context) => {
   } catch (err: any) {
     console.error("[cron-org-news] 분석 exception:", err?.message);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "분석 실패" }),
+      jsonKST({ ok: false, error: err?.message || "분석 실패" }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -138,7 +139,7 @@ export default async (_req: Request, _ctx: Context) => {
   } catch (err: any) {
     console.error("[cron-org-news] INSERT 실패:", err?.message);
     return new Response(
-      JSON.stringify({ ok: false, error: err?.message || "저장 실패" }),
+      jsonKST({ ok: false, error: err?.message || "저장 실패" }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -147,7 +148,7 @@ export default async (_req: Request, _ctx: Context) => {
   console.info(`[cron-org-news] 완료 — 수집 ${items.length}건, AI상태 ${analysis.status} (${durationMs}ms)`);
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok:            true,
       collectedCount: items.length,
       aiStatus:      analysis.status,

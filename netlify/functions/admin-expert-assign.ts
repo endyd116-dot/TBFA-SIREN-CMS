@@ -16,6 +16,7 @@
  *   { matchId: number, expertId: number, adminNote?: string }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import {
@@ -43,7 +44,7 @@ interface Body {
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "전문가 배정 실패",
       step,
@@ -55,7 +56,7 @@ function jsonError(step: string, err: any, status = 500) {
 }
 
 function badRequest(msg: string) {
-  return new Response(JSON.stringify({ ok: false, error: msg, step: "validate" }), {
+  return new Response(jsonKST({ ok: false, error: msg, step: "validate" }), {
     status: 400,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
@@ -73,7 +74,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
+    return new Response(jsonKST({ ok: false, error: "POST only" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -225,7 +226,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 7. 응답 */
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       message: "전문가 배정 완료 + 채팅방 생성됨",
       data: {

@@ -17,6 +17,7 @@
  *   }
  */
 
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -25,7 +26,7 @@ import { getCache, setCache } from "../../lib/cache";
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "통합 회원 가입경로 KPI 조회 실패",
       step,
@@ -48,7 +49,7 @@ export default async (req: Request, _ctx: Context) => {
     });
   }
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method Not Allowed" }), {
+    return new Response(jsonKST({ ok: false, error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
@@ -65,7 +66,7 @@ export default async (req: Request, _ctx: Context) => {
   const cachedData = await getCache<{ total: number; siren: number; hyosung: number; manual: number; event: number; etc: number; other: number }>(CACHE_KEY);
   if (cachedData) {
     return new Response(
-      JSON.stringify({ ok: true, message: null, data: cachedData }),
+      jsonKST({ ok: true, message: null, data: cachedData }),
       { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
     );
   }
@@ -103,7 +104,7 @@ export default async (req: Request, _ctx: Context) => {
     await setCache(CACHE_KEY, data, CACHE_TTL);
 
     return new Response(
-      JSON.stringify({ ok: true, message: null, data }),
+      jsonKST({ ok: true, message: null, data }),
       { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
     );
   } catch (err) {

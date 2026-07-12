@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -14,7 +14,7 @@ export const config = { path: "/api/admin-approval-lines" };
    ========================================================= */
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "결재라인 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -22,7 +22,7 @@ function jsonError(step: string, err: any) {
 }
 
 function jsonBad(step: string, message: string, extra?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: message, step, ...(extra || {}),
   }), { status: 400, headers: { "Content-Type": "application/json" } });
 }
@@ -80,7 +80,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") return handleGet();
   if (req.method === "POST") return handlePost(req, auth);
 
-  return new Response(JSON.stringify({ ok: false, error: "허용되지 않은 메서드입니다" }),
+  return new Response(jsonKST({ ok: false, error: "허용되지 않은 메서드입니다" }),
     { status: 405, headers: { "Content-Type": "application/json" } });
 }
 
@@ -97,7 +97,7 @@ async function handleGet() {
     `);
     const lines = rowsOf(res).map(mapLine);
     return new Response(
-      JSON.stringify({ ok: true, data: { lines } }),
+      jsonKST({ ok: true, data: { lines } }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) { return jsonError("select_lines", err); }
@@ -160,7 +160,7 @@ async function actionCreate(body: any) {
       RETURNING id, name, min_amount, max_amount, steps, board_required, is_active, sort_order, created_at, updated_at
     `);
     const r = rowsOf(res)[0];
-    return new Response(JSON.stringify({ ok: true, data: { line: mapLine(r) } }),
+    return new Response(jsonKST({ ok: true, data: { line: mapLine(r) } }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("insert", err); }
 }
@@ -224,7 +224,7 @@ async function actionUpdate(body: any) {
       RETURNING id, name, min_amount, max_amount, steps, board_required, is_active, sort_order, created_at, updated_at
     `);
     const r = rowsOf(res)[0];
-    return new Response(JSON.stringify({ ok: true, data: { line: mapLine(r) } }),
+    return new Response(jsonKST({ ok: true, data: { line: mapLine(r) } }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("update", err); }
 }
@@ -240,7 +240,7 @@ async function actionDelete(body: any) {
 
   try {
     await db.execute(sql`DELETE FROM approval_lines WHERE id = ${id}`);
-    return new Response(JSON.stringify({ ok: true, data: { id, deleted: true } }),
+    return new Response(jsonKST({ ok: true, data: { id, deleted: true } }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("delete", err); }
 }

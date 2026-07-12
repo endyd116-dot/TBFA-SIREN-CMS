@@ -1,4 +1,5 @@
 ﻿import type { Context } from "@netlify/functions";
+import { jsonKST } from "../../lib/kst";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db";
 import { commentReports } from "../../db/schema";
@@ -6,7 +7,7 @@ import { requireActiveUser } from "../../lib/auth";
 import { badRequest, serverError, corsPreflight, methodNotAllowed, parseJson } from "../../lib/response";
 
 function jsonOk(data: object) {
-  return new Response(JSON.stringify(data), {
+  return new Response(jsonKST(data), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
@@ -47,7 +48,7 @@ export default async (req: Request, _ctx: Context) => {
         .where(and(eq(commentReports.commentId, commentId), eq(commentReports.memberId, user.uid)))
         .limit(1);
       if (dup) {
-        return new Response(JSON.stringify({ ok: false, error: "이미 신고한 항목입니다." }), {
+        return new Response(jsonKST({ ok: false, error: "이미 신고한 항목입니다." }), {
           status: 409,
           headers: { "Content-Type": "application/json" },
         });

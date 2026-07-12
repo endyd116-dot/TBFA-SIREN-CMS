@@ -10,6 +10,7 @@
  *
  * Fallback 슬롯: serviceKind="_global", serviceCategory="_fallback", isFallback=true (1행 전역)
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { db } from "../../db";
@@ -21,7 +22,7 @@ export const config = { path: "/api/admin-service-rnr" };
 const ALLOWED_KINDS = new Set(["incident", "harassment", "legal", "support", "_global"]);
 
 function jsonError(status: number, error: string, step?: string, err?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error, step,
     detail: err ? String(err?.message || err).slice(0, 500) : undefined,
     stack:  err?.stack ? String(err.stack).slice(0, 1000) : undefined,
@@ -29,7 +30,7 @@ function jsonError(status: number, error: string, step?: string, err?: any) {
 }
 
 function jsonOk(data: any, message?: string) {
-  return new Response(JSON.stringify({ ok: true, message: message ?? null, data }),
+  return new Response(jsonKST({ ok: true, message: message ?? null, data }),
     { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
 

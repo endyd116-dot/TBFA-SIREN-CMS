@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { workspaceTasks, attRemoteWorkReports } from "../../db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
@@ -7,12 +8,12 @@ import { callGemini } from "../../lib/ai-gemini";
 export const config = { path: "/api/att/ai-draft" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, ...data as object }), {
+  return new Response(jsonKST({ ok: true, ...data as object }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "AI 초안 생성 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -114,7 +115,7 @@ ${prevContext}
     });
 
     if (!result.ok) {
-      return new Response(JSON.stringify({ ok: false, error: "AI 초안 생성 오류", step: "gemini_call" }),
+      return new Response(jsonKST({ ok: false, error: "AI 초안 생성 오류", step: "gemini_call" }),
         { status: 500, headers: { "Content-Type": "application/json" } });
     }
 

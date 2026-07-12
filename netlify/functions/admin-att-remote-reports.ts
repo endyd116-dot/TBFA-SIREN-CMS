@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRemoteWorkReports, members, workspaceTasks } from "../../db/schema";
 import { eq, and, gte, lte, desc, inArray, sql } from "drizzle-orm";
@@ -35,12 +36,12 @@ function buildWbsCards(ids: any, cardMap: Record<number, any>): any[] {
 export const config = { path: "/api/admin/att/remote-reports" };
 
 function jsonOk(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "보고서 관리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -52,7 +53,7 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as any).res;
   // R45 §4-1: 재택보고서 확인은 운영자 허용(att_manage)
   if (!(await canAccess(auth.ctx.member.role ?? "", "att_manage"))) {
-    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다", step: "role_check" }), {
+    return new Response(jsonKST({ ok: false, error: "근태 관리 권한이 없습니다", step: "role_check" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
@@ -142,7 +143,7 @@ export default async function handler(req: Request) {
     if (idParam) {
       const reportId = Number(idParam);
       if (!Number.isFinite(reportId)) {
-        return new Response(JSON.stringify({ ok: false, error: "id 형식 오류", step: "validate" }),
+        return new Response(jsonKST({ ok: false, error: "id 형식 오류", step: "validate" }),
           { status: 400, headers: { "Content-Type": "application/json" } });
       }
       try {
@@ -152,7 +153,7 @@ export default async function handler(req: Request) {
           .where(eq(attRemoteWorkReports.id, reportId))
           .limit(1);
         if (!r) {
-          return new Response(JSON.stringify({ ok: false, error: "보고서 없음", step: "not_found" }),
+          return new Response(jsonKST({ ok: false, error: "보고서 없음", step: "not_found" }),
             { status: 404, headers: { "Content-Type": "application/json" } });
         }
         // memberName 보강
@@ -290,7 +291,7 @@ export default async function handler(req: Request) {
 
     const { id, supervisorNote, isStarred } = body;
     if (!id) {
-      return new Response(JSON.stringify({ ok: false, error: "id 필수", step: "validate" }),
+      return new Response(jsonKST({ ok: false, error: "id 필수", step: "validate" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 

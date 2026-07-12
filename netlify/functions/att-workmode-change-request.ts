@@ -5,6 +5,7 @@
  * POST /api/att-workmode-change-request — 신청 등록
  *   body: { targetMode, targetDate, reason }
  */
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attWorkmodeChangeRequests, members } from "../../db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -16,12 +17,12 @@ export const config = { path: "/api/att-workmode-change-request" };
 const VALID_MODES = ["OFFICE", "REMOTE", "FIELD", "BUSINESS_TRIP", "HYBRID"];
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), {
+  return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "근무형태 변경 신청 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),

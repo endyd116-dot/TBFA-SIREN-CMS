@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -15,7 +16,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const { fiscalYear, categoryId, plannedAmount, note } = body;
   if (!fiscalYear || !categoryId || plannedAmount === undefined) {
     return new Response(
-      JSON.stringify({ ok: false, error: "fiscalYear, categoryId, plannedAmount 필수" }),
+      jsonKST({ ok: false, error: "fiscalYear, categoryId, plannedAmount 필수" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -26,7 +27,7 @@ export default async function handler(req: Request, _ctx: Context) {
   // 항상 500이 나던 잠재 장애를 제거하고, 올바른 흐름을 안내하는 410으로 명시 차단.
   void fiscalYear; void categoryId; void plannedAmount; void note;
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "이 예산 편성 API는 폐기되었습니다. 예산안 작성·결재(예산 편성) 화면을 사용하세요.",
       step: "deprecated",

@@ -6,6 +6,7 @@
  *
  * R37 3일차 — A4 1페이지·NotoSansKR·on-demand 생성.
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { payrollSlips, members } from "../../db/schema";
@@ -16,14 +17,14 @@ import { generatePayrollSlipPdf, payrollSlipFilename } from "../../lib/payroll-p
 export const config = { path: "/api/admin-payroll-pdf" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "급여 명세서 PDF 처리 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 function jsonBadRequest(msg: string, status = 400) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
+  return new Response(jsonKST({ ok: false, error: msg }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
@@ -32,7 +33,7 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+    return new Response(jsonKST({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

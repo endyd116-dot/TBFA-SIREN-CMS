@@ -1,4 +1,4 @@
-import { yearKST, monthKST0 } from "../../lib/kst";
+import { yearKST, monthKST0, jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords, members } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 export const config = { path: "/api/att/export" };
 
 function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "CSV 내보내기 실패", step,
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
@@ -60,7 +60,7 @@ export default async function handler(req: Request) {
   const month = parseInt(url.searchParams.get("month") ?? String(monthKST0() + 1));
 
   if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
-    return new Response(JSON.stringify({ ok: false, error: "year, month 형식 오류", step: "validate" }),
+    return new Response(jsonKST({ ok: false, error: "year, month 형식 오류", step: "validate" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -79,7 +79,7 @@ export default async function handler(req: Request) {
       const isSuper = auth.ctx.member.role === "super_admin";
       const isAdmin = auth.ctx.member.type === "admin";
       if (!isSuper && !isAdmin) {
-        return new Response(JSON.stringify({
+        return new Response(jsonKST({
           ok: false,
           error: "본인 데이터만 export할 수 있습니다",
           step: "permission",
@@ -93,7 +93,7 @@ export default async function handler(req: Request) {
         .where(eq(members.id, targetMemberId))
         .limit(1);
       if (!m) {
-        return new Response(JSON.stringify({ ok: false, error: "해당 직원을 찾을 수 없습니다", step: "find_member" }),
+        return new Response(jsonKST({ ok: false, error: "해당 직원을 찾을 수 없습니다", step: "find_member" }),
           { status: 404, headers: { "Content-Type": "application/json" } });
       }
       memberName = m.name;

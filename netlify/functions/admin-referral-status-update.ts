@@ -4,6 +4,7 @@
  *
  * Body: { referralId, status, statusMemo? }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -22,7 +23,7 @@ const SOURCE_TABLE: Record<string, string> = {
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "인계 상태 갱신 실패",
       step,
@@ -35,7 +36,7 @@ function jsonError(step: string, err: any) {
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST only" }), {
+    return new Response(jsonKST({ ok: false, error: "POST only" }), {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
@@ -55,13 +56,13 @@ export default async (req: Request, _ctx: Context) => {
 
   if (!referralId || isNaN(Number(referralId))) {
     return new Response(
-      JSON.stringify({ ok: false, error: "referralId는 필수입니다" }),
+      jsonKST({ ok: false, error: "referralId는 필수입니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
   if (!status || !VALID_STATUSES.includes(status)) {
     return new Response(
-      JSON.stringify({ ok: false, error: `status는 ${VALID_STATUSES.join("|")} 중 하나여야 합니다` }),
+      jsonKST({ ok: false, error: `status는 ${VALID_STATUSES.join("|")} 중 하나여야 합니다` }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -82,7 +83,7 @@ export default async (req: Request, _ctx: Context) => {
     const rows = Array.isArray(result) ? result : ((result as any)?.rows ?? []);
     if (rows.length === 0) {
       return new Response(
-        JSON.stringify({ ok: false, error: "인계 건을 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "인계 건을 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -114,7 +115,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true }),
+      jsonKST({ ok: true }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) {

@@ -3,6 +3,7 @@
  * 인계 이력 목록 조회
  * 응답: { ok, total, logs: [{ id, agencyName, sourceType, sourceNo, referredAt, status, statusMemo, statusUpdatedAt }] }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -12,7 +13,7 @@ export const config = { path: "/api/admin-referral-list" };
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({ ok: false, error: "인계 이력 조회 실패", step, detail: String(err?.message || err).slice(0, 500), stack: String(err?.stack || "").slice(0, 1000) }),
+    jsonKST({ ok: false, error: "인계 이력 조회 실패", step, detail: String(err?.message || err).slice(0, 500), stack: String(err?.stack || "").slice(0, 1000) }),
     { status: 500, headers: { "Content-Type": "application/json" } }
   );
 }
@@ -41,6 +42,6 @@ export default async (req: Request, _ctx: Context) => {
     const countRows = Array.isArray(countResult) ? countResult : ((countResult as any)?.rows ?? []);
     const total = parseInt(String(countRows[0]?.cnt ?? countRows[0]?.count ?? 0), 10);
     const logs = Array.isArray(rowsResult) ? rowsResult : ((rowsResult as any)?.rows ?? []);
-    return new Response(JSON.stringify({ ok: true, total, logs }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(jsonKST({ ok: true, total, logs }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("select_logs", err); }
 };

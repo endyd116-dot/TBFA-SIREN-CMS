@@ -11,6 +11,7 @@
  *
  * 응답 표준: { ok: true, data: { roles?: [...], role?: {...} } }
  */
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -28,16 +29,16 @@ export const config = { path: "/api/milestone-roles*" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 function jsonOk(data: unknown, status = 200) {
-  return new Response(JSON.stringify({ ok: true, data }), { status, headers: JSON_HEADER });
+  return new Response(jsonKST({ ok: true, data }), { status, headers: JSON_HEADER });
 }
 function jsonErr(error: string, status = 400, detail?: string) {
   return new Response(
-    JSON.stringify({ ok: false, error, ...(detail ? { detail } : {}) }),
+    jsonKST({ ok: false, error, ...(detail ? { detail } : {}) }),
     { status, headers: JSON_HEADER },
   );
 }
 function jsonStepErr(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false,
     error: "역할 카탈로그 오류",
     step,

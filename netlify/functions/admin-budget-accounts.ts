@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -12,7 +13,7 @@ export const config = { path: "/api/admin-budget-accounts" };
    ========================================================= */
 
 function jsonError(step: string, err: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: "예산 계정 처리 실패", step,
     detail: String(err?.message || err).slice(0, 500),
     stack: String(err?.stack || "").slice(0, 1000),
@@ -20,7 +21,7 @@ function jsonError(step: string, err: any) {
 }
 
 function jsonBad(step: string, message: string, extra?: any) {
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: false, error: message, step, ...(extra || {}),
   }), { status: 400, headers: { "Content-Type": "application/json" } });
 }
@@ -52,7 +53,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") return handleGet(req);
   if (req.method === "POST") return handlePost(req);
 
-  return new Response(JSON.stringify({ ok: false, error: "허용되지 않은 메서드입니다" }),
+  return new Response(jsonKST({ ok: false, error: "허용되지 않은 메서드입니다" }),
     { status: 405, headers: { "Content-Type": "application/json" } });
 }
 
@@ -198,7 +199,7 @@ async function handleGet(req: Request) {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, data: { tree: roots, fiscalYear } }),
+      jsonKST({ ok: true, data: { tree: roots, fiscalYear } }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) { return jsonError("build_tree", err); }
@@ -320,7 +321,7 @@ async function actionCreate(body: any) {
       RETURNING id, level, parent_id, code, name, sort_order, is_active, is_system
     `);
     const r = rowsOf(res)[0];
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         node: {
@@ -399,7 +400,7 @@ async function actionUpdate(body: any) {
       RETURNING id, level, parent_id, code, name, sort_order, is_active, is_system
     `);
     const r = rowsOf(res)[0];
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: {
         node: {
@@ -450,7 +451,7 @@ async function actionDelete(body: any) {
       await db.execute(sql`
         UPDATE budget_accounts SET is_active = false, updated_at = now() WHERE id = ${id}
       `);
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: true,
         data: { id, deleted: false, softDeleted: true },
         message: "편성·집행 데이터가 참조 중이어서 하드삭제 대신 비활성(소프트삭제) 처리했습니다.",
@@ -462,7 +463,7 @@ async function actionDelete(body: any) {
   try {
     await db.execute(sql`DELETE FROM budget_account_code_map WHERE budget_account_id = ${id}`);
     await db.execute(sql`DELETE FROM budget_accounts WHERE id = ${id}`);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true,
       data: { id, deleted: true, softDeleted: false },
       message: "삭제되었습니다.",
@@ -490,7 +491,7 @@ async function actionMapCode(body: any) {
       VALUES (${budgetAccountId}, ${accountCode})
       ON CONFLICT (budget_account_id, account_code) DO NOTHING
     `);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, data: { budgetAccountId, accountCode },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("insert_map", err); }
@@ -507,7 +508,7 @@ async function actionUnmapCode(body: any) {
       DELETE FROM budget_account_code_map
       WHERE budget_account_id = ${budgetAccountId} AND account_code = ${accountCode}
     `);
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: true, data: { budgetAccountId, accountCode },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) { return jsonError("delete_map", err); }

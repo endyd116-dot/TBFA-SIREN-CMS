@@ -1,3 +1,4 @@
+import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -9,7 +10,7 @@ export const config = { path: "/api/admin-expense-category-update" };
 export default async function handler(req: Request): Promise<Response> {
   // BUG-007 fix: PUT·PATCH 둘 다 허용
   if (req.method !== "PUT" && req.method !== "PATCH") {
-    return new Response(JSON.stringify({ ok: false, error: "PUT 또는 PATCH만 허용" }), { status: 405 });
+    return new Response(jsonKST({ ok: false, error: "PUT 또는 PATCH만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -17,34 +18,34 @@ export default async function handler(req: Request): Promise<Response> {
 
   // R45 CLUSTER-1: DB 역할 기반(admin=super 기본·operator 차단·권한정책 UI 토글)
   if (!(await canAccess(auth.ctx.member.role ?? "", "finance_bookkeeping"))) {
-    return new Response(JSON.stringify({ ok: false, error: "재정 카테고리 수정 권한이 없습니다", step: "auth_role" }), { status: 403 });
+    return new Response(jsonKST({ ok: false, error: "재정 카테고리 수정 권한이 없습니다", step: "auth_role" }), { status: 403 });
   }
 
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
   }
 
   const { id, name, description, sortOrder, isActive } = body;
 
   if (!id) {
-    return new Response(JSON.stringify({ ok: false, error: "id 필수", step: "validate" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "id 필수", step: "validate" }), { status: 400 });
   }
 
   let existing: typeof expenseCategories.$inferSelect[] = [];
   try {
     existing = await db.select().from(expenseCategories).where(eq(expenseCategories.id, Number(id))).limit(1);
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "카테고리 조회 실패", step: "select_category",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
     }), { status: 500 });
   }
   if (!existing.length) {
-    return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 카테고리", step: "not_found" }), { status: 404 });
+    return new Response(jsonKST({ ok: false, error: "존재하지 않는 카테고리", step: "not_found" }), { status: 404 });
   }
 
   const cat = existing[0];
@@ -53,7 +54,7 @@ export default async function handler(req: Request): Promise<Response> {
   // isSystem=true: sortOrder·isActive만 허용
   if (cat.isSystem) {
     if (name !== undefined || description !== undefined) {
-      return new Response(JSON.stringify({
+      return new Response(jsonKST({
         ok: false, error: "기본(시스템) 카테고리는 이름·설명을 수정할 수 없습니다", step: "validate_system",
       }), { status: 400 });
     }
@@ -67,7 +68,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   if (Object.keys(updateData).length <= 1) {
-    return new Response(JSON.stringify({ ok: false, error: "수정할 필드가 없습니다", step: "validate_fields" }), { status: 400 });
+    return new Response(jsonKST({ ok: false, error: "수정할 필드가 없습니다", step: "validate_fields" }), { status: 400 });
   }
 
   let updated: typeof expenseCategories.$inferSelect[] = [];
@@ -78,7 +79,7 @@ export default async function handler(req: Request): Promise<Response> {
       .where(eq(expenseCategories.id, Number(id)))
       .returning();
   } catch (err: any) {
-    return new Response(JSON.stringify({
+    return new Response(jsonKST({
       ok: false, error: "카테고리 수정 실패", step: "update",
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
@@ -86,7 +87,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const r = updated[0];
-  return new Response(JSON.stringify({
+  return new Response(jsonKST({
     ok: true,
     data: {
       category: {

@@ -10,6 +10,7 @@
 // 실제 발송 로직은 lib/communication-dispatcher-core.ts(runDispatcher) + 백그라운드 함수가 수행.
 // 원자적 claim으로 즉시-fire와 이 크론이 동시에 깨워도 중복/누락 0.
 
+import { jsonKST } from "../../lib/kst";
 import { hasDispatchWork, triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
 // 2026-06-25 DB 비용 절감 2차: 30분 → 1시간(:00 정렬·:30 wake 제거). 예약 발송만 최대 1시간 지연(즉시 발송은 이벤트로 무관).
@@ -31,13 +32,13 @@ export default async function handler(_req: Request) {
     }
     console.log(`[cron-dispatcher] done in ${Date.now() - t0}ms — work=${work} fired=${fired} bgStatus=${bgStatus}`);
     return new Response(
-      JSON.stringify({ ok: true, durationMs: Date.now() - t0, work, fired, bgStatus }),
+      jsonKST({ ok: true, durationMs: Date.now() - t0, work, fired, bgStatus }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     console.error("[cron-dispatcher] 실패", err);
     return new Response(
-      JSON.stringify({ ok: false, error: String(err?.message || err).slice(0, 300) }),
+      jsonKST({ ok: false, error: String(err?.message || err).slice(0, 300) }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }

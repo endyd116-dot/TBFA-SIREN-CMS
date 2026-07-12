@@ -3,6 +3,7 @@
 // 전년도 완료 후원이 있는 회원에게 영수증 발급 안내 알림톡(DONATION_RECEIPT_ANNUAL).
 // 솔라피 SOLAPI_TPL_RECEIPT (어댑터 처리). env 미설정 시 placeholder(미발송).
 
+import { jsonKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -57,12 +58,12 @@ export default async (_req: Request) => {
     }
 
     console.log(`[cron-donation-receipt-annual] ${prevYear}년 영수증 안내 대상 ${rows.length}건 발송 ${sent}`);
-    return new Response(JSON.stringify({ ok: true, year: prevYear, count: sent }), {
+    return new Response(jsonKST({ ok: true, year: prevYear, count: sent }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error("[cron-donation-receipt-annual] 오류:", error);
-    return new Response(JSON.stringify({ ok: false, error: error?.message }), {
+    return new Response(jsonKST({ ok: false, error: error?.message }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }

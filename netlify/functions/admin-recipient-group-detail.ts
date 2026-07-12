@@ -1,7 +1,7 @@
 // netlify/functions/admin-recipient-group-detail.ts
 // Phase 10 R2 — 단일 그룹 상세 (criteria + memberCount + sampleMembers 5명)
 
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -17,7 +17,7 @@ const JSON_HEADER = { "Content-Type": "application/json" };
 
 function jsonError(step: string, err: any) {
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: false,
       error: "수신자 그룹 조회 실패",
       step,
@@ -36,7 +36,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const id = parseInt(url.searchParams.get("id") || "0", 10);
   if (!Number.isInteger(id) || id <= 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
+      jsonKST({ ok: false, error: "id가 올바르지 않습니다.", step: "validate" }),
       { status: 400, headers: JSON_HEADER },
     );
   }
@@ -58,7 +58,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (!row) {
     return new Response(
-      JSON.stringify({ ok: false, error: "그룹을 찾을 수 없습니다.", step: "not_found" }),
+      jsonKST({ ok: false, error: "그룹을 찾을 수 없습니다.", step: "not_found" }),
       { status: 404, headers: JSON_HEADER },
     );
   }
@@ -80,7 +80,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return new Response(
-    JSON.stringify({
+    jsonKST({
       ok: true,
       group: {
         id: row.id,

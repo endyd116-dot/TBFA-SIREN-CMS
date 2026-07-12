@@ -4,6 +4,7 @@
 // POST ?id=X body: { name?, description?, triggerType?, templateId?, channel?,
 //                    delayHours?, cooldownDays?, conditions? }
 
+import { jsonKST } from "../../lib/kst";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -18,20 +19,20 @@ export default async function handler(req: Request) {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
+    return new Response(jsonKST({ ok: false, error: "POST만 허용" }),
       { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
   const id = Number(url.searchParams.get("id"));
   if (!id || isNaN(id)) {
-    return new Response(JSON.stringify({ ok: false, error: "트리거 ID(id)가 필요합니다" }),
+    return new Response(jsonKST({ ok: false, error: "트리거 ID(id)가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
+    return new Response(jsonKST({ ok: false, error: "JSON 파싱 실패" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -41,7 +42,7 @@ export default async function handler(req: Request) {
       SELECT id FROM communication_auto_triggers WHERE id = ${id} AND deleted_at IS NULL LIMIT 1
     `);
     if (!(existRes?.rows ?? existRes ?? [])[0]) {
-      return new Response(JSON.stringify({ ok: false, error: "트리거를 찾을 수 없습니다" }),
+      return new Response(jsonKST({ ok: false, error: "트리거를 찾을 수 없습니다" }),
         { status: 404, headers: { "Content-Type": "application/json" } });
     }
 
@@ -54,7 +55,7 @@ export default async function handler(req: Request) {
     if (body.channel !== undefined && !VALID_CHANNELS.includes(body.channel))
       errors.push(`channel은 ${VALID_CHANNELS.join("|")} 중 하나`);
     if (errors.length > 0) {
-      return new Response(JSON.stringify({ ok: false, error: errors.join(", ") }),
+      return new Response(jsonKST({ ok: false, error: errors.join(", ") }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
@@ -64,9 +65,9 @@ export default async function handler(req: Request) {
         SELECT id, is_active FROM communication_templates WHERE id = ${Number(body.templateId)} LIMIT 1
       `);
       const tpl = (tplRes?.rows ?? tplRes ?? [])[0];
-      if (!tpl) return new Response(JSON.stringify({ ok: false, error: "존재하지 않는 템플릿입니다" }),
+      if (!tpl) return new Response(jsonKST({ ok: false, error: "존재하지 않는 템플릿입니다" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
-      if (!tpl.is_active) return new Response(JSON.stringify({ ok: false, error: "비활성 템플릿입니다" }),
+      if (!tpl.is_active) return new Response(jsonKST({ ok: false, error: "비활성 템플릿입니다" }),
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
@@ -83,7 +84,7 @@ export default async function handler(req: Request) {
     if (body.conditions !== undefined) sets.push(sql`conditions = ${body.conditions ? JSON.stringify(body.conditions) : null}`);
 
     if (sets.length === 0) {
-      return new Response(JSON.stringify({ ok: true, message: "변경 사항 없음" }),
+      return new Response(jsonKST({ ok: true, message: "변경 사항 없음" }),
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
@@ -93,11 +94,11 @@ export default async function handler(req: Request) {
 
     await db.execute(sql`UPDATE communication_auto_triggers SET ${setClause} WHERE id = ${id}`);
 
-    return new Response(JSON.stringify({ ok: true, id }),
+    return new Response(jsonKST({ ok: true, id }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return new Response(
-      JSON.stringify({
+      jsonKST({
         ok: false, error: "트리거 수정 실패",
         step: "update", detail: String(err?.message || err).slice(0, 500),
         stack: String(err?.stack || "").slice(0, 1000),
