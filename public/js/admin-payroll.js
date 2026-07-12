@@ -1058,6 +1058,26 @@
     evOpen(cfg.title, html, actions);
   };
 
+  /* 신고 칸에 넣을 숫자를 클립보드로 — 손으로 옮겨 적다 자릿수를 틀리는 사고를 막는다.
+     홈택스·위택스 입력칸은 콤마 없는 숫자를 넣는 게 안전하므로 원본 숫자만 복사한다. */
+  window.copyStat = async (raw, label) => {
+    const v = String(Math.round(Number(raw) || 0));
+    try {
+      await navigator.clipboard.writeText(v);
+      toast(label + ' 복사 — ' + Number(v).toLocaleString() + ' (붙여넣기 하세요)', 'ok');
+    } catch {
+      /* 클립보드 권한이 막힌 브라우저 — 선택해서 직접 복사할 수 있게 보여준다 */
+      window.prompt(label + ' — 아래 숫자를 복사하세요 (Ctrl+C)', v);
+    }
+  };
+  function whCell(cls, key, value, unit) {
+    return '<div class="wh-cell ' + cls + '">' +
+      '<div class="k">' + key + '</div>' +
+      '<div class="v">' + won(value) + (unit || '') + '</div>' +
+      '<button class="btn btn-light btn-sm wh-copy" onclick="copyStat(' + Number(value) + ',\'' + key.replace(/'/g, '') + '\')">복사</button>' +
+      '</div>';
+  }
+
   /* ① 원천징수 — 홈택스에 그대로 옮겨 적는 숫자 */
   function renderWithholding(d) {
     if (!d.headcount) {
@@ -1066,15 +1086,19 @@
         '이 자료는 <b>지급 확정([지급] 버튼)</b>한 명세서만 집계합니다. ' +
         '급여를 이체한 뒤 [지급]을 눌러 실제 지급일을 기록하면 여기에 나타납니다.</div>';
     }
-    let h = '<div class="pay-section-title">홈택스 — 근로소득 간이세액 (A01)</div>' +
-      '<div class="wh-grid">' +
-        '<div class="wh-cell"><div class="k">인원</div><div class="v">' + d.headcount + '명</div></div>' +
-        '<div class="wh-cell"><div class="k">총지급액 (비과세 제외)</div><div class="v">' + won(d.totalPaid) + '</div></div>' +
-        '<div class="wh-cell tax"><div class="k">소득세 (납부할 세액)</div><div class="v">' + won(d.incomeTax) + '</div></div>' +
+    let h = '<div class="stat-note" style="margin:0 0 14px;background:#fffbeb;border-color:#fde68a">' +
+        '<b>홈택스에 직접 입력하는 서류입니다</b> (엑셀 첨부 기능 없음). 아래 숫자를 <b>[복사]</b> 눌러 붙여넣으세요 — 손으로 옮겨 적지 마세요.<br>' +
+        '홈택스 → 세금신고 → 원천세 신고 → <b>원천징수이행상황신고서</b> → 근로소득 <b>간이세액(A01)</b> 행' +
       '</div>' +
-      '<div class="pay-section-title">위택스 — 지방소득세 (특별징수)</div>' +
+      '<div class="pay-section-title">홈택스 — 근로소득 간이세액 (A01)</div>' +
       '<div class="wh-grid">' +
-        '<div class="wh-cell local"><div class="k">지방소득세</div><div class="v">' + won(d.localTax) + '</div></div>' +
+        whCell('', '인원', d.headcount, '명') +
+        whCell('', '총지급액', d.totalPaid) +
+        whCell('tax', '소득세', d.incomeTax) +
+      '</div>' +
+      '<div class="pay-section-title">위택스 — 지방소득세 (특별징수 · 따로 신고·납부)</div>' +
+      '<div class="wh-grid">' +
+        whCell('local', '지방소득세', d.localTax) +
       '</div>' +
       '<div class="pay-section-title">직원별 명세</div><div class="stat-scroll"><table class="stat-table">' +
       '<thead><tr><th>성명</th><th>지급일</th><th>귀속월</th><th class="r">총지급액(과세)</th><th class="r">소득세</th><th class="r">지방소득세</th></tr></thead><tbody>' +
@@ -1163,7 +1187,10 @@
       '</tbody></table></div>' +
       '<div class="stat-note">근로소득 <b>원천징수영수증(지급명세서)</b>에 옮겨 적는 숫자입니다. ' +
       '주민등록번호는 시스템에 두지 않으므로 홈택스에서 직접 입력하세요. ' +
-      '연말정산 소득공제·세액공제(부양가족·의료비·기부금 등)는 국세청 간소화 자료로 별도 반영합니다.</div>';
+      '연말정산 소득공제·세액공제(부양가족·의료비·기부금 등)는 국세청 간소화 자료로 별도 반영합니다.' +
+      '<br><br><b>엑셀 일괄 제출</b>: 홈택스는 국세청 표준 서식(엑셀)을 올려 지급명세서를 일괄 제출할 수 있습니다. ' +
+      '표준 서식은 컬럼 순서가 정해져 있어 임의 양식은 업로드되지 않습니다 — ' +
+      '홈택스에서 그 서식 파일을 받아 개발자에게 주시면, 그대로 채워진 파일로 자동 생성해 드립니다.</div>';
   }
 
   /* ④ 4대보험 보수총액 */
@@ -1181,7 +1208,9 @@
       '<td class="r">' + won(d.total) + '</td><td class="r"></td></tr>' +
       '</tbody></table></div>' +
       '<div class="stat-note">건강보험·국민연금 <b>보수총액 신고</b>(매년 3월)에 사용합니다. ' +
-      '보수총액은 비과세를 뺀 과세 대상액 기준입니다.</div>';
+      '보수총액은 비과세를 뺀 과세 대상액 기준입니다.' +
+      '<br><br><b>엑셀 일괄 제출</b>: 4대사회보험 EDI는 표준 서식(엑셀) 업로드를 지원합니다. ' +
+      'EDI에서 서식 파일을 받아 개발자에게 주시면 그대로 채워진 파일로 자동 생성해 드립니다.</div>';
   }
 
   /* ── 서명 증적 상세 ── */

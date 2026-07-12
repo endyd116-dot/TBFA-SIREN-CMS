@@ -205,9 +205,10 @@
 
     /* 신고 숫자 카드 (홈택스에 옮겨 적는 값) */
     .wh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 4px 0 14px; }
-    .wh-cell { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; background: #f9fafb; }
+    .wh-cell { position: relative; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px 12px; background: #f9fafb; }
     .wh-cell .k { font-size: 11.5px; color: #6b7280; font-weight: 600; }
     .wh-cell .v { font-size: 20px; font-weight: 800; color: #1f2937; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .wh-cell .wh-copy { position: absolute; top: 9px; right: 9px; padding: 3px 8px; font-size: 11px; }
     .wh-cell.tax { background: #eef2ff; border-color: #c7d2fe; }
     .wh-cell.tax .v { color: #3730a3; }
     .wh-cell.local { background: #ecfdf5; border-color: #a7f3d0; }
@@ -458,6 +459,6 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260712-statutory"></script>
+  <script src="/js/admin-payroll.js?v=20260712-copy"></script>
 </body>
 </html>

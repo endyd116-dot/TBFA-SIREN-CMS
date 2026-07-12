@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.13";
+export const APP_VERSION = "2026-07-12.14";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -26,6 +26,7 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
       { text: "연간 급여·공제 집계 — 다음해 3월 지급명세서·연말정산에 그대로 옮겨 적는 직원별 1년치 숫자", link: "/cms-tbfa.html#payroll" },
       { text: "4대보험 보수총액 — 매년 3월 건강보험·국민연금 정산 신고용 직원별 연간 과세 보수총액", link: "/cms-tbfa.html#payroll" },
       { text: "[지급]을 누를 때 실제 계좌이체일을 입력합니다 — 원천징수 신고가 '돈이 나간 날' 기준이라 이 날짜로 집계됩니다", link: "/cms-tbfa.html#payroll" },
+      { text: "신고 숫자마다 [복사] 버튼이 있습니다 — 홈택스·위택스 입력칸에 붙여넣기만 하면 되니 자릿수를 틀릴 일이 없습니다", link: "/cms-tbfa.html#payroll" },
       { text: "주민등록번호는 저장하지 않습니다 — 신고서에 옮겨 적을 숫자만 만들고, 주민번호는 홈택스에서 직접 입력합니다" },
     ],
   },
