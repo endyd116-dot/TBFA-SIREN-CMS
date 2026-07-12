@@ -190,7 +190,18 @@
       return;
     }
     const typeLabel = { CHECK_IN: '출근', CHECK_OUT: '퇴근', BOTH: '출퇴근' };
-    tbody.innerHTML = rows.map(r => `
+    tbody.innerHTML = rows.map(r => {
+      /* 직원이 붙인 증빙 서류 — 결재 전에 열어볼 수 있게 사유 밑에 붙인다 */
+      const files = Array.isArray(r.evidenceFiles) ? r.evidenceFiles : [];
+      const clips = files.length
+        ? '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">' + files.map(f =>
+            `<a href="#" onclick="awmOpenEvidence(${r.id},${Number(f.fileId)});return false"
+                style="display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:#2563eb;
+                       border:1px solid #bfdbfe;background:#eff6ff;border-radius:6px;padding:2px 7px;text-decoration:none"
+                title="${escHtml(f.name || '')} — 내려받기"><span class="siren-icon-wrap" data-icon="paperclip" style="width:12px;height:12px"></span>${escHtml(String(f.name || '첨부').slice(0, 20))}</a>`
+          ).join('') + '</div>'
+        : '';
+      return `
       <tr>
         <td>${escHtml(r.memberName || '—')}</td>
         <td>${escHtml(r.targetDate || '—')}</td>
@@ -199,13 +210,23 @@
           ${r.requestedCheckIn ? '출근 ' + fmtTime(r.requestedCheckIn) : ''}
           ${r.requestedCheckOut ? '<br>퇴근 ' + fmtTime(r.requestedCheckOut) : ''}
         </td>
-        <td>${escHtml(r.reason || '—')}</td>
+        <td>${escHtml(r.reason || '—')}${clips}</td>
         <td>
           <button class="att-btn att-btn-primary att-btn-sm" onclick="awmApproveAmend(${r.id})">승인</button>
           <button class="att-btn att-btn-danger att-btn-sm" style="margin-left:4px" onclick="awmRejectAmend(${r.id})">반려</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
+    if (window.SirenIcons?.render) window.SirenIcons.render(tbody);
   }
+
+  /** 정정 요청에 붙은 증빙 열기 — 그 요청에 첨부된 파일만 열린다(직원의 다른 파일은 못 본다) */
+  window.awmOpenEvidence = async (correctionId, fileId) => {
+    const res = await api('/api/admin-att-correction-file?correctionId=' + correctionId + '&fileId=' + fileId);
+    const d = res.data?.data || res.data;
+    if (!res.ok || !d?.url) { toast(res.data?.error || '파일을 열 수 없습니다'); return; }
+    window.open(d.url, '_blank');
+  };
 
   window.awmApproveAmend = async (id) => {
     if (!confirm('이 수정 요청을 승인하시겠습니까?')) return;

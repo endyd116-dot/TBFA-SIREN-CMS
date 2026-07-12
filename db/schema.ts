@@ -3763,6 +3763,10 @@ export const attCorrections = pgTable("att_corrections", {
   requestedCheckOut:   timestamp("requested_check_out"),
   reason:              text("reason"),
   evidenceUrl:         text("evidence_url"),
+  /* 증빙 첨부 (2026-07-12) — 마이그레이션: migrate-att-correction-files
+     [{ fileId, name, sizeBytes, mimeType }] — 파일 자체는 직원 본인의 워크스페이스 파일함(workspace_files)에 있다.
+     사유만으로 판단하기 어려운 정정(출장·병원·회의)을 결재자가 서류로 확인할 수 있게 한다. */
+  evidenceFiles:       jsonb("evidence_files").default([]).notNull(),
   status:              varchar("status", { length: 20 }).default("PENDING").notNull(),
   reviewedBy:          varchar("reviewed_by", { length: 36 }),
   reviewNote:          text("review_note"),

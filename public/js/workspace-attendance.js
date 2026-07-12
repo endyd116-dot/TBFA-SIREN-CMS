@@ -831,6 +831,138 @@
   /* ═══════════════════════════════════
      탭 5: 수정 요청
   ═══════════════════════════════════ */
+  /* ── 증빙 첨부 ──
+     사유만 글로 적게 하면 결재자가 출장·병원·회의 같은 정정을 글만 보고 판단해야 한다.
+     서류를 붙일 수 있게 하되, 파일은 근태 시스템이 따로 쌓지 않고 **본인 파일함**에 넣는다
+     (한 번 올린 서류를 다음 요청에서 다시 고를 수 있고, 본인이 직접 지울 수도 있다). */
+  const AMEND_MAX_BYTES = 20 * 1024 * 1024;   // 20MB — 종류(확장자) 제한은 없음
+  const AMEND_MAX_FILES = 10;
+  let amendFiles = [];        // [{ fileId, name, sizeBytes, mimeType }]
+  let _driveFiles = [];       // 파일함 목록 캐시
+
+  function fmtBytes(n) {
+    const b = Number(n || 0);
+    if (b >= 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + 'MB';
+    if (b >= 1024) return Math.round(b / 1024) + 'KB';
+    return b + 'B';
+  }
+
+  function renderAmendFiles() {
+    const box = document.getElementById('attAmendFileList');
+    if (!box) return;
+    box.innerHTML = amendFiles.map((f, i) => `
+      <div class="att-chip${f.uploading ? ' uploading' : ''}">
+        <span class="siren-icon-wrap" data-icon="file-text"></span>
+        <span class="att-chip-name" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+        ${f.uploading
+          ? `<span class="att-chip-bar"><i style="width:${Math.round(f.progress || 0)}%"></i></span>`
+          : `<span class="att-chip-size">${fmtBytes(f.sizeBytes)}</span>
+             <button type="button" class="att-chip-x" onclick="attRemoveAmendFile(${i})" title="첨부 해제">✕</button>`}
+      </div>`).join('');
+    if (window.SirenIcons?.render) window.SirenIcons.render(box);
+  }
+  window.attRemoveAmendFile = (i) => { amendFiles.splice(i, 1); renderAmendFiles(); };
+
+  /** 파일 하나 올리기 — 브라우저가 저장소로 직접 보낸다(서버 본문 한도를 넘기지 않으려고) */
+  async function uploadAmendFile(file) {
+    if (amendFiles.length >= AMEND_MAX_FILES) { toast(`첨부는 최대 ${AMEND_MAX_FILES}개까지입니다`); return; }
+    if (file.size > AMEND_MAX_BYTES) {
+      toast(`${file.name} — 20MB를 넘습니다 (${fmtBytes(file.size)})`);
+      return;
+    }
+    if (!file.size) { toast(`${file.name} — 빈 파일입니다`); return; }
+
+    const entry = { name: file.name, sizeBytes: file.size, mimeType: file.type || 'application/octet-stream', uploading: true, progress: 0 };
+    amendFiles.push(entry);
+    renderAmendFiles();
+
+    try {
+      const pre = await api('/api/att-correction-files?action=presign', {
+        method: 'POST',
+        body: { name: file.name, sizeBytes: file.size, mimeType: entry.mimeType },
+      });
+      if (!pre.ok) throw new Error(pre.data?.error || '업로드 준비 실패');
+      const d = pre.data?.data || pre.data;
+
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', d.uploadUrl);
+        xhr.setRequestHeader('Content-Type', entry.mimeType);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) { entry.progress = (e.loaded / e.total) * 100; renderAmendFiles(); }
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error('저장소 업로드 실패 (' + xhr.status + ')'));
+        xhr.onerror = () => reject(new Error('네트워크 오류로 업로드에 실패했습니다'));
+        xhr.send(file);
+      });
+
+      const conf = await api('/api/att-correction-files?action=confirm', {
+        method: 'POST', body: { fileId: d.fileId },
+      });
+      if (!conf.ok) throw new Error(conf.data?.error || '업로드 확정 실패');
+
+      entry.fileId = d.fileId;
+      entry.uploading = false;
+      renderAmendFiles();
+      _driveFiles = [];   // 파일함 목록 캐시 무효화 (방금 올린 파일이 보이도록)
+    } catch (err) {
+      const i = amendFiles.indexOf(entry);
+      if (i >= 0) amendFiles.splice(i, 1);
+      renderAmendFiles();
+      toast(file.name + ' — ' + (err.message || '업로드 실패'));
+    }
+  }
+
+  async function addAmendFiles(fileList) {
+    for (const f of Array.from(fileList || [])) await uploadAmendFile(f);
+  }
+
+  /* 내 파일함에서 고르기 — 이미 올려둔 서류를 다시 붙인다 */
+  async function openFileDrive() {
+    const modal = document.getElementById('attFileDriveModal');
+    const list = document.getElementById('attFileDriveList');
+    if (!modal || !list) return;
+    modal.style.display = 'flex';
+    list.innerHTML = '<div class="att-empty">불러오는 중…</div>';
+
+    if (!_driveFiles.length) {
+      const res = await api('/api/att-correction-files');
+      if (!res.ok) { list.innerHTML = '<div class="att-empty">파일함을 불러오지 못했습니다</div>'; return; }
+      _driveFiles = (res.data?.data?.files || res.data?.files || []);
+    }
+    renderFileDrive();
+  }
+  function renderFileDrive() {
+    const list = document.getElementById('attFileDriveList');
+    if (!list) return;
+    const q = (document.getElementById('attFileDriveSearch')?.value || '').trim().toLowerCase();
+    const rows = _driveFiles.filter(f => !q || String(f.name || '').toLowerCase().includes(q));
+    if (!rows.length) {
+      list.innerHTML = `<div class="att-empty">${q ? '찾는 파일이 없습니다' : '파일함이 비어 있습니다. 위에서 파일을 올려보세요.'}</div>`;
+      return;
+    }
+    list.innerHTML = rows.map(f => {
+      const already = amendFiles.some(a => a.fileId === f.id);
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid #f3f4f6">
+          <span class="siren-icon-wrap" data-icon="file-text"></span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+          <span style="color:#9ca3af;font-size:12px;white-space:nowrap">${fmtBytes(f.sizeBytes)}</span>
+          <button type="button" class="att-btn att-btn-sm ${already ? 'att-btn-default' : 'att-btn-primary'}"
+                  ${already ? 'disabled' : ''} onclick="attPickDriveFile(${f.id})">${already ? '첨부됨' : '첨부'}</button>
+        </div>`;
+    }).join('');
+    if (window.SirenIcons?.render) window.SirenIcons.render(list);
+  }
+  window.attPickDriveFile = (fileId) => {
+    if (amendFiles.length >= AMEND_MAX_FILES) { toast(`첨부는 최대 ${AMEND_MAX_FILES}개까지입니다`); return; }
+    const f = _driveFiles.find(x => x.id === fileId);
+    if (!f || amendFiles.some(a => a.fileId === fileId)) return;
+    amendFiles.push({ fileId: f.id, name: f.name, sizeBytes: f.sizeBytes, mimeType: f.mimeType });
+    renderAmendFiles();
+    renderFileDrive();
+  };
+
   async function initAmend() {
     window._attAmendInit = true;
 
@@ -839,6 +971,33 @@
     if (dateEl) dateEl.value = today;
 
     document.getElementById('attBtnAmendSubmit')?.addEventListener('click', submitAmend);
+
+    /* 증빙 첨부 — 파일 선택 · 끌어다 놓기 · 파일함에서 고르기 */
+    const input = document.getElementById('attAmendFileInput');
+    const drop = document.getElementById('attAmendDrop');
+    document.getElementById('attBtnAmendPick')?.addEventListener('click', () => input?.click());
+    input?.addEventListener('change', async (e) => {
+      await addAmendFiles(e.target.files);
+      e.target.value = '';    // 같은 파일을 다시 골라도 반응하도록
+    });
+    if (drop) {
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+        e.preventDefault(); drop.classList.add('dragover');
+      }));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+        e.preventDefault(); drop.classList.remove('dragover');
+      }));
+      drop.addEventListener('drop', (e) => addAmendFiles(e.dataTransfer?.files));
+    }
+    document.getElementById('attBtnAmendFromDrive')?.addEventListener('click', openFileDrive);
+    document.getElementById('attFileDriveClose')?.addEventListener('click', () => {
+      const m = document.getElementById('attFileDriveModal');
+      if (m) m.style.display = 'none';
+    });
+    document.getElementById('attFileDriveSearch')?.addEventListener('input', renderFileDrive);
+    document.getElementById('attFileDriveModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'attFileDriveModal') e.target.style.display = 'none';
+    });
 
     // 수정 유형 변경 시 시각 필드 표시 조정
     document.getElementById('attAmendType')?.addEventListener('change', (e) => {
@@ -874,6 +1033,8 @@
     if (type === 'CHECKOUT' && !co) { toast('퇴근 시각을 입력하세요'); return; }
     if (type === 'BOTH' && (!ci || !co)) { toast('출퇴근 시각을 모두 입력하세요'); return; }
 
+    if (amendFiles.some(f => f.uploading)) { toast('첨부 파일 업로드가 끝난 뒤 제출하세요'); return; }
+
     const btn = document.getElementById('attBtnAmendSubmit');
     if (btn) btn.disabled = true;
 
@@ -887,6 +1048,7 @@
         requestedCheckIn:  ci ? `${date}T${ci}:00+09:00` : null,   // KST 오프셋 명시(서버 UTC 오해석 방지)
         requestedCheckOut: co ? `${date}T${co}:00+09:00` : null,
         reason,
+        evidenceFiles: amendFiles.filter(f => f.fileId).map(f => ({ fileId: f.fileId })),
       },
     });
 
@@ -898,6 +1060,8 @@
     toast('수정 요청이 제출되었습니다');
     if (btn) btn.disabled = false;
     document.getElementById('attAmendReason').value = '';
+    amendFiles = [];
+    renderAmendFiles();
     await loadAmendHistory();
   }
 
@@ -912,7 +1076,16 @@
       return;
     }
     const typeLabel = { CHECK_IN: '출근', CHECK_OUT: '퇴근', BOTH: '출퇴근' };
-    tbody.innerHTML = rows.map(r => `
+    tbody.innerHTML = rows.map(r => {
+      const files = Array.isArray(r.evidenceFiles) ? r.evidenceFiles : [];
+      const clips = files.length
+        ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px">' + files.map(f =>
+            `<a href="#" onclick="attOpenMyEvidence(${Number(f.fileId)});return false"
+                style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#2563eb;text-decoration:underline"
+                title="${escHtml(f.name || '')}"><span class="siren-icon-wrap" data-icon="paperclip" style="width:11px;height:11px"></span>${escHtml(String(f.name || '첨부').slice(0, 16))}</a>`
+          ).join('') + '</div>'
+        : '';
+      return `
       <tr>
         <td>${escHtml(r.targetDate || '—')}</td>
         <td>${typeLabel[r.correctionType] || r.correctionType || '—'}</td>
@@ -920,10 +1093,23 @@
           ${r.requestedCheckIn ? '출근 ' + fmtTime(r.requestedCheckIn) : ''}
           ${r.requestedCheckOut ? '<br>퇴근 ' + fmtTime(r.requestedCheckOut) : ''}
         </td>
-        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '—')}</td>
+        <td style="max-width:160px">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '—')}</div>
+          ${clips}
+        </td>
         <td><span class="att-badge ${r.status || ''}">${statusLabel(r.status)}</span></td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
+    if (window.SirenIcons?.render) window.SirenIcons.render(tbody);
   }
+
+  /** 내가 첨부한 증빙 열기 (본인 파일만 열린다) */
+  window.attOpenMyEvidence = async (fileId) => {
+    const res = await api('/api/att-correction-files?download=' + fileId);
+    const d = res.data?.data || res.data;
+    if (!res.ok || !d?.url) { toast(res.data?.error || '파일을 열 수 없습니다'); return; }
+    window.open(d.url, '_blank');
+  };
 
   /* ═══════════════════════════════════
      탭 6: 재택보고서

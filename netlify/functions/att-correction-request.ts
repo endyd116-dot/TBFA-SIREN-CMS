@@ -4,6 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { broadcastNotification } from "../../lib/workspace-logger";
 import { notifyAllOperators } from "../../lib/notify";
+import { normalizeEvidenceFiles } from "../../lib/att-evidence";
 
 export const config = { path: "/api/att-correction-request" };
 
@@ -59,6 +60,15 @@ export default async function handler(req: Request) {
       return jsonError("validate_reason", new Error("사유는 필수입니다"), 400);
     }
 
+    /* 증빙 첨부 — 본인 파일함의 파일만 붙일 수 있다(남의 파일 번호는 여기서 걸러진다).
+       사유만으로 판단하기 어려운 정정(출장·병원·회의 등)을 결재자가 서류로 확인할 수 있게 한다. */
+    let evidenceFiles: any[] = [];
+    try {
+      evidenceFiles = await normalizeEvidenceFiles(Number(memberUid), body.evidenceFiles);
+    } catch (err) {
+      console.warn("[att-correction-request] 첨부 확인 실패(첨부 없이 계속):", err);
+    }
+
     let insertedRow: any;
     try {
       const [row] = await db.insert(attCorrections).values({
@@ -69,6 +79,7 @@ export default async function handler(req: Request) {
         requestedCheckOut: requestedCheckOut ? new Date(requestedCheckOut) : null,
         reason:       reason,
         evidenceUrl:  evidenceUrl  ?? null,
+        evidenceFiles: evidenceFiles as any,
         status: "PENDING",
       } as any).returning();
       insertedRow = row;
@@ -85,7 +96,8 @@ export default async function handler(req: Request) {
         category: "system",
         severity: "info",
         title: `근태 정정 결재 대기 — ${actorName}`,
-        message: `${targetDate} 출퇴근 정정 요청 접수${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
+        message: `${targetDate} 출퇴근 정정 요청 접수${reason ? ` · ${String(reason).slice(0, 80)}` : ""}` +
+          (evidenceFiles.length ? ` · 증빙 ${evidenceFiles.length}건 첨부` : ""),
         link: "/cms-tbfa.html#att-ops",
         refTable: "att_corrections",
         refId: insertedRow.id,

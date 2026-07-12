@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=20260712-esign"></script>
+  <script src="/js/icons.js?v=20260712-evidence"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 -->
 <link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
-<link rel="stylesheet" href="/css/workspace-attendance.css?v=17-readable">
+<link rel="stylesheet" href="/css/workspace-attendance.css?v=18-evidence">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 
 <!-- FullCalendar CDN -->
@@ -378,6 +378,27 @@
             <textarea id="attAmendReason" placeholder="수정이 필요한 이유를 입력하세요"></textarea>
           </div>
         </div>
+
+        <!-- 증빙 자료 — 사유만으로 판단하기 어려운 정정(출장·병원·회의)에 서류를 붙인다.
+             올린 파일은 내 파일함의 '근태 증빙' 폴더에 보관되어 다음에 다시 고를 수 있다. -->
+        <div class="att-form-row full">
+          <div class="att-form-group">
+            <label>증빙 자료 <span style="font-weight:400;color:#9ca3af;font-size:12px">— 선택 · 한글·워드·PDF 등 제한 없음 · 파일당 20MB 이하</span></label>
+            <div id="attAmendDrop" class="att-drop">
+              <div class="att-drop-inner">
+                <span class="siren-icon-wrap" data-icon="upload"></span>
+                <div>여기로 파일을 끌어다 놓거나</div>
+                <div class="att-drop-btns">
+                  <button type="button" class="att-btn att-btn-sm" id="attBtnAmendPick">파일 선택</button>
+                  <button type="button" class="att-btn att-btn-sm att-btn-light" id="attBtnAmendFromDrive">내 파일함에서 고르기</button>
+                </div>
+              </div>
+              <input type="file" id="attAmendFileInput" multiple hidden>
+            </div>
+            <div id="attAmendFileList" class="att-chip-list"></div>
+          </div>
+        </div>
+
         <button class="att-btn att-btn-primary" id="attBtnAmendSubmit">수정 요청 제출</button>
       </div>
 
@@ -514,13 +535,29 @@
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <!-- FullCalendar CDN -->
+<!-- 내 파일함에서 증빙 고르기 (근태 수정 요청) -->
+<div id="attFileDriveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1200;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:92%;max-width:560px;max-height:80vh;display:flex;flex-direction:column">
+    <div style="padding:20px 24px 12px;border-bottom:1px solid #e5e7eb">
+      <h3 style="margin:0;font-size:17px">내 파일함에서 고르기</h3>
+      <p style="margin:6px 0 0;font-size:12.5px;color:#6b7280">이전에 올린 파일을 다시 붙일 수 있습니다.</p>
+      <input type="search" id="attFileDriveSearch" placeholder="파일 이름으로 찾기"
+             style="width:100%;margin-top:12px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:13px">
+    </div>
+    <div id="attFileDriveList" style="flex:1;overflow-y:auto;padding:8px 12px"></div>
+    <div style="padding:12px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #e5e7eb">
+      <button type="button" class="att-btn att-btn-default" id="attFileDriveClose">닫기</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <!-- KST 표시 헬퍼 -->
 <script src="/js/lib-kst.js?v=1"></script>
 <!-- 워크스페이스 공통 JS -->
 <script src="/js/workspace-common.js?v=20260712-noemoji"></script>
 <!-- 근태관리 JS -->
-<script src="/js/workspace-attendance.js?v=20260712-remote"></script>
+<script src="/js/workspace-attendance.js?v=20260712-evidence"></script>
 <!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
 <script src="/js/workspace-payroll.js?v=20260712-days"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
