@@ -399,9 +399,28 @@ export default async function handler(req: Request) {
       } catch (err) { return jsonError("hold_slip", err); }
     }
 
-    // 지급 확정 (PAID·지급일·처리자 기록 — APPROVED/SENT에서만)
+    /* 지급 확정 (PAID·지급일·처리자 기록 — APPROVED/SENT에서만)
+     *
+     * 지급일을 '버튼 누른 시각'이 아니라 **실제 계좌이체일**로 받는다.
+     * 원천징수이행상황신고는 귀속월이 아니라 '돈이 나간 날' 기준이기 때문이다.
+     * (6월 근로분을 7월 25일에 지급 → 7월 지급분 → 8월 10일까지 신고)
+     * 날짜만 받아 한국시간 정오로 저장한다 — 자정 근처에서 날짜가 하루 밀리지 않게. */
     if (action === "paid") {
       if (!idNum) return jsonBadRequest("id 필수");
+      let body: any = {};
+      try { body = await req.json(); } catch { /* 본문 없으면 오늘로 간주 */ }
+
+      let paidAt = new Date();
+      const raw = String(body.paidAt ?? "").trim();
+      if (raw) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+          return jsonBadRequest("지급일은 YYYY-MM-DD 형식으로 입력하세요 (예: 2026-07-25)");
+        }
+        const d = new Date(`${raw}T12:00:00+09:00`);
+        if (isNaN(d.getTime())) return jsonBadRequest("지급일이 올바르지 않습니다");
+        paidAt = d;
+      }
+
       try {
         const [cur] = await db.select({ status: payrollSlips.status })
           .from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
@@ -410,7 +429,7 @@ export default async function handler(req: Request) {
           return jsonBadRequest("승인(APPROVED) 또는 발송(SENT) 상태에서만 지급 확정 가능합니다");
         }
         const paidUpdate: any = {
-          status: "PAID", paidBy: String(admin.id), paidAt: new Date(), updatedAt: new Date(),
+          status: "PAID", paidBy: String(admin.id), paidAt, updatedAt: new Date(),
         };
         const [updated] = await db.update(payrollSlips).set(paidUpdate)
           .where(eq(payrollSlips.id, idNum)).returning();

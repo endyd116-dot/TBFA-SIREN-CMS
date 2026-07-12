@@ -794,13 +794,28 @@
     } else {
       msg = who + ' 님 — 수령확인(전자서명) 완료' +
         (row.ackAt ? ' · ' + new Date(row.ackAt).toLocaleDateString('ko-KR') : '') + '\n\n' +
-        '지급을 확정합니다. 확정 후에는 금액 편집이 잠깁니다. 계속할까요?';
+        '지급을 확정합니다. 확정 후에는 금액 편집이 잠깁니다.';
     }
-    if (!confirm(msg)) return;
 
-    const res = await api('/api/admin-payroll?id=' + id + '&action=paid', { method: 'POST' });
+    /* 실제 계좌이체일을 받는다 — 원천징수 신고가 '돈이 나간 날' 기준이기 때문.
+       (6월 근로분을 7월 25일에 지급하면 7월 지급분으로 잡혀 8월 10일까지 신고한다) */
+    const today = new Date().toLocaleDateString('sv-SE');   // YYYY-MM-DD (KST 로캘)
+    const input = prompt(
+      msg + '\n\n───────────────\n실제 지급일(계좌이체일)을 입력하세요.\n원천징수 신고가 이 날짜 기준으로 집계됩니다.',
+      today
+    );
+    if (input === null) return;
+    const paidAt = String(input).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) {
+      toast('지급일은 2026-07-25 처럼 입력하세요', 'err');
+      return;
+    }
+
+    const res = await api('/api/admin-payroll?id=' + id + '&action=paid', {
+      method: 'POST', body: { paidAt }
+    });
     if (!res.ok) { toast('지급 확정 실패: ' + (res.data?.error || res.status), 'err'); return; }
-    toast('지급 확정 완료'); closeModal(); await loadList();
+    toast('지급 확정 완료 — ' + paidAt + ' 지급분으로 신고 자료에 잡힙니다'); closeModal(); await loadList();
   }
 
   function closeModal() {
@@ -970,6 +985,203 @@
     $('evBody').innerHTML = bodyHtml;
     $('evActions').innerHTML = actionsHtml || '<button class="btn btn-light" onclick="closeEvModal()">닫기</button>';
     $('evModal').classList.add('show');
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     신고·법정 서류 — 임금대장 · 원천징수 · 연간집계 · 4대보험
+
+     급여에서 소득세를 떼면 그 돈은 협회 돈이 아니라 '국가에 대신 내주는 돈'이다.
+     매달·매년 신고해야 하고, 안 하면 가산세가 붙는다.
+     주민등록번호는 시스템에 두지 않으므로, 신고서에 '옮겨 적을 숫자'만 만들어 준다.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* 자료마다 기간 기준이 다르다 (섞으면 신고가 틀린다)
+       임금대장·연간집계·4대보험 → 귀속월 (그 달의 근로)
+       원천징수               → 지급일 (실제로 돈이 나간 날)  */
+  const STATUTORY = {
+    withholding: { title: '원천징수이행상황신고 자료', yearEl: 'whYear',  monthEl: 'whMonth' },
+    ledger:      { title: '임금대장',                  yearEl: 'lgYear',  monthEl: 'lgMonth' },
+    annual:      { title: '연간 급여·공제 집계',        yearEl: 'anYear',  monthEl: null },
+    insurance:   { title: '4대보험 보수총액',           yearEl: 'insYear', monthEl: null },
+  };
+
+  function initStatutory() {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth() + 1;
+    for (const cfg of Object.values(STATUTORY)) {
+      const ys = $(cfg.yearEl);
+      if (ys && !ys.options.length) {
+        for (let i = y; i >= y - 4; i--) ys.add(new Option(i + '년', i));
+        ys.value = y;
+      }
+      if (cfg.monthEl) {
+        const ms = $(cfg.monthEl);
+        if (ms && !ms.options.length) {
+          for (let i = 1; i <= 12; i++) ms.add(new Option(i + '월', i));
+          ms.value = m;
+        }
+      }
+    }
+  }
+
+  function statutoryQuery(type) {
+    const cfg = STATUTORY[type];
+    let q = 'type=' + type + '&year=' + $(cfg.yearEl).value;
+    if (cfg.monthEl) q += '&month=' + $(cfg.monthEl).value;
+    return q;
+  }
+
+  /** 엑셀·PDF 내려받기 — 관리자 쿠키가 함께 가므로 새 창으로 열면 그대로 저장된다 */
+  window.dlStatutory = (type, format) => {
+    window.open('/api/admin-payroll-statutory?' + statutoryQuery(type) + '&format=' + format, '_blank');
+  };
+
+  window.openStatutory = async (type) => {
+    const cfg = STATUTORY[type];
+    evOpen(cfg.title, '<div style="padding:24px;text-align:center;color:#9ca3af">불러오는 중...</div>');
+    const res = await api('/api/admin-payroll-statutory?' + statutoryQuery(type));
+    if (!res.ok) {
+      evOpen(cfg.title, '<div style="padding:20px;color:#dc2626">' + esc(res.data?.error || '불러오기 실패') +
+        (res.data?.detail ? '<div style="font-size:12px;color:#9ca3af;margin-top:6px">' + esc(res.data.detail) + '</div>' : '') + '</div>');
+      return;
+    }
+    const d = res.data?.data || res.data;
+    const html =
+      type === 'withholding' ? renderWithholding(d)
+      : type === 'ledger'    ? renderLedger(d)
+      : type === 'annual'    ? renderAnnual(d)
+      :                        renderInsurance(d);
+    const actions =
+      '<button class="btn btn-light" onclick="dlStatutory(\'' + type + '\',\'csv\')">엑셀 내려받기</button>' +
+      (type === 'ledger' ? '<button class="btn btn-light" onclick="dlStatutory(\'ledger\',\'pdf\')">PDF 내려받기</button>' : '') +
+      '<button class="btn btn-light" onclick="closeEvModal()">닫기</button>';
+    evOpen(cfg.title, html, actions);
+  };
+
+  /* ① 원천징수 — 홈택스에 그대로 옮겨 적는 숫자 */
+  function renderWithholding(d) {
+    if (!d.headcount) {
+      return '<div class="stat-note">' +
+        '<b>' + d.payYear + '년 ' + d.payMonth + '월에 지급한 급여가 없습니다.</b><br>' +
+        '이 자료는 <b>지급 확정([지급] 버튼)</b>한 명세서만 집계합니다. ' +
+        '급여를 이체한 뒤 [지급]을 눌러 실제 지급일을 기록하면 여기에 나타납니다.</div>';
+    }
+    let h = '<div class="pay-section-title">홈택스 — 근로소득 간이세액 (A01)</div>' +
+      '<div class="wh-grid">' +
+        '<div class="wh-cell"><div class="k">인원</div><div class="v">' + d.headcount + '명</div></div>' +
+        '<div class="wh-cell"><div class="k">총지급액 (비과세 제외)</div><div class="v">' + won(d.totalPaid) + '</div></div>' +
+        '<div class="wh-cell tax"><div class="k">소득세 (납부할 세액)</div><div class="v">' + won(d.incomeTax) + '</div></div>' +
+      '</div>' +
+      '<div class="pay-section-title">위택스 — 지방소득세 (특별징수)</div>' +
+      '<div class="wh-grid">' +
+        '<div class="wh-cell local"><div class="k">지방소득세</div><div class="v">' + won(d.localTax) + '</div></div>' +
+      '</div>' +
+      '<div class="pay-section-title">직원별 명세</div><div class="stat-scroll"><table class="stat-table">' +
+      '<thead><tr><th>성명</th><th>지급일</th><th>귀속월</th><th class="r">총지급액(과세)</th><th class="r">소득세</th><th class="r">지방소득세</th></tr></thead><tbody>' +
+      d.detail.map(x =>
+        '<tr><td>' + esc(x.name) + '</td>' +
+        '<td>' + (x.paidAt ? new Date(x.paidAt).toLocaleDateString('ko-KR') : '—') + '</td>' +
+        '<td>' + esc(x.belongsTo) + '</td>' +
+        '<td class="r">' + won(x.totalPaid) + '</td>' +
+        '<td class="r">' + won(x.incomeTax) + '</td>' +
+        '<td class="r">' + won(x.localTax) + '</td></tr>').join('') +
+      '<tr class="sum"><td>합계</td><td colspan="2">' + d.headcount + '명</td>' +
+        '<td class="r">' + won(d.totalPaid) + '</td>' +
+        '<td class="r">' + won(d.incomeTax) + '</td>' +
+        '<td class="r">' + won(d.localTax) + '</td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="stat-note"><b>신고·납부 기한: ' + esc(d.dueDate) + '</b><br>' + esc(d.note) + '</div>';
+    return h;
+  }
+
+  /* ② 임금대장 */
+  function renderLedger(d) {
+    if (!d.slips.length) {
+      return '<div class="stat-note">' + d.year + '년 ' + d.month + '월에 확정된 명세서가 없습니다. ' +
+        '초안·검토 중인 명세서는 법정 서류에 넣지 않습니다 — 승인 이후부터 집계합니다.</div>';
+    }
+    const t = d.totals;
+    const row = (s) =>
+      '<tr><td>' + esc(s.name) + '</td><td>' + esc(s.position) + '</td>' +
+      '<td class="r">' + days(s.workingDays) + '</td>' +
+      '<td class="r">' + won(s.baseSalary) + '</td>' +
+      '<td class="r">' + won(s.adjustTaxable + s.adjustNonTaxable + s.overtimePay + s.performanceBonus) + '</td>' +
+      '<td class="r">' + won(s.grossPay) + '</td>' +
+      '<td class="r">' + won(s.nonTaxable) + '</td>' +
+      '<td class="r">' + won(s.taxableBase) + '</td>' +
+      '<td class="r">' + won(s.nationalPension + s.healthInsurance + s.longTermCare + s.employmentInsurance) + '</td>' +
+      '<td class="r">' + won(s.incomeTax + s.localTax) + '</td>' +
+      '<td class="r">' + won(s.totalDeduction) + '</td>' +
+      '<td class="r" style="font-weight:700;color:#0f766e">' + won(s.netPay) + '</td></tr>';
+    return '<div class="stat-scroll"><table class="stat-table">' +
+      '<thead><tr><th>성명</th><th>직책</th><th class="r">근로일</th><th class="r">기본급</th><th class="r">수당</th>' +
+      '<th class="r">지급총액</th><th class="r">비과세</th><th class="r">과세대상</th>' +
+      '<th class="r">4대보험</th><th class="r">세금</th><th class="r">공제총액</th><th class="r">실지급액</th></tr></thead><tbody>' +
+      d.slips.map(row).join('') +
+      '<tr class="sum"><td>합계</td><td>' + t.count + '명</td><td class="r"></td>' +
+      '<td class="r">' + won(t.baseSalary) + '</td>' +
+      '<td class="r">' + won(t.adjustTaxable + t.adjustNonTaxable + t.overtimePay + t.performanceBonus) + '</td>' +
+      '<td class="r">' + won(t.grossPay) + '</td>' +
+      '<td class="r">' + won(t.nonTaxable) + '</td>' +
+      '<td class="r">' + won(t.taxableBase) + '</td>' +
+      '<td class="r">' + won(t.nationalPension + t.healthInsurance + t.longTermCare + t.employmentInsurance) + '</td>' +
+      '<td class="r">' + won(t.incomeTax + t.localTax) + '</td>' +
+      '<td class="r">' + won(t.totalDeduction) + '</td>' +
+      '<td class="r">' + won(t.netPay) + '</td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="stat-note">근로기준법 제48조에 따라 <b>3년간 보존</b>해야 하는 서류입니다. ' +
+      '항목별 세부 금액(연장수당·만근수당·보험 항목별)은 <b>PDF·엑셀</b>에 모두 담겨 있습니다.</div>';
+  }
+
+  /* ③ 연간 집계 — 지급명세서·연말정산에 옮겨 적는 숫자 */
+  function renderAnnual(d) {
+    if (!d.rows.length) return '<div class="stat-note">' + d.year + '년에 확정된 명세서가 없습니다.</div>';
+    const t = d.totals;
+    return '<div class="stat-scroll"><table class="stat-table">' +
+      '<thead><tr><th>성명</th><th>직책</th><th class="r">지급월수</th>' +
+      '<th class="r">지급총액</th><th class="r">비과세</th><th class="r">총급여(과세)</th>' +
+      '<th class="r">국민연금</th><th class="r">건강보험</th><th class="r">장기요양</th><th class="r">고용보험</th>' +
+      '<th class="r">소득세</th><th class="r">지방소득세</th></tr></thead><tbody>' +
+      d.rows.map(r =>
+        '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.position) + '</td>' +
+        '<td class="r">' + r.months + '</td>' +
+        '<td class="r">' + won(r.grossPay) + '</td>' +
+        '<td class="r">' + won(r.nonTaxable) + '</td>' +
+        '<td class="r" style="font-weight:700">' + won(r.taxableBase) + '</td>' +
+        '<td class="r">' + won(r.nationalPension) + '</td>' +
+        '<td class="r">' + won(r.healthInsurance) + '</td>' +
+        '<td class="r">' + won(r.longTermCare) + '</td>' +
+        '<td class="r">' + won(r.employmentInsurance) + '</td>' +
+        '<td class="r">' + won(r.incomeTax) + '</td>' +
+        '<td class="r">' + won(r.localTax) + '</td></tr>').join('') +
+      '<tr class="sum"><td>합계</td><td></td><td class="r"></td>' +
+      '<td class="r">' + won(t.grossPay) + '</td><td class="r">' + won(t.nonTaxable) + '</td>' +
+      '<td class="r">' + won(t.taxableBase) + '</td>' +
+      '<td class="r">' + won(t.nationalPension) + '</td><td class="r">' + won(t.healthInsurance) + '</td>' +
+      '<td class="r">' + won(t.longTermCare) + '</td><td class="r">' + won(t.employmentInsurance) + '</td>' +
+      '<td class="r">' + won(t.incomeTax) + '</td><td class="r">' + won(t.localTax) + '</td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="stat-note">근로소득 <b>원천징수영수증(지급명세서)</b>에 옮겨 적는 숫자입니다. ' +
+      '주민등록번호는 시스템에 두지 않으므로 홈택스에서 직접 입력하세요. ' +
+      '연말정산 소득공제·세액공제(부양가족·의료비·기부금 등)는 국세청 간소화 자료로 별도 반영합니다.</div>';
+  }
+
+  /* ④ 4대보험 보수총액 */
+  function renderInsurance(d) {
+    if (!d.rows.length) return '<div class="stat-note">' + d.year + '년에 확정된 명세서가 없습니다.</div>';
+    return '<div class="stat-scroll"><table class="stat-table">' +
+      '<thead><tr><th>성명</th><th>입사일</th><th class="r">산정 월수</th>' +
+      '<th class="r">연간 보수총액 (과세)</th><th class="r">월평균 보수</th></tr></thead><tbody>' +
+      d.rows.map(r =>
+        '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.hireDate || '—') + '</td>' +
+        '<td class="r">' + r.months + '</td>' +
+        '<td class="r" style="font-weight:700">' + won(r.annualTaxable) + '</td>' +
+        '<td class="r">' + won(r.monthlyAverage) + '</td></tr>').join('') +
+      '<tr class="sum"><td>합계</td><td></td><td class="r"></td>' +
+      '<td class="r">' + won(d.total) + '</td><td class="r"></td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="stat-note">건강보험·국민연금 <b>보수총액 신고</b>(매년 3월)에 사용합니다. ' +
+      '보수총액은 비과세를 뺀 과세 대상액 기준입니다.</div>';
   }
 
   /* ── 서명 증적 상세 ── */
@@ -1202,7 +1414,13 @@
     $('selYear').addEventListener('change', () => { syncExportLink(); syncZipLink(); });
     $('selMonth').addEventListener('change', () => { syncExportLink(); syncZipLink(); });
     const ok = await checkSuperAdmin();
-    if (ok) { const sc = $('staffSalaryCard'); if (sc) sc.style.display = 'block'; loadStaffSalaries(); }
+    if (ok) {
+      const sc = $('staffSalaryCard'); if (sc) sc.style.display = 'block';
+      loadStaffSalaries();
+      /* 신고·법정 서류 (임금대장·원천징수·연말정산·4대보험) — 급여 열람 권한자만 */
+      const st = $('statutoryCard'); if (st) st.style.display = 'block';
+      initStatutory();
+    }
     $('btnLoad').addEventListener('click', loadList);
     $('btnRecalc').addEventListener('click', () => recalc(false));
     $('btnRecalcForce').addEventListener('click', () => recalc(true));

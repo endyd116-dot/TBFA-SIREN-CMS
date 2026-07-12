@@ -311,6 +311,9 @@
   included_files = ["assets/fonts/**"]
 [functions."admin-payroll-evidence"]
   included_files = ["assets/fonts/**"]
+# ★ 2026-07-12 법정 신고 자료 — 임금대장 PDF를 만든다. 빠뜨리면 라이브에서만 PDF가 실패한다.
+[functions."admin-payroll-statutory"]
+  included_files = ["assets/fonts/**"]
 
 # ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
 [functions."cron-org-news"]
