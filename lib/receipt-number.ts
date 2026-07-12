@@ -52,7 +52,9 @@ export async function issueReceiptNumber(
 
   /* 신규 발급 */
   const createdAt = (d as any).createdAt as Date | string;
-  const year = new Date(createdAt).getFullYear();
+  /* 영수증 번호의 연도는 한국 기준 — 한국 1/1 새벽(0~9시) 발급이 서버 UTC로는 전년이라
+     번호가 작년으로 찍히던 문제(세무 서류). yearKST 로 한국 연도를 쓴다. */
+  const year = yearKST(createdAt);
   const receiptNumber = buildReceiptNumber(donationId, year);
 
   await db
