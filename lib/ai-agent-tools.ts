@@ -2,6 +2,7 @@
 // AI 에이전트가 호출할 수 있는 SIREN 도구 정의 + 실행 핸들러
 // Phase A: 콘텐츠·관리 + 읽기 도구 대폭 확장 (총 20개)
 
+import { todayKST } from "./kst";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { sendEmail, renderEmailLayout } from "./email";
@@ -6075,7 +6076,7 @@ async function tool_martyrdomCaseStatus(args: any, adminId: number | null): Prom
         WHERE case_id = ${id} AND status = 'pending'
         ORDER BY due_date ASC LIMIT 3
       `));
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayKST();
       nextDeadlines = (dlRows?.rows ?? dlRows ?? []).map((r: any) => {
         const due = String(r.dueDate || "").slice(0, 10);
         const diffMs = new Date(due + "T00:00:00Z").getTime() - new Date(today + "T00:00:00Z").getTime();
@@ -6109,7 +6110,7 @@ async function tool_martyrdomDeadlinesUpcoming(args: any, adminId: number | null
 
   try {
     const days = Math.min(Math.max(Number(args?.days || 30), 1), 365);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKST();
 
     const rows: any = await db.execute(sql.raw(`
       SELECT d.id, d.label, d.kind, d.due_date AS "dueDate",

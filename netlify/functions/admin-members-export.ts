@@ -2,6 +2,7 @@
 // Phase M-12: 회원 목록 CSV 추출 (Excel 호환)
 // GET /api/admin/members-export?type=&category=&status=&q=&source=
 
+import { todayKST } from "../../lib/kst";
 import { eq, and, or, like, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { members, signupSources, donations } from "../../db/schema";
@@ -180,7 +181,7 @@ export default async (req: Request) => {
     ];
 
     const csv = buildCSV(rows, columns);
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const dateStr = todayKST().replace(/-/g, "");
     const filename = `siren-members-${dateStr}.csv`;
 
     /* 감사 로그 */

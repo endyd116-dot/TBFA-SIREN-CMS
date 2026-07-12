@@ -729,7 +729,7 @@
 
     /* ★ 2026-05-16 #1-2: 헤더 빠른 추가 버튼 — 메모/일정 */
     $('#wcBtnNewMemo')?.addEventListener('click', () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayKST();
       if (window.WorkspaceMemoModal) {
         WorkspaceMemoModal.openCreate({ showInCalendar: true, eventDate: today });
       } else {
@@ -737,7 +737,7 @@
       }
     });
     $('#wcBtnNewEvent')?.addEventListener('click', () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayKST();
       openEventModal({ startDate: today });
     });
     // Q3-005: 일정 저장(생성/수정) + 보기 모달의 수정 버튼
@@ -864,7 +864,7 @@
     // 워크툴 '새 일정'에서 넘어온 경우(?new=event) 자동으로 새 일정 모달 열기
     try {
       if (/[?&]new=event/.test(location.search)) {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayKST();
         openEventModal({ startDate: today });
       }
     } catch (_) {}

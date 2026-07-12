@@ -14,6 +14,7 @@
  *
  * Phase M-16: 핵심 4종 중 자동 정리 cron
  */
+import { todayKST } from "../../lib/kst";
 import { sql, lt, and, inArray, not } from "drizzle-orm";
 import { db } from "../../db";
 import { auditLogs } from "../../db/schema";
@@ -102,7 +103,7 @@ export default async (_req: Request) => {
       userType: "system",
       userName: "cron-cleanup-audit-logs",
       action: "cron_cleanup_audit_logs",
-      target: new Date().toISOString().slice(0, 10),
+      target: todayKST(),
       detail: {
         generalDeleted,
         securityDeleted,

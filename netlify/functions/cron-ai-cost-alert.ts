@@ -12,6 +12,7 @@
  *   AI_MONTHLY_BUDGET_USD / AI_WARN_THRESHOLD_USD (lib/ai-cost-monitor에서 사용)
  */
 
+import { todayKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -71,7 +72,7 @@ export default async (_req: Request) => {
 
     await sendEmail({
       to: notifyEmail,
-      subject: `[SIREN] AI 비용 알림 — ${new Date().toISOString().slice(0, 10)}`,
+      subject: `[SIREN] AI 비용 알림 — ${todayKST()}`,
       html,
     });
 
@@ -89,7 +90,7 @@ export default async (_req: Request) => {
    period_type='alert', period_key=날짜+종류
    ========================================================= */
 async function wasAlertSentToday(): Promise<{ budgetExceeded: boolean; warnReached: boolean; surgeDetected: boolean }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   try {
     const r: any = await db.execute(sql`
       SELECT period_key FROM ai_cost_summary
@@ -109,7 +110,7 @@ async function wasAlertSentToday(): Promise<{ budgetExceeded: boolean; warnReach
 }
 
 async function markAlertSent(kind: "budget_exceeded" | "warn_reached" | "surge_detected") {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   try {
     await db.execute(sql`
       INSERT INTO ai_cost_summary

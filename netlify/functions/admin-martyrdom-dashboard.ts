@@ -6,6 +6,7 @@
  * 응답: { ok, totalCases, statusCounts, kindCounts, upcomingDeadlines, readiness, storage }
  *   storage: { bytes, gb, alertGb, over } — over=true면 임계 초과(운영자 수동 파기 권장)
  */
+import { todayKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -23,7 +24,7 @@ function jsonError(step: string, err: any) {
 
 function dDay(due: string): number {
   const d = new Date(due + "T00:00:00Z").getTime();
-  const today = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime();
+  const today = new Date(todayKST() + "T00:00:00Z").getTime();
   return Math.round((d - today) / 86400000);
 }
 

@@ -996,7 +996,7 @@
         type: data.type,
         source: 'manual',
         tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        createdAt: new Date().toISOString().slice(0, 10),
+        createdAt: todayKST(),
       };
       allMembers.unshift(newMember);
       toast(`${data.name}님이 등록되었습니다 `);
@@ -1083,7 +1083,7 @@
           type: { '유족':'family','후원':'donor','일반':'regular','봉사':'volunteer' }[row[3]] || 'regular',
           source: 'excel',
           tags: row[5] ? [row[5]] : [],
-          createdAt: row[4] || new Date().toISOString().slice(0, 10),
+          createdAt: row[4] || todayKST(),
         });
       }
       toast(`${count}명이 일괄 등록되었습니다 `);
@@ -1180,7 +1180,7 @@
             type: 'donor',
             source: 'web',
             tags: [donor.type === 'regular' ? '월정기' : '일시후원', '웹가입'],
-            createdAt: new Date().toISOString().slice(0, 10),
+            createdAt: todayKST(),
           });
         }
       });
@@ -1268,7 +1268,7 @@
         const ws = XLSX.utils.aoa_to_sheet(rows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'TBFA');
-        XLSX.writeFile(wb, `TBFA_${names[type]}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.writeFile(wb, `TBFA_${names[type]}_${todayKST()}.xlsx`);
         toast(`${names[type]} 엑셀이 다운로드되었습니다`);
       });
     });
@@ -3760,7 +3760,7 @@ async function loadNotifyJobs() {
   }
 
   /* ── 내보내기 헬퍼 ── */
-  function _today() { return new Date().toISOString().slice(0, 10); }
+  function _today() { return todayKST(); }
   function _csvCell(v) {
     var s = (v == null) ? '' : String(v);
     if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';

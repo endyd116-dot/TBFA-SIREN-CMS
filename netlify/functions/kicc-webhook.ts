@@ -8,6 +8,7 @@
  *
  * 응답: 항상 200 + { resCd:"0000", resMsg:"정상" } (처리 실패해도 ack — 무한 재전송 방지)
  */
+import { todayKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { logAudit } from "../../lib/audit";
@@ -155,7 +156,7 @@ export default async (req: Request) => {
     } else if (newStatus === "failed") {
       updatePayload.failureReason = String(p.resMsg || p.statusMessage || "KICC 노티: 실패").slice(0, 500);
     } else if (newStatus === "cancelled" || newStatus === "refunded") {
-      const memo = `[KICC 노티 ${new Date().toISOString().slice(0, 10)} ${newStatus}] ${p.resMsg || ""}`.slice(0, 200);
+      const memo = `[KICC 노티 ${todayKST()} ${newStatus}] ${p.resMsg || ""}`.slice(0, 200);
       updatePayload.memo = donation.memo ? `${donation.memo}\n${memo}` : memo;
       /* 2026-06-27: 취소/환불 시 기부영수증 무효화(세무 정합) */
       updatePayload.receiptIssued = false;

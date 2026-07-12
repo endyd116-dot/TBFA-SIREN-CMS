@@ -9,6 +9,7 @@
  *
  * notifyMartyrdomAdmins 재사용(notifications·신규 테이블 0).
  */
+import { todayKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -18,7 +19,7 @@ export const config = { schedule: "0 23 * * *" };
 
 function dDay(due: string): number {
   const d = new Date(due + "T00:00:00Z").getTime();
-  const today = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime();
+  const today = new Date(todayKST() + "T00:00:00Z").getTime();
   return Math.round((d - today) / 86400000);
 }
 

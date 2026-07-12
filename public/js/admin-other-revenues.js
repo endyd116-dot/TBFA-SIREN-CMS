@@ -665,7 +665,7 @@
   /* ── 추가 모달 ── */
   function openAdd() {
     document.getElementById('orAddModal').style.display = 'flex';
-    document.getElementById('orAddDate').value   = new Date().toISOString().slice(0, 10);
+    document.getElementById('orAddDate').value   = todayKST();
     document.getElementById('orAddAmount').value = '';
     document.getElementById('orAddPayer').value  = '';
     document.getElementById('orAddDesc').value   = '';

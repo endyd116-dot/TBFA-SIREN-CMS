@@ -561,7 +561,7 @@
 
   /* ── 등록 모달 ── */
   function openAdd() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKST();
     document.getElementById('expAddYear').value   = currentYear;
     document.getElementById('expAddDate').value   = today;
     document.getElementById('expAddCat').innerHTML = buildCatOptions('', true);

@@ -5,6 +5,7 @@
 // POST action=retry      : 수동 재시도 (next_retry_at = NOW)
 // POST action=manual_charge : 즉시 청구 (Phase 2 Step 5-A에서는 Stub)
 
+import { todayKST } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { billingLogs, billingKeys, members } from "../../db/schema";
@@ -156,7 +157,7 @@ export default async (req: Request, _ctx: Context) => {
 
         // members.next_billing_date 도 오늘로 당기기
         if (target.memberId) {
-          const todayStr = new Date().toISOString().slice(0, 10);
+          const todayStr = todayKST();
           await db.execute(sql`
             UPDATE members
             SET next_billing_date = ${todayStr}::date,
@@ -185,7 +186,7 @@ export default async (req: Request, _ctx: Context) => {
         const memberId = Number(body.memberId);
         if (!memberId) return badRequest("memberId 필요");
 
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = todayKST();
         await db.execute(sql`
           UPDATE members
           SET next_billing_date = ${todayStr}::date,

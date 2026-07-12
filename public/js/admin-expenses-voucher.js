@@ -620,7 +620,7 @@
     document.getElementById('vcAddError').style.display = 'none';
 
     /* 폼 초기화 */
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKST();
     document.getElementById('vcDate').value          = prefill?.voucher_date || prefill?.voucherDate || today;
     document.getElementById('vcAccountCode').value   = prefill?.account_code || prefill?.accountCode || '';
     document.getElementById('vcSubAccount').value    = prefill?.sub_account  || prefill?.subAccount  || '';

@@ -13,6 +13,8 @@
 //   → 나중에 보고서를 내거나 관리자가 예외 인정하면 재집계 시 자동으로 다시 인정된다.
 //     (기록을 훼손하지 않으므로 되돌리기가 안전하다)
 
+import { dateKST } from "./kst";
+
 /** 이 날짜부터 '보고서 미제출 = 근무 불인정' 규칙을 적용 (KST 기준 날짜) */
 export const REMOTE_REPORT_REQUIRED_FROM = "2026-07-01";
 
@@ -31,9 +33,9 @@ export const REMOTE_REPORT_NOTICE =
 
 /* ── KST 날짜 유틸 (서버·클라이언트 공용 · 라이브러리 없이) ── */
 
-/** 오늘 날짜 (KST, YYYY-MM-DD) */
+/** 오늘 날짜 (KST, YYYY-MM-DD) — 구현은 lib/kst.ts 한 곳 (중복 구현이 갈라지지 않게) */
 export function todayKstDate(now: Date = new Date()): string {
-  return new Date(now.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  return dateKST(now);
 }
 
 /** YYYY-MM-DD 두 날짜의 차이(일). b - a */

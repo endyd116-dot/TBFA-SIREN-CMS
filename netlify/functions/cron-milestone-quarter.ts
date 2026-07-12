@@ -1,3 +1,4 @@
+import { todayKST } from "../../lib/kst";
 import type { Config, Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -8,7 +9,7 @@ export const config: Config = {
 };
 
 export default async function handler(_req: Request, _ctx: Context) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   const results: string[] = [];
 
   try {

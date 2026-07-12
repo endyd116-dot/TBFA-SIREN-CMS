@@ -1,3 +1,4 @@
+import { todayKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords, attLeaveRequests, attHolidays, members } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
@@ -112,7 +113,7 @@ export default async function handler(req: Request) {
   }
 
   /* ── 기존 단일 ?date= 흐름 (호환 유지) ── */
-  const date = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+  const date = url.searchParams.get("date") ?? todayKST();
   const statusFilter = url.searchParams.get("status");
 
   try {

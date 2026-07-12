@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.15";
+export const APP_VERSION = "2026-07-12.16";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-kst-everywhere",
+    title: "모든 날짜·시각이 한국 시간(KST)으로 통일되었습니다",
+    items: [
+      { text: "화면에 보이는 모든 시각이 한국 시간으로 표시됩니다 — 노트북 시간대가 어긋나 있거나 해외에서 접속해도 근태·급여·결재 시각이 똑같이 보입니다" },
+      { text: "[중요] 밤 12시~아침 9시 사이에 등록하면 날짜가 '어제'로 기록되던 문제를 고쳤습니다 — 지출·수입·전표 등록일, 근태 조회 날짜, 캘린더의 '오늘', 성과 달성일이 모두 해당됐습니다", link: "/cms-tbfa.html#expenses" },
+      { text: "새벽에 근태 화면을 열면 어제 날짜가 조회되던 문제도 함께 해결되었습니다", link: "/cms-tbfa.html#att-ops" },
+      { text: "마감 알림·분기 판정·D-day 계산도 한국 날짜 기준으로 동작합니다" },
+    ],
+  },
   {
     key: "2026-07-12-payroll-simplified",
     title: "[관리자] 간이지급명세서 — 홈택스 업로드용 엑셀 자동 생성",

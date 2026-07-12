@@ -13,20 +13,11 @@ import { sql } from "drizzle-orm";
 //    DB 저장값은 UTC 유지 (Postgres timestamp). KST 변환은 비교·판정 시점에만.
 // ─────────────────────────────────────────────────────────
 
-/** UTC Date 를 KST 시각으로 옮긴 Date (getUTC*() 로 읽으면 KST 값) */
-export const toKST = (d: Date) => new Date(d.getTime() + 9 * 3_600_000);
-
-/** 지금(서버 UTC) → KST Date */
-export const nowKST = () => toKST(new Date());
-
-/** KST 기준 'YYYY-MM-DD' 날짜 문자열 */
-export const todayKST = () => nowKST().toISOString().slice(0, 10);
-
-/** KST 기준 'HH:MM' 시각 문자열 */
-export const hhmmKST = (d?: Date) => {
-  const k = d ? toKST(d) : nowKST();
-  return `${String(k.getUTCHours()).padStart(2, "0")}:${String(k.getUTCMinutes()).padStart(2, "0")}`;
-};
+/* 2026-07-12: 구현을 lib/kst.ts 한 곳으로 옮기고 여기서는 재수출만 한다.
+   같은 로직이 att-utils·att-remote-policy·각 함수에 흩어져 있어, 한 곳만 고치면
+   나머지가 옛 동작으로 남는 위험이 있었다. 기존 import 경로는 그대로 동작한다. */
+import { toKST, nowKST } from "./kst";
+export { toKST, nowKST, todayKST, hhmmKST } from "./kst";
 
 // ─────────────────────────────────────────────────────────
 // 1. 위치 관련

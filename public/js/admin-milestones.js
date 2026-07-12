@@ -767,7 +767,7 @@ document.getElementById('btnExportSalary')?.addEventListener('click', async () =
     const a = document.createElement('a');
     const qLabel = quarterId ? `_Q${quarterId}` : '';
     a.href = URL.createObjectURL(blob);
-    a.download = `milestone_salary${qLabel}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `milestone_salary${qLabel}_${todayKST()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
     amToast('CSV 다운로드 완료', 'success');

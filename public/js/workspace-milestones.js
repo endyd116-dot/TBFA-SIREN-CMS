@@ -486,7 +486,7 @@
 
     // 기본 날짜
     const dateEl = $('#riDate');
-    if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
+    if (dateEl) dateEl.value = todayKST();
 
     /* R29-MS-GAP1-C: 파일 선택 시 즉시 R2 업로드 */
     const fileEl = $('#riEvidenceFile');
@@ -934,7 +934,7 @@
         const nrMs = res.data?.milestones || res.milestones || [];
         buildMilestoneSelect('#nrMilestoneId', nrMs);
       } catch { /* ignore */ }
-      ($('#nrAchievedDate')).value = new Date().toISOString().slice(0,10);
+      ($('#nrAchievedDate')).value = todayKST();
       ($('#nrModal')).style.display = '';
     });
 
