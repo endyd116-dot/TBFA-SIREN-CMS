@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.14";
+export const APP_VERSION = "2026-07-12.15";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-payroll-simplified",
+    title: "[관리자] 간이지급명세서 — 홈택스 업로드용 엑셀 자동 생성",
+    items: [
+      { text: "급여관리 → 신고·법정 서류에 '간이지급명세서(근로소득)'가 생겼습니다 — 국세청 일괄등록 양식을 그대로 채워 내려받습니다", link: "/cms-tbfa.html#payroll" },
+      { text: "홈택스에서 [변환파일 제출] 탭에 그 파일을 올리고 [검증하기] → [과세자료 작성완료] 하면 제출이 끝납니다" },
+      { text: "직원별 월 지급액은 지급 확정([지급])한 명세서에서 자동으로 채워지고, 시스템 도입 전에 지급한 급여는 화면에서 직접 입력할 수 있습니다", link: "/cms-tbfa.html#payroll" },
+      { text: "주민등록번호는 저장되지 않습니다 — 엑셀 파일은 브라우저 안에서 만들어져 서버로 전송되지 않고, 창을 닫으면 사라집니다" },
+      { text: "제출 기한을 자동으로 판단합니다 — 상반기분은 7월 31일, 하반기분은 다음해 1월 31일" },
+    ],
+  },
   {
     key: "2026-07-12-payroll-statutory",
     title: "[관리자] 급여 신고·법정 서류 자동 생성",

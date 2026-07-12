@@ -13,13 +13,17 @@
 //
 // ⚠️ 과세 대상액 = 세전 총액 − 비과세 지급액(자가운전보조금 등).
 //   4대보험·소득세는 전부 이 금액이 기준이고, 신고서의 '총지급액'도 비과세를 뺀 금액이다.
+//
+// ⚠️ 지급일의 '한국 날짜'는 반드시 두 단계로 변환한다:
+//     paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul'
+//   시각은 UTC 벽시계로 저장되므로, 먼저 UTC라고 알려준 뒤 서울로 옮겨야 한다.
+//   한 번만 변환하면 월 경계에서 옆 달로 새어 나간다 —
+//   실제로 8월 1일에 지급한 급여가 '7월 지급분'으로 잡혀 신고가 틀어진다.
+//   (코드베이스 공통 관례 — workspace-milestone-* 등에서 같은 패턴을 쓴다)
 
 import { db } from "../db/index";
 import { sql } from "drizzle-orm";
 import { taxableBaseOf, nonTaxableTotalOf, positionLabelOf } from "./payroll-breakdown";
-
-/** 법정 서류에 담는 명세서 — 초안·검토 중인 건 확정 전이라 제외한다 */
-const CONFIRMED = ["APPROVED", "SENT", "PAID"];
 
 const n = (v: any) => Number(v ?? 0) || 0;
 const rows = (r: any) => ((r as any).rows ?? r ?? []) as any[];
@@ -203,8 +207,8 @@ export async function withholdingReport(payYear: number, payMonth: number): Prom
       LEFT JOIN members m ON m.id = NULLIF(s.member_uid, '')::int
      WHERE s.status = 'PAID'
        AND s.paid_at IS NOT NULL
-       AND EXTRACT(YEAR  FROM s.paid_at AT TIME ZONE 'Asia/Seoul') = ${payYear}
-       AND EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'Asia/Seoul') = ${payMonth}
+       AND EXTRACT(YEAR  FROM s.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul') = ${payYear}
+       AND EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul') = ${payMonth}
      ORDER BY m.name
   `);
   const slips = rows(r).map(toStatutorySlip);
@@ -365,11 +369,11 @@ export async function simplifiedStatement(year: number, half: 1 | 2): Promise<{
   /* 그 반기에 '실제로 돈이 나간' 명세서 (지급 확정분) */
   const paidR: any = await db.execute(sql`
     SELECT s.member_uid, s.adjustments, s.gross_pay,
-           EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'Asia/Seoul')::int AS paid_month
+           EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::int AS paid_month
       FROM payroll_slips s
      WHERE s.status = 'PAID' AND s.paid_at IS NOT NULL
-       AND EXTRACT(YEAR FROM s.paid_at AT TIME ZONE 'Asia/Seoul') = ${year}
-       AND EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'Asia/Seoul') BETWEEN ${months[0]} AND ${months[5]}
+       AND EXTRACT(YEAR FROM s.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul') = ${year}
+       AND EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul') BETWEEN ${months[0]} AND ${months[5]}
   `);
 
   /* 같은 달에 두 번 지급(정정 등)할 수 있으므로 더한다 */
