@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -50,7 +51,7 @@ export default async function handler(req: Request, _ctx: Context) {
         bonusAmount: String(r.bonus_amount), eventRangeAmount: r.event_range_amount,
         bonusFormula: r.bonus_formula,
         isSelectedForQuarter: r.is_selected_for_quarter,
-        status: r.status, reviewedAt: r.reviewed_at, rejectReason: r.reject_reason,
+        status: r.status, reviewedAt: isoUTC(r.reviewed_at), rejectReason: r.reject_reason,
       }));
       return Response.json({ ok: true, data: { achievements } });
     } catch (err) { return jsonError("select", err); }

@@ -13,6 +13,7 @@
  * 응답:
  *   { rows[], total, summary: { pending, matched, confirmed, ignored } }
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql, inArray, eq } from "drizzle-orm";
 import { db, members } from "../../db";
@@ -188,8 +189,8 @@ export default async (req: Request, _ctx: Context) => {
         matchReason: r.match_reason,
         status: r.status,
         confirmedDonationId: r.confirmed_donation_id,
-        confirmedAt: r.confirmed_at,
-        createdAt: r.created_at,
+        confirmedAt: isoUTC(r.confirmed_at),
+        createdAt: isoUTC(r.created_at),
         predictedDonorType: transition.predictedDonorType,
         currentDonorType: transition.currentDonorType,
         willChange: transition.willChange,

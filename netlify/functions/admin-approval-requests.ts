@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -138,7 +139,7 @@ async function handleDetail(id: number) {
       decidedBy:     s.decided_by == null ? null : Number(s.decided_by),
       decidedByName: s.decided_by_name,
       comment:       s.comment,
-      decidedAt:     s.decided_at,
+      decidedAt:     isoUTC(s.decided_at),
     }));
   } catch (err: any) { return jsonError("select_steps", err); }
 
@@ -151,7 +152,7 @@ async function handleDetail(id: number) {
     budgetAccountId:   reqRow.budget_account_id == null ? null : Number(reqRow.budget_account_id),
     budgetAccountName: reqRow.budget_account_name || null,
     fiscalYear:        Number(reqRow.fiscal_year),
-    occurredAt:        reqRow.occurred_at,
+    occurredAt:        isoUTC(reqRow.occurred_at),
     payeeName:         reqRow.payee_name,
     evidenceUrl:       reqRow.evidence_url,
     drafterId:         reqRow.drafter_id == null ? null : Number(reqRow.drafter_id),
@@ -164,10 +165,10 @@ async function handleDetail(id: number) {
     expenseId:         reqRow.expense_id == null ? null : Number(reqRow.expense_id),
     resolutionNo:      reqRow.resolution_no,
     resolutionPdfUrl:  reqRow.resolution_pdf_url,
-    resolutionIssuedAt: reqRow.resolution_issued_at,
-    createdAt:         reqRow.created_at,
-    updatedAt:         reqRow.updated_at,
-    decidedAt:         reqRow.decided_at,
+    resolutionIssuedAt: isoUTC(reqRow.resolution_issued_at),
+    createdAt:         isoUTC(reqRow.created_at),
+    updatedAt:         isoUTC(reqRow.updated_at),
+    decidedAt:         isoUTC(reqRow.decided_at),
   };
 
   return new Response(JSON.stringify({
@@ -229,10 +230,10 @@ async function handleList(box: string, statusFilter: string | null, myId: number
       budgetAccountId:   r.budget_account_id == null ? null : Number(r.budget_account_id),
       budgetAccountName: r.budget_account_name || null,
       fiscalYear:        Number(r.fiscal_year),
-      occurredAt:        r.occurred_at,
+      occurredAt:        isoUTC(r.occurred_at),
       resolutionNo:      r.resolution_no,
       resolutionPdfUrl:  r.resolution_pdf_url || null,
-      createdAt:         r.created_at,
+      createdAt:         isoUTC(r.created_at),
       _stepRole:         currentStepRole(stepsArr, curStep),
     };
   });

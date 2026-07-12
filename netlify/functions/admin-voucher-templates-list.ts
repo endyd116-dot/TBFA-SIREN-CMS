@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -33,7 +34,7 @@ export default async function handler(req: Request, _ctx: Context) {
       budgetLineId: r.budget_line_id ? Number(r.budget_line_id) : null,
       templateName: r.template_name,
       createdBy:    r.created_by,
-      createdAt:    r.created_at,
+      createdAt:    isoUTC(r.created_at),
     }));
 
     return new Response(

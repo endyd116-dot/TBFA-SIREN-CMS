@@ -9,6 +9,7 @@
 //     이후 직원 열람·다운로드·서명은 전부 이 고정 문서를 대상으로 한다.
 //     정정이 필요하면 원본을 지우지 않고 다음 차수 문서를 새로 발행한다.
 
+import { isoUTC } from "./kst";
 import { createHash } from "node:crypto";
 // @ts-ignore — sharp는 runtime 의존성 (Netlify 빌드 시 자동 설치 + external_node_modules)
 import sharp from "sharp";
@@ -104,8 +105,8 @@ export async function loadSlipWithMember(slipId: number): Promise<SlipWithMember
       calculationSnapshot: row.calculation_snapshot,
       documentVersion: row.document_version, documentR2Key: row.document_r2_key,
       documentSha256: row.document_sha256, signedDocumentR2Key: row.signed_document_r2_key,
-      issuedAt: row.issued_at, sentAt: row.sent_at, paidAt: row.paid_at, approvedAt: row.approved_at,
-      ackStatus: row.ack_status, ackAt: row.ack_at,
+      issuedAt: isoUTC(row.issued_at), sentAt: isoUTC(row.sent_at), paidAt: isoUTC(row.paid_at), approvedAt: isoUTC(row.approved_at),
+      ackStatus: row.ack_status, ackAt: isoUTC(row.ack_at),
     },
     member: {
       id: Number(row.member_uid),

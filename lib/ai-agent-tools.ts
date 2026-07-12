@@ -2,7 +2,7 @@
 // AI 에이전트가 호출할 수 있는 SIREN 도구 정의 + 실행 핸들러
 // Phase A: 콘텐츠·관리 + 읽기 도구 대폭 확장 (총 20개)
 
-import { todayKST, yearKST } from "./kst";
+import { todayKST, yearKST, isoUTC } from "./kst";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { sendEmail, renderEmailLayout } from "./email";
@@ -1165,7 +1165,7 @@ async function tool_contentPagesList(args: any): Promise<ToolResult> {
     pageKey: p.page_key,
     title: p.title || null,
     contentPreview: String(p.content_html || "").slice(0, 300),
-    updatedAt: p.updated_at,
+    updatedAt: isoUTC(p.updated_at),
   })) } };
 }
 
@@ -2476,7 +2476,7 @@ async function tool_memosList(args: any, adminId: number | null): Promise<ToolRe
       id: m.id, title: m.title, contentPreview: String(m.content_html || "").replace(/<[^>]+>/g, "").slice(0, 200),
       color: m.color, isPinned: m.is_pinned,
       eventDate: m.event_date, showInCalendar: m.show_in_calendar,
-      updatedAt: m.updated_at,
+      updatedAt: isoUTC(m.updated_at),
     })) } };
   } catch (e: any) {
     return { ok: false, error: `메모 조회 실패: ${e?.message?.slice(0, 200)}` };
@@ -2719,7 +2719,7 @@ async function tool_eventDelete(args: any, adminId: number | null): Promise<Tool
   if (!before) return { ok: false, error: "일정 없음" };
   if (Number(before.member_id) !== adminId) return { ok: false, error: "타인의 일정은 삭제할 수 없습니다" };
 
-  const preview = { eventId: id, title: before.title, startAt: before.start_at };
+  const preview = { eventId: id, title: before.title, startAt: isoUTC(before.start_at) };
   if (args?.requireApproval !== false) {
     return { ok: true, preview, output: { dry_run: true, message: "승인 대기. 영구 삭제됩니다." } };
   }
@@ -4886,8 +4886,8 @@ async function tool_budgetPlanList(args: any): Promise<ToolResult> {
           title: p.title,
           status: p.status,
           totalPlanned: Number(p.total_planned),
-          submittedAt: p.submitted_at,
-          approvedAt: p.approved_at,
+          submittedAt: isoUTC(p.submitted_at),
+          approvedAt: isoUTC(p.approved_at),
         })),
       },
     };

@@ -4,6 +4,7 @@
  * 직원 본인 연간 급여 요약 — 연말정산·대출 서류 등에 쓰는 1년치 한 장.
  * 교부된 명세서(발송·지급완료)만 합산한다. pdf=1 이면 PDF로 내려받는다.
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -69,7 +70,7 @@ export default async function handler(req: Request, _ctx: Context) {
     totalDeduction: n(s.total_deduction),
     netPay: n(s.net_pay),
     acknowledged: s.ack_status === "ACKNOWLEDGED",
-    paidAt: s.paid_at,
+    paidAt: isoUTC(s.paid_at),
   }));
 
   const sum = (k: string) => months.reduce((a, m: any) => a + n(m[k]), 0);

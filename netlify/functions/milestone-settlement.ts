@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -324,6 +325,6 @@ function formatSettle(r: any) {
     selfEvaluation: r.self_evaluation, status: r.status,
     /* R35-GAP-P2-M1: 반려·HOLD 사유 응답에 포함 (UI 표시용) */
     reviewNote: r.review_note, holdReason: r.hold_reason,
-    submittedAt: r.submitted_at, approvedAt: r.approved_at, paidAt: r.paid_at,
+    submittedAt: isoUTC(r.submitted_at), approvedAt: isoUTC(r.approved_at), paidAt: isoUTC(r.paid_at),
   };
 }

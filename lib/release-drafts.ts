@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.17";
+export const APP_VERSION = "2026-07-12.18";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-tz-in-api",
+    title: "[중요] 화면에 뜨는 시각이 9시간 이르게 표시되던 문제",
+    items: [
+      { text: "급여 증빙의 교부일이 오후 3시 발송인데 오전 6시로 보이는 등, 일부 화면의 시각이 9시간 이르게 표시되고 있었습니다 — 데이터는 정상이었고 표시만 잘못됐습니다", link: "/cms-tbfa.html#payroll" },
+      { text: "원인: 서버가 시각을 보낼 때 '어느 시간대인지' 표시를 빠뜨려서, 브라우저가 그 값을 한국시각으로 오해했습니다. 124곳을 모두 바로잡았습니다" },
+      { text: "결재 일시·이의제기 일시·파일 업로드 일시·예산 제출일시 등 여러 화면이 함께 정확해집니다" },
+    ],
+  },
   {
     key: "2026-07-12-kst-server",
     title: "[중요] 정기결제·영수증·감사기록의 날짜·시각 오류 수정",

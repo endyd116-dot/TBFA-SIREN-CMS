@@ -1,6 +1,7 @@
 // netlify/functions/admin-recipient-group-detail.ts
 // Phase 10 R2 — 단일 그룹 상세 (criteria + memberCount + sampleMembers 5명)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -91,8 +92,8 @@ export default async function handler(req: Request, _ctx: Context) {
         sampleMembers,
         createdBy: row.created_by,
         updatedBy: row.updated_by,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
+        createdAt: isoUTC(row.created_at),
+        updatedAt: isoUTC(row.updated_at),
       },
     }),
     { status: 200, headers: JSON_HEADER },

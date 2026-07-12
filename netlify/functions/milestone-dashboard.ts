@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -193,8 +194,8 @@ export default async function handler(req: Request, _ctx: Context) {
         revenueLinkedTotal: row.revenue_linked_total,
         nonRevenueTotal: row.non_revenue_total,
         totalBonus: row.total_bonus,
-        submittedAt: row.submitted_at,
-        approvedAt: row.approved_at,
+        submittedAt: isoUTC(row.submitted_at),
+        approvedAt: isoUTC(row.approved_at),
       };
     }
   } catch (err) { /* non-critical */ }

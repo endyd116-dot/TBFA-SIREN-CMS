@@ -10,6 +10,7 @@
  *   ?startDate=&endDate=  기간 필터 (YYYY-MM-DD)
  *   ?page=1&limit=50
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -116,7 +117,7 @@ export default async function handler(req: Request, _ctx: Context) {
           voucherId: x.voucher_id ? Number(x.voucher_id) : null,
           voucherNumber: x.voucher_number,
           confirmedBy: x.confirmed_by,
-          confirmedAt: x.confirmed_at,
+          confirmedAt: isoUTC(x.confirmed_at),
         })),
         page, limit, total,
       },

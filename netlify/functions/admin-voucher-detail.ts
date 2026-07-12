@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -93,11 +94,11 @@ export default async function handler(req: Request, _ctx: Context) {
           status:          voucher.status,
           rejectionReason: voucher.rejection_reason,
           createdBy:       voucher.created_by,
-          submittedAt:     voucher.submitted_at,
+          submittedAt:     isoUTC(voucher.submitted_at),
           approvedBy:      voucher.approved_by,
-          approvedAt:      voucher.approved_at,
-          createdAt:       voucher.created_at,
-          updatedAt:       voucher.updated_at,
+          approvedAt:      isoUTC(voucher.approved_at),
+          createdAt:       isoUTC(voucher.created_at),
+          updatedAt:       isoUTC(voucher.updated_at),
         },
         budgetLine,
       },

@@ -1,6 +1,7 @@
 // netlify/functions/incident-comments.ts
 // B-2: 사건 댓글 CRUD + 좋아요/싫어요 + 신고
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -71,7 +72,7 @@ export default async (req: Request, _ctx: Context) => {
         isHidden: c.is_hidden,
         likeCount: c.like_count || 0,
         dislikeCount: c.dislike_count || 0,
-        createdAt: c.created_at,
+        createdAt: isoUTC(c.created_at),
         isMine: userId ? c.member_id === userId : false,
         myVote: userVotes[c.id] || null,
       }));

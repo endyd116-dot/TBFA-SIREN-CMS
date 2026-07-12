@@ -6,6 +6,7 @@
  * - 현재 단계 직책을 승인 권한 있는 사람만 결재(super_admin 전권·위임 반영).
  * - 마지막 단계 승인 시: 지출(expenses) 생성·예산 목에 집행 물림 + 지출결의서 정식번호 발행.
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -208,7 +209,7 @@ export default async function handler(req: Request, _ctx: Context) {
       );
       const pdfBytes = await generateResolutionPDF({
         resolutionNo: resolutionNo!, title: r.title, amount: Number(r.amount), budgetPath,
-        payeeName: r.payee_name, occurredAt: r.occurred_at, description: r.description,
+        payeeName: r.payee_name, occurredAt: isoUTC(r.occurred_at), description: r.description,
         drafterName: r.drafter_name, steps: pdfSteps,
       });
       const up = await uploadToR2({

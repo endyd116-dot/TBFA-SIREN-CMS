@@ -12,6 +12,7 @@
  *                                         이전 서명은 이 문서에 대한 것이 아니므로 수령확인을 다시 받는다.
  *                                         (이전 서명 증적은 지우지 않고 그대로 남는다)
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -270,7 +271,7 @@ export default async function handler(req: Request, _ctx: Context) {
         signatureType: h.signature_type, signedName: h.signed_name,
         consentItems: h.consent_items ?? [], objectionReason: h.objection_reason,
         documentSha256: h.document_sha256, ip: h.ip, userAgent: h.user_agent,
-        createdAt: h.created_at,
+        createdAt: isoUTC(h.created_at),
       }));
     } catch (err) { console.warn("[admin-payroll-evidence] 증적 조회 실패:", err); }
 
@@ -282,7 +283,7 @@ export default async function handler(req: Request, _ctx: Context) {
       `);
       objections = rows(r).map((o: any) => ({
         id: o.id, reason: o.reason, status: o.status,
-        resolutionNote: o.resolution_note, resolvedAt: o.resolved_at, createdAt: o.created_at,
+        resolutionNote: o.resolution_note, resolvedAt: isoUTC(o.resolved_at), createdAt: isoUTC(o.created_at),
       }));
     } catch (err) { console.warn("[admin-payroll-evidence] 이의 조회 실패:", err); }
 
@@ -293,9 +294,9 @@ export default async function handler(req: Request, _ctx: Context) {
         payYear: slip.pay_year, payMonth: slip.pay_month, status: slip.status,
         documentVersion: Number(slip.document_version || 1),
         documentSha256: slip.document_sha256,
-        issuedAt: slip.issued_at, firstViewedAt: slip.first_viewed_at,
-        ackStatus: slip.ack_status, ackAt: slip.ack_at,
-        reminderCount: Number(slip.reminder_count || 0), reminderSentAt: slip.reminder_sent_at,
+        issuedAt: isoUTC(slip.issued_at), firstViewedAt: isoUTC(slip.first_viewed_at),
+        ackStatus: slip.ack_status, ackAt: isoUTC(slip.ack_at),
+        reminderCount: Number(slip.reminder_count || 0), reminderSentAt: isoUTC(slip.reminder_sent_at),
         hasDocument: !!slip.has_document, hasSignedDocument: !!slip.has_signed_document,
       },
       history,
@@ -352,8 +353,8 @@ export default async function handler(req: Request, _ctx: Context) {
         id: s.id, payYear: s.pay_year, payMonth: s.pay_month, status: s.status,
         grossPay: s.gross_pay, totalDeduction: s.total_deduction, netPay: s.net_pay,
         documentVersion: Number(s.document_version || 1),
-        issuedAt: s.issued_at, firstViewedAt: s.first_viewed_at,
-        ackStatus: s.ack_status, ackAt: s.ack_at,
+        issuedAt: isoUTC(s.issued_at), firstViewedAt: isoUTC(s.first_viewed_at),
+        ackStatus: s.ack_status, ackAt: isoUTC(s.ack_at),
         hasDocument: !!s.has_document, hasSignedDocument: !!s.has_signed_document,
       })),
       total: list.length,

@@ -2,6 +2,7 @@
  * Phase 25 — done 카드를 마일스톤별로 그룹핑해서 반환 (보관함 성과별 보기)
  * GET /api/workspace-milestone-done-tasks?quarterId=N
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -68,7 +69,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   for (const t of tasks) {
     if (t.milestone_match_status === "skipped") {
-      skipped.push({ id: t.id, title: t.title, completedAt: t.completed_at });
+      skipped.push({ id: t.id, title: t.title, completedAt: isoUTC(t.completed_at) });
       continue;
     }
     if (t.milestone_def_id) {
@@ -77,12 +78,12 @@ export default async function handler(req: Request, _ctx: Context) {
         grouped[key] = { defId: key, name: t.milestone_name || "", code: t.milestone_code || "", tasks: [] };
       }
       grouped[key].tasks.push({
-        id: t.id, title: t.title, completedAt: t.completed_at,
+        id: t.id, title: t.title, completedAt: isoUTC(t.completed_at),
         matchStatus: t.milestone_match_status,
         confidence: t.milestone_match_confidence,
       });
     } else {
-      unmatched.push({ id: t.id, title: t.title, completedAt: t.completed_at });
+      unmatched.push({ id: t.id, title: t.title, completedAt: isoUTC(t.completed_at) });
     }
   }
 

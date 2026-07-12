@@ -4,6 +4,7 @@
  *
  * Query: ?page=1&limit=30
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -57,7 +58,7 @@ export default async function handler(req: Request, _ctx: Context) {
           pendingReview: Number(x.pending_review),
           ignoredRows: Number(x.ignored_rows),
           importedBy: x.imported_by,
-          importedAt: x.imported_at,
+          importedAt: isoUTC(x.imported_at),
           status: x.status,
         })),
         page, limit, total,

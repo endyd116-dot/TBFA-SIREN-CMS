@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator (operatorActive=true 일반 회원도 매출 입력) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -203,8 +204,8 @@ function formatEntry(r: any) {
     note: r.note, isCampaignRouted: r.is_campaign_routed,
     evidenceFiles: r.evidence_files || [],
     status: r.status, reviewedBy: r.reviewed_by,
-    reviewedAt: r.reviewed_at, rejectReason: r.reject_reason,
-    createdAt: r.created_at,
+    reviewedAt: isoUTC(r.reviewed_at), rejectReason: r.reject_reason,
+    createdAt: isoUTC(r.created_at),
     milestoneName: r.milestone_name, milestoneCode: r.code,
   };
 }

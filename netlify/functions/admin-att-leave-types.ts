@@ -5,6 +5,7 @@
  * migrate-att-r29-leave-type-cols 적용 후 DB에 존재.
  * 적용 전이라도 동작하도록 raw SQL + COALESCE 으로 안전 처리.
  */
+import { isoUTC } from "../../lib/kst";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -86,8 +87,8 @@ export default async function handler(req: Request) {
         description:      r.description,
         isActive:         r.is_active,
         displayOrder:     r.display_order,
-        createdAt:        r.created_at,
-        updatedAt:        r.updated_at,
+        createdAt:        isoUTC(r.created_at),
+        updatedAt:        isoUTC(r.updated_at),
       }));
       return jsonOk(rows);
     } catch (err) {

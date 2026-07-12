@@ -6,6 +6,7 @@
  *        ?q=...          이름·계좌번호 검색 (선택)
  *        ?page=1&limit=50
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -73,8 +74,8 @@ export default async function handler(req: Request, _ctx: Context) {
           txnCount: Number(x.txn_count),
           note: x.note,
           learnedBy: x.learned_by ? Number(x.learned_by) : null,
-          createdAt: x.created_at,
-          updatedAt: x.updated_at,
+          createdAt: isoUTC(x.created_at),
+          updatedAt: isoUTC(x.updated_at),
         })),
         page, limit, total,
       },

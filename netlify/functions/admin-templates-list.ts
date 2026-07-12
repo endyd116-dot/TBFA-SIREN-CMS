@@ -1,6 +1,7 @@
 // netlify/functions/admin-templates-list.ts
 // Phase 10 R1 — 발송 템플릿 목록 조회 (필터·페이지네이션)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -113,8 +114,8 @@ export default async function handler(req: Request, _ctx: Context) {
       bodyTemplate: r.body_template ?? "",
       variables:    r.variables ?? [],
       isActive:     r.is_active,
-      createdAt:    r.created_at,
-      updatedAt:    r.updated_at,
+      createdAt:    isoUTC(r.created_at),
+      updatedAt:    isoUTC(r.updated_at),
       /* 카카오 알림톡 전용 필드 — 마이그 적용 후에만 값 존재 */
       alimtalkTemplateCode: r.alimtalk_template_code ?? null,
       alimtalkReviewStatus: r.alimtalk_review_status ?? null,

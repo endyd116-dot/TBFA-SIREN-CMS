@@ -1,6 +1,7 @@
 // netlify/functions/admin-send-jobs-list.ts
 // Phase 10 R3 — 발송 작업 목록 (status·기간·검색·페이지네이션)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -84,18 +85,18 @@ export default async function handler(req: Request, _ctx: Context) {
       groupName: r.group_name || null,
       channel: r.channel,
       scheduleType: r.schedule_type,
-      scheduledAt: r.scheduled_at,
+      scheduledAt: isoUTC(r.scheduled_at),
       status: r.status,
       /* 버그픽스 #14: NULL → 0 정규화 (목록 진행률 카운트 0 표시 방지) */
       totalRecipients: Number(r.total_recipients) || 0,
       successCount: Number(r.success_count) || 0,
       failureCount: Number(r.failure_count) || 0,
       lastError: r.last_error,
-      startedAt: r.started_at,
-      completedAt: r.completed_at,
+      startedAt: isoUTC(r.started_at),
+      completedAt: isoUTC(r.completed_at),
       createdBy: r.created_by,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
+      createdAt: isoUTC(r.created_at),
+      updatedAt: isoUTC(r.updated_at),
     }));
 
     const cntRes: any = await db.execute(sql`

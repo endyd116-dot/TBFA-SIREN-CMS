@@ -23,6 +23,7 @@
  *     - 둘 다면 가장 최근 변경 채널 우선 (toss.deactivated_at vs hyosung_synced_at 비교)
  */
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -485,7 +486,7 @@ export default async (req: Request, _ctx: Context) => {
         totalDonationAmount: stats.sum,
         cancelledChannel,
         cancelledAt,
-        donorEvaluatedAt: r.donor_evaluated_at
+        donorEvaluatedAt: isoUTC(r.donor_evaluated_at)
           ? new Date(r.donor_evaluated_at).toISOString()
           : new Date(0).toISOString(),
         eventName: eventInfo.eventName,

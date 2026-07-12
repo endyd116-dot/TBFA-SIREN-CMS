@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -183,7 +184,7 @@ function formatEntry(r: any) {
     note: r.note, isCampaignRouted: r.is_campaign_routed,
     evidenceFiles: r.evidence_files || [],
     status: r.status, reviewedBy: r.reviewed_by,
-    reviewedAt: r.reviewed_at, rejectReason: r.reject_reason,
-    createdAt: r.created_at,
+    reviewedAt: isoUTC(r.reviewed_at), rejectReason: r.reject_reason,
+    createdAt: isoUTC(r.created_at),
   };
 }

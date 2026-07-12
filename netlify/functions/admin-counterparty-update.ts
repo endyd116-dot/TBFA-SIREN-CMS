@@ -14,6 +14,7 @@
  * }
  * 전달된 필드만 갱신.
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -107,7 +108,7 @@ export default async function handler(req: Request, _ctx: Context) {
           defaultBudgetLineId: updated.default_budget_line_id ? Number(updated.default_budget_line_id) : null,
           txnCount: Number(updated.txn_count),
           note: updated.note,
-          updatedAt: updated.updated_at,
+          updatedAt: isoUTC(updated.updated_at),
         },
         message: "거래처 분류 룰을 수정했습니다",
       },

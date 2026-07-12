@@ -5,6 +5,7 @@
 // PATCH /api/admin-notification-defaults          → 이벤트 1건 기본 채널 수정
 // GET   /api/admin-notification-defaults?history=1 → 변경 이력 (감사 로그)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -84,7 +85,7 @@ export default async function handler(req: Request, _ctx: Context) {
         settingsMap[r.event_type] = {
           defaultChannels: Array.isArray(r.default_channels) ? r.default_channels : [],
           forcedChannels:  Array.isArray(r.forced_channels)  ? r.forced_channels  : [],
-          updatedAt:       r.updated_at,
+          updatedAt:       isoUTC(r.updated_at),
           updatedBy:       r.updated_by,
         };
       }

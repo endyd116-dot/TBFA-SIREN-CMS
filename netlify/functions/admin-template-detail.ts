@@ -1,6 +1,7 @@
 // netlify/functions/admin-template-detail.ts
 // Phase 10 R1 — 발송 템플릿 단일 상세 조회
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -82,8 +83,8 @@ export default async function handler(req: Request, _ctx: Context) {
           isActive:     row.is_active,
           createdBy:    row.created_by ?? null,
           updatedBy:    row.updated_by ?? null,
-          createdAt:    row.created_at,
-          updatedAt:    row.updated_at,
+          createdAt:    isoUTC(row.created_at),
+          updatedAt:    isoUTC(row.updated_at),
           alimtalkTemplateCode: row.alimtalk_template_code ?? null,
           alimtalkReviewStatus: row.alimtalk_review_status ?? null,
           alimtalkButtonJson:   row.alimtalk_button_json ?? null,

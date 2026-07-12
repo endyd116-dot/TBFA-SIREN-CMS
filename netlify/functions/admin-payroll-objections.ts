@@ -7,6 +7,7 @@
  * 기존엔 직원 문의가 알림 한 번으로 끝나 접수·처리·회신 이력이 남지 않았다.
  * 이제 티켓으로 관리한다: 접수(OPEN) → 검토중(IN_REVIEW) → 처리완료(RESOLVED) / 반려(REJECTED)
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -73,7 +74,7 @@ export default async function handler(req: Request, _ctx: Context) {
         grossPay: o.gross_pay, netPay: o.net_pay,
         documentVersion: Number(o.document_version || 1),
         reason: o.reason, status: o.status,
-        resolutionNote: o.resolution_note, resolvedAt: o.resolved_at, createdAt: o.created_at,
+        resolutionNote: o.resolution_note, resolvedAt: isoUTC(o.resolved_at), createdAt: isoUTC(o.created_at),
       }));
 
       const counts = { OPEN: 0, IN_REVIEW: 0, RESOLVED: 0, REJECTED: 0 };

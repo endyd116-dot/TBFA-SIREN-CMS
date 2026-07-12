@@ -9,6 +9,7 @@
  * - 처음 열어본 시각을 기록한다 (교부 증빙)
  * - 이미 서명했으면 서명 증적도 함께 준다
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
@@ -114,7 +115,7 @@ export default async function handler(req: Request, _ctx: Context) {
         signedName: row.signed_name,
         signatureType: row.signature_type,
         consentItems: row.consent_items ?? [],
-        signedAt: row.created_at,
+        signedAt: isoUTC(row.created_at),
         documentVersion: row.document_version,
       };
     }
@@ -133,7 +134,7 @@ export default async function handler(req: Request, _ctx: Context) {
     if (row) {
       objection = {
         id: row.id, reason: row.reason, status: row.status,
-        resolutionNote: row.resolution_note, resolvedAt: row.resolved_at, createdAt: row.created_at,
+        resolutionNote: row.resolution_note, resolvedAt: isoUTC(row.resolved_at), createdAt: isoUTC(row.created_at),
       };
     }
   } catch (err) { console.warn("[payroll-my-detail] 이의제기 조회 실패:", err); }
@@ -153,12 +154,12 @@ export default async function handler(req: Request, _ctx: Context) {
       payMonth: slip.pay_month,
       status: slip.status,
       issuedAt: slip.issued_at ?? slip.sent_at,
-      paidAt: slip.paid_at,
+      paidAt: isoUTC(slip.paid_at),
       documentVersion: Number(slip.document_version || 1),
       documentSha256: slip.document_sha256,
       ackStatus: slip.ack_status || "PENDING",
-      ackAt: slip.ack_at,
-      firstViewedAt: slip.first_viewed_at,
+      ackAt: isoUTC(slip.ack_at),
+      firstViewedAt: isoUTC(slip.first_viewed_at),
       hasSignedDocument: !!slip.signed_document_r2_key,
     },
     member: { id: me.id, name: me.name, email: me.email, role: positionLabelOf(me as any) },

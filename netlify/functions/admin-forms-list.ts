@@ -3,6 +3,7 @@
  * GET /api/admin-forms-list?id={id}        — 단건 + 필드 정의 + 응답 카운트
  */
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -55,7 +56,7 @@ export default async (req: Request, _ctx: Context) => {
           closedMessage: form.closed_message,
           notifyOnSubmit: form.notify_on_submit, adminNotifyEmail: form.admin_notify_email,
           responseCount: Number(form.response_count),
-          createdAt: form.created_at, publishedAt: form.published_at,
+          createdAt: isoUTC(form.created_at), publishedAt: isoUTC(form.published_at),
           fields,
         },
       }, null, 2), { status: 200, headers: JSON_HEADER });
@@ -73,7 +74,7 @@ export default async (req: Request, _ctx: Context) => {
       id: Number(f.id), title: f.title, slug: f.slug,
       accessLevel: f.access_level, isActive: f.is_active, isPublished: f.is_published,
       maxResponses: f.max_responses, responseCount: Number(f.response_count),
-      fieldCount: Number(f.field_count), createdAt: f.created_at, publishedAt: f.published_at,
+      fieldCount: Number(f.field_count), createdAt: isoUTC(f.created_at), publishedAt: isoUTC(f.published_at),
     }));
     return new Response(JSON.stringify({ ok: true, forms: rows }, null, 2),
       { status: 200, headers: JSON_HEADER });

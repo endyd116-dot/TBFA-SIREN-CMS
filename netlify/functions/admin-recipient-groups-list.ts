@@ -1,6 +1,7 @@
 // netlify/functions/admin-recipient-groups-list.ts
 // Phase 10 R2 — 수신자 그룹 목록 조회 (검색·페이지네이션 + memberCount 동적 계산)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -88,8 +89,8 @@ export default async function handler(req: Request, _ctx: Context) {
         criteriaSummary,
         memberCount,
         isActive: r.is_active,
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
+        createdAt: isoUTC(r.created_at),
+        updatedAt: isoUTC(r.updated_at),
       };
     }),
   );

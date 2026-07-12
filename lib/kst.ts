@@ -98,6 +98,37 @@ export const stampKST = (d?: Date | string | number): string => {
 };
 
 /**
+ * raw SQL(db.execute)로 읽은 시각을 클라이언트에 보낼 때 반드시 통과시킨다.
+ *
+ * 왜 필요한가 (2026-07-12 실측):
+ *   drizzle 은 postgres-js 의 날짜 파서를 꺼둔다. 그래서 스키마를 거치는 db.select() 는
+ *   Date 로 잘 오지만, **raw SQL(db.execute) 결과의 timestamp 는 "2026-07-12 06:16:56.276"
+ *   처럼 시간대 표시가 없는 문자열**로 나온다.
+ *   이대로 JSON 에 실으면 브라우저가 '현지시각'으로 오해한다 —
+ *   실제로는 UTC 06:16(=한국 15:16)인데 화면엔 "오전 6:16"으로 찍힌다. 정확히 9시간 어긋난다.
+ *   (급여 증빙 모달의 교부일이 오후 3시 발송인데 오전 6시로 보이던 원인)
+ *
+ * ⚠️ **drizzle 컬럼(db.select({ createdAt: table.createdAt }))에는 쓰지 말 것.**
+ *    그건 값이 아니라 컬럼 정의다. 이 함수는 **raw SQL 행의 값**(row.created_at)에만 쓴다.
+ *
+ * 안전하게 설계했다:
+ *   · 날짜 전용("2026-07-12")은 그대로 — 시각이 아니므로 건드리면 UI가 깨진다
+ *   · 이미 시간대가 붙은 값(Z, +09:00)도 그대로 — 이중 변환 방지
+ *   · 시간대 없는 시각만 'Z'를 붙여 UTC임을 명시 (저장은 항상 UTC)
+ */
+export function isoUTC(v: any): any {
+  if (v == null) return v;
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v !== "string") return v;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;                 // 날짜 전용 — 시각 아님
+  if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(v)) return v;             // 이미 시간대 있음
+  const m = v.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2}(?:\.\d+)?)$/);
+  if (m) return `${m[1]}T${m[2]}Z`;                            // 시간대 없는 시각 → UTC 명시
+  return v;
+}
+
+/**
  * SQL 안에서 '한국 기준 오늘'.
  *
  * Postgres의 CURRENT_DATE 는 세션 시간대(기본 UTC) 기준이라 한국 새벽엔 어제가 나온다.

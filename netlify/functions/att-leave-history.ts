@@ -3,6 +3,7 @@
  * 본인의 휴가 신청 이력 (최근 30건).
  * 응답: { ok:true, data: [{ id, typeName, startDate, endDate, days, reason, status, ... }] }
  */
+import { isoUTC } from "../../lib/kst";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -76,7 +77,7 @@ export default async function handler(req: Request) {
       reason:        r.reason,
       status:        r.status,
       reviewNote:    r.review_note,
-      createdAt:     r.created_at,
+      createdAt:     isoUTC(r.created_at),
       isHalfDay:     r.is_half_day === true,
       halfDayPeriod: r.half_day_period,
     }));

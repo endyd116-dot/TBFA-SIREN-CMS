@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -96,11 +97,11 @@ export default async function handler(req: Request, _ctx: Context) {
       status:         r.status,
       rejectionReason: r.rejection_reason,
       createdBy:      r.created_by,
-      submittedAt:    r.submitted_at,
+      submittedAt:    isoUTC(r.submitted_at),
       approvedBy:     r.approved_by,
-      approvedAt:     r.approved_at,
-      createdAt:      r.created_at,
-      updatedAt:      r.updated_at,
+      approvedAt:     isoUTC(r.approved_at),
+      createdAt:      isoUTC(r.created_at),
+      updatedAt:      isoUTC(r.updated_at),
     }));
 
     return new Response(JSON.stringify({

@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, members } from "../../db/schema";
 import { eq, and, sql, inArray, gte, lte, isNotNull, notInArray } from "drizzle-orm";
@@ -56,8 +57,8 @@ export default async function handler(req: Request) {
         status:       r.status,
         reviewedBy:   r.reviewed_by,
         reviewNote:   r.review_note,
-        createdAt:    r.created_at,
-        updatedAt:    r.updated_at,
+        createdAt:    isoUTC(r.created_at),
+        updatedAt:    isoUTC(r.updated_at),
       }));
       return jsonOk(rows);
     } catch (err) {

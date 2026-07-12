@@ -18,7 +18,7 @@
  *   cumulativeAmount = 위 SUM
  */
 
-import { nowKST } from "../../lib/kst";
+import { nowKST, isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -498,7 +498,7 @@ export default async (req: Request, _ctx: Context) => {
         nextBillingDate: nextBillingDate ? nextBillingDate.toISOString() : null,
         cumulativeMonths,
         cumulativeAmount,
-        donorEvaluatedAt: r.donor_evaluated_at
+        donorEvaluatedAt: isoUTC(r.donor_evaluated_at)
           ? new Date(r.donor_evaluated_at).toISOString()
           : new Date(0).toISOString(),
         hyosungContract: hcDetail

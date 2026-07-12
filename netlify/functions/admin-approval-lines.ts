@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -67,8 +68,8 @@ function mapLine(r: any) {
     boardRequired: r.board_required === true || r.board_required === "t",
     isActive:      r.is_active === true || r.is_active === "t",
     sortOrder:     Number(r.sort_order) || 0,
-    createdAt:     r.created_at,
-    updatedAt:     r.updated_at,
+    createdAt:     isoUTC(r.created_at),
+    updatedAt:     isoUTC(r.updated_at),
   };
 }
 

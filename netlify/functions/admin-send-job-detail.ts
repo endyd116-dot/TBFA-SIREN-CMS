@@ -1,6 +1,7 @@
 // netlify/functions/admin-send-job-detail.ts
 // Phase 10 R3 — 발송 작업 단일 상세 (진행률·통계 포함)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -87,18 +88,18 @@ export default async function handler(req: Request, _ctx: Context) {
       groupName: row.group_name || null,
       channel: row.channel,
       scheduleType: row.schedule_type,
-      scheduledAt: row.scheduled_at,
+      scheduledAt: isoUTC(row.scheduled_at),
       status: row.status,
       totalRecipients: total,
       successCount: row.success_count,
       failureCount: row.failure_count,
       progressPercent,
       lastError: row.last_error,
-      startedAt: row.started_at,
-      completedAt: row.completed_at,
+      startedAt: isoUTC(row.started_at),
+      completedAt: isoUTC(row.completed_at),
       createdBy: row.created_by,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      createdAt: isoUTC(row.created_at),
+      updatedAt: isoUTC(row.updated_at),
       /* 2026-05-17: 이미지 — override 우선, 없으면 템플릿의 images */
       imagesOverride: Array.isArray(row.images_override) ? row.images_override : null,
       templateImages: Array.isArray(row.template_images) ? row.template_images : [],

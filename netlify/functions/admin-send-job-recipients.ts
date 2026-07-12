@@ -1,6 +1,7 @@
 // netlify/functions/admin-send-job-recipients.ts
 // Phase 10 R3 — 작업의 수신자 목록 (status 필터·페이지네이션)
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -71,11 +72,11 @@ export default async function handler(req: Request, _ctx: Context) {
       memberPhone: r.member_phone || null,
       channel: r.channel,
       status: r.status,
-      sentAt: r.sent_at,
+      sentAt: isoUTC(r.sent_at),
       error: r.error,
       retryCount: r.retry_count,
       renderedSubject: r.rendered_subject,
-      createdAt: r.created_at,
+      createdAt: isoUTC(r.created_at),
     }));
 
     const cntRes: any = await db.execute(sql`

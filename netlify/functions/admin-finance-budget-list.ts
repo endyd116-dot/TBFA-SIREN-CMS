@@ -1,4 +1,4 @@
-import { yearKST } from "../../lib/kst";
+import { yearKST, isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -162,7 +162,7 @@ export default async function handler(req: Request, _ctx: Context) {
         id:           Number(plan.id),
         title:        plan.title,
         totalPlanned: Number(plan.total_planned),
-        approvedAt:   plan.approved_at,
+        approvedAt:   isoUTC(plan.approved_at),
       },
       items,
       totalPlanned,

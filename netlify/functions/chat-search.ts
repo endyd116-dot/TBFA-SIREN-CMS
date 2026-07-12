@@ -8,6 +8,7 @@
  *
  * schema.ts의 is_deleted 컬럼은 마이그 후 활성화 — 본 함수는 raw SQL
  */
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -66,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
       id: Number(m.id),
       content: m.content,
       senderRole: m.sender_role,
-      createdAt: m.created_at,
+      createdAt: isoUTC(m.created_at),
     }));
 
     return new Response(

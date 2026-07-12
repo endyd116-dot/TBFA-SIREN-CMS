@@ -3,6 +3,7 @@
  * 응답 목록 + 필드 정의 (CSV·통계용)
  */
 
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -58,7 +59,7 @@ export default async (req: Request, _ctx: Context) => {
       data: s.data || {},
       status: s.status,
       ipAddress: s.ip_address,
-      createdAt: s.created_at,
+      createdAt: isoUTC(s.created_at),
     }));
 
     return new Response(JSON.stringify({

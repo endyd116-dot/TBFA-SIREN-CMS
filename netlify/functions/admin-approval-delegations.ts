@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -39,12 +40,12 @@ function mapDelegation(r: any) {
     delegateRole: r.delegate_role,
     toMemberId:   r.to_member_id == null ? null : Number(r.to_member_id),
     toMemberName: r.to_member_name,
-    startAt:      r.start_at,
-    endAt:        r.end_at,
+    startAt:      isoUTC(r.start_at),
+    endAt:        isoUTC(r.end_at),
     reason:       r.reason,
     isActive:     r.is_active === true || r.is_active === "t",
     createdBy:    r.created_by == null ? null : Number(r.created_by),
-    createdAt:    r.created_at,
+    createdAt:    isoUTC(r.created_at),
   };
 }
 

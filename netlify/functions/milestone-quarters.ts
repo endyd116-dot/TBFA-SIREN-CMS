@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
@@ -86,6 +87,6 @@ function formatQ(r: any) {
   return {
     id: r.id, year: r.year, quarter: r.quarter,
     startDate: r.start_date, endDate: r.end_date, settlementDate: r.settlement_date,
-    status: r.status, createdAt: r.created_at,
+    status: r.status, createdAt: isoUTC(r.created_at),
   };
 }

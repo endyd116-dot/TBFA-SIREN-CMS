@@ -1,3 +1,4 @@
+import { isoUTC } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -52,8 +53,8 @@ export default async function handler(req: Request, _ctx: Context) {
         nonRevenueTotal: r.non_revenue_total, totalBonus: r.total_bonus,
         selfEvaluation: r.self_evaluation, status: r.status,
         holdReason: r.hold_reason,
-        submittedAt: r.submitted_at, reviewedAt: r.reviewed_at,
-        approvedAt: r.approved_at, paidAt: r.paid_at,
+        submittedAt: isoUTC(r.submitted_at), reviewedAt: isoUTC(r.reviewed_at),
+        approvedAt: isoUTC(r.approved_at), paidAt: isoUTC(r.paid_at),
         calculationSnapshot: r.calculation_snapshot,
       }));
       /* R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키, 아니면 null */
