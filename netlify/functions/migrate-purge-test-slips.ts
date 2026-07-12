@@ -26,17 +26,24 @@ function json(body: unknown, status = 200) {
 }
 const rows = (r: any) => ((r as any).rows ?? r ?? []) as any[];
 
-/** 삭제 대상 = 연봉이 0인(= 급여 대상이 아닌) 계정 앞으로 만들어진 명세서 */
-async function targets() {
+/** 명세서 전체 + 직원 정보 (누가 지워지는지 눈으로 확인할 수 있게 전부 보여준다) */
+async function listAll() {
   const r: any = await db.execute(sql`
-    SELECT s.id, s.pay_year, s.pay_month, s.status, s.gross_pay,
-           m.name AS member_name, COALESCE(m.base_salary, 0)::numeric AS base_salary
+    SELECT s.id, s.member_uid, s.pay_year, s.pay_month, s.status,
+           s.gross_pay::numeric AS gross_pay, s.document_version,
+           m.name AS member_name,
+           COALESCE(m.base_salary, 0)::numeric AS base_salary
       FROM payroll_slips s
-      JOIN members m ON m.id = NULLIF(s.member_uid, '')::int
-     WHERE COALESCE(m.base_salary, 0) = 0
+      LEFT JOIN members m ON m.id::text = btrim(s.member_uid)
      ORDER BY s.id
   `);
   return rows(r);
+}
+
+/** 삭제 대상 = 연봉이 0인(= 급여 대상이 아닌) 계정 앞으로 만들어진 명세서 */
+async function targets() {
+  const all = await listAll();
+  return all.filter((x: any) => Number(x.base_salary || 0) === 0);
 }
 
 export default async function handler(req: Request) {
@@ -45,11 +52,13 @@ export default async function handler(req: Request) {
 
   if (!run) {
     try {
-      const t = await targets();
+      const all = await listAll();
+      const t = all.filter((x: any) => Number(x.base_salary || 0) === 0);
       return json({
         ok: true, mode: "diagnose",
         message: t.length ? `삭제 대상 ${t.length}건 — 어드민 로그인 후 ?run=1 로 호출하세요` : "삭제 대상 없음",
         대상: t,
+        전체_명세서: all,
       });
     } catch (err: any) {
       return json({ ok: false, step: "diagnose", detail: String(err?.message ?? err).slice(0, 500) }, 500);
