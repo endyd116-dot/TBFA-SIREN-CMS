@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.8";
+export const APP_VERSION = "2026-07-12.9";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -60,6 +60,7 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
       { text: "[관리자] 직원별 문서함에서 서명 증적(서명 이미지·일시·기기)과 증빙 문서를 언제든 확인·일괄 다운로드할 수 있습니다", link: "/cms-tbfa.html#payroll" },
       { text: "[관리자] 미서명 직원에게 독촉 알림을 보낼 수 있고, 3일 간격으로 자동 재안내도 나갑니다", link: "/cms-tbfa.html#payroll" },
       { text: "[관리자] 명세서를 바로잡아야 하면 '정정 재발행'으로 새 차수를 교부하고 재서명을 받을 수 있습니다 (기존 서명 기록은 보존)", link: "/cms-tbfa.html#payroll" },
+      { text: "[관리자] 잘못 만들어진 명세서를 [삭제]할 수 있습니다 — 아직 교부하지 않은 명세서만 가능하며, 이미 교부한 문서는 법정 보존·서명 증적 때문에 삭제되지 않습니다", link: "/cms-tbfa.html#payroll" },
     ],
   },
   {

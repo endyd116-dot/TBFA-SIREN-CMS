@@ -193,6 +193,13 @@
       actions.push('<button class="btn btn-light btn-sm" onclick="openMemberDocs(\'' +
         String(r.memberUid).replace(/'/g, '') + '\',\'' + name.replace(/'/g, '') + '\')" title="이 직원의 급여 문서 전체">문서함</button>');
 
+      /* 교부 전 명세서만 삭제 — 한 번이라도 직원에게 나간 문서는 임금대장이자 서명 증적이라 지울 수 없다.
+         (교부한 명세서를 바로잡아야 하면 [정정 재발행]으로 새 차수를 교부한다) */
+      if (!issued && !r.issuedAt && !r.sentAt) {
+        actions.push('<button class="btn btn-danger btn-sm" onclick="deleteSlip(' + r.id +
+          ',\'' + name.replace(/'/g, '') + '\')" title="교부 전 명세서 삭제 (되돌릴 수 없음)">삭제</button>');
+      }
+
       return '<tr>' +
         '<td>' + name + editMark + '</td>' +
         '<td>' + role + '</td>' +
@@ -734,6 +741,17 @@
     if (!res.ok) { toast('보류 실패: ' + (res.data?.error || res.status), 'err'); return; }
     toast('보류 처리 완료'); closeModal(); await loadList();
   }
+
+  /* 명세서 삭제 — 잘못 만들어진 명세서를 운영자가 직접 지운다.
+     서버가 '교부 이력이 없는 명세서'만 허용하므로, 발송된 문서는 여기서 눌러도 거절된다. */
+  async function deleteSlip(id, name) {
+    if (!confirm(name + ' 명세서를 삭제할까요?\n\n교부 전 명세서만 지울 수 있고, 되돌릴 수 없습니다.')) return;
+    const res = await api('/api/admin-payroll?id=' + id + '&action=delete', { method: 'POST' });
+    if (!res.ok || res.data?.ok === false) { toast(res.data?.error || '삭제 실패', 'err'); return; }
+    toast(res.data?.data?.message || '명세서를 삭제했습니다', 'ok');
+    closeModal(); await loadList();
+  }
+  window.deleteSlip = deleteSlip;
 
   async function markReviewed(id) {
     const res = await api('/api/admin-payroll?id=' + id, {

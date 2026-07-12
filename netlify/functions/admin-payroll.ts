@@ -418,6 +418,64 @@ export default async function handler(req: Request) {
       } catch (err) { return jsonError("paid_slip", err); }
     }
 
+    /* 명세서 삭제 — '교부한 적이 한 번도 없는' 명세서만.
+     *
+     * 왜 이 조건인가:
+     *   한 번이라도 직원에게 교부(발송)한 명세서는 임금대장이자 서명 증적이다. 지우면 안 된다
+     *   (근로기준법상 보존 의무 + 직원이 서명한 문서가 사라지면 무엇에 서명했는지 증명 불가).
+     *   그래서 상태(SENT·PAID)만 보지 않고 '교부 이력(issued_at)'으로 판정한다 —
+     *   발송 후 재집계하면 상태는 초안으로 돌아가지만 교부 이력은 남기 때문이다.
+     *   교부한 명세서를 바로잡아야 하면 삭제가 아니라 [정정 재발행]으로 새 차수를 교부한다.
+     *
+     * 딸린 기록(서명 증적·이의제기·수정이력·발송이력)은 DB가 함께 지운다(FK CASCADE).
+     */
+    if (action === "delete") {
+      if (!idNum) return jsonBadRequest("id 필수");
+      try {
+        const [cur] = await db.select({
+          id: payrollSlips.id, status: payrollSlips.status,
+          memberUid: payrollSlips.memberUid, payYear: payrollSlips.payYear, payMonth: payrollSlips.payMonth,
+          grossPay: payrollSlips.grossPay, issuedAt: payrollSlips.issuedAt, sentAt: payrollSlips.sentAt,
+        }).from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
+        if (!cur) return jsonBadRequest("명세서를 찾을 수 없습니다");
+
+        if (["SENT", "PAID"].includes(String(cur.status))) {
+          return jsonBadRequest("이미 교부·지급한 명세서는 삭제할 수 없습니다. 내용을 바로잡으려면 [정정 재발행]을 사용하세요");
+        }
+        if (cur.issuedAt || cur.sentAt) {
+          return jsonBadRequest("한 번이라도 직원에게 교부한 명세서는 삭제할 수 없습니다(법정 보존·서명 증적). [정정 재발행]으로 새 차수를 교부하세요");
+        }
+
+        let memberName: string | null = null;
+        try {
+          const [m] = await db.select({ name: members.name })
+            .from(members).where(eq(members.id, Number(cur.memberUid))).limit(1);
+          memberName = m?.name ?? null;
+        } catch { /* 이름 조회 실패는 삭제를 막지 않는다 */ }
+
+        await db.delete(payrollSlips).where(eq(payrollSlips.id, idNum));
+
+        /* 명세서에 딸린 수정이력도 함께 지워지므로, 삭제 사실은 전체 감사 로그에 남긴다 */
+        try {
+          const { logAdminAction } = await import("../../lib/audit");
+          await logAdminAction(req, Number(admin.id), String(admin.name), "payroll_slip_delete", {
+            target: `PAYROLL-${idNum}`,
+            detail: {
+              member: memberName ?? `회원ID:${cur.memberUid}`,
+              period: `${cur.payYear}-${String(cur.payMonth).padStart(2, "0")}`,
+              status: cur.status,
+              grossPay: Number(cur.grossPay || 0),
+            },
+          });
+        } catch (err) { console.warn("[admin-payroll] 삭제 감사 로그 실패:", err); }
+
+        return jsonOk({
+          deleted: idNum,
+          message: `${memberName ?? "직원"} ${cur.payYear}년 ${cur.payMonth}월 명세서를 삭제했습니다`,
+        });
+      } catch (err) { return jsonError("delete_slip", err); }
+    }
+
     // AI 분석 — 이상치 탐지 + 입력 누락·오류 점검(휴리스틱) + 집계 요약(Gemini)
     if (action === "analyze") {
       const y = Number(url.searchParams.get("year") || 0);
