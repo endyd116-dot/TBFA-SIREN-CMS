@@ -219,13 +219,17 @@ export default async function handler(req: Request, _ctx: Context) {
   /* 5) 알림 (실패해도 서명은 이미 유효) */
   const orgName = process.env.ORG_NAME || "(사)교사유가족협의회";
 
-  /* 5-1. 관리자에게 — 수령확인이 끝났음 */
+  /* 5-1. 관리자에게 — 수령확인이 끝났음.
+         관리자는 '직원이 서명한 걸 보고 급여를 집행'하므로, 서명 사실만 알리는 데서 그치지 않고
+         다음에 할 일(지급 확정)까지 문구에 담는다. 급여관리 화면을 계속 들여다보지 않아도 되게. */
   try {
     await notifyAllSuperAdmins({
       category: "system",
       severity: "info",
       title: `급여명세 수령확인 완료 — ${me.name || "직원"} (${period})`,
-      message: `${signedName} 님이 ${period} 급여명세서에 전자서명했습니다 (이의 없음 동의).`,
+      message:
+        `${signedName} 님이 ${period} 급여명세서에 전자서명했습니다 (이의 없음 동의).\n` +
+        `급여관리에서 [지급]을 눌러 지급 확정하실 수 있습니다. 서명 원본은 [증빙]에서 확인·다운로드할 수 있습니다.`,
       link: "/cms-tbfa.html#payroll",
     });
   } catch (err) { console.warn("[payroll-my-ack] 관리자 알림 실패:", err); }

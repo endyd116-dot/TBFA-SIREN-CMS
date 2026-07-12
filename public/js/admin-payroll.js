@@ -175,7 +175,10 @@
         actions.push('<button class="btn btn-success btn-sm" onclick="approveSlip(' + r.id + ')">승인</button>');
       }
       if (r.status === 'APPROVED' || r.status === 'SENT') {
-        actions.push('<button class="btn btn-success btn-sm" onclick="paidSlip(' + r.id + ')" title="지급 확정">지급</button>');
+        /* 서명(수령확인)을 받았으면 초록으로 '집행해도 됨'을 알리고, 아직이면 흐리게 둔다 */
+        const signed = r.ackStatus === 'ACKNOWLEDGED';
+        actions.push('<button class="btn ' + (signed ? 'btn-success' : 'btn-light') + ' btn-sm" onclick="paidSlip(' + r.id + ')"' +
+          ' title="' + (signed ? '수령확인 완료 — 지급 확정' : '아직 수령확인(전자서명) 전입니다') + '">지급</button>');
       }
       if (r.status !== 'SENT' && r.status !== 'HOLD' && r.status !== 'PAID') {
         actions.push('<button class="btn btn-danger btn-sm" onclick="holdSlip(' + r.id + ')">보류</button>');
@@ -762,8 +765,39 @@
   }
 
   /* 지급 확정 (PAID) */
+  /* 지급 확정 — 정상 순서는 '승인 → 발송(교부) → 직원 수령확인(전자서명) → 지급'이다.
+     순서를 건너뛰어도 막지는 않는다. 급여는 서명 여부와 무관하게 정기지급일에 줘야 하므로
+     (근로기준법 §43 전액·정기 지급), 서명을 지급의 전제 조건으로 걸면 오히려 임금체불이 된다.
+     대신 지금 어디를 건너뛰는 것인지 눈앞에 보여주고 한 번 더 확인받는다. */
   async function paidSlip(id) {
-    if (!confirm('지급을 확정합니다.\n확정 후에는 금액 편집이 잠깁니다. 계속할까요?')) return;
+    const row = (currentRows || []).find(r => r.id === id) || {};
+    const who = row.memberName || '직원';
+    const issued = row.status === 'SENT' || row.status === 'PAID' || !!row.issuedAt;
+    const acked = row.ackStatus === 'ACKNOWLEDGED';
+    const objected = row.ackStatus === 'OBJECTED';
+
+    let msg;
+    if (!issued) {
+      msg = who + ' 님에게 명세서를 아직 발송하지 않았습니다.\n\n' +
+        '임금명세서는 급여를 줄 때 함께 교부해야 합니다(근로기준법 제48조).\n' +
+        '[전체 발송]으로 먼저 교부하고, 직원의 수령확인(전자서명)을 받은 뒤 집행하시길 권합니다.\n\n' +
+        '그래도 지금 지급 확정할까요?';
+    } else if (objected) {
+      msg = who + ' 님이 이 명세서에 이의를 제기한 상태입니다.\n\n' +
+        '이의를 먼저 처리(회신·정정 재발행)한 뒤 지급하는 것이 안전합니다.\n\n' +
+        '그래도 지금 지급 확정할까요?';
+    } else if (!acked) {
+      msg = who + ' 님이 아직 수령확인(전자서명)을 하지 않았습니다.' +
+        (row.firstViewedAt ? '\n(명세서를 열어본 기록은 있습니다: ' + fmtDate(row.firstViewedAt) + ')' : '\n(아직 명세서를 열어보지 않았습니다)') +
+        '\n\n서명을 확인한 뒤 집행하시려면 [취소]를 누르고, [증빙]에서 독촉 알림을 보내세요.\n\n' +
+        '그래도 지금 지급 확정할까요?';
+    } else {
+      msg = who + ' 님 — 수령확인(전자서명) 완료' +
+        (row.ackAt ? ' · ' + new Date(row.ackAt).toLocaleDateString('ko-KR') : '') + '\n\n' +
+        '지급을 확정합니다. 확정 후에는 금액 편집이 잠깁니다. 계속할까요?';
+    }
+    if (!confirm(msg)) return;
+
     const res = await api('/api/admin-payroll?id=' + id + '&action=paid', { method: 'POST' });
     if (!res.ok) { toast('지급 확정 실패: ' + (res.data?.error || res.status), 'err'); return; }
     toast('지급 확정 완료'); closeModal(); await loadList();
