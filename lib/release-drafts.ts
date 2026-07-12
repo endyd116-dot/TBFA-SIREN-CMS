@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.10";
+export const APP_VERSION = "2026-07-12.11";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-att-correction-evidence",
+    title: "근태 수정 요청에 증빙 서류를 붙일 수 있습니다",
+    items: [
+      { text: "출퇴근 기록 수정 요청 시 사유와 함께 증빙 파일을 첨부할 수 있습니다 — 한글·워드·PDF·이미지 등 종류 제한 없이 파일당 20MB까지", link: "/workspace-attendance.html" },
+      { text: "파일을 끌어다 놓거나 [파일 선택]으로 올리면 됩니다. 업로드 진행률이 표시됩니다", link: "/workspace-attendance.html" },
+      { text: "[내 파일함에서 고르기]로 전에 올려둔 서류를 다시 붙일 수 있습니다 — 같은 확인서를 매번 다시 올리지 않아도 됩니다", link: "/workspace-attendance.html" },
+      { text: "올린 파일은 내 파일함의 '근태 증빙' 폴더에 보관되어, 파일함에서 직접 이름을 바꾸거나 지울 수 있습니다", link: "/workspace-files.html" },
+      { text: "[결재자] 정정 검토 화면의 사유 아래에 첨부 서류가 표시되고, 눌러서 내려받을 수 있습니다 — 그 요청에 첨부된 파일만 열리며 직원의 다른 파일은 보이지 않습니다", link: "/cms-tbfa.html#att-ops" },
+    ],
+  },
   {
     /* 급여·근태 정책이 실제로 바뀝니다 — 전 직원이 알아야 하므로 가장 먼저 발행하세요 */
     key: "2026-07-12-payroll-policy",
