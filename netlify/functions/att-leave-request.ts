@@ -43,7 +43,11 @@ export default async function handler(req: Request) {
         ORDER BY r.created_at DESC
         LIMIT 100
       `);
-      const rows = (result.rows as any[]).map(r => ({
+      /* drizzle 의 db.execute 는 (드라이버에 따라) 배열을 그대로 주기도 하고 { rows } 로 감싸기도 한다.
+         .rows 만 믿으면 undefined 가 되어 .map 에서 터진다 — 실제로 휴가 신청 내역 조회가
+         통째로 500 이었다(2026-07-12 전수 조사에서 발견). 코드베이스 표준 방어 패턴으로 통일. */
+      const raw = ((result as any).rows ?? result ?? []) as any[];
+      const rows = raw.map(r => ({
         id:           Number(r.id),
         memberUid:    r.member_uid,
         leaveTypeId:  Number(r.leave_type_id),

@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.19";
+export const APP_VERSION = "2026-07-12.20";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-broken-apis",
+    title: "휴가 신청 내역·전표 목록이 안 열리던 오류",
+    items: [
+      { text: "휴가 탭에서 내 신청 내역이 아예 안 뜨던 문제를 고쳤습니다 (조회가 통째로 실패하고 있었습니다)", link: "/workspace-attendance.html" },
+      { text: "[관리자] 전표 목록이 안 열리던 문제를 고쳤습니다", link: "/cms-tbfa.html#vouchers" },
+      { text: "[관리자] 전표 목록의 기본 조회 기간이 월초 새벽에 지난달로 잡히던 문제도 함께 고쳤습니다" },
+    ],
+  },
   {
     key: "2026-07-12-tz-in-api",
     title: "[중요] 화면에 뜨는 시각이 9시간 이르게 표시되던 문제",

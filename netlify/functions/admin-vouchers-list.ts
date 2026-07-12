@@ -1,4 +1,4 @@
-import { isoUTC, jsonKST } from "../../lib/kst";
+import { isoUTC, jsonKST, nowKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -61,7 +61,7 @@ export default async function handler(req: Request, _ctx: Context) {
         AND (${status} = '' OR ${status} = 'all' OR v.status = ${status})
         AND (${accountCode} = '' OR v.account_code = ${accountCode})
         AND (${budgetLineId} = 0 OR v.budget_line_id = ${budgetLineId})
-        AND (${isTemplate} IS NULL OR v.is_template = ${isTemplate === "true"})
+        AND (${isTemplate}::text IS NULL OR v.is_template = ${isTemplate === "true"})
       ORDER BY v.voucher_date DESC, v.id DESC
       LIMIT ${limit} OFFSET ${offset}
     `);
@@ -74,7 +74,7 @@ export default async function handler(req: Request, _ctx: Context) {
           AND (${status} = '' OR ${status} = 'all' OR v.status = ${status})
           AND (${accountCode} = '' OR v.account_code = ${accountCode})
           AND (${budgetLineId} = 0 OR v.budget_line_id = ${budgetLineId})
-          AND (${isTemplate} IS NULL OR v.is_template = ${isTemplate === "true"})
+          AND (${isTemplate}::text IS NULL OR v.is_template = ${isTemplate === "true"})
       `);
       total = Number((cnt?.rows ?? cnt ?? [])[0]?.n ?? 0);
     } catch { /* 카운트 실패 무시 */ }
