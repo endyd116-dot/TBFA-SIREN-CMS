@@ -160,11 +160,15 @@ export default async (req: Request, _ctx: Context) => {
         COUNT(*) FILTER (WHERE status IN ('responded', 'closed', 'rejected'))::int AS resolved_count,
         COUNT(*) FILTER (WHERE status NOT IN ('responded', 'closed', 'rejected'))::int AS pending_count
       FROM (
-        SELECT status, created_at FROM incident_reports
+        /* 신고 3종의 status 는 서로 다른 enum 타입이라 그대로 UNION 하면 Postgres 가 거부한다
+           ("could not convert type harassment_report_status to incident_report_status")
+           → 문자로 맞춰서 합친다. admin-dashboard-kpi 도 같은 방식.
+           (2026-07-12 전 API 전수 조사에서 발견 — 신고 게시판이 통째로 500 이었다) */
+        SELECT status::text AS status, created_at FROM incident_reports
         UNION ALL
-        SELECT status, created_at FROM harassment_reports
+        SELECT status::text AS status, created_at FROM harassment_reports
         UNION ALL
-        SELECT status, created_at FROM legal_consultations
+        SELECT status::text AS status, created_at FROM legal_consultations
       ) t
       WHERE created_at >= ${start}::timestamptz
         AND created_at < ${end}::timestamptz
