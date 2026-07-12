@@ -1,3 +1,4 @@
+import { yearKST, monthKST0 } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords, members } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
@@ -55,8 +56,8 @@ export default async function handler(req: Request) {
 
   const url = new URL(req.url);
   const memberUidParam = url.searchParams.get("memberUid");
-  const year = parseInt(url.searchParams.get("year") ?? String(new Date().getFullYear()));
-  const month = parseInt(url.searchParams.get("month") ?? String(new Date().getMonth() + 1));
+  const year = parseInt(url.searchParams.get("year") ?? String(yearKST()));
+  const month = parseInt(url.searchParams.get("month") ?? String(monthKST0() + 1));
 
   if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
     return new Response(JSON.stringify({ ok: false, error: "year, month 형식 오류", step: "validate" }),

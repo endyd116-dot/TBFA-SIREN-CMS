@@ -21,6 +21,7 @@
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자
 
+import { yearKST } from "../../lib/kst";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { activityPosts, blobUploads, receiptSettings } from "../../db/schema";
@@ -396,7 +397,7 @@ export default async (req: Request) => {
           /* 보고서 기간을 메타에서 추정 */
           let period: ReportPeriod;
           const slug = String(existing.slug || "");
-          const year = existing.year || new Date().getFullYear();
+          const year = existing.year || yearKST();
           if (slug.includes("-q1") || slug.includes("-q2") || slug.includes("-q3") || slug.includes("-q4")) {
             const qm = slug.match(/-q([1-4])/);
             const q = qm ? Number(qm[1]) as 1|2|3|4 : 1;

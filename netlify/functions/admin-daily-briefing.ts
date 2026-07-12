@@ -10,6 +10,7 @@
 // GET ?stats=1            : 대시보드용 실시간 통계 (DB 저장 X)
 // PATCH ?id=N&action=read : 읽음 처리
 
+import { nowKST } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import {
@@ -47,7 +48,7 @@ export default async (req: Request, _ctx: Context) => {
 
       // ─── 대시보드용 실시간 통계 (DB 저장 없이 즉시 계산) ───
       if (statsFlag === "1") {
-        const now = new Date();
+        const now = nowKST();
         const kstOffsetMs = 9 * 60 * 60 * 1000;
         const kstNow = new Date(now.getTime() + kstOffsetMs);
         // P2-46 fix: KST 하루 경계를 실제 UTC instant로 계산
@@ -122,8 +123,8 @@ export default async (req: Request, _ctx: Context) => {
       if (today === "1" || date) {
         let targetDate: Date;
         if (today === "1") {
-          const now = new Date();
-          targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const now = nowKST();
+          targetDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
         } else {
           targetDate = new Date(date!);
           if (isNaN(targetDate.getTime())) return badRequest("date 형식 오류 (YYYY-MM-DD)");

@@ -1,6 +1,7 @@
 // netlify/functions/board-create.ts
 // Phase M-8: 게시글 작성 (로그인 필수)
 
+import { yearKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -17,7 +18,7 @@ export const config = { path: "/api/board/create" };
 const VALID_CATEGORIES = ["general", "share", "question", "info", "etc"];
 
 function genPostNo(): string {
-  const y = new Date().getFullYear();
+  const y = yearKST();
   const r = String(Math.floor(Math.random() * 9000) + 1000);
   return `B-${y}-${r}`;
 }

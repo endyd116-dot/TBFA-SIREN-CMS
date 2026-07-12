@@ -19,6 +19,7 @@
  * - 회원 본인 데이터만 (memberId 매칭)
  * - billingKey 자체는 응답에 포함 X (보안)
  */
+import { nowKST } from "../../lib/kst";
 import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { db, billingKeys, donations, members } from "../../db";
 import { authenticateUser } from "../../lib/auth";
@@ -138,10 +139,10 @@ export default async (req: Request) => {
     let monthsActive = 0;
     if (activeBilling) {
       const start = new Date(activeBilling.createdAt);
-      const now = new Date();
+      const now = nowKST();
       monthsActive =
-        (now.getFullYear() - start.getFullYear()) * 12 +
-        (now.getMonth() - start.getMonth());
+        (now.getUTCFullYear() - start.getFullYear()) * 12 +
+        (now.getUTCMonth() - start.getMonth());
       if (monthsActive < 0) monthsActive = 0;
     }
 

@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-12.16";
+export const APP_VERSION = "2026-07-12.17";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,18 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-12-kst-server",
+    title: "[중요] 정기결제·영수증·감사기록의 날짜·시각 오류 수정",
+    items: [
+      { text: "정기후원 가입 시 약정일이 하루 전으로 잡히던 문제를 고쳤습니다 — 새벽에 가입하면 8월 1일 가입인데 약정일이 31일로 기록됐습니다", link: "/cms-tbfa.html#donors" },
+      { text: "정기결제 자동청구가 어제 날짜로 대상을 찾던 문제를 고쳤습니다 — 그날 약정일인 후원자가 청구에서 빠질 수 있었습니다" },
+      { text: "기부금 영수증의 발급일이 새벽 발급 시 어제 날짜로 찍히던 문제를 고쳤습니다 (세무 서류)" },
+      { text: "감사 로그 CSV의 시각이 9시간 이르게 표시되던 문제를 고쳤습니다 — 언제 누가 무엇을 했는지가 이제 한국 시각으로 정확히 남습니다", link: "/cms-tbfa.html#audit" },
+      { text: "근태 통계·캘린더가 월초 새벽에 지난달을 보여주던 문제, 기념일·연차·카드만료 알림이 하루 어긋나던 문제도 함께 고쳤습니다" },
+      { text: "효성 CMS 출금 파일의 생성 일시가 한국 시각으로 찍힙니다" },
+    ],
+  },
   {
     key: "2026-07-12-kst-everywhere",
     title: "모든 날짜·시각이 한국 시간(KST)으로 통일되었습니다",

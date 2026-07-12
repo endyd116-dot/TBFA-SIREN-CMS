@@ -46,3 +46,66 @@ export function fmtKST(
 /** 사람에게 보여줄 KST 날짜만 (예: "2026. 7. 12.") */
 export const fmtKSTDate = (d: Date | string | number | null | undefined): string =>
   fmtKST(d, { dateStyle: "medium" });
+
+/* ══════════════════════════════════════════════════════════════
+   KST 기준 연·월·일·요일·시 — 서버에서 new Date().getMonth() 같은 걸 쓰면 안 되는 이유
+
+   서버는 UTC로 돈다. 그래서 `new Date().getHours()` 는 **한국 시각보다 9시간 이르다.**
+   연·월·일도 한국 자정~아침 9시 사이에는 하루 전 값이 나온다.
+     · 감사 로그 CSV의 시각이 9시간 어긋나 있었다
+     · 새벽에 뽑은 출금 파일의 생성일자가 어제로 찍혔다
+     · 기념일·연차·카드만료 판정이 하루 어긋났다
+
+   ⚠️ 서버 프로세스의 시간대(TZ)를 서울로 바꾸는 방법은 절대 쓰면 안 된다.
+      DB 드라이버가 timestamp 문자열을 `new Date(x)` 로 파싱하는데, 프로세스가 서울이면
+      UTC로 저장된 값을 한국시각으로 오해해서 **읽는 모든 시각이 9시간 밀린다**(실측 확인).
+      → 저장·전송은 UTC 그대로 두고, '사람이 보거나 날짜로 판정할 때'만 아래 함수로 변환한다.
+
+   아래 함수들은 프로세스 시간대와 무관하게 항상 같은 값을 준다 (getUTC* 로 읽으므로).
+   ══════════════════════════════════════════════════════════════ */
+const parts = (d?: Date | string | number) => (d == null ? nowKST() : toKST(new Date(d)));
+
+/** KST 연도 */
+export const yearKST = (d?: Date | string | number): number => parts(d).getUTCFullYear();
+/** KST 월 (0~11 — Date.getMonth() 와 같은 규칙) */
+export const monthKST0 = (d?: Date | string | number): number => parts(d).getUTCMonth();
+/** KST 월 (1~12 — 사람이 읽는 규칙) */
+export const monthKST = (d?: Date | string | number): number => parts(d).getUTCMonth() + 1;
+/** KST 일 */
+export const dayKST = (d?: Date | string | number): number => parts(d).getUTCDate();
+/** KST 요일 (0=일 ~ 6=토) */
+export const dowKST = (d?: Date | string | number): number => parts(d).getUTCDay();
+/** KST 시 (0~23) */
+export const hourKST = (d?: Date | string | number): number => parts(d).getUTCHours();
+/** KST 분 */
+export const minuteKST = (d?: Date | string | number): number => parts(d).getUTCMinutes();
+
+/** KST 'YYYYMMDD' (파일명·전문 헤더용) */
+export const ymdKST = (d?: Date | string | number): string => {
+  const k = parts(d);
+  return `${k.getUTCFullYear()}${String(k.getUTCMonth() + 1).padStart(2, "0")}${String(k.getUTCDate()).padStart(2, "0")}`;
+};
+/** KST 'HHMM' */
+export const hhmmKSTCompact = (d?: Date | string | number): string => {
+  const k = parts(d);
+  return `${String(k.getUTCHours()).padStart(2, "0")}${String(k.getUTCMinutes()).padStart(2, "0")}`;
+};
+/** KST 'YYYY-MM-DD HH:MM' (CSV·로그 표시용) */
+export const stampKST = (d?: Date | string | number): string => {
+  const k = parts(d);
+  return `${k.getUTCFullYear()}-${String(k.getUTCMonth() + 1).padStart(2, "0")}-${String(k.getUTCDate()).padStart(2, "0")}` +
+    ` ${String(k.getUTCHours()).padStart(2, "0")}:${String(k.getUTCMinutes()).padStart(2, "0")}`;
+};
+
+/**
+ * SQL 안에서 '한국 기준 오늘'.
+ *
+ * Postgres의 CURRENT_DATE 는 세션 시간대(기본 UTC) 기준이라 한국 새벽엔 어제가 나온다.
+ * 세션 시간대를 서울로 바꾸는 것도 금물이다 — DEFAULT now() 로 새로 쓰는 행이 KST 벽시계로
+ * 저장되면서 기존 UTC 저장분과 섞여버린다.
+ * → 쿼리에서 CURRENT_DATE 대신 이 식을 쓴다.
+ */
+export const SQL_TODAY_KST = "(NOW() AT TIME ZONE 'Asia/Seoul')::date";
+/** SQL: 저장된 timestamp(UTC) 컬럼을 한국 날짜로 (예: kstDateSql('s.paid_at')) */
+export const kstDateSql = (col: string): string =>
+  `((${col}) AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date`;

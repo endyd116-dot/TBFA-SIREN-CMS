@@ -34,7 +34,7 @@ export default async (_req: Request, _ctx: Context) => {
              c.title AS "caseTitle", c.assigned_admin_id AS "assignedAdminId"
       FROM martyrdom_deadlines d
       JOIN martyrdom_cases c ON c.id = d.case_id
-      WHERE d.status = 'pending' AND d.due_date <= (CURRENT_DATE + INTERVAL '90 days')
+      WHERE d.status = 'pending' AND d.due_date <= ((NOW() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '90 days')
       ORDER BY d.due_date ASC
     `));
     const rows = dr?.rows ?? dr ?? [];

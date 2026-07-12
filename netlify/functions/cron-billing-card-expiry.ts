@@ -13,6 +13,7 @@
 //    알림(인앱·이메일·SMS·알림톡)을 발송한다(사후·반응형). 사전 안내가 꼭 필요하면 KICC에 빌키
 //    조회로 만료월을 받을 수 있는지 별도 확인 필요(현 명세엔 없음).
 
+import { nowKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import {
@@ -120,12 +121,12 @@ export default async (_req: Request) => {
 
 async function collectExpiryTargets(daysAhead: number): Promise<ExpiryTarget[]> {
   // 오늘로부터 daysAhead일 뒤의 YYMM 계산
-  const target = new Date();
-  target.setDate(target.getDate() + daysAhead);
-  const yy = String(target.getFullYear()).slice(2);
-  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const target = nowKST();
+  target.setUTCDate(target.getUTCDate() + daysAhead);
+  const yy = String(target.getUTCFullYear()).slice(2);
+  const mm = String(target.getUTCMonth() + 1).padStart(2, "0");
   const targetYYMM = `${yy}${mm}`;           // 예: "2712"
-  const targetYYYYMM = `${target.getFullYear()}-${mm}`;  // 예: "2027-12"
+  const targetYYYYMM = `${target.getUTCFullYear()}-${mm}`;  // 예: "2027-12"
 
   const result: any = await db.execute(sql`
     SELECT

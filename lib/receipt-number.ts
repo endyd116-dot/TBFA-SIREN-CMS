@@ -9,6 +9,7 @@
  *   - 별도 시퀀스 테이블 불필요
  *   - 동시 발급 race condition 없음
  */
+import { yearKST } from "./kst";
 import { eq } from "drizzle-orm";
 import { db, donations } from "../db";
 
@@ -16,7 +17,7 @@ import { db, donations } from "../db";
  * 영수증 번호 문자열 생성 (DB 저장 없이 순수 변환)
  */
 export function buildReceiptNumber(donationId: number, year?: number): string {
-  const y = year || new Date().getFullYear();
+  const y = year || yearKST();
   const seq = String(donationId).padStart(6, "0");
   return `TBFA-${y}-${seq}`;
 }

@@ -64,7 +64,7 @@ export default async function handler(req: Request) {
              AND ar.work_mode = 'REMOTE'
              AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE')
              AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
-             AND ar.date >= (CURRENT_DATE - INTERVAL '60 days')
+             AND ar.date >= ((NOW() AT TIME ZONE 'Asia/Seoul')::date - INTERVAL '60 days')
              AND (rep.status IS NULL OR rep.status NOT IN ('SUBMITTED','EXEMPTED'))
            ORDER BY ar.date DESC
            LIMIT 60

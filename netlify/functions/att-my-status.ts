@@ -1,3 +1,4 @@
+import { nowKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -28,9 +29,10 @@ export default async function handler(req: Request) {
   const memberUid: string = String(auth.ctx.member.id);
 
   const today = todayKST();
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  /* 한국 기준 이번 달 — UTC로 읽으면 월초 새벽에 지난달 통계가 나온다 */
+  const now = nowKST();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1;
   const padM = String(month).padStart(2, "0");
   const monthStart = `${year}-${padM}-01`;
   const lastDay = new Date(year, month, 0).getDate();

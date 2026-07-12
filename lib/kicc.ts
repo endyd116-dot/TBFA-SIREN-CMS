@@ -15,6 +15,7 @@
 //
 // 본 모듈의 "반환 shape"는 A mock·C 검증의 고정 계약이므로 변경 금지.
 
+import { nowKST } from "./kst";
 import { db } from "../db";
 import { billingLogs } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -532,8 +533,8 @@ export async function retrieveTransaction(p: {
 
 /** 일시 결제용 주문번호 — SIREN-{YYYYMM}-{rand} (≤40자) */
 export function generateShopOrderNo(prefix = "SIREN"): string {
-  const now = new Date();
-  const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const now = nowKST();
+  const ym = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let rand = "";
   for (let i = 0; i < 10; i++) rand += chars[Math.floor(Math.random() * chars.length)];
@@ -557,7 +558,13 @@ export function generateBillingOrderId(
    재시도 스케줄 / 청구일 / 연월 — pg 비종속(불변)
    ========================================================= */
 
-/** 1차 실패→+1일 / 2차 실패→+3일 / 3차 이상→null(자동해지) */
+/**
+ * 1차 실패→+1일 / 2차 실패→+3일 / 3차 이상→null(자동해지)
+ *
+ * ⚠️ 여기는 '날짜'가 아니라 **시각(instant)** 이다 — DB에 timestamp 로 저장되고
+ *    `next_retry_at <= 지금` 으로 비교한다. 그래서 KST로 옮기면 안 된다(9시간 늦게 재시도된다).
+ *    시각 비교는 시간대와 무관하므로 UTC 그대로 둔다.
+ */
 export function calculateNextRetryAt(attemptNumber: number): Date | null {
   const now = new Date();
   if (attemptNumber === 1) {
@@ -573,11 +580,17 @@ export function calculateNextRetryAt(attemptNumber: number): Date | null {
   return null;
 }
 
-/** billingDay 기준 다음 청구일 (월말 보정) */
-export function calculateNextBillingDate(billingDay: number, from: Date = new Date()): Date {
-  const fromYear = from.getFullYear();
-  const fromMonth = from.getMonth();
-  const fromDay = from.getDate();
+/**
+ * billingDay 기준 다음 청구일 (월말 보정).
+ *
+ * ⚠️ from 은 **한국 시각으로 옮긴 Date**(nowKST())여야 한다 — getUTC* 로 읽는다.
+ *    서버는 UTC로 돌기 때문에 그냥 new Date() 를 넣으면 한국 자정~아침 9시 사이에
+ *    '어제' 기준으로 계산돼 청구일이 하루 밀린다(후원자가 새벽에 가입하면 실제로 발생).
+ */
+export function calculateNextBillingDate(billingDay: number, from: Date = nowKST()): Date {
+  const fromYear = from.getUTCFullYear();
+  const fromMonth = from.getUTCMonth();
+  const fromDay = from.getUTCDate();
   let nextYear: number;
   let nextMonth: number;
   if (fromDay < billingDay) {
@@ -587,14 +600,15 @@ export function calculateNextBillingDate(billingDay: number, from: Date = new Da
     nextYear = fromMonth === 11 ? fromYear + 1 : fromYear;
     nextMonth = fromMonth === 11 ? 0 : fromMonth + 1;
   }
-  const lastDayOfMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
+  const lastDayOfMonth = new Date(Date.UTC(nextYear, nextMonth + 1, 0)).getUTCDate();
   const safeDay = Math.min(billingDay, lastDayOfMonth);
-  return new Date(nextYear, nextMonth, safeDay);
+  return new Date(Date.UTC(nextYear, nextMonth, safeDay));
 }
 
-export function getCurrentYearMonth(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+/** 청구 회차 키 yyyyMM — 한국 기준 (월 경계 새벽에 지난달 회차로 잡히면 중복청구 판정이 어긋난다) */
+export function getCurrentYearMonth(date: Date = nowKST()): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${year}${month}`;
 }
 
@@ -630,7 +644,7 @@ export async function logBillingResultWithRetry(
   nextAttemptNumber: number,
   donationId?: number,
 ): Promise<void> {
-  const now = new Date();
+  const now = nowKST();
   const nextRetryAt = result.success
     ? null
     : result.retryable

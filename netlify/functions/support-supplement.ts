@@ -12,6 +12,7 @@
  *
  * Body: { id: number, supplementContent: string, attachmentIds?: (string|number)[] }
  */
+import { nowKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db, supportRequests, members } from "../../db";
 import { requireActiveUser } from "../../lib/auth";
@@ -80,13 +81,14 @@ export default async (req: Request) => {
     }
 
     /* 4. 본문 누적 */
-    const now = new Date();
+    /* 서버는 UTC — 사람이 읽는 일시는 한국시각으로 (그대로 찍으면 9시간 이르다) */
+    const now = nowKST();
     const ts =
-      now.getFullYear() + "." +
-      String(now.getMonth() + 1).padStart(2, "0") + "." +
-      String(now.getDate()).padStart(2, "0") + " " +
-      String(now.getHours()).padStart(2, "0") + ":" +
-      String(now.getMinutes()).padStart(2, "0");
+      now.getUTCFullYear() + "." +
+      String(now.getUTCMonth() + 1).padStart(2, "0") + "." +
+      String(now.getUTCDate()).padStart(2, "0") + " " +
+      String(now.getUTCHours()).padStart(2, "0") + ":" +
+      String(now.getUTCMinutes()).padStart(2, "0");
 
     const header =
       "\n\n========================================\n" +

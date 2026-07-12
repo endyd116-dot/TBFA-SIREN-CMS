@@ -1,3 +1,4 @@
+import { yearKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -59,7 +60,7 @@ export default async function handler(req: Request, _ctx: Context) {
   let fiscalYear = Number(body?.fiscalYear);
   if (!Number.isFinite(fiscalYear) || fiscalYear <= 0) {
     if (occurredAt && /^\d{4}/.test(occurredAt)) fiscalYear = Number(occurredAt.slice(0, 4));
-    else fiscalYear = new Date().getFullYear();
+    else fiscalYear = yearKST();
   }
 
   /* ===== 2) budgetAccountId가 목(目) 레벨인지 확인 ===== */

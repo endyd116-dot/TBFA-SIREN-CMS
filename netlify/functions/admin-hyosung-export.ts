@@ -19,6 +19,7 @@
  * - 관리자/운영자만
  * - audit_logs 기록 (개인정보 추출)
  */
+import { nowKST } from "../../lib/kst";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, donations, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -418,12 +419,12 @@ export default async (req: Request) => {
     const csvContent = rows.join("\r\n") + "\r\n";
 
     /* 파일명 */
-    const now = new Date();
-    const ymd = now.getFullYear() +
-      String(now.getMonth() + 1).padStart(2, "0") +
-      String(now.getDate()).padStart(2, "0");
-    const hhmm = String(now.getHours()).padStart(2, "0") +
-      String(now.getMinutes()).padStart(2, "0");
+    const now = nowKST();
+    const ymd = now.getUTCFullYear() +
+      String(now.getUTCMonth() + 1).padStart(2, "0") +
+      String(now.getUTCDate()).padStart(2, "0");
+    const hhmm = String(now.getUTCHours()).padStart(2, "0") +
+      String(now.getUTCMinutes()).padStart(2, "0");
 
     const koFilename = `효성CMS_대량등록_${status}_${ymd}_${hhmm}.csv`;
     const enFilename = `hyosung_bulk_${status}_${ymd}_${hhmm}.csv`;

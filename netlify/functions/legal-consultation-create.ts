@@ -1,6 +1,7 @@
 // netlify/functions/legal-consultation-create.ts
 // Phase M-7: 법률 상담 신청 + AI 1차 자문
 
+import { yearKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -17,7 +18,7 @@ import {
 import { logUserAction } from "../../lib/audit";
 
 function genConsultationNo(): string {
-  const y = new Date().getFullYear();
+  const y = yearKST();
   const r = String(Math.floor(Math.random() * 9000) + 1000);
   return `L-${y}-${r}`;
 }

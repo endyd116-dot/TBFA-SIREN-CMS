@@ -37,7 +37,7 @@ async function canDecide(role: string, memberId: number, stepRole: string): Prom
   const del: any = await db.execute(sql`
     SELECT 1 FROM approval_delegations
      WHERE is_active = TRUE AND delegate_role = ${stepRole} AND to_member_id = ${memberId}
-       AND CURRENT_DATE BETWEEN start_at AND end_at
+       AND (NOW() AT TIME ZONE 'Asia/Seoul')::date BETWEEN start_at AND end_at
      LIMIT 1
   `);
   return (await rowsOf(del)).length > 0;
@@ -161,7 +161,7 @@ export default async function handler(req: Request, _ctx: Context) {
         (fiscal_year, occurred_at, category_id, budget_account_id, amount, payee_name,
          description, receipt_url, status, recorded_by, recorded_at, approved_by, approved_at)
       VALUES
-        (${Number(r.fiscal_year)}, COALESCE(${r.occurred_at}, CURRENT_DATE), NULL,
+        (${Number(r.fiscal_year)}, COALESCE(${r.occurred_at}, (NOW() AT TIME ZONE 'Asia/Seoul')::date), NULL,
          ${r.budget_account_id}, ${Number(r.amount)}, ${r.payee_name ?? null},
          ${r.title}, ${r.evidence_url ?? null}, 'approved', ${r.drafter_id ?? null}, ${nowSql},
          ${myId}, ${nowSql})

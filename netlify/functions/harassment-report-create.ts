@@ -1,6 +1,7 @@
 // netlify/functions/harassment-report-create.ts
 // ★ Phase M-6: 악성민원 신고 생성 + AI 분석
 
+import { yearKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,7 +20,7 @@ import { logUserAction } from "../../lib/audit";
 export const config = { path: "/api/harassment-report-create" };
 
 function genReportNo(): string {
-  const y = new Date().getFullYear();
+  const y = yearKST();
   const r = String(Math.floor(Math.random() * 9000) + 1000);
   return `H-${y}-${r}`;
 }

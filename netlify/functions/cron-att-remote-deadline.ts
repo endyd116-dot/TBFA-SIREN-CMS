@@ -45,8 +45,8 @@ export default async function handler(_req: Request, _ctx: Context) {
          AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE')
          AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
          -- 마감 하루 전(D+2) ~ 마감 다음 날(D+4) 구간만
-         AND ar.date >= (CURRENT_DATE - INTERVAL '${sql.raw(String(REMOTE_REPORT_DEADLINE_DAYS + 1))} days')
-         AND ar.date <= (CURRENT_DATE - INTERVAL '${sql.raw(String(REMOTE_REPORT_DEADLINE_DAYS - 1))} days')
+         AND ar.date >= ((NOW() AT TIME ZONE 'Asia/Seoul')::date - INTERVAL '${sql.raw(String(REMOTE_REPORT_DEADLINE_DAYS + 1))} days')
+         AND ar.date <= ((NOW() AT TIME ZONE 'Asia/Seoul')::date - INTERVAL '${sql.raw(String(REMOTE_REPORT_DEADLINE_DAYS - 1))} days')
          AND rep.id IS NULL
        ORDER BY ar.date
        LIMIT 300

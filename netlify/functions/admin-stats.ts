@@ -1,6 +1,7 @@
 /**
  * GET /api/admin/stats — 대시보드 차트용 통계
  */
+import { nowKST } from "../../lib/kst";
 import { sql, eq, and, gte } from "drizzle-orm";
 import { db, donations, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -15,10 +16,11 @@ export default async (req: Request) => {
 
   try {
     /* 1. 최근 12개월 후원금 추이 */
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-    twelveMonthsAgo.setDate(1);
-    twelveMonthsAgo.setHours(0, 0, 0, 0);
+    /* 기준을 한국 시각으로 — UTC면 월 경계 새벽에 한 달 어긋난 라벨이 나온다 */
+    const twelveMonthsAgo = nowKST();
+    twelveMonthsAgo.setUTCMonth(twelveMonthsAgo.getUTCMonth() - 11);
+    twelveMonthsAgo.setUTCDate(1);
+    twelveMonthsAgo.setUTCHours(0, 0, 0, 0);
 
     /* Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
     const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
@@ -38,10 +40,11 @@ export default async (req: Request) => {
     const labels: string[] = [];
     const values: number[] = [];
     for (let i = 0; i < 12; i++) {
+      /* 기준(twelveMonthsAgo)이 한국 시각이므로 여기서도 UTC 계열로 읽는다 (섞으면 라벨이 어긋난다) */
       const d = new Date(twelveMonthsAgo);
-      d.setMonth(d.getMonth() + i);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      labels.push(`${d.getMonth() + 1}월`);
+      d.setUTCMonth(d.getUTCMonth() + i);
+      const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      labels.push(`${d.getUTCMonth() + 1}월`);
       values.push((monthlyMap.get(ym) || 0) / 1_000_000); // 백만원 단위
     }
 

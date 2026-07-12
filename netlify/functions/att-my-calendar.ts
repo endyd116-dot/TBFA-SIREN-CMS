@@ -1,3 +1,4 @@
+import { nowKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -25,9 +26,10 @@ export default async function handler(req: Request) {
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
   const url = new URL(req.url);
-  const now = new Date();
-  const year  = Number(url.searchParams.get("year")  ?? now.getFullYear());
-  const month = Number(url.searchParams.get("month") ?? now.getMonth() + 1);
+  /* 한국 기준 — UTC면 월초 새벽에 지난달 캘린더가 열린다 */
+  const now = nowKST();
+  const year  = Number(url.searchParams.get("year")  ?? now.getUTCFullYear());
+  const month = Number(url.searchParams.get("month") ?? now.getUTCMonth() + 1);
 
   const memberUid: string = String(auth.ctx.member.id);
 

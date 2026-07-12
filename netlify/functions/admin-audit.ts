@@ -16,6 +16,7 @@
  * - 목록: { list, pagination, stats, filters }
  * - 단건: { log: {...전체 필드} }
  */
+import { toKST, ymdKST, hhmmKSTCompact } from "../../lib/kst";
 import { eq, desc, and, or, like, count, gte, lte, sql } from "drizzle-orm";
 import { db, auditLogs, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -118,14 +119,16 @@ export default async (req: Request) => {
       csvLines.push(headers.join(","));
 
       for (const r of rows as any[]) {
-        const dt = r.createdAt ? new Date(r.createdAt) : null;
+        /* 저장은 UTC · 표시는 한국시각 — 그대로 찍으면 9시간 이른 시각이 나온다
+           (감사 로그는 '언제 누가 무엇을 했는가'가 핵심이라 시각이 틀리면 증빙 가치가 없다) */
+        const dt = r.createdAt ? toKST(new Date(r.createdAt)) : null;
         const timeStr = dt
-          ? dt.getFullYear() + "-" +
-            String(dt.getMonth() + 1).padStart(2, "0") + "-" +
-            String(dt.getDate()).padStart(2, "0") + " " +
-            String(dt.getHours()).padStart(2, "0") + ":" +
-            String(dt.getMinutes()).padStart(2, "0") + ":" +
-            String(dt.getSeconds()).padStart(2, "0")
+          ? dt.getUTCFullYear() + "-" +
+            String(dt.getUTCMonth() + 1).padStart(2, "0") + "-" +
+            String(dt.getUTCDate()).padStart(2, "0") + " " +
+            String(dt.getUTCHours()).padStart(2, "0") + ":" +
+            String(dt.getUTCMinutes()).padStart(2, "0") + ":" +
+            String(dt.getUTCSeconds()).padStart(2, "0")
           : "";
 
         csvLines.push([
@@ -149,7 +152,7 @@ export default async (req: Request) => {
       const csv = BOM + csvLines.join("\r\n");
 
       const ts = new Date();
-      const fileName = `audit-logs-${ts.getFullYear()}${String(ts.getMonth() + 1).padStart(2, "0")}${String(ts.getDate()).padStart(2, "0")}-${String(ts.getHours()).padStart(2, "0")}${String(ts.getMinutes()).padStart(2, "0")}.csv`;
+      const fileName = `audit-logs-${ymdKST()}-${hhmmKSTCompact()}.csv`;
 
       return new Response(csv, {
         status: 200,

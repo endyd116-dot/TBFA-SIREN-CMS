@@ -10,6 +10,7 @@
  *
  * 프론트(A)는 이 API를 직접 호출하지 않음 — success/fail 페이지는 표시 전용.
  */
+import { yearKST } from "../../lib/kst";
 import { eq } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { pointRules, memberPointLogs } from "../../db/schema";
@@ -55,7 +56,7 @@ async function parseReturn(req: Request): Promise<Record<string, string>> {
 }
 
 function generateReceiptNumber(donationId: number): string {
-  return `TBFA-${new Date().getFullYear()}-${String(donationId).padStart(6, "0")}`;
+  return `TBFA-${yearKST()}-${String(donationId).padStart(6, "0")}`;
 }
 
 export default async (req: Request) => {

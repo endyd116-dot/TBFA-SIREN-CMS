@@ -5,6 +5,7 @@
 // - 같은 회원 정기+재시도 dedup → 이중청구 방지
 // - 영수증/알림 발송 (통합 디스패처)
 
+import { nowKST } from "../../lib/kst";
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";
 import { members, billingKeys, donations } from "../../db/schema";
@@ -114,8 +115,10 @@ export default async (_req: Request) => {
 
 /* 1. 오늘 약정일 대상 */
 async function collectScheduledTargets(): Promise<BillingTarget[]> {
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  /* ⚠️ 이 크론은 UTC 18:00 = 한국 03:00(다음날)에 돈다.
+     UTC 날짜를 쓰면 '어제'가 결제 실행일이 되어, 약정일이 하루 밀린 후원자가 청구에서 빠진다. */
+  const today = nowKST();
+  const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`;
   const result: any = await db.execute(sql`
     SELECT m.id AS member_id, m.name AS member_name, m.email AS member_email, m.billing_day,
            bk.id AS billing_key_id, bk.billing_key, bk.amount
@@ -241,8 +244,8 @@ async function handleSuccess(target: BillingTarget, logId: number, result: Charg
 
   await logBillingResultWithRetry(logId, result, 1, donationId);
 
-  const nextDate = calculateNextBillingDate(target.billingDay, addDays(new Date(), 1));
-  const nextDateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(nextDate.getDate()).padStart(2, "0")}`;
+  const nextDate = calculateNextBillingDate(target.billingDay, addDays(nowKST(), 1));
+  const nextDateStr = `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, "0")}-${String(nextDate.getUTCDate()).padStart(2, "0")}`;
 
   await db.execute(sql`
     UPDATE members
@@ -332,8 +335,8 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
     await safeReevaluate(target.memberId, "cron-kicc-billing/auto-cancel");
     return true;
   } else {
-    const nextRetry = target.attemptNumber === 1 ? addDays(new Date(), 1) : addDays(new Date(), 3);
-    const nextRetryStr = `${nextRetry.getFullYear()}-${String(nextRetry.getMonth() + 1).padStart(2, "0")}-${String(nextRetry.getDate()).padStart(2, "0")}`;
+    const nextRetry = target.attemptNumber === 1 ? addDays(nowKST(), 1) : addDays(nowKST(), 3);
+    const nextRetryStr = `${nextRetry.getUTCFullYear()}-${String(nextRetry.getUTCMonth() + 1).padStart(2, "0")}-${String(nextRetry.getUTCDate()).padStart(2, "0")}`;
 
     /* R41 Q1-001 FIX: 재시도일을 next_billing_date에 쓰지 않는다 (이전엔 여기서 덮어썼음).
        덮으면 다음날 collectScheduledTargets가 이 회원을 '정기(attempt 1)'로 재포착하고
@@ -366,8 +369,9 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
   }
 }
 
+/** 한국시각으로 옮긴 Date(nowKST())에도 그대로 쓸 수 있게 UTC 계열로 — 섞으면 하루 어긋난다 */
 function addDays(date: Date, days: number): Date {
   const r = new Date(date);
-  r.setDate(r.getDate() + days);
+  r.setUTCDate(r.getUTCDate() + days);
   return r;
 }

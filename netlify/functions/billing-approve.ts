@@ -10,6 +10,7 @@
  *
  * 프론트(A)는 이 API를 직접 호출하지 않음 — success/fail 페이지는 표시 전용.
  */
+import { yearKST, nowKST } from "../../lib/kst";
 import { eq, and, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { db, billingKeys, donations } from "../../db";
@@ -61,7 +62,7 @@ function generateCustomerKey(memberId: number | null): string {
   return memberId ? `M${memberId}-${rand}` : `G-${rand}`;
 }
 function generateReceiptNumber(donationId: number): string {
-  return `TBFA-${new Date().getFullYear()}-${String(donationId).padStart(6, "0")}`;
+  return `TBFA-${yearKST()}-${String(donationId).padStart(6, "0")}`;
 }
 
 export default async (req: Request) => {
@@ -205,10 +206,11 @@ export default async (req: Request) => {
     }
 
     /* 3) billing_keys INSERT (활성) */
-    const now = new Date();
+    /* 약정일은 한국 날짜 기준 — UTC로 읽으면 새벽 가입자의 약정일이 어제로 잡힌다 */
+    const now = nowKST();
     /* 2026-06-27 FIX: 월말(29~31일) 가입자 첫 정기청구가 한 달 건너뛰던 버그.
        단순 +1달(addMonth)은 1/31→3/3로 2월을 건너뜀 → 월말 보정된 calculateNextBillingDate 사용. */
-    const nextCharge = calculateNextBillingDate(now.getDate(), now);
+    const nextCharge = calculateNextBillingDate(now.getUTCDate(), now);
     let customerKey = "";
     for (let i = 0; i < 3; i++) {
       customerKey = generateCustomerKey(memberId);

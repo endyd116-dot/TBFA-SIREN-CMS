@@ -77,7 +77,7 @@ async function handleGet(req: Request) {
                  start_at, end_at, reason, is_active, created_by, created_at
           FROM approval_delegations
           WHERE is_active = true
-            AND CURRENT_DATE BETWEEN start_at AND end_at
+            AND (NOW() AT TIME ZONE 'Asia/Seoul')::date BETWEEN start_at AND end_at
           ORDER BY created_at DESC, id DESC
         `)
       : await db.execute(sql`

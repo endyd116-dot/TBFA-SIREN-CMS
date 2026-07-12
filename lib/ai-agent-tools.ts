@@ -2,7 +2,7 @@
 // AI 에이전트가 호출할 수 있는 SIREN 도구 정의 + 실행 핸들러
 // Phase A: 콘텐츠·관리 + 읽기 도구 대폭 확장 (총 20개)
 
-import { todayKST } from "./kst";
+import { todayKST, yearKST } from "./kst";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { sendEmail, renderEmailLayout } from "./email";
@@ -4125,7 +4125,7 @@ async function tool_resourceDelete(args: any, adminId: number | null): Promise<T
 
 /* ─── 예산·지출 ─────────────────────────────────────── */
 async function tool_budgetsList(args: any): Promise<ToolResult> {
-  const year = Number(args?.fiscalYear) || new Date().getFullYear();
+  const year = Number(args?.fiscalYear) || yearKST();
   try {
     /* 2026-05-14 fix: budget_categories 실제 컬럼 = id/name/code/description/is_active (name_ko·sort_order 없음) */
     const r: any = await db.execute(sql`
@@ -4146,7 +4146,7 @@ async function tool_budgetsList(args: any): Promise<ToolResult> {
 async function tool_budgetSummary(args: any): Promise<ToolResult> {
   // budget_categories(예산) vs expenses(지출, 22-C) 비교
   // budget_categories.code === expense_categories.code (22-B-R1 마이그 후 동기화)
-  const year = Number(args?.fiscalYear) || new Date().getFullYear();
+  const year = Number(args?.fiscalYear) || yearKST();
   try {
     const r: any = await db.execute(sql`
       SELECT
@@ -6115,11 +6115,11 @@ async function tool_martyrdomDeadlinesUpcoming(args: any, adminId: number | null
     const rows: any = await db.execute(sql.raw(`
       SELECT d.id, d.label, d.kind, d.due_date AS "dueDate",
              c.case_no AS "caseNo", c.title AS "caseTitle",
-             (d.due_date - CURRENT_DATE) AS "dDay"
+             (d.due_date - (NOW() AT TIME ZONE 'Asia/Seoul')::date) AS "dDay"
       FROM martyrdom_deadlines d
       JOIN martyrdom_cases c ON c.id = d.case_id
       WHERE d.status = 'pending'
-        AND d.due_date <= CURRENT_DATE + INTERVAL '${days} days'
+        AND d.due_date <= (NOW() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '${days} days'
       ORDER BY d.due_date ASC
       LIMIT 20
     `));

@@ -16,6 +16,7 @@
 // 알림톡 실패 시 솔라피가 text를 SMS/LMS로 대체발송(disableSms:false).
 // 운영자가 어드민에서 카카오 채널 끄면(loadEventTemplate skip) 발송 차단.
 
+import { yearKST } from "../kst";
 import { db, members } from "../../db";
 import { eq, sql } from "drizzle-orm";
 import { NotifyEvent } from "../notify-events";
@@ -102,7 +103,7 @@ export function enrichKakaoParams(event: NotifyEvent, params: Record<string, any
       const annual = Number(params.annualAmount) || 0;
       return {
         name,
-        year: String(params.year || new Date().getFullYear() - 1),
+        year: String(params.year || yearKST() - 1),
         annualFmt: annual.toLocaleString(),
         issuePeriod: String(params.issuePeriod || "연중"),
         receiptType: String(params.receiptType || "기부금 영수증"),

@@ -7,6 +7,7 @@
  * - M-14: 관리자가 업로드한 직인 이미지를 R2에서 가져와 PDF에 삽입
  *   * 직인 미설정 시 기존처럼 빨간 원형 표식 표시
  */
+import { nowKST } from "./kst";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { readFileSync } from "node:fs";
@@ -231,8 +232,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     x: 50, y: height - 140, size: 11, font, color: black,
   });
 
-  const issueDate = new Date();
-  const issueDateStr = `발급일: ${issueDate.getFullYear()}년 ${issueDate.getMonth() + 1}월 ${issueDate.getDate()}일`;
+  /* 기부금 영수증의 발급일은 한국 날짜 — UTC로 찍으면 새벽 발급분이 '어제' 날짜로 나온다(세무 서류) */
+  const issueDate = nowKST();
+  const issueDateStr = `발급일: ${issueDate.getUTCFullYear()}년 ${issueDate.getUTCMonth() + 1}월 ${issueDate.getUTCDate()}일`;
   const issueDateWidth = font.widthOfTextAtSize(issueDateStr, 11);
   page.drawText(issueDateStr, {
     x: width - 50 - issueDateWidth, y: height - 140, size: 11, font, color: black,

@@ -13,6 +13,7 @@
 // PATCH ?id=N&action=rsvp { status:'accept'|'decline' } : 참석 응답
 // DELETE ?id=N                                : 삭제
 
+import { yearKST, monthKST0 } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { workspaceEvents, members, workspaceEventRsvps } from "../../db/schema";
@@ -94,8 +95,8 @@ export default async (req: Request, _ctx: Context) => {
 
       // ─── 통계 ───
       if (statsFlag === "1") {
-        const year = Number(url.searchParams.get("year") || new Date().getFullYear());
-        const month = Number(url.searchParams.get("month") || new Date().getMonth() + 1);
+        const year = Number(url.searchParams.get("year") || yearKST());
+        const month = Number(url.searchParams.get("month") || monthKST0() + 1);
 
         const rows: any = await db.execute(sql`
           SELECT

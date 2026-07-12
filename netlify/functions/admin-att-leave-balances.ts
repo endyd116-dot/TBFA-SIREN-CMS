@@ -1,3 +1,4 @@
+import { yearKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attLeaveBalances, attLeaveTypes, members } from "../../db/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
@@ -37,7 +38,7 @@ export default async function handler(req: Request) {
 
   // GET — 전체 직원 잔여 목록 (?year=). 잔여 기록이 없는 직원도 0으로 표시(직원 전체 노출).
   if (method === "GET") {
-    const year = Number(url.searchParams.get("year") ?? new Date().getFullYear());
+    const year = Number(url.searchParams.get("year") ?? yearKST());
     try {
       // 1) 활성 직원 목록 — admin-att-members 와 동일 기준(operatorActive=true OR 운영진 role)
       const memberRows = await db

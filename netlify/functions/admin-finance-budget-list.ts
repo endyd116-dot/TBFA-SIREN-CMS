@@ -1,3 +1,4 @@
+import { yearKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
@@ -18,7 +19,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
+  const year = parseInt(url.searchParams.get("year") || String(yearKST()));
 
   // 1. 해당 연도의 approved 예산안 조회
   let plan: any = null;

@@ -89,7 +89,7 @@ export default async (req: Request) => {
     const statsRes: any = await db.execute(sql`
       SELECT
         COUNT(*)::int AS total_count,
-        COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE)::int AS today_count,
+        COUNT(*) FILTER (WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date = (NOW() AT TIME ZONE 'Asia/Seoul')::date)::int AS today_count,
         COUNT(*) FILTER (WHERE reveal_level = 2)::int AS level2_count,
         COUNT(*) FILTER (WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW()))::int AS month_count
       FROM anonymous_reveal_logs

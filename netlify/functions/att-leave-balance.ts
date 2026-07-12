@@ -3,6 +3,7 @@
  * 본인의 연도별 휴가 잔여 — 직원 휴가 탭 표.
  * 응답: { ok:true, data: [{ leaveTypeId, name, granted, used, remaining, unit, isPaid }] }
  */
+import { yearKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -28,7 +29,7 @@ export default async function handler(req: Request) {
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
   const url = new URL(req.url);
-  const year = Number(url.searchParams.get("year") ?? new Date().getFullYear());
+  const year = Number(url.searchParams.get("year") ?? yearKST());
   if (!Number.isFinite(year) || year < 2000 || year > 2100) {
     return jsonError("validate", new Error("year 형식 오류"), 400);
   }

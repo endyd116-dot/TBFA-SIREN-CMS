@@ -13,6 +13,7 @@
  *   4. AI 실패 시 폴백 — 데이터 기반 단순 요약
  */
 
+import { nowKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, dailyBriefings } from "../../db/schema";
@@ -41,7 +42,7 @@ interface AiBriefingOutput {
 }
 
 function kstTimes() {
-  const now = new Date();
+  const now = nowKST();
   const kstOffsetMs = 9 * 60 * 60 * 1000;
   const kstNow = new Date(now.getTime() + kstOffsetMs);
   const kstToday = new Date(kstNow);

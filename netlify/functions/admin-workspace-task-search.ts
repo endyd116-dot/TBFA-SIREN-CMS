@@ -12,6 +12,7 @@
  * AI 실패 시:
  *   { ok: false, error: "AI 검색에 실패했어요. 키워드 검색을 사용해주세요.", step: "call_ai" }
  */
+import { nowKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { workspaceTasks, members } from "../../db/schema";
@@ -130,15 +131,15 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     if (filter.dueWithin) {
-      const now = new Date();
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const weekEnd = new Date(todayEnd.getTime() + (7 - (todayEnd.getDay() || 7)) * 86400000);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const now = nowKST();
+      const todayEnd = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999);
+      const weekEnd = new Date(todayEnd.getTime() + (7 - (todayEnd.getUTCDay() || 7)) * 86400000);
+      const monthEnd = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999);
 
       switch (filter.dueWithin) {
         case "today":
           conds.push(lte(workspaceTasks.dueDate, todayEnd));
-          conds.push(gte(workspaceTasks.dueDate, new Date(now.getFullYear(), now.getMonth(), now.getDate())));
+          conds.push(gte(workspaceTasks.dueDate, new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())));
           break;
         case "thisweek":
           conds.push(lte(workspaceTasks.dueDate, weekEnd));

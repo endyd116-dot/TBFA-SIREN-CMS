@@ -1,3 +1,4 @@
+import { yearKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -25,7 +26,7 @@ export default async function handler(req: Request) {
 
   const memberUid: string = String(auth.ctx.member.id);
 
-  const year = new Date().getFullYear();
+  const year = yearKST();
 
   try {
     const result = await db.execute(sql`

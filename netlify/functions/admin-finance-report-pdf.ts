@@ -9,6 +9,7 @@
  * pl-summary / budget-list / balance-sheet / cashflow 집계 로직 재사용 → pdf-lib A4 PDF
  * 한글 폰트: assets/fonts/NotoSansKR-Regular.ttf
  */
+import { yearKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
@@ -685,7 +686,7 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
       await renderPlPdf(pdfDoc, font, data, periodLabel, orgName);
       fileName = `운영성과표_${startDate}_${endDate}.pdf`;
     } else if (type === "budget") {
-      const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
+      const year = parseInt(url.searchParams.get("year") || String(yearKST()));
       let data;
       try {
         data = await buildBudgetData(year);

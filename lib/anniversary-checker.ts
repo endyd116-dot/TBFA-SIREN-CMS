@@ -8,6 +8,7 @@
 // 4. donation_milestone  - 누적 후원액 마일스톤 (10만/50만/100만/300만/500만/1000만)
 // 5. regular_donation_6months / 1year - 정기 후원 6개월/1년
 
+import { nowKST } from "./kst";
 import { eq, and, sql, isNotNull, gt, gte, lte, desc } from "drizzle-orm";
 import { db } from "../db";
 import { members, donations, anniversaryEmailsLog, billingKeys } from "../db/schema";
@@ -37,36 +38,36 @@ export interface AnniversaryCandidate {
 /* 날짜가 오늘 기준 N일 전인지 확인 (±0일 = 오늘) */
 function isDaysAgo(date: Date | string, days: number): boolean {
   const d = typeof date === "string" ? new Date(date) : date;
-  const target = new Date();
-  target.setDate(target.getDate() - days);
+  const target = nowKST();
+  target.setUTCDate(target.getUTCDate() - days);
   return (
-    d.getFullYear() === target.getFullYear() &&
-    d.getMonth() === target.getMonth() &&
-    d.getDate() === target.getDate()
+    d.getFullYear() === target.getUTCFullYear() &&
+    d.getMonth() === target.getUTCMonth() &&
+    d.getDate() === target.getUTCDate()
   );
 }
 
 /* 날짜가 N개월 전 같은 날인지 확인 */
 function isMonthsAgo(date: Date | string, months: number): boolean {
   const d = typeof date === "string" ? new Date(date) : date;
-  const target = new Date();
-  target.setMonth(target.getMonth() - months);
+  const target = nowKST();
+  target.setUTCMonth(target.getUTCMonth() - months);
   return (
-    d.getFullYear() === target.getFullYear() &&
-    d.getMonth() === target.getMonth() &&
-    d.getDate() === target.getDate()
+    d.getFullYear() === target.getUTCFullYear() &&
+    d.getMonth() === target.getUTCMonth() &&
+    d.getDate() === target.getUTCDate()
   );
 }
 
 /* 날짜가 N년 전 같은 날인지 확인 */
 function isYearsAgo(date: Date | string, years: number): boolean {
   const d = typeof date === "string" ? new Date(date) : date;
-  const target = new Date();
-  target.setFullYear(target.getFullYear() - years);
+  const target = nowKST();
+  target.setUTCFullYear(target.getUTCFullYear() - years);
   return (
-    d.getFullYear() === target.getFullYear() &&
-    d.getMonth() === target.getMonth() &&
-    d.getDate() === target.getDate()
+    d.getFullYear() === target.getUTCFullYear() &&
+    d.getMonth() === target.getUTCMonth() &&
+    d.getDate() === target.getUTCDate()
   );
 }
 

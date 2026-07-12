@@ -2,7 +2,7 @@
 // Phase M-12: 회원 목록 CSV 추출 (Excel 호환)
 // GET /api/admin/members-export?type=&category=&status=&q=&source=
 
-import { todayKST } from "../../lib/kst";
+import { todayKST, toKST } from "../../lib/kst";
 import { eq, and, or, like, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { members, signupSources, donations } from "../../db/schema";
@@ -50,9 +50,11 @@ function fmtDateTime(d: any): string {
   if (!d) return "";
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return "";
+  /* 저장은 UTC · 표시는 한국시각 (그대로 찍으면 9시간 이르다) */
+  const k = toKST(dt);
   return fmtDate(d) + " " +
-    String(dt.getHours()).padStart(2, "0") + ":" +
-    String(dt.getMinutes()).padStart(2, "0");
+    String(k.getUTCHours()).padStart(2, "0") + ":" +
+    String(k.getUTCMinutes()).padStart(2, "0");
 }
 
 export default async (req: Request) => {

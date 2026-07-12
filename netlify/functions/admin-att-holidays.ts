@@ -1,3 +1,4 @@
+import { yearKST } from "../../lib/kst";
 import { db } from "../../db/index";
 import { attHolidays } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
@@ -38,7 +39,7 @@ export default async function handler(req: Request) {
 
   // GET — 연도별 목록 (?year=)
   if (method === "GET") {
-    const year = url.searchParams.get("year") ?? new Date().getFullYear().toString();
+    const year = url.searchParams.get("year") ?? yearKST().toString();
     try {
       const rows = await db.execute(sql`
         SELECT * FROM att_holidays

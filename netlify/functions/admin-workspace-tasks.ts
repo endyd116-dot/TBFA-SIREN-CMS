@@ -12,6 +12,7 @@
 // PATCH ?id=N&action=assign    : 재지시
 // DELETE ?id=N        : 삭제 (본인 task + super_admin만)
 
+import { nowKST } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import {
@@ -221,10 +222,10 @@ export default async (req: Request, _ctx: Context) => {
           } catch { /* 보조 쿼리 실패 시 무시 */ }
         }
 
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const now = nowKST();
+        const todayStart = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
         const yesterdayStart = new Date(todayStart.getTime() - 86400000);
-        const weekStart = new Date(todayStart.getTime() - (todayStart.getDay() || 7) * 86400000);
+        const weekStart = new Date(todayStart.getTime() - (todayStart.getUTCDay() || 7) * 86400000);
 
         function getGroupKey(createdAt: any): string {
           const d = createdAt instanceof Date ? createdAt : new Date(createdAt);

@@ -1,6 +1,7 @@
 // netlify/functions/workspace-holidays.ts
 // GET /api/workspace-holidays?year=N  : 한국 공휴일 목록 (date.nager.at 프록시)
 
+import { yearKST } from "../../lib/kst";
 import { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { ok, badRequest, methodNotAllowed, serverError } from "../../lib/response";
@@ -13,7 +14,7 @@ export default async (req: Request, _ctx: Context) => {
     if (req.method !== "GET") return methodNotAllowed();
 
     const url = new URL(req.url);
-    const year = Number(url.searchParams.get("year") || new Date().getFullYear());
+    const year = Number(url.searchParams.get("year") || yearKST());
     if (!year || year < 2000 || year > 2100) return badRequest("year 파라미터 오류 (2000~2100)");
 
     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/KR`, {

@@ -18,6 +18,7 @@
  *   cumulativeAmount = 위 SUM
  */
 
+import { nowKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -581,19 +582,19 @@ function computeHyosungCumulativeMonths(billingStart: Date | null, promiseDay: n
   }
 
   /* 오늘 기준 누적 개월 (firstChargeMonth가 포함된 달부터 이번달까지) */
-  const now = new Date();
+  const now = nowKST();
   const months =
-    (now.getFullYear() - firstChargeMonth.getFullYear()) * 12 +
-    (now.getMonth() - firstChargeMonth.getMonth()) + 1;
+    (now.getUTCFullYear() - firstChargeMonth.getFullYear()) * 12 +
+    (now.getUTCMonth() - firstChargeMonth.getMonth()) + 1;
   return months > 0 ? months : 0;
 }
 
 function computeHyosungNextBilling(promiseDay: number): Date | null {
   const day = Math.floor(Number(promiseDay) || 0);
   if (day < 1 || day > 31) return null;
-  const now = new Date();
-  const target = new Date(now.getFullYear(), now.getMonth(), 1);
-  if (now.getDate() >= day) target.setMonth(target.getMonth() + 1);
+  const now = nowKST();
+  const target = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  if (now.getUTCDate() >= day) target.setMonth(target.getMonth() + 1);
   const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
   target.setDate(Math.min(day, lastDay));
   return target;
