@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -12,10 +12,10 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
   const isSuperAdmin = admin?.role === "super_admin";
-  if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+  if (!isSuperAdmin) return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
 
   function jsonError(step: string, err: any) {
-    return Response.json({ ok: false, error: "결산 관리 오류", step,
+    return jsonRes({ ok: false, error: "결산 관리 오류", step,
       detail: String(err?.message || err).slice(0, 500) }, { status: 500 });
   }
 
@@ -65,12 +65,12 @@ export default async function handler(req: Request, _ctx: Context) {
           Number(s.memberId) === Number(memberIdQ)
         ) || null;
       }
-      return Response.json({ ok: true, data: { settlements, settlement } });
+      return jsonRes({ ok: true, data: { settlements, settlement } });
     } catch (err) { return jsonError("select", err); }
   }
 
   if (!idStr || isNaN(Number(idStr))) {
-    return Response.json({ ok: false, error: "결산 ID 없음" }, { status: 400 });
+    return jsonRes({ ok: false, error: "결산 ID 없음" }, { status: 400 });
   }
   const id = Number(idStr);
 
@@ -96,14 +96,14 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE qs.id = ${id}
       `);
       const settle = (rows as any).rows?.[0] || (rows as any[])[0];
-      if (!settle) return Response.json({ ok: false, error: "결산 없음" }, { status: 404 });
+      if (!settle) return jsonRes({ ok: false, error: "결산 없음" }, { status: 404 });
       if (!transition.from.includes(settle.status)) {
-        return Response.json({ ok: false, error: `현재 상태(${settle.status})에서 ${action} 불가` }, { status: 400 });
+        return jsonRes({ ok: false, error: `현재 상태(${settle.status})에서 ${action} 불가` }, { status: 400 });
       }
 
       /* R29-MS-GAP1-D: HOLD 시 사유 필수 */
       if (action === "hold" && !body?.holdReason?.trim()) {
-        return Response.json({ ok: false, error: "HOLD 사유를 입력하세요" }, { status: 400 });
+        return jsonRes({ ok: false, error: "HOLD 사유를 입력하세요" }, { status: 400 });
       }
 
       /* R34-P1-B-13: sql.raw + escape 패턴 → sql 템플릿 합성 (R32-P0-C2·C3 동일 패턴 적용) */
@@ -183,11 +183,11 @@ export default async function handler(req: Request, _ctx: Context) {
         }
       }
 
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError(action, err); }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
 }
 
 /* R29-MS-GAP1-G: 다음 분기 자동 생성 (UPCOMING)

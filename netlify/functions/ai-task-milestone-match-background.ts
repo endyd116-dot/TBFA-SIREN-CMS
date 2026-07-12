@@ -11,6 +11,7 @@
  * 4. 신뢰도 ≥90% → 자동 저장 + 목표 달성 시 비매출 성과 자동 제출 생성
  *    신뢰도 <90% → milestone_match_status=null 유지 (보류 큐)
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -27,14 +28,14 @@ export default async function handler(req: Request, _ctx: Context) {
   const taskId = Number(body?.taskId || 0);
   const memberId = Number(body?.memberId || 0);
   if (!taskId || !memberId) {
-    return Response.json({ ok: false, error: "taskId, memberId 필수" }, { status: 400 });
+    return jsonRes({ ok: false, error: "taskId, memberId 필수" }, { status: 400 });
   }
 
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
   /* ★ P1-5 fix: fail-closed — env 미설정 시 무인증 호출 차단(호출부가 같은 env로 secret 전달). */
   if (!expected || secret !== expected) {
-    return Response.json({ ok: false, error: "권한 없음" }, { status: 403 });
+    return jsonRes({ ok: false, error: "권한 없음" }, { status: 403 });
   }
 
   console.info(`[ms-match-bg] start taskId=${taskId} memberId=${memberId}`);
@@ -46,8 +47,8 @@ export default async function handler(req: Request, _ctx: Context) {
       FROM workspace_tasks WHERE id = ${taskId}
     `);
     const task = (taskRows as any).rows?.[0] || (taskRows as any[])[0];
-    if (!task) { console.warn(`[ms-match-bg] task ${taskId} not found`); return Response.json({ ok: false }); }
-    if (task.milestone_def_id) { console.info(`[ms-match-bg] already matched, skip`); return Response.json({ ok: true, skipped: true }); }
+    if (!task) { console.warn(`[ms-match-bg] task ${taskId} not found`); return jsonRes({ ok: false }); }
+    if (task.milestone_def_id) { console.info(`[ms-match-bg] already matched, skip`); return jsonRes({ ok: true, skipped: true }); }
 
     // 2. 멤버 milestoneRole 조회
     const memRows = await db.execute(sql`
@@ -55,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const member = (memRows as any).rows?.[0] || (memRows as any[])[0];
     const milestoneRole = member?.milestone_role;
-    if (!milestoneRole) { console.info(`[ms-match-bg] no milestoneRole for member ${memberId}`); return Response.json({ ok: true, skipped: true }); }
+    if (!milestoneRole) { console.info(`[ms-match-bg] no milestoneRole for member ${memberId}`); return jsonRes({ ok: true, skipped: true }); }
 
     // 3. 활성 분기 조회
     const qRows = await db.execute(sql`
@@ -63,7 +64,7 @@ export default async function handler(req: Request, _ctx: Context) {
       WHERE status = 'ACTIVE' ORDER BY year DESC, quarter DESC LIMIT 1
     `);
     const quarter = (qRows as any).rows?.[0] || (qRows as any[])[0];
-    if (!quarter) { console.info(`[ms-match-bg] no active quarter`); return Response.json({ ok: true, skipped: true }); }
+    if (!quarter) { console.info(`[ms-match-bg] no active quarter`); return jsonRes({ ok: true, skipped: true }); }
 
     // 4. 비매출 마일스톤 정의 목록 (category != 'REVENUE_LINKED')
     const defRows = await db.execute(sql`
@@ -75,7 +76,7 @@ export default async function handler(req: Request, _ctx: Context) {
       ORDER BY sort_order
     `);
     const defs: any[] = (defRows as any).rows || (defRows as any[]);
-    if (!defs.length) { console.info(`[ms-match-bg] no non-revenue milestones`); return Response.json({ ok: true, skipped: true }); }
+    if (!defs.length) { console.info(`[ms-match-bg] no non-revenue milestones`); return jsonRes({ ok: true, skipped: true }); }
 
     // 5. Gemini 매칭
     const checklistText = (() => {
@@ -114,7 +115,7 @@ ${defsText}
 
     if (!aiResult.ok || !aiResult.data) {
       console.warn(`[ms-match-bg] Gemini 실패 taskId=${taskId}:`, aiResult.error);
-      return Response.json({ ok: true, skipped: true, reason: "gemini_fail" });
+      return jsonRes({ ok: true, skipped: true, reason: "gemini_fail" });
     }
 
     const { milestoneDefId, confidence, reason } = aiResult.data;
@@ -122,14 +123,14 @@ ${defsText}
 
     if (!milestoneDefId) {
       console.info(`[ms-match-bg] AI: 관련 마일스톤 없음`);
-      return Response.json({ ok: true, matched: false });
+      return jsonRes({ ok: true, matched: false });
     }
 
     // milestoneDefId가 실제로 유효한지 확인
     const validDef = defs.find((d: any) => d.id === milestoneDefId);
     if (!validDef) {
       console.warn(`[ms-match-bg] AI 반환 defId=${milestoneDefId} 유효하지 않음`);
-      return Response.json({ ok: true, skipped: true });
+      return jsonRes({ ok: true, skipped: true });
     }
 
     /* ★ R35-GAP-P2-A: 신뢰도 임계점 환경변수화 (기본 90%·운영 누적 후 조정 가능) */
@@ -153,11 +154,11 @@ ${defsText}
       console.info(`[ms-match-bg] 신뢰도 낮음(${confidence}%), 보류 처리 taskId=${taskId}`);
     }
 
-    return Response.json({ ok: true, milestoneDefId, confidence, reason });
+    return jsonRes({ ok: true, milestoneDefId, confidence, reason });
 
   } catch (err: any) {
     console.error(`[ms-match-bg] 오류:`, err?.message || err);
-    return Response.json({ ok: false, error: String(err?.message || err).slice(0, 200) }, { status: 500 });
+    return jsonRes({ ok: false, error: String(err?.message || err).slice(0, 200) }, { status: 500 });
   }
 }
 

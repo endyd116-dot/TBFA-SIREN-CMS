@@ -7,6 +7,7 @@
  *
  * AI 실패·파싱 실패 시 throw 없이 { milestoneId: null, confidence: 0, reason: '' } 반환.
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { callGeminiJSON } from "../../lib/ai-gemini";
@@ -17,7 +18,7 @@ const FALLBACK = { ok: true, milestoneId: null, confidence: 0, reason: "" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return Response.json({ ok: false, error: "POST만 지원합니다" }, { status: 405 });
+    return jsonRes({ ok: false, error: "POST만 지원합니다" }, { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -25,16 +26,16 @@ export default async function handler(req: Request, _ctx: Context) {
 
   let body: any;
   try { body = await req.json(); }
-  catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+  catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
 
   const { note, amount, unit, date, milestones } = body || {};
   if (!Array.isArray(milestones) || milestones.length === 0) {
-    return Response.json(FALLBACK);
+    return jsonRes(FALLBACK);
   }
 
   // 비고가 너무 짧으면 분류 의미 없음 (비용 절약)
   if (!note || String(note).trim().length < 4) {
-    return Response.json(FALLBACK);
+    return jsonRes(FALLBACK);
   }
 
   const idList = milestones.map((m: any) => String(m.id));
@@ -55,7 +56,7 @@ export default async function handler(req: Request, _ctx: Context) {
     );
 
     if (!result.ok || !result.data) {
-      return Response.json(FALLBACK);
+      return jsonRes(FALLBACK);
     }
 
     const idStr = String(result.data.milestoneId ?? "").trim();
@@ -63,10 +64,10 @@ export default async function handler(req: Request, _ctx: Context) {
     const reason = String(result.data.reason ?? "").slice(0, 200);
 
     if (!idStr || !idList.includes(idStr) || !Number.isFinite(conf)) {
-      return Response.json(FALLBACK);
+      return jsonRes(FALLBACK);
     }
 
-    return Response.json({
+    return jsonRes({
       ok: true,
       milestoneId: Number(idStr),
       confidence: Math.max(0, Math.min(1, conf)),
@@ -74,6 +75,6 @@ export default async function handler(req: Request, _ctx: Context) {
     });
   } catch (e: any) {
     console.warn("[ms-ai-classify]", e?.message);
-    return Response.json(FALLBACK);
+    return jsonRes(FALLBACK);
   }
 }

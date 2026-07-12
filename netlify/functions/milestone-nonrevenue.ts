@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -13,7 +13,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const admin = auth.ctx?.member as any;
 
   function jsonError(step: string, err: any) {
-    return Response.json({ ok: false, error: "비매출 성과 오류", step,
+    return jsonRes({ ok: false, error: "비매출 성과 오류", step,
       detail: String(err?.message || err).slice(0, 500) }, { status: 500 });
   }
 
@@ -37,17 +37,17 @@ export default async function handler(req: Request, _ctx: Context) {
       baseSql = sql`${baseSql} ORDER BY nra.created_at DESC`;
       const rows = await db.execute(baseSql);
       const achievements = ((rows as any).rows || (rows as any[])).map(formatAch);
-      return Response.json({ ok: true, data: { achievements } });
+      return jsonRes({ ok: true, data: { achievements } });
     } catch (err) { return jsonError("select", err); }
   }
 
   // ── POST 제출 ──
   if (req.method === "POST" && action === "milestone-nonrevenue") {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { milestoneDefinitionId, quarterId, achievedDate, description, evidenceFiles } = body;
     if (!milestoneDefinitionId || !quarterId || !achievedDate) {
-      return Response.json({ ok: false, error: "필수 필드 누락" }, { status: 400 });
+      return jsonRes({ ok: false, error: "필수 필드 누락" }, { status: 400 });
     }
     try {
       /* R29-MS-GAP2-H: 결산 SUBMITTED/APPROVED/PAID 후 비매출 제출 차단 */
@@ -57,7 +57,7 @@ export default async function handler(req: Request, _ctx: Context) {
       `);
       const settleStatus = ((settleRows as any).rows?.[0] || (settleRows as any[])[0])?.status;
       if (settleStatus && ["SUBMITTED", "APPROVED", "PAID"].includes(settleStatus)) {
-        return Response.json({
+        return jsonRes({
           ok: false,
           error: "결산이 제출된 분기에는 실적을 추가할 수 없습니다.",
         }, { status: 409 });
@@ -69,9 +69,9 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE id = ${Number(milestoneDefinitionId)} AND is_active = TRUE AND category = 'NON_REVENUE'
       `);
       const md = (mdRows as any).rows?.[0] || mdRows[0];
-      if (!md) return Response.json({ ok: false, error: "존재하지 않는 비매출 마일스톤" }, { status: 404 });
+      if (!md) return jsonRes({ ok: false, error: "존재하지 않는 비매출 마일스톤" }, { status: 404 });
       if (md.target_milestone_role !== admin.milestoneRole && admin.role !== "super_admin") {
-        return Response.json({ ok: false, error: "본인 담당 마일스톤만 제출 가능" }, { status: 403 });
+        return jsonRes({ ok: false, error: "본인 담당 마일스톤만 제출 가능" }, { status: 403 });
       }
 
       /* R34-P1-B-6: quarterApplicable 검증 — sm-q1-*는 Q1, sm-q2-*는 Q2, 'ALL'·null은 분기 무관 */
@@ -79,7 +79,7 @@ export default async function handler(req: Request, _ctx: Context) {
         const qInfo = await db.execute(sql`SELECT quarter FROM quarters WHERE id = ${Number(quarterId)}`);
         const qRow = (qInfo as any).rows?.[0] || (qInfo as any[])[0];
         if (qRow && `Q${qRow.quarter}` !== md.quarter_applicable) {
-          return Response.json({
+          return jsonRes({
             ok: false,
             error: `이 마일스톤은 ${md.quarter_applicable} 전용입니다 (현재 분기 Q${qRow.quarter})`,
           }, { status: 400 });
@@ -109,20 +109,20 @@ export default async function handler(req: Request, _ctx: Context) {
         link: "/cms-tbfa.html#milestone-review",
       }).catch(() => {});
 
-      return Response.json({ ok: true, data: { achievement: formatAch(achievement) } }, { status: 201 });
+      return jsonRes({ ok: true, data: { achievement: formatAch(achievement) } }, { status: 201 });
     } catch (err) { return jsonError("insert", err); }
   }
 
   // ── POST /select — 분기 선택 (v4: 카테고리당 2개·분기 7개) ──
   if (req.method === "POST" && action === "select") {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { quarterId, selectedIds } = body;
     if (!quarterId || !Array.isArray(selectedIds)) {
-      return Response.json({ ok: false, error: "quarterId, selectedIds[] 필수" }, { status: 400 });
+      return jsonRes({ ok: false, error: "quarterId, selectedIds[] 필수" }, { status: 400 });
     }
     if (selectedIds.length > 7) {
-      return Response.json({ ok: false, error: "분기당 비매출 보너스는 최대 7개까지만 선택 가능합니다" }, { status: 400 });
+      return jsonRes({ ok: false, error: "분기당 비매출 보너스는 최대 7개까지만 선택 가능합니다" }, { status: 400 });
     }
     try {
       /* R32-P0-MS-C1 + R34-P1-B-8: sql 템플릿 + 단일 UPDATE로 원자화 (race 차단) */
@@ -136,7 +136,7 @@ export default async function handler(req: Request, _ctx: Context) {
         const items = (checkRows as any).rows || (checkRows as any[]);
         const notVerified = items.filter((i: any) => i.status !== "VERIFIED");
         if (notVerified.length > 0 || items.length !== ids.length) {
-          return Response.json({ ok: false, error: "검증(VERIFIED) 완료된 본인 항목만 선택 가능합니다" }, { status: 400 });
+          return jsonRes({ ok: false, error: "검증(VERIFIED) 완료된 본인 항목만 선택 가능합니다" }, { status: 400 });
         }
         /* v4 2단계: 카테고리당 최대 2개 (분기 7개는 위 길이 검증) */
         const catRows = await db.execute(sql`
@@ -148,7 +148,7 @@ export default async function handler(req: Request, _ctx: Context) {
           HAVING COUNT(*) > 2
         `);
         if (((catRows as any).rows || (catRows as any[])).length > 0) {
-          return Response.json({ ok: false, error: "한 카테고리에서 최대 2개까지만 선택할 수 있습니다 (카테고리당 2개·분기 7개)" }, { status: 400 });
+          return jsonRes({ ok: false, error: "한 카테고리에서 최대 2개까지만 선택할 수 있습니다 (카테고리당 2개·분기 7개)" }, { status: 400 });
         }
       }
 
@@ -160,22 +160,22 @@ export default async function handler(req: Request, _ctx: Context) {
             updated_at = NOW()
         WHERE submitted_by = ${admin.id} AND quarter_id = ${Number(quarterId)}
       `);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("select", err); }
   }
 
   // ── PATCH /:id 수정 ──
   if (req.method === "PATCH") {
     const id = pathParts[pathParts.length - 1];
-    if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
+    if (!id || isNaN(Number(id))) return jsonRes({ ok: false, error: "ID 없음" }, { status: 400 });
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     try {
       const rows = await db.execute(sql`SELECT submitted_by, status FROM non_revenue_achievements WHERE id = ${Number(id)}`);
       const ach = (rows as any).rows?.[0] || rows[0];
-      if (!ach) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
-      if (ach.submitted_by !== admin.id) return Response.json({ ok: false, error: "본인 항목만 수정 가능" }, { status: 403 });
-      if (ach.status === "VERIFIED") return Response.json({ ok: false, error: "검증 완료 항목은 수정 불가" }, { status: 400 });
+      if (!ach) return jsonRes({ ok: false, error: "항목 없음" }, { status: 404 });
+      if (ach.submitted_by !== admin.id) return jsonRes({ ok: false, error: "본인 항목만 수정 가능" }, { status: 403 });
+      if (ach.status === "VERIFIED") return jsonRes({ ok: false, error: "검증 완료 항목은 수정 불가" }, { status: 400 });
       const { achievedDate, description, evidenceFiles } = body;
       await db.execute(sql`
         UPDATE non_revenue_achievements SET
@@ -185,11 +185,11 @@ export default async function handler(req: Request, _ctx: Context) {
           updated_at = NOW()
         WHERE id = ${Number(id)}
       `);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("update", err); }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
 }
 
 function formatAch(r: any) {

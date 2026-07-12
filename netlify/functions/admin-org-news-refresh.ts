@@ -7,6 +7,7 @@
  * 무거운 수집·분석(네이버 2회 + Gemini 2회)은 26초 함수 한도를 넘어 504 나던 문제로
  * 백그라운드 함수(15분 한도)로 위임(2026-05-26 fix). 프론트는 admin-org-news-get 폴링으로 결과 확인.
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
@@ -14,19 +15,19 @@ export const config = { path: "/api/admin-org-news-refresh" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return Response.json({ ok: false, error: "POST 전용" }, { status: 405 });
+    return jsonRes({ ok: false, error: "POST 전용" }, { status: 405 });
   }
 
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
   if (admin?.role !== "super_admin") {
-    return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+    return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
   }
 
   const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
   if (!secret) {
-    return Response.json({ ok: false, error: "INTERNAL_TRIGGER_SECRET 미설정 — 재조사 비활성(fail-closed)" }, { status: 503 });
+    return jsonRes({ ok: false, error: "INTERNAL_TRIGGER_SECRET 미설정 — 재조사 비활성(fail-closed)" }, { status: 503 });
   }
 
   const base = process.env.URL || process.env.SITE_URL || "https://tbfa.co.kr";
@@ -41,13 +42,13 @@ export default async function handler(req: Request, _ctx: Context) {
     });
     if (resp.status !== 202 && resp.status !== 200) {
       const t = await resp.text().catch(() => "");
-      return Response.json({ ok: false, error: "분석 시작 실패", detail: `bg ${resp.status}: ${t.slice(0, 200)}` }, { status: 502 });
+      return jsonRes({ ok: false, error: "분석 시작 실패", detail: `bg ${resp.status}: ${t.slice(0, 200)}` }, { status: 502 });
     }
   } catch (err: any) {
-    return Response.json({ ok: false, error: "분석 시작 실패", detail: String(err?.message || err).slice(0, 300) }, { status: 500 });
+    return jsonRes({ ok: false, error: "분석 시작 실패", detail: String(err?.message || err).slice(0, 300) }, { status: 500 });
   }
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     started: true,
     message: "재조사를 시작했습니다. 1~2분 후 결과가 자동으로 표시됩니다.",

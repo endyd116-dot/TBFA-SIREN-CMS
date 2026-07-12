@@ -6,6 +6,7 @@
  * 반환: 최신순, 요약 필드만 (summaryShort·sentimentLabel)
  */
 
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -14,7 +15,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-org-news-list" };
 
 function jsonError(step: string, err: any) {
-  return Response.json(
+  return jsonRes(
     {
       ok: false,
       error: "보고서 목록 조회 오류",
@@ -28,7 +29,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "GET") {
-    return Response.json({ ok: false, error: "GET 전용" }, { status: 405 });
+    return jsonRes({ ok: false, error: "GET 전용" }, { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -62,7 +63,7 @@ export default async function handler(req: Request, _ctx: Context) {
       createdAt:      row.created_at   || null,
     }));
 
-    return Response.json({ ok: true, data: { reports } });
+    return jsonRes({ ok: true, data: { reports } });
   } catch (err) {
     return jsonError("select", err);
   }

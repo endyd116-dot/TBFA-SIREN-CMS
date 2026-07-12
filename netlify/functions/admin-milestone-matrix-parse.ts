@@ -1,3 +1,4 @@
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -17,7 +18,7 @@ const FORMULA_TYPES = new Set(["FLAT", "PERCENT", "BRACKET", "EVENT_RANGE"]);
 const VALID_QUARTERS = new Set(["Q1", "Q2", "Q3", "Q4", "ALL"]);
 
 function jsonError(step: string, err: any) {
-  return Response.json({
+  return jsonRes({
     ok: false, error: "매트릭스 분석 오류", step,
     detail: String(err?.message || err).slice(0, 500),
   }, { status: 500 });
@@ -38,14 +39,14 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
   if (admin?.role !== "super_admin") {
-    return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+    return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
   }
   if (req.method !== "POST") {
-    return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+    return jsonRes({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
   }
 
   let body: any;
-  try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+  try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
   const text = String(body?.text || "").trim();
   const roleHint = body?.roleHint ? String(body.roleHint).trim() : "";
   /* 2026-05-29 P2-1 fix — 매트릭스 분기 인식. 운영자가 명시 안 하면 'Q1' 기본.
@@ -53,10 +54,10 @@ export default async function handler(req: Request, _ctx: Context) {
   const rawQuarter = body?.quarter ? String(body.quarter).toUpperCase().trim() : "";
   const quarter = VALID_QUARTERS.has(rawQuarter) ? rawQuarter : "Q1";
   if (text.length < 10) {
-    return Response.json({ ok: false, error: "매트릭스 텍스트가 너무 짧습니다 (최소 10자)." }, { status: 400 });
+    return jsonRes({ ok: false, error: "매트릭스 텍스트가 너무 짧습니다 (최소 10자)." }, { status: 400 });
   }
   if (text.length > 12000) {
-    return Response.json({ ok: false, error: "매트릭스 텍스트가 너무 깁니다 (최대 12,000자). 나눠서 분석하세요." }, { status: 400 });
+    return jsonRes({ ok: false, error: "매트릭스 텍스트가 너무 깁니다 (최대 12,000자). 나눠서 분석하세요." }, { status: 400 });
   }
 
   // 1) 기존 활성 정의 + 활성 역할 로드
@@ -159,7 +160,7 @@ export default async function handler(req: Request, _ctx: Context) {
       adminId: admin?.id ?? null,
     });
     if (!r.ok || !r.data) {
-      return Response.json({ ok: false, error: r.error || "AI 분석 실패", step: "ai" }, { status: 502 });
+      return jsonRes({ ok: false, error: r.error || "AI 분석 실패", step: "ai" }, { status: 502 });
     }
     parsed = r.data;
     modelUsed = r.modelUsed || "";
@@ -269,5 +270,5 @@ export default async function handler(req: Request, _ctx: Context) {
     ...(warningMsg ? { warning: warningMsg } : {}),
   };
 
-  return Response.json({ ok: true, data: { candidates, orphans, existingCount: existing.length, modelUsed, summary, quarter } });
+  return jsonRes({ ok: true, data: { candidates, orphans, existingCount: existing.length, modelUsed, summary, quarter } });
 }

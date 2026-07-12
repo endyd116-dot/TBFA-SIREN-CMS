@@ -9,6 +9,7 @@
  *       cron_hour_kst int, updated_at, updated_by int
  */
 
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -26,7 +27,7 @@ const DEFAULT_SETTINGS = {
 };
 
 function jsonError(step: string, err: any) {
-  return Response.json(
+  return jsonRes(
     {
       ok: false,
       error: "설정 처리 오류",
@@ -71,7 +72,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     try {
       const settings = await getSettings();
-      return Response.json({
+      return jsonRes({
         ok:   true,
         data: settings ?? DEFAULT_SETTINGS,
       });
@@ -83,12 +84,12 @@ export default async function handler(req: Request, _ctx: Context) {
   /* PUT — super_admin 전용 */
   if (req.method === "PUT") {
     if (!isSuper) {
-      return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+      return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
     }
 
     let body: any;
     try { body = await req.json(); } catch {
-      return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 });
+      return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 });
     }
 
     const keywords    = Array.isArray(body.keywords)    ? body.keywords    : DEFAULT_SETTINGS.keywords;
@@ -98,10 +99,10 @@ export default async function handler(req: Request, _ctx: Context) {
     const cronHourKst = Number(body.cronHourKst ?? DEFAULT_SETTINGS.cronHourKst);
 
     if (!keywords.length) {
-      return Response.json({ ok: false, error: "keywords는 1개 이상 필요합니다" }, { status: 400 });
+      return jsonRes({ ok: false, error: "keywords는 1개 이상 필요합니다" }, { status: 400 });
     }
     if (!scopes.length) {
-      return Response.json({ ok: false, error: "scopes는 1개 이상 필요합니다" }, { status: 400 });
+      return jsonRes({ ok: false, error: "scopes는 1개 이상 필요합니다" }, { status: 400 });
     }
 
     try {
@@ -119,11 +120,11 @@ export default async function handler(req: Request, _ctx: Context) {
           updated_at   = NOW(),
           updated_by   = EXCLUDED.updated_by
       `);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) {
       return jsonError("upsert", err);
     }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
 }

@@ -1,3 +1,4 @@
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
@@ -16,7 +17,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const isSuperAdmin = admin?.role === "super_admin";
 
   function jsonError(step: string, err: any) {
-    return Response.json({
+    return jsonRes({
       ok: false, error: "마일스톤 정의 오류", step,
       detail: String(err?.message || err).slice(0, 500),
     }, { status: 500 });
@@ -35,7 +36,7 @@ export default async function handler(req: Request, _ctx: Context) {
          role 파라미터를 본인 외 값으로 보내도 본인 것만 반환. */
       if (!isSuperAdmin) {
         if (!admin?.milestoneRole) {
-          return Response.json({ ok: true, data: { milestones: [] } });
+          return jsonRes({ ok: true, data: { milestones: [] } });
         }
         baseSql = sql`${baseSql} AND target_milestone_role = ${admin.milestoneRole}`;
       } else if (role) {
@@ -46,20 +47,20 @@ export default async function handler(req: Request, _ctx: Context) {
       baseSql = sql`${baseSql} ORDER BY sort_order, id`;
       const rows = await db.execute(baseSql);
       const milestones = ((rows as any).rows || (rows as any[])).map(formatDef);
-      return Response.json({ ok: true, data: { milestones } });
+      return jsonRes({ ok: true, data: { milestones } });
     } catch (err) { return jsonError("select", err); }
   }
 
   // ── POST 신규 ──
   if (req.method === "POST") {
-    if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+    if (!isSuperAdmin) return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { code, name, category, targetMilestoneRole, businessUnit, revenueSource,
             thresholdEnabled, thresholdValue, thresholdUnit, bonusFormula,
             quarterApplicable, isSharedThreshold, sharedThresholdGroup, sortOrder } = body;
     if (!code || !name || !category || !targetMilestoneRole || !bonusFormula) {
-      return Response.json({ ok: false, error: "필수 필드 누락 (code, name, category, targetMilestoneRole, bonusFormula)" }, { status: 400 });
+      return jsonRes({ ok: false, error: "필수 필드 누락 (code, name, category, targetMilestoneRole, bonusFormula)" }, { status: 400 });
     }
     try {
       const rows = await db.execute(sql`
@@ -75,20 +76,20 @@ export default async function handler(req: Request, _ctx: Context) {
         RETURNING *
       `);
       const def = ((rows as any).rows?.[0] || rows[0]);
-      return Response.json({ ok: true, data: { milestone: formatDef(def) } }, { status: 201 });
+      return jsonRes({ ok: true, data: { milestone: formatDef(def) } }, { status: 201 });
     } catch (err: any) {
-      if (err?.message?.includes("unique")) return Response.json({ ok: false, error: "이미 존재하는 코드입니다" }, { status: 409 });
+      if (err?.message?.includes("unique")) return jsonRes({ ok: false, error: "이미 존재하는 코드입니다" }, { status: 409 });
       return jsonError("insert", err);
     }
   }
 
   // ── PATCH /:id ──
   if (req.method === "PATCH") {
-    if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+    if (!isSuperAdmin) return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
     const id = url.pathname.split("/").pop();
-    if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
+    if (!id || isNaN(Number(id))) return jsonRes({ ok: false, error: "ID 없음" }, { status: 400 });
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     try {
       /* R32-P0-MS-C3 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → drizzle update().set() ORM
          R34-P2-B-2: null·typeof 검증 추가 (NOT NULL constraint 위반 + jsonb 파싱 오류 사전 차단)
@@ -100,7 +101,7 @@ export default async function handler(req: Request, _ctx: Context) {
       // R34-P2-B-2: name이 들어오면 빈 문자열·null 차단 (NOT NULL 필드)
       if ("name" in body) {
         if (typeof body.name !== "string" || !body.name.trim()) {
-          return Response.json({ ok: false, error: "name은 빈 문자열·null 불가" }, { status: 400 });
+          return jsonRes({ ok: false, error: "name은 빈 문자열·null 불가" }, { status: 400 });
         }
         patch.name = body.name.trim();
       }
@@ -111,14 +112,14 @@ export default async function handler(req: Request, _ctx: Context) {
             ? body.bonusFormula
             : JSON.parse(String(body.bonusFormula || "{}"));
         } catch {
-          return Response.json({ ok: false, error: "bonusFormula JSON 형식 오류" }, { status: 400 });
+          return jsonRes({ ok: false, error: "bonusFormula JSON 형식 오류" }, { status: 400 });
         }
       }
       // boolean 검증
       for (const k of ["thresholdEnabled", "isActive"]) {
         if (k in body) {
           if (typeof body[k] !== "boolean") {
-            return Response.json({ ok: false, error: `${k}는 boolean이어야 합니다` }, { status: 400 });
+            return jsonRes({ ok: false, error: `${k}는 boolean이어야 합니다` }, { status: 400 });
           }
           patch[k] = body[k];
         }
@@ -128,19 +129,19 @@ export default async function handler(req: Request, _ctx: Context) {
         if (key === "name" || key === "bonusFormula" || key === "thresholdEnabled" || key === "isActive") continue;
         if (key in body) patch[key] = body[key];
       }
-      if (!Object.keys(patch).length) return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
+      if (!Object.keys(patch).length) return jsonRes({ ok: false, error: "변경 필드 없음" }, { status: 400 });
 
       // R34-P2-B-3: UPDATE 전 기존 값 조회 (history 비교용)
       const oldRows = await db.execute(sql`SELECT * FROM milestone_definitions WHERE id = ${Number(id)}`);
       const oldDef = (oldRows as any).rows?.[0] || (oldRows as any[])[0];
-      if (!oldDef) return Response.json({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
+      if (!oldDef) return jsonRes({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
 
       patch.updatedAt = new Date();
       const updatedRows = await db.update(milestoneDefinitions)
         .set(patch)
         .where(eq(milestoneDefinitions.id, Number(id)))
         .returning({ id: milestoneDefinitions.id });
-      if (!updatedRows?.length) return Response.json({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
+      if (!updatedRows?.length) return jsonRes({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
 
       // formatDef는 snake_case 접근이라 raw SELECT 재조회
       const rawRows = await db.execute(sql`SELECT * FROM milestone_definitions WHERE id = ${Number(id)}`);
@@ -191,16 +192,16 @@ export default async function handler(req: Request, _ctx: Context) {
         }).catch(() => {});
       } catch { /* 알림 실패는 본 응답에 영향 없음 */ }
 
-      return Response.json({ ok: true, data: { milestone: formatDef(updated) } });
+      return jsonRes({ ok: true, data: { milestone: formatDef(updated) } });
     } catch (err) { return jsonError("update", err); }
   }
 
   // ── DELETE /:id — ?hard=1 영구삭제(이력 없을 때만) / 기본 비활성화(소프트삭제) ──
   if (req.method === "DELETE") {
-    if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+    if (!isSuperAdmin) return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
     /* R32-P0-FIX-1: ?id= query fallback */
     const id = url.searchParams.get("id") || url.pathname.split("/").pop();
-    if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
+    if (!id || isNaN(Number(id))) return jsonRes({ ok: false, error: "ID 없음" }, { status: 400 });
     const hard = url.searchParams.get("hard") === "1";
     try {
       if (hard) {
@@ -214,7 +215,7 @@ export default async function handler(req: Request, _ctx: Context) {
         const ref: any = (refRows as any).rows?.[0] || (refRows as any[])[0] || {};
         const used = (Number(ref.rev) || 0) + (Number(ref.nonrev) || 0);
         if (used > 0) {
-          return Response.json({
+          return jsonRes({
             ok: false,
             error: `실적·매출 이력(${used}건)이 있어 영구삭제할 수 없습니다. 비활성화만 가능합니다.`,
             refs: { revenue: Number(ref.rev) || 0, nonRevenue: Number(ref.nonrev) || 0 },
@@ -222,14 +223,14 @@ export default async function handler(req: Request, _ctx: Context) {
         }
         await db.execute(sql`DELETE FROM milestone_definition_history WHERE definition_id = ${Number(id)}`);
         await db.execute(sql`DELETE FROM milestone_definitions WHERE id = ${Number(id)}`);
-        return Response.json({ ok: true, hard: true });
+        return jsonRes({ ok: true, hard: true });
       }
       await db.execute(sql`UPDATE milestone_definitions SET is_active = FALSE, updated_at = NOW() WHERE id = ${Number(id)}`);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError(hard ? "hard_delete" : "deactivate", err); }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
 }
 
 function formatDef(r: any) {

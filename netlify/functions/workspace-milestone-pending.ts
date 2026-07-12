@@ -2,7 +2,7 @@
  * Phase 25 — 분류 보류 중인 완료 카드 목록
  * GET /api/workspace-milestone-pending
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* Q3-010 fix: requireAdmin → requireOperator — 형제 함수(progress·done-tasks·create-tasks·task-match)는
    모두 requireOperator라 operatorActive 운영자가 사용 가능한데 이 목록만 admin 전용이라 운영자가
@@ -19,7 +19,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const member = auth.ctx.member as any;
 
   function jsonError(step: string, err: any) {
-    return Response.json({
+    return jsonRes({
       ok: false, error: "보류 목록 조회 실패", step,
       detail: String(err?.message || err).slice(0, 500),
     }, { status: 500 });
@@ -69,7 +69,7 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch { defs = []; }
   }
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: {
       tasks: tasks.map((t: any) => ({

@@ -4,6 +4,7 @@
  * GET /api/admin-org-news-get?id=N  — admin (id 없으면 최신 1건)
  */
 
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -12,7 +13,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/admin-org-news-get" };
 
 function jsonError(step: string, err: any) {
-  return Response.json(
+  return jsonRes(
     {
       ok: false,
       error: "보고서 조회 오류",
@@ -26,7 +27,7 @@ function jsonError(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "GET") {
-    return Response.json({ ok: false, error: "GET 전용" }, { status: 405 });
+    return jsonRes({ ok: false, error: "GET 전용" }, { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -49,10 +50,10 @@ export default async function handler(req: Request, _ctx: Context) {
 
     const row = (r?.rows ?? r ?? [])[0];
     if (!row) {
-      return Response.json({ ok: false, error: "보고서 없음" }, { status: 404 });
+      return jsonRes({ ok: false, error: "보고서 없음" }, { status: 404 });
     }
 
-    return Response.json({
+    return jsonRes({
       ok: true,
       data: {
         id:              Number(row.id),

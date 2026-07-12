@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -22,7 +22,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const admin = auth.ctx?.member as any;
 
   function jsonError(step: string, err: any) {
-    return Response.json({ ok: false, error: "결산 오류", step,
+    return jsonRes({ ok: false, error: "결산 오류", step,
       detail: String(err?.message || err).slice(0, 500) }, { status: 500 });
   }
 
@@ -55,23 +55,23 @@ export default async function handler(req: Request, _ctx: Context) {
           Number(s.quarterId) === Number(quarterId)
         ) || null;
       }
-      return Response.json({ ok: true, data: { settlements, settlement } });
+      return jsonRes({ ok: true, data: { settlements, settlement } });
     } catch (err) { return jsonError("select", err); }
   }
 
   // ── POST /calculate — 자동 계산 ──
   if (req.method === "POST" && action === "calculate") {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { quarterId } = body;
-    if (!quarterId) return Response.json({ ok: false, error: "quarterId 필수" }, { status: 400 });
+    if (!quarterId) return jsonRes({ ok: false, error: "quarterId 필수" }, { status: 400 });
     try {
       const result = await calcSettlement(admin.id, Number(quarterId));
-      return Response.json({ ok: true, data: result });
+      return jsonRes({ ok: true, data: result });
     } catch (err) {
       /* R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
       if (err instanceof SettlementBadRequest) {
-        return Response.json({ ok: false, error: err.message }, { status: 400 });
+        return jsonRes({ ok: false, error: err.message }, { status: 400 });
       }
       return jsonError("calculate", err);
     }
@@ -80,15 +80,15 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── POST /submit — 결산 제출 ──
   if (req.method === "POST" && action === "submit") {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { quarterId, selfEvaluation } = body;
-    if (!quarterId) return Response.json({ ok: false, error: "quarterId 필수" }, { status: 400 });
+    if (!quarterId) return jsonRes({ ok: false, error: "quarterId 필수" }, { status: 400 });
     try {
       const calc = await calcSettlement(admin.id, Number(quarterId));
 
       /* OP-026: 캡 정보 로드 실패 시 제출 차단(과지급 방지) — 일시 오류면 재시도 안내 */
       if ((calc as any).capLoadError) {
-        return Response.json(
+        return jsonRes(
           { ok: false, error: "역할별 인센티브 상한 정보를 불러오지 못했습니다. 잠시 후 다시 제출해 주세요.", step: "cap_load" },
           { status: 503 }
         );
@@ -103,7 +103,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
       /* R34-P1-B-7: HOLD(자료 보완 요청) 상태에서도 재제출 허용 */
       if (ex && !["DRAFT", "REJECTED", "HOLD"].includes(ex.status)) {
-        return Response.json({ ok: false, error: `현재 상태(${ex.status})에서는 재제출 불가입니다` }, { status: 400 });
+        return jsonRes({ ok: false, error: `현재 상태(${ex.status})에서는 재제출 불가입니다` }, { status: 400 });
       }
 
       /* R34-P1-B-8: UPSERT 원자화 — ON CONFLICT로 race 차단 (더블 클릭·동시 호출 시 UNIQUE 위반 500 방지) */
@@ -136,17 +136,17 @@ export default async function handler(req: Request, _ctx: Context) {
         link: "/cms-tbfa.html#milestone-review",
       }).catch(() => {});
 
-      return Response.json({ ok: true, data: calc });
+      return jsonRes({ ok: true, data: calc });
     } catch (err) {
       /* R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
       if (err instanceof SettlementBadRequest) {
-        return Response.json({ ok: false, error: err.message }, { status: 400 });
+        return jsonRes({ ok: false, error: err.message }, { status: 400 });
       }
       return jsonError("submit", err);
     }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
 }
 
 async function calcSettlement(memberId: number, quarterId: number) {

@@ -1,3 +1,4 @@
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -9,7 +10,7 @@ export const config = { path: "/api/ai-milestone-insight" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return Response.json({ ok: false, error: "POST만 지원합니다" }, { status: 405 });
+    return jsonRes({ ok: false, error: "POST만 지원합니다" }, { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -17,19 +18,19 @@ export default async function handler(req: Request, _ctx: Context) {
 
   let body: any;
   try { body = await req.json(); } catch {
-    return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 });
+    return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 });
   }
 
   const { type, quarterId, memberId, selfEvalText } = body;
   if (!type || !["summary", "anomaly", "coach", "recommend"].includes(type)) {
-    return Response.json({ ok: false, error: "type은 summary|anomaly|coach|recommend 중 하나" }, { status: 400 });
+    return jsonRes({ ok: false, error: "type은 summary|anomaly|coach|recommend 중 하나" }, { status: 400 });
   }
 
   /* Q3-033 fix: 전 직원 결산 금액이 노출되는 summary·anomaly는 결산 조회 권한 게이트
      (결산 CSV·관리와 동일 권한선. coach는 본인 자가평가라 그대로 admin 허용. settlement_view 시드는 메인). */
   const _role = (auth.ctx.member as any).role || "";
   if ((type === "summary" || type === "anomaly") && !(await canAccess(_role, "settlement_view"))) {
-    return Response.json({ ok: false, error: "결산 조회 권한이 없습니다 (슈퍼어드민 전용)" }, { status: 403 });
+    return jsonRes({ ok: false, error: "결산 조회 권한이 없습니다 (슈퍼어드민 전용)" }, { status: 403 });
   }
 
   try {
@@ -39,19 +40,19 @@ export default async function handler(req: Request, _ctx: Context) {
       case "coach":   return await handleCoach(selfEvalText, memberId);
       case "recommend": return await handleRecommend(quarterId);
       default:
-        return Response.json({ ok: false, error: "지원하지 않는 type" }, { status: 400 });
+        return jsonRes({ ok: false, error: "지원하지 않는 type" }, { status: 400 });
     }
   } catch (err: any) {
-    return Response.json({ ok: false, error: "AI 인사이트 오류", detail: String(err?.message || err).slice(0, 300) });
+    return jsonRes({ ok: false, error: "AI 인사이트 오류", detail: String(err?.message || err).slice(0, 300) });
   }
 }
 
 async function handleSummary(quarterId?: number) {
-  if (!quarterId) return Response.json({ ok: false, error: "quarterId 필수" }, { status: 400 });
+  if (!quarterId) return jsonRes({ ok: false, error: "quarterId 필수" }, { status: 400 });
 
   const qRow = await db.execute(sql`SELECT year, quarter FROM quarters WHERE id = ${Number(quarterId)}`);
   const q = ((qRow as any).rows?.[0] || qRow[0]) as any;
-  if (!q) return Response.json({ ok: false, error: "분기 없음" }, { status: 404 });
+  if (!q) return jsonRes({ ok: false, error: "분기 없음" }, { status: 404 });
 
   const settleRows = await db.execute(sql`
     SELECT qs.total_bonus, qs.revenue_linked_total, qs.non_revenue_total,
@@ -62,7 +63,7 @@ async function handleSummary(quarterId?: number) {
   `);
   const settles = (settleRows as any).rows || (settleRows as any[]);
   if (settles.length === 0) {
-    return Response.json({ ok: true, data: { text: "제출된 결산 데이터가 없습니다.", items: [] } });
+    return jsonRes({ ok: true, data: { text: "제출된 결산 데이터가 없습니다.", items: [] } });
   }
 
   const dataStr = settles.map((s: any) =>
@@ -80,7 +81,7 @@ ${dataStr}`;
     maxOutputTokens: 600,
   });
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: { text: result.text || "요약 생성 실패" },
   });
@@ -95,7 +96,7 @@ async function handleAnomaly(quarterId?: number) {
   `);
   const recentQs = (recentQRows as any).rows || (recentQRows as any[]);
   if (recentQs.length === 0) {
-    return Response.json({ ok: true, data: { text: "분기 데이터가 없습니다.", items: [] } });
+    return jsonRes({ ok: true, data: { text: "분기 데이터가 없습니다.", items: [] } });
   }
 
   const trendData: string[] = [];
@@ -122,14 +123,14 @@ ${trendData.join("\n\n")}`;
     maxOutputTokens: 800,
   });
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: { text: result.text || "이상 탐지 분석 실패" },
   });
 }
 
 async function handleCoach(selfEvalText?: string, memberId?: number) {
-  if (!selfEvalText) return Response.json({ ok: false, error: "selfEvalText 필수" }, { status: 400 });
+  if (!selfEvalText) return jsonRes({ ok: false, error: "selfEvalText 필수" }, { status: 400 });
 
   // 달성된 마일스톤 목록
   let verifiedList = "";
@@ -158,7 +159,7 @@ ${verifiedList ? `\n달성 마일스톤: ${verifiedList}` : ""}`;
     maxOutputTokens: 400,
   });
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: { text: result.text || "코칭 생성 실패" },
   });
@@ -204,7 +205,7 @@ ${achievementSummary ? `\n이번 분기 달성 패턴: ${achievementSummary}` : 
   const text = result.text || "추천 생성 실패";
   const items = text.split("\n").map(s => s.trim()).filter(s => s.length > 5).slice(0, 5);
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: { text, items },
   });

@@ -11,6 +11,7 @@
  *
  * 스케줄: UTC 22:00 = KST 07:00 (netlify.toml)
  */
+import { jsonRes } from "../../lib/kst";
 import type { Config, Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -113,7 +114,7 @@ export default async function handler(req: Request, _ctx: Context) {
   } catch (e: any) { console.warn("[ms-anomaly:rule3]", e?.message); }
 
   if (dryRun) {
-    return Response.json({ ok: true, dryRun: true, count: anomalies.length, anomalies });
+    return jsonRes({ ok: true, dryRun: true, count: anomalies.length, anomalies });
   }
 
   /* 슈퍼어드민 전원에게 알림 */

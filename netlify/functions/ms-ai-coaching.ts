@@ -5,6 +5,7 @@
  * body: { quarterId: number }
  * response: { ok: true, coaching: string } | { ok: false, error: string }
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -15,7 +16,7 @@ export const config = { path: "/api/ms-ai-coaching" };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
-    return Response.json({ ok: false, error: "POST만 지원합니다" }, { status: 405 });
+    return jsonRes({ ok: false, error: "POST만 지원합니다" }, { status: 405 });
   }
 
   const auth = await requireAdmin(req);
@@ -24,16 +25,16 @@ export default async function handler(req: Request, _ctx: Context) {
 
   let body: any;
   try { body = await req.json(); }
-  catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+  catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
 
   const quarterId = Number(body?.quarterId);
-  if (!quarterId) return Response.json({ ok: false, error: "quarterId 필수" }, { status: 400 });
+  if (!quarterId) return jsonRes({ ok: false, error: "quarterId 필수" }, { status: 400 });
 
   try {
     /* 분기 정보 */
     const qRows = await db.execute(sql`SELECT year, quarter FROM quarters WHERE id = ${quarterId}`);
     const q = ((qRows as any).rows?.[0] || (qRows as any[])[0]) as any;
-    if (!q) return Response.json({ ok: false, error: "분기 없음" }, { status: 404 });
+    if (!q) return jsonRes({ ok: false, error: "분기 없음" }, { status: 404 });
     const quarterLabel = `${q.year}년 Q${q.quarter}`;
 
     /* 본인 매출 합계 (검증 완료) */
@@ -77,12 +78,12 @@ export default async function handler(req: Request, _ctx: Context) {
     });
 
     if (!result.ok || !result.text) {
-      return Response.json({ ok: false, error: result.error || "AI 코칭 생성 실패" });
+      return jsonRes({ ok: false, error: result.error || "AI 코칭 생성 실패" });
     }
 
-    return Response.json({ ok: true, coaching: result.text.trim() });
+    return jsonRes({ ok: true, coaching: result.text.trim() });
   } catch (err: any) {
     console.warn("[ms-ai-coaching]", err?.message);
-    return Response.json({ ok: false, error: "AI 코칭 생성 실패" });
+    return jsonRes({ ok: false, error: "AI 코칭 생성 실패" });
   }
 }

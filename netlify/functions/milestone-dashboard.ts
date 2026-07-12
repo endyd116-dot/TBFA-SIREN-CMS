@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -16,7 +16,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const quarterIdParam = url.searchParams.get("quarterId");
 
   function jsonError(step: string, err: any) {
-    return Response.json({
+    return jsonRes({
       ok: false, error: "대시보드 조회 실패", step,
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000),
@@ -37,7 +37,7 @@ export default async function handler(req: Request, _ctx: Context) {
       quarter = (rows as any).rows?.[0] || rows[0];
     }
     if (!quarter) {
-      return Response.json({ ok: true, data: { quarter: null, milestoneRole: member.milestoneRole || null,
+      return jsonRes({ ok: true, data: { quarter: null, milestoneRole: member.milestoneRole || null,
         revenueProgress: [], nonRevenueAchievements: [], settlement: null,
         estimatedIncentive: { revenueLinked: 0, nonRevenue: 0, total: 0 } } });
     }
@@ -201,7 +201,7 @@ export default async function handler(req: Request, _ctx: Context) {
   } catch (err) { /* non-critical */ }
 
   /* R34-P1-B-9: formatDashboard 헬퍼로 응답 키 표준화 (재사용·테스트 용이성 + 키 일관성) */
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: formatDashboard({
       quarter, milestoneRole, revenueProgress, nonRevenueAchievements, settlement,

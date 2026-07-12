@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator (operatorActive=true 일반 회원도 매출 입력) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -16,7 +16,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const member = auth.ctx.member as any;
 
   function jsonError(step: string, err: any) {
-    return Response.json({ ok: false, error: "매출 입력 오류", step,
+    return jsonRes({ ok: false, error: "매출 입력 오류", step,
       detail: String(err?.message || err).slice(0, 500),
       stack: String(err?.stack || "").slice(0, 1000) }, { status: 500 });
   }
@@ -40,25 +40,25 @@ export default async function handler(req: Request, _ctx: Context) {
       baseSql = sql`${baseSql} ORDER BY re.revenue_date DESC, re.created_at DESC LIMIT 200`;
       const rows = await db.execute(baseSql);
       const entries = ((rows as any).rows || (rows as any[])).map(formatEntry);
-      return Response.json({ ok: true, data: { entries } });
+      return jsonRes({ ok: true, data: { entries } });
     } catch (err) { return jsonError("select", err); }
   }
 
   // ── POST 입력 ──
   if (req.method === "POST") {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { milestoneDefinitionId, quarterId, revenueDate, amount, amountUnit,
             note, isCampaignRouted, evidenceFiles, revenueSource, businessUnit } = body;
     if (!milestoneDefinitionId || !quarterId || !revenueDate || amount == null) {
-      return Response.json({ ok: false, error: "필수 필드 누락 (milestoneDefinitionId, quarterId, revenueDate, amount)" }, { status: 400 });
+      return jsonRes({ ok: false, error: "필수 필드 누락 (milestoneDefinitionId, quarterId, revenueDate, amount)" }, { status: 400 });
     }
     try {
       // 해당 분기가 ACTIVE 상태인지 확인
       const qRows = await db.execute(sql`SELECT status FROM quarters WHERE id = ${Number(quarterId)}`);
       const qStatus = ((qRows as any).rows?.[0] || (qRows as any[])[0])?.status;
-      if (!qStatus) return Response.json({ ok: false, error: "존재하지 않는 분기" }, { status: 404 });
-      if (qStatus !== "ACTIVE") return Response.json({ ok: false, error: "활성 분기에만 입력 가능합니다" }, { status: 400 });
+      if (!qStatus) return jsonRes({ ok: false, error: "존재하지 않는 분기" }, { status: 404 });
+      if (qStatus !== "ACTIVE") return jsonRes({ ok: false, error: "활성 분기에만 입력 가능합니다" }, { status: 400 });
 
       /* R29-MS-GAP1-J/GAP2-H: 결산이 이미 SUBMITTED/APPROVED/PAID이면 매출 입력 차단 */
       const settleRows = await db.execute(sql`
@@ -67,7 +67,7 @@ export default async function handler(req: Request, _ctx: Context) {
       `);
       const settleStatus = ((settleRows as any).rows?.[0] || (settleRows as any[])[0])?.status;
       if (settleStatus && ["SUBMITTED", "APPROVED", "PAID"].includes(settleStatus)) {
-        return Response.json({
+        return jsonRes({
           ok: false,
           error: "결산이 제출된 분기에는 실적을 추가할 수 없습니다.",
         }, { status: 409 });
@@ -80,15 +80,15 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE id = ${Number(milestoneDefinitionId)} AND is_active = TRUE
       `);
       const md = (mdRows as any).rows?.[0] || (mdRows as any[])[0];
-      if (!md) return Response.json({ ok: false, error: "존재하지 않는 마일스톤" }, { status: 404 });
+      if (!md) return jsonRes({ ok: false, error: "존재하지 않는 마일스톤" }, { status: 404 });
       if (md.target_milestone_role !== member.milestoneRole && member.role !== "super_admin") {
-        return Response.json({ ok: false, error: "본인 담당 마일스톤에만 입력 가능합니다" }, { status: 403 });
+        return jsonRes({ ok: false, error: "본인 담당 마일스톤에만 입력 가능합니다" }, { status: 403 });
       }
 
       /* R29-MS-GAP1-H: sm-001(직접 모집)은 후원자 경유 강제 false */
       let finalCampaignRouted = isCampaignRouted ?? false;
       if (md.code === "sm-001" && finalCampaignRouted === true) {
-        return Response.json({ ok: false, error: "sm-001(직접 모집)은 후원자 경유 불가" }, { status: 400 });
+        return jsonRes({ ok: false, error: "sm-001(직접 모집)은 후원자 경유 불가" }, { status: 400 });
       }
 
       /* R29-MS-GAP1-H: 동일 분기 + 동일 마일스톤 + 동일 날짜 + 동일 금액 중복 차단 (PENDING/VERIFIED) */
@@ -103,7 +103,7 @@ export default async function handler(req: Request, _ctx: Context) {
         LIMIT 1
       `);
       if (((dupRows as any).rows?.length || (dupRows as any[]).length) > 0) {
-        return Response.json({ ok: false, error: "동일 분기·동일 마일스톤·동일 날짜·동일 금액 기록이 존재합니다" }, { status: 400 });
+        return jsonRes({ ok: false, error: "동일 분기·동일 마일스톤·동일 날짜·동일 금액 기록이 존재합니다" }, { status: 400 });
       }
 
       // 담당 어드민 조회 (같은 milestoneRole을 가진 admin)
@@ -136,27 +136,27 @@ export default async function handler(req: Request, _ctx: Context) {
         }).catch(() => {});
       }
 
-      return Response.json({ ok: true, data: { entry: formatEntry(entry) } }, { status: 201 });
+      return jsonRes({ ok: true, data: { entry: formatEntry(entry) } }, { status: 201 });
     } catch (err) { return jsonError("insert", err); }
   }
 
   // ── PATCH /:id 수정 (PENDING 상태만) ──
   if (req.method === "PATCH") {
     const id = url.pathname.split("/").pop();
-    if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
+    if (!id || isNaN(Number(id))) return jsonRes({ ok: false, error: "ID 없음" }, { status: 400 });
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     try {
       const rows = await db.execute(sql`
         SELECT id, status, entered_by FROM revenue_entries WHERE id = ${Number(id)}
       `);
       const entry = (rows as any).rows?.[0] || (rows as any[])[0];
-      if (!entry) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
+      if (!entry) return jsonRes({ ok: false, error: "항목 없음" }, { status: 404 });
       if (entry.entered_by !== member.id && member.role !== "super_admin") {
-        return Response.json({ ok: false, error: "본인 항목만 수정 가능" }, { status: 403 });
+        return jsonRes({ ok: false, error: "본인 항목만 수정 가능" }, { status: 403 });
       }
       if (entry.status !== "PENDING") {
-        return Response.json({ ok: false, error: "PENDING 상태에서만 수정 가능합니다" }, { status: 400 });
+        return jsonRes({ ok: false, error: "PENDING 상태에서만 수정 가능합니다" }, { status: 400 });
       }
       const { amount, amountUnit, revenueDate, note, isCampaignRouted, evidenceFiles } = body;
       await db.execute(sql`
@@ -170,30 +170,30 @@ export default async function handler(req: Request, _ctx: Context) {
           updated_at = NOW()
         WHERE id = ${Number(id)}
       `);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("update", err); }
   }
 
   // ── DELETE /:id ──
   if (req.method === "DELETE") {
     const id = url.pathname.split("/").pop();
-    if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
+    if (!id || isNaN(Number(id))) return jsonRes({ ok: false, error: "ID 없음" }, { status: 400 });
     try {
       const rows = await db.execute(sql`SELECT entered_by, status FROM revenue_entries WHERE id = ${Number(id)}`);
       const entry = (rows as any).rows?.[0] || (rows as any[])[0];
-      if (!entry) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
+      if (!entry) return jsonRes({ ok: false, error: "항목 없음" }, { status: 404 });
       if (entry.entered_by !== member.id && member.role !== "super_admin") {
-        return Response.json({ ok: false, error: "본인 항목만 삭제 가능" }, { status: 403 });
+        return jsonRes({ ok: false, error: "본인 항목만 삭제 가능" }, { status: 403 });
       }
       if (entry.status === "VERIFIED") {
-        return Response.json({ ok: false, error: "검증 완료된 항목은 삭제할 수 없습니다" }, { status: 400 });
+        return jsonRes({ ok: false, error: "검증 완료된 항목은 삭제할 수 없습니다" }, { status: 400 });
       }
       await db.execute(sql`DELETE FROM revenue_entries WHERE id = ${Number(id)}`);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("delete", err); }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
 }
 
 function formatEntry(r: any) {

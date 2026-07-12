@@ -1,4 +1,4 @@
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -13,7 +13,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const admin = auth.ctx?.member as any;
 
   function jsonError(step: string, err: any) {
-    return Response.json({ ok: false, error: "매출 검증 오류", step,
+    return jsonRes({ ok: false, error: "매출 검증 오류", step,
       detail: String(err?.message || err).slice(0, 500) }, { status: 500 });
   }
 
@@ -51,7 +51,7 @@ export default async function handler(req: Request, _ctx: Context) {
       baseSql = sql`${baseSql} ORDER BY re.created_at DESC LIMIT 200`;
       const rows = await db.execute(baseSql);
       const entries = ((rows as any).rows || (rows as any[])).map(formatEntry);
-      return Response.json({ ok: true, data: { entries } });
+      return jsonRes({ ok: true, data: { entries } });
     } catch (err) { return jsonError("select", err); }
   }
 
@@ -64,13 +64,13 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE re.id = ${Number(id)}
       `);
       const entry = (rows as any).rows?.[0] || rows[0];
-      if (!entry) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
+      if (!entry) return jsonRes({ ok: false, error: "항목 없음" }, { status: 404 });
       if (entry.target_milestone_role !== admin.milestoneRole && admin.role !== "super_admin") {
-        return Response.json({ ok: false, error: "담당 영역이 아닙니다" }, { status: 403 });
+        return jsonRes({ ok: false, error: "담당 영역이 아닙니다" }, { status: 403 });
       }
       /* 2026-05-20: 4-eye 원칙 — 본인이 입력한 매출은 본인 검증 불가 (super_admin 예외) */
       if (entry.entered_by === admin.id && admin.role !== "super_admin") {
-        return Response.json({ ok: false, error: "본인이 입력한 매출은 슈퍼어드민만 검증할 수 있습니다 (셀프 검증 방지)" }, { status: 403 });
+        return jsonRes({ ok: false, error: "본인이 입력한 매출은 슈퍼어드민만 검증할 수 있습니다 (셀프 검증 방지)" }, { status: 403 });
       }
       await db.execute(sql`
         UPDATE revenue_entries SET status = 'VERIFIED', reviewed_by = ${admin.id},
@@ -85,16 +85,16 @@ export default async function handler(req: Request, _ctx: Context) {
         message: "입력하신 매출 항목이 검증 완료되었습니다.",
         link: "/admin#revenue-my",
       }).catch(() => {});
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("verify", err); }
   }
 
   // ── POST /:id/reject ──
   if (req.method === "POST" && action === "reject" && id) {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const rejectReason = body?.rejectReason || body?.reason || "";
-    if (!rejectReason) return Response.json({ ok: false, error: "반려 사유를 입력하세요" }, { status: 400 });
+    if (!rejectReason) return jsonRes({ ok: false, error: "반려 사유를 입력하세요" }, { status: 400 });
     try {
       const rows = await db.execute(sql`
         SELECT re.entered_by, md.name as milestone_name FROM revenue_entries re
@@ -104,7 +104,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const entry = (rows as any).rows?.[0] || rows[0];
       /* 2026-05-20: 4-eye 원칙 — 본인이 입력한 매출은 본인 반려 불가 (super_admin 예외) */
       if (entry?.entered_by === admin.id && admin.role !== "super_admin") {
-        return Response.json({ ok: false, error: "본인이 입력한 매출은 슈퍼어드민만 반려할 수 있습니다 (셀프 검증 방지)" }, { status: 403 });
+        return jsonRes({ ok: false, error: "본인이 입력한 매출은 슈퍼어드민만 반려할 수 있습니다 (셀프 검증 방지)" }, { status: 403 });
       }
       await db.execute(sql`
         UPDATE revenue_entries SET status = 'REJECTED', reviewed_by = ${admin.id},
@@ -121,7 +121,7 @@ export default async function handler(req: Request, _ctx: Context) {
           link: "/admin#revenue-my",
         }).catch(() => {});
       }
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("reject", err); }
   }
 
@@ -129,12 +129,12 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "PUT" && id && !isNaN(Number(id))) {
     /* R29-MS-GAP1-A: EVENT_RANGE 금액 결정은 super_admin 전용 */
     if (admin.role !== "super_admin") {
-      return Response.json({ ok: false, error: "EVENT_RANGE 금액 결정은 슈퍼어드민 전용입니다" }, { status: 403 });
+      return jsonRes({ ok: false, error: "EVENT_RANGE 금액 결정은 슈퍼어드민 전용입니다" }, { status: 403 });
     }
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { eventRangeAmount } = body;
-    if (eventRangeAmount == null) return Response.json({ ok: false, error: "eventRangeAmount 필수" }, { status: 400 });
+    if (eventRangeAmount == null) return jsonRes({ ok: false, error: "eventRangeAmount 필수" }, { status: 400 });
     try {
       /* R29-MS-GAP1-I: bonus_formula의 minAmount~maxAmount 범위 검증 */
       const mdRows = await db.execute(sql`
@@ -143,7 +143,7 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE re.id = ${Number(id)}
       `);
       const md = ((mdRows as any).rows?.[0] || (mdRows as any[])[0]) as any;
-      if (!md) return Response.json({ ok: false, error: "매출 항목 없음" }, { status: 404 });
+      if (!md) return jsonRes({ ok: false, error: "매출 항목 없음" }, { status: 404 });
       const formula = md.bonus_formula || {};
       const isEventRange = formula?.type === "EVENT_RANGE" || formula?.formula_type === "EVENT_RANGE";
       if (isEventRange) {
@@ -152,7 +152,7 @@ export default async function handler(req: Request, _ctx: Context) {
         const amt  = Number(eventRangeAmount);
         if (maxA > 0 && (amt < minA || amt > maxA)) {
           /* R34-P1-B-1: DB 단위는 원, 표시만 만원 변환 */
-          return Response.json({
+          return jsonRes({
             ok: false,
             error: `범위 내 금액을 입력하세요 (${(minA/10000).toLocaleString()}~${(maxA/10000).toLocaleString()}만원)`
           }, { status: 400 });
@@ -163,11 +163,11 @@ export default async function handler(req: Request, _ctx: Context) {
           reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()
         WHERE id = ${Number(id)}
       `);
-      return Response.json({ ok: true });
+      return jsonRes({ ok: true });
     } catch (err) { return jsonError("event_range", err); }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
 }
 
 function formatEntry(r: any) {

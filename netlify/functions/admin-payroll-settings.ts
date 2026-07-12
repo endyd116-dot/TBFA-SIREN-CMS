@@ -4,6 +4,7 @@
  *   PUT  설정 수정 (야근배율·기준시간·근무일수·4대보험 요율·소득세율)
  * 권한: super_admin 전용. (2026-05-20 급여 고도화)
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
@@ -16,11 +17,11 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
   const admin = auth.ctx.member as any;
   if (admin.role !== "super_admin") {
-    return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
+    return jsonRes({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
   }
 
   function jsonError(step: string, err: any) {
-    return Response.json({ ok: false, error: "급여 설정 오류", step,
+    return jsonRes({ ok: false, error: "급여 설정 오류", step,
       detail: String(err?.message || err).slice(0, 400) }, { status: 500 });
   }
 
@@ -28,13 +29,13 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const r = await db.execute(sql`SELECT * FROM payroll_settings WHERE id = 1 LIMIT 1`);
       const row = (r as any).rows?.[0] || (r as any[])[0] || null;
-      return Response.json({ ok: true, data: { settings: row } });
+      return jsonRes({ ok: true, data: { settings: row } });
     } catch (err) { return jsonError("select", err); }
   }
 
   if (req.method === "PUT") {
     let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
+    try { body = await req.json(); } catch { return jsonRes({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
 
     // 화이트리스트 (camelCase 입력 → snake 컬럼). 컬럼명은 코드 상수라 안전.
     const MAP: Record<string, any> = {
@@ -54,12 +55,12 @@ export default async function handler(req: Request, _ctx: Context) {
       if (val === undefined) continue;
       const n = Number(val);
       if (!Number.isFinite(n) || n < 0) {
-        return Response.json({ ok: false, error: `${col} 값 오류 (0 이상 숫자)` }, { status: 400 });
+        return jsonRes({ ok: false, error: `${col} 값 오류 (0 이상 숫자)` }, { status: 400 });
       }
       upd = sql`${upd}, ${sql.raw(col)} = ${n}`;
       changed = true;
     }
-    if (!changed) return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
+    if (!changed) return jsonRes({ ok: false, error: "변경 필드 없음" }, { status: 400 });
     upd = sql`${upd} WHERE id = 1 RETURNING *`;
 
     /* ★ P1-17 fix: id=1 행이 없으면 UPDATE가 0행이라 "저장 완료"로 보여도 미반영.
@@ -71,9 +72,9 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const r = await db.execute(upd);
       const row = (r as any).rows?.[0] || (r as any[])[0];
-      return Response.json({ ok: true, data: { settings: row } });
+      return jsonRes({ ok: true, data: { settings: row } });
     } catch (err) { return jsonError("update", err); }
   }
 
-  return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+  return jsonRes({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
 }

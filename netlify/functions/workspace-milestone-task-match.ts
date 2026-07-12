@@ -3,6 +3,7 @@
  * POST /api/workspace-milestone-task-match
  * body: { taskId, milestoneDefId, action: 'confirm' | 'skip' }
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
@@ -11,7 +12,7 @@ import { sql } from "drizzle-orm";
 export const config = { path: "/api/workspace-milestone-task-match" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  if (req.method !== "POST") return Response.json({ ok: false, error: "POST only" }, { status: 405 });
+  if (req.method !== "POST") return jsonRes({ ok: false, error: "POST only" }, { status: 405 });
 
   // P1-22 fix: 형제 성과 API(pending·progress·done·create-tasks)와 동일하게 운영자 허용.
   //            아래 task.member_id === member.id 소유자 검증이 있어 IDOR 위험 없음.
@@ -25,11 +26,11 @@ export default async function handler(req: Request, _ctx: Context) {
   const taskId = Number(body?.taskId || 0);
   const action = String(body?.action || "");
   if (!taskId || !["confirm", "skip"].includes(action)) {
-    return Response.json({ ok: false, error: "taskId, action(confirm|skip) 필수" }, { status: 400 });
+    return jsonRes({ ok: false, error: "taskId, action(confirm|skip) 필수" }, { status: 400 });
   }
 
   function jsonError(step: string, err: any) {
-    return Response.json({
+    return jsonRes({
       ok: false, error: "매칭 저장 실패", step,
       detail: String(err?.message || err).slice(0, 500),
     }, { status: 500 });
@@ -44,8 +45,8 @@ export default async function handler(req: Request, _ctx: Context) {
     task = (rows as any).rows?.[0] || (rows as any[])[0];
   } catch (err) { return jsonError("select_task", err); }
 
-  if (!task) return Response.json({ ok: false, error: "카드를 찾을 수 없습니다" }, { status: 404 });
-  if (task.member_id !== member.id) return Response.json({ ok: false, error: "권한 없음" }, { status: 403 });
+  if (!task) return jsonRes({ ok: false, error: "카드를 찾을 수 없습니다" }, { status: 404 });
+  if (task.member_id !== member.id) return jsonRes({ ok: false, error: "권한 없음" }, { status: 403 });
 
   if (action === "skip") {
     try {
@@ -54,12 +55,12 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE id = ${taskId}
       `);
     } catch (err) { return jsonError("update_skip", err); }
-    return Response.json({ ok: true, message: "분류 제외로 처리되었습니다" });
+    return jsonRes({ ok: true, message: "분류 제외로 처리되었습니다" });
   }
 
   // action === 'confirm'
   const milestoneDefId = Number(body?.milestoneDefId || 0);
-  if (!milestoneDefId) return Response.json({ ok: false, error: "milestoneDefId 필수" }, { status: 400 });
+  if (!milestoneDefId) return jsonRes({ ok: false, error: "milestoneDefId 필수" }, { status: 400 });
 
   // 마일스톤 정의 유효성 확인
   let def: any;
@@ -71,7 +72,7 @@ export default async function handler(req: Request, _ctx: Context) {
     def = (rows as any).rows?.[0] || (rows as any[])[0];
   } catch (err) { return jsonError("select_def", err); }
 
-  if (!def) return Response.json({ ok: false, error: "유효한 마일스톤이 아닙니다" }, { status: 400 });
+  if (!def) return jsonRes({ ok: false, error: "유효한 마일스톤이 아닙니다" }, { status: 400 });
 
   // 수동 매칭 저장
   try {
@@ -131,5 +132,5 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("[milestone-task-match] 성과 자동 제출 실패:", err);
   }
 
-  return Response.json({ ok: true, message: `${def.name} 성과에 매칭되었습니다` });
+  return jsonRes({ ok: true, message: `${def.name} 성과에 매칭되었습니다` });
 }

@@ -2,7 +2,7 @@
  * Phase 25 — done 카드를 마일스톤별로 그룹핑해서 반환 (보관함 성과별 보기)
  * GET /api/workspace-milestone-done-tasks?quarterId=N
  */
-import { isoUTC } from "../../lib/kst";
+import { isoUTC, jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -20,7 +20,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const quarterIdParam = url.searchParams.get("quarterId");
 
   function jsonError(step: string, err: any) {
-    return Response.json({
+    return jsonRes({
       ok: false, error: "완료 카드 조회 실패", step,
       detail: String(err?.message || err).slice(0, 500),
     }, { status: 500 });
@@ -87,7 +87,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: {
       quarter: quarter ? { id: quarter.id, year: quarter.year, quarter: quarter.quarter } : null,

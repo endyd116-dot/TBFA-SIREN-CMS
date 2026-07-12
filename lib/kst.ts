@@ -150,6 +150,19 @@ export function jsonKST(body: unknown, _replacer?: unknown, space?: string | num
 }
 
 /**
+ * `Response.json()` 대체 — **JSON 응답은 이걸로 만든다.**
+ *
+ * 웹 표준 `Response.json()` 은 내부에서 JSON.stringify 를 직접 돌리므로 위 관문을 그냥 통과한다.
+ * 실제로 급여 계산기준 API 의 수정일시가 시간대 표시 없이 새어 나가고 있었다(2026-07-12 전수 조사).
+ * 동작·인자는 Response.json 과 같고, 직렬화만 jsonKST 를 쓴다.
+ */
+export function jsonRes(body: unknown, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json; charset=utf-8");
+  return new Response(jsonKST(body), { ...init, headers });
+}
+
+/**
  * SQL 안에서 '한국 기준 오늘'.
  *
  * Postgres의 CURRENT_DATE 는 세션 시간대(기본 UTC) 기준이라 한국 새벽엔 어제가 나온다.

@@ -2,6 +2,7 @@
  * Phase 25 — WBS 대시보드용 비매출 마일스톤 진행률 API
  * GET /api/workspace-milestone-progress?quarterId=N
  */
+import { jsonRes } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 /* R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
@@ -19,7 +20,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const quarterIdParam = url.searchParams.get("quarterId");
 
   function jsonError(step: string, err: any) {
-    return Response.json({
+    return jsonRes({
       ok: false, error: "진행률 조회 실패", step,
       detail: String(err?.message || err).slice(0, 500),
     }, { status: 500 });
@@ -40,12 +41,12 @@ export default async function handler(req: Request, _ctx: Context) {
   } catch (err) { return jsonError("select_quarter", err); }
 
   if (!quarter) {
-    return Response.json({ ok: true, data: { quarter: null, milestones: [], pendingCount: 0 } });
+    return jsonRes({ ok: true, data: { quarter: null, milestones: [], pendingCount: 0 } });
   }
 
   const milestoneRole = member.milestoneRole || member.milestone_role || null;
   if (!milestoneRole) {
-    return Response.json({ ok: true, data: { quarter, milestones: [], pendingCount: 0 } });
+    return jsonRes({ ok: true, data: { quarter, milestones: [], pendingCount: 0 } });
   }
 
   // 비매출 마일스톤 정의 조회
@@ -103,7 +104,7 @@ export default async function handler(req: Request, _ctx: Context) {
     pendingCount = Number((pRows as any).rows?.[0]?.cnt || (pRows as any[])[0]?.cnt || 0);
   } catch { pendingCount = 0; }
 
-  return Response.json({
+  return jsonRes({
     ok: true,
     data: {
       quarter: { id: quarter.id, year: quarter.year, quarter: quarter.quarter, status: quarter.status },
