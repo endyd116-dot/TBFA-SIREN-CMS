@@ -4,9 +4,11 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-27 / **💬 카카오 알림톡 템플릿 자동관리 시스템 종결 + 🏁 딥릴리프 P1~P4 전체 종결·SSO·배포 8→5분**. 다음 = (선택) 후속.
-> 새 메인 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → 병렬규칙(PARALLEL_GUIDE/TEMPLATE) → 메모리(MEMORY.md + project_hamkke_on_sso·project_next_survivor_support 등) 순서로 정독. 딥릴리프 설계 master = `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`(archive)
-> **▶ 딥릴리프·알림톡 시스템 모두 종결. 다음 작업은 Swain 지시 대기(후속·신규).**
+> **마지막 갱신**: 2026-07-13 / **💰 급여 시스템 고도화(전자서명·소득세 원천징수·법정 신고서류) + 🕐 KST 전면 정비**.
+> **▶ 최신 세션 인수인계 = [`docs/active/2026-07-13-session-handoff.md`](../active/2026-07-13-session-handoff.md) — 새 메인은 이것부터 정독.**
+> 새 메인 진입 시: 위 세션 핸드오프 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → (급여/KST 세부 필요 시) `lib/kst.ts`·`lib/payroll-calc.ts` 상단 주석.
+> **현재 지시**: 메인 대기(문제 발견 전까지). 시각/급여 이상 발견 시 그 화면 하나 받아 같은 종류 전체 훑어 수정.
+> ⚠️ 이전 종결분(딥릴리프·알림톡)은 아래 §0에 유지(archive).
 
 ---
 
