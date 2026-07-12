@@ -317,7 +317,28 @@
           </div>
         </div>
 
-        <!-- ② 임금대장 -->
+        <!-- ② 간이지급명세서 (반기) -->
+        <div class="stat-row urgent">
+          <div class="stat-info">
+            <div class="stat-name">간이지급명세서 (근로소득)
+              <span class="stat-law">상반기 → <b>7월 31일</b> / 하반기 → <b>다음해 1월 31일</b></span>
+            </div>
+            <div class="stat-desc">
+              직원 <b>한 명 한 명</b>의 성명·주민번호·월별 지급액. 원천징수 신고와 <b>별개로</b> 제출합니다.<br>
+              국세청 <b>일괄등록 엑셀 양식</b>을 채워서 내려받습니다 — 홈택스에 그대로 올리면 끝납니다.
+            </div>
+          </div>
+          <div class="stat-actions">
+            <select id="spYear" class="stat-sel"></select>
+            <select id="spHalf" class="stat-sel">
+              <option value="1">상반기 (1~6월)</option>
+              <option value="2">하반기 (7~12월)</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openSimplified()">엑셀 양식 만들기</button>
+          </div>
+        </div>
+
+        <!-- ③ 임금대장 -->
         <div class="stat-row">
           <div class="stat-info">
             <div class="stat-name">임금대장
@@ -459,6 +480,9 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260712-copy"></script>
+  <!-- SheetJS — 국세청 간이지급명세서 양식(.xls)을 브라우저에서 직접 채워 내려받는다.
+       주민등록번호가 들어가는 파일이라 서버를 거치지 않게 한다(로그·에러리포트에 남을 위험 제거). -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="/js/admin-payroll.js?v=20260712-simplified"></script>
 </body>
 </html>

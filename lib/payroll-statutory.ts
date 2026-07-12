@@ -320,6 +320,91 @@ export async function annualSummary(year: number): Promise<{
 }
 
 /* ══════════════════════════════════════════════════════════════
+   5. 간이지급명세서(근로소득) — 반기 제출 · **지급일** 기준
+      상반기(1~6월 지급분) → 7월 31일 / 하반기(7~12월 지급분) → 다음해 1월 31일
+
+      국세청 일괄등록 엑셀 양식(assets/간이지급명세서 일괄등록 양식_근로소득_2021.xls)의
+      한 행 = 직원 1명, 열 = 반기의 6개 달. 그 달에 '지급한' 과세 급여를 넣는다.
+
+      ⚠️ 주민등록번호는 여기서 다루지 않는다. 화면(브라우저)에서 입력해 엑셀을 만들고,
+         서버·DB에는 절대 오지 않는다. 그래서 이 함수는 '금액과 근무기간'만 만든다.
+   ══════════════════════════════════════════════════════════════ */
+export interface SimplifiedRow {
+  memberUid: number;
+  name: string;
+  hireDate: string | null;
+  workStart: string;          // YYYYMMDD (양식 G열)
+  workEnd: string;            // YYYYMMDD (양식 H열)
+  monthly: number[];          // 반기 6개 달의 '지급한 과세 급여' (양식 I·K·M·O·Q·S열)
+  hasRecord: boolean;         // 시스템에 지급 기록이 있는지 (없으면 화면에서 직접 입력)
+}
+
+export async function simplifiedStatement(year: number, half: 1 | 2): Promise<{
+  year: number; half: 1 | 2;
+  months: number[];               // [1..6] 또는 [7..12]
+  periodStart: string; periodEnd: string;
+  dueDate: string;
+  rows: SimplifiedRow[];
+}> {
+  const months = half === 1 ? [1, 2, 3, 4, 5, 6] : [7, 8, 9, 10, 11, 12];
+  const periodStart = `${year}${half === 1 ? "0101" : "0701"}`;
+  const periodEnd = `${year}${half === 1 ? "0630" : "1231"}`;
+  const dueDate = half === 1 ? `${year}-07-31` : `${year + 1}-01-31`;
+
+  /* 급여 대상 직원 전체 — 지급 기록이 없어도 행은 보여줘야 한다.
+     (시스템 도입 전에 지급한 급여는 화면에서 직접 입력한다) */
+  const staffR: any = await db.execute(sql`
+    SELECT id, name, hire_date
+      FROM members
+     WHERE status = 'active' AND (type = 'admin' OR operator_active = TRUE)
+       AND COALESCE(base_salary, 0) > 0
+     ORDER BY name
+  `);
+  const staff = rows(staffR);
+
+  /* 그 반기에 '실제로 돈이 나간' 명세서 (지급 확정분) */
+  const paidR: any = await db.execute(sql`
+    SELECT s.member_uid, s.adjustments, s.gross_pay,
+           EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'Asia/Seoul')::int AS paid_month
+      FROM payroll_slips s
+     WHERE s.status = 'PAID' AND s.paid_at IS NOT NULL
+       AND EXTRACT(YEAR FROM s.paid_at AT TIME ZONE 'Asia/Seoul') = ${year}
+       AND EXTRACT(MONTH FROM s.paid_at AT TIME ZONE 'Asia/Seoul') BETWEEN ${months[0]} AND ${months[5]}
+  `);
+
+  /* 같은 달에 두 번 지급(정정 등)할 수 있으므로 더한다 */
+  const byMember = new Map<number, number[]>();
+  for (const p of rows(paidR)) {
+    const uid = Number(p.member_uid);
+    const idx = months.indexOf(Number(p.paid_month));
+    if (idx < 0) continue;
+    const arr = byMember.get(uid) ?? [0, 0, 0, 0, 0, 0];
+    /* 양식의 '급여 등' = 비과세를 뺀 과세 지급액 (인정상여 제외) */
+    arr[idx] += taxableBaseOf({ adjustments: p.adjustments }, n(p.gross_pay));
+    byMember.set(uid, arr);
+  }
+
+  const out: SimplifiedRow[] = staff.map((m: any) => {
+    const uid = Number(m.id);
+    const monthly = (byMember.get(uid) ?? [0, 0, 0, 0, 0, 0]).map((v) => Math.round(v));
+    /* 근무기간은 반기 안으로 자른다 — 양식이 '해당 반기의 근무기간'을 요구한다 */
+    const hire = m.hire_date ? String(m.hire_date).slice(0, 10).replace(/-/g, "") : null;
+    const workStart = hire && hire > periodStart ? hire : periodStart;
+    return {
+      memberUid: uid,
+      name: m.name,
+      hireDate: m.hire_date ? String(m.hire_date).slice(0, 10) : null,
+      workStart,
+      workEnd: periodEnd,
+      monthly,
+      hasRecord: monthly.some((v) => v > 0),
+    };
+  });
+
+  return { year, half, months, periodStart, periodEnd, dueDate, rows: out };
+}
+
+/* ══════════════════════════════════════════════════════════════
    4. 4대보험 보수총액 (연간) — 매년 3월 신고
       건강보험·국민연금 정산에 쓰는 '연간 과세 보수총액'과 근무월수.
    ══════════════════════════════════════════════════════════════ */

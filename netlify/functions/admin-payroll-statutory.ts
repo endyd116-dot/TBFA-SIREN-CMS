@@ -14,7 +14,7 @@
  */
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import {
-  payrollLedger, withholdingReport, annualSummary, insuranceBase,
+  payrollLedger, withholdingReport, annualSummary, insuranceBase, simplifiedStatement,
 } from "../../lib/payroll-statutory";
 import { generatePayrollLedgerPdf } from "../../lib/payroll-ledger-pdf";
 import { logAdminAction } from "../../lib/audit";
@@ -180,6 +180,18 @@ export default async function handler(req: Request) {
       return jsonOk({ year, orgName: org, ...a });
     }
 
+    /* ── 5. 간이지급명세서(근로소득) — 반기 제출용 금액·근무기간
+     *
+     * 엑셀 파일은 여기서 만들지 않는다. 양식에 주민등록번호가 들어가는데,
+     * 그 값이 서버를 거치면 로그·메모리·에러 리포트에 남을 수 있다.
+     * → 화면(브라우저)이 국세청 양식(public/forms)을 직접 채워 내려받는다.
+     *   이 API는 '금액과 근무기간'만 준다. 주민번호는 서버에 오지 않는다. */
+    if (type === "simplified") {
+      const half = Number(url.searchParams.get("half") || 1) === 2 ? 2 : 1;
+      const d = await simplifiedStatement(year, half);
+      return jsonOk({ ...d, orgName: org });
+    }
+
     /* ── 4. 4대보험 보수총액 (연간) ── */
     if (type === "insurance") {
       const ins = await insuranceBase(year);
@@ -198,7 +210,7 @@ export default async function handler(req: Request) {
       return jsonOk({ year, orgName: org, ...ins });
     }
 
-    return jsonBadRequest("type은 ledger | withholding | annual | insurance 여야 합니다");
+    return jsonBadRequest("type은 ledger | withholding | simplified | annual | insurance 여야 합니다");
   } catch (err) {
     return jsonError(`build_${type}`, err);
   }

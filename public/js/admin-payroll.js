@@ -1003,6 +1003,7 @@
     ledger:      { title: '임금대장',                  yearEl: 'lgYear',  monthEl: 'lgMonth' },
     annual:      { title: '연간 급여·공제 집계',        yearEl: 'anYear',  monthEl: null },
     insurance:   { title: '4대보험 보수총액',           yearEl: 'insYear', monthEl: null },
+    simplified:  { title: '간이지급명세서 (근로소득)',  yearEl: 'spYear',  monthEl: null },
   };
 
   function initStatutory() {
@@ -1021,6 +1022,14 @@
           ms.value = m;
         }
       }
+    }
+
+    /* 간이지급명세서는 '지금 제출해야 하는 반기'를 기본값으로 —
+       7~12월엔 당해 상반기(7/31 기한), 1~6월엔 전년 하반기(1/31 기한)를 낸다. */
+    const spY = $('spYear'), spH = $('spHalf');
+    if (spY && spH) {
+      if (m >= 7) { spY.value = y; spH.value = '1'; }
+      else        { spY.value = String(y - 1); spH.value = '2'; }
     }
   }
 
@@ -1212,6 +1221,150 @@
       '<br><br><b>엑셀 일괄 제출</b>: 4대사회보험 EDI는 표준 서식(엑셀) 업로드를 지원합니다. ' +
       'EDI에서 서식 파일을 받아 개발자에게 주시면 그대로 채워진 파일로 자동 생성해 드립니다.</div>';
   }
+
+  /* ══════════════════════════════════════════════════════════════
+     간이지급명세서(근로소득) — 국세청 일괄등록 엑셀 만들기
+
+     ⚠️ 주민등록번호는 서버로 보내지 않는다.
+        국세청 양식 파일을 브라우저가 직접 읽어 채우고 곧바로 내려받는다.
+        주민번호는 이 창을 닫는 순간 사라진다 — 서버·DB·로그 어디에도 남지 않는다.
+     ══════════════════════════════════════════════════════════════ */
+  /* 국세청 배포 양식 원본 — 시트명·헤더를 그대로 유지해야 홈택스 검증을 통과한다.
+     파일명은 한글을 피한다(정적 호스팅·CDN에서 인코딩 문제가 나면 조용히 404가 된다). */
+  const SIMPLIFIED_FORM = '/forms/hometax-simplified-payment-wage.xls';
+  let _spData = null;
+
+  window.openSimplified = async () => {
+    const year = $('spYear').value, half = $('spHalf').value;
+    evOpen('간이지급명세서 (근로소득)', '<div style="padding:24px;text-align:center;color:#9ca3af">불러오는 중...</div>');
+
+    const res = await api('/api/admin-payroll-statutory?type=simplified&year=' + year + '&half=' + half);
+    if (!res.ok) {
+      evOpen('간이지급명세서', '<div style="padding:20px;color:#dc2626">' + esc(res.data?.error || '불러오기 실패') + '</div>');
+      return;
+    }
+    _spData = res.data?.data || res.data;
+    renderSimplified();
+  };
+
+  function renderSimplified() {
+    const d = _spData;
+    const halfLabel = d.half === 1 ? '상반기' : '하반기';
+    const noRecord = d.rows.every(r => !r.hasRecord);
+
+    let h =
+      '<div class="stat-note" style="margin:0 0 14px;background:#fef2f2;border-color:#fecaca;color:#991b1b">' +
+        '<b>주민등록번호는 저장되지 않습니다.</b> 여기에 입력한 주민번호는 이 창을 닫으면 사라지며, ' +
+        '엑셀 파일은 <b>이 브라우저 안에서</b> 만들어져 서버로 전송되지 않습니다.' +
+      '</div>' +
+      '<div class="stat-note" style="margin:0 0 14px">' +
+        '<b>' + d.year + '년 ' + halfLabel + '</b> · 근무기간 ' + fmtYmd(d.periodStart) + ' ~ ' + fmtYmd(d.periodEnd) +
+        ' · <b>제출기한 ' + esc(d.dueDate) + '</b><br>' +
+        '금액은 <b>그 달에 실제로 지급한</b> 급여(비과세 제외)입니다. ' +
+        (noRecord
+          ? '<b style="color:#b45309">시스템에 지급 기록이 없어 전부 0으로 나옵니다 — 실제 지급액을 직접 입력하세요.</b>'
+          : '지급 확정([지급])한 명세서는 자동으로 채워집니다. 시스템 도입 전에 준 급여는 직접 입력하세요.') +
+      '</div>';
+
+    h += '<div class="stat-scroll"><table class="stat-table"><thead><tr>' +
+      '<th>성명</th><th style="min-width:150px">주민등록번호</th><th>근무기간</th>' +
+      d.months.map(m => '<th class="r">' + m + '월</th>').join('') +
+      '</tr></thead><tbody>' +
+      d.rows.map((r, i) =>
+        '<tr>' +
+        '<td><b>' + esc(r.name) + '</b></td>' +
+        '<td><input type="text" id="spRrn_' + i + '" maxlength="14" placeholder="주민번호 13자리" ' +
+          'style="width:145px;padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-family:monospace"></td>' +
+        '<td style="font-size:11.5px;color:#6b7280">' + fmtYmd(r.workStart) + '~' + fmtYmd(r.workEnd) + '</td>' +
+        r.monthly.map((v, mi) =>
+          '<td class="r"><input type="number" min="0" id="spAmt_' + i + '_' + mi + '" value="' + v + '" ' +
+          'style="width:92px;padding:5px 6px;border:1px solid ' + (v > 0 ? '#a7f3d0' : '#d1d5db') +
+          ';border-radius:6px;text-align:right;font-variant-numeric:tabular-nums"></td>').join('') +
+        '</tr>').join('') +
+      '</tbody></table></div>' +
+      '<div class="stat-note">' +
+        '<b>홈택스 제출 순서</b><br>' +
+        '① 아래 [엑셀 내려받기] → ② 홈택스 → 지급명세·자료 → 일용·간이지급명세서 제출 → ' +
+        '<b>변환파일 제출</b> 탭 → ③ 내려받은 파일 업로드 → [검증하기] → [과세자료 작성완료]<br>' +
+        '<span style="color:#9ca3af">※ 급여를 준 적 없는 달은 0으로 두세요. 인정상여는 없으므로 모두 0으로 채워집니다.</span>' +
+      '</div>';
+
+    const actions =
+      '<button class="btn btn-success" onclick="downloadSimplified()">엑셀 내려받기 (홈택스 업로드용)</button>' +
+      '<button class="btn btn-light" onclick="closeEvModal()">닫기</button>';
+    evOpen('간이지급명세서 (근로소득) — ' + d.year + '년 ' + halfLabel, h, actions);
+  }
+
+  function fmtYmd(s) {
+    const v = String(s || '');
+    return v.length === 8 ? v.slice(0, 4) + '.' + v.slice(4, 6) + '.' + v.slice(6, 8) : v;
+  }
+
+  window.downloadSimplified = async () => {
+    const d = _spData;
+    if (!d) return;
+    if (typeof XLSX === 'undefined') { toast('엑셀 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요', 'err'); return; }
+
+    /* 입력값 수집 + 검증 (홈택스 검증기가 거부하기 전에 여기서 잡는다) */
+    const out = [];
+    for (let i = 0; i < d.rows.length; i++) {
+      const r = d.rows[i];
+      const rrn = String(document.getElementById('spRrn_' + i)?.value || '').replace(/[^0-9]/g, '');
+      const amounts = r.monthly.map((_, mi) => Math.max(0, Math.round(Number(document.getElementById('spAmt_' + i + '_' + mi)?.value || 0))));
+      const total = amounts.reduce((s, v) => s + v, 0);
+
+      if (total === 0) continue;                     // 그 반기에 준 급여가 없으면 제출 대상 아님
+      if (rrn.length !== 13) {
+        toast(r.name + ' — 주민등록번호 13자리를 입력하세요 (급여를 지급한 직원만 제출합니다)', 'err');
+        return;
+      }
+      out.push({ name: r.name, rrn, workStart: r.workStart, workEnd: r.workEnd, amounts });
+    }
+    if (out.length === 0) {
+      toast('제출할 지급 내역이 없습니다. 지급한 달의 금액을 입력하세요', 'err');
+      return;
+    }
+
+    try {
+      /* 국세청 양식 파일을 그대로 읽어 채운다 — 시트명·헤더를 손대면 홈택스가 거부한다 */
+      const buf = await (await fetch(SIMPLIFIED_FORM, { cache: 'no-store' })).arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets['자료작성'];
+      if (!ws) throw new Error('양식의 [자료작성] 시트를 찾지 못했습니다');
+
+      /* 2행부터 기재 (양식 요령: 1행 헤더 고정 · 데이터 뒤에 값이 남으면 오류) */
+      const aoa = out.map((r, i) => {
+        const row = [
+          i + 1,            // A 일련번호
+          r.rrn,            // B 주민등록번호 (13자리·하이픈 없음)
+          r.name,           // C 성명
+          '1',              // D 내국인
+          '1',              // E 거주자
+          null,             // F 거주지국코드 — '공백이 아니면 오류'라 아예 빈 칸으로 둔다
+          r.workStart,      // G 근무기간 시작 YYYYMMDD
+          r.workEnd,        // H 근무기간 종료 YYYYMMDD
+        ];
+        /* I~T: 급여 등 / 인정상여 를 6개 달만큼 번갈아 (인정상여는 없으므로 0) */
+        for (const amt of r.amounts) { row.push(amt, 0); }
+        return row;
+      });
+      XLSX.utils.sheet_add_aoa(ws, aoa, { origin: 'A2' });
+      ws['!ref'] = 'A1:T' + (out.length + 1);
+
+      const bin = XLSX.write(wb, { bookType: 'biff8', type: 'array' });
+      const halfLabel = d.half === 1 ? '상반기' : '하반기';
+      const blob = new Blob([bin], { type: 'application/vnd.ms-excel' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '간이지급명세서_' + d.year + '_' + halfLabel + '.xls';   // 파일명 30자 이내
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+
+      toast(out.length + '명 · 엑셀을 내려받았습니다. 홈택스 [변환파일 제출]에 올리세요', 'ok');
+    } catch (err) {
+      toast('엑셀 생성 실패: ' + (err.message || err), 'err');
+    }
+  };
 
   /* ── 서명 증적 상세 ── */
   async function openEvidence(slipId) {
