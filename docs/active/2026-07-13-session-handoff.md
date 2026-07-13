@@ -90,6 +90,22 @@ Swain 지시: "우리 다 KST 기준으로 쓰니까 KST로 통일". 서버(Netl
 
 ---
 
+## 4-1. AM(함께워크 마케팅) SSO role claim 계약 — **종결** (2026-07-13)
+
+AM 쪽에서 "SSO 토큰에 role claim 추가" 계약서가 왔으나 **MIS 작업 0건으로 종결**. 조사 결과:
+
+- `netlify/functions/sso-marketing.ts` + `admin-hub.html` 진입 카드 ⑤ — **이미 완성·배포됨**(2026-06-09 잔여로 알려졌으나 실제론 완료).
+- **`role` claim도 이미 페이로드에 포함**(`role: a.role` = `members.role`). 라이브 토큰 실측으로 확인:
+  `{ sub, name, email, role:"super_admin", iss:"siren-hub", aud:"hamkkework-marketing", exp: iat+60 }` — 계약 규격 전 항목 일치.
+- **파라미터명**: MIS는 `?t=`로 보냄(계약서엔 `?token=`으로 오기). AM이 "t 우선 + token 폴백"이라 **`t` 유지 확정** 회신 → 변경 없음.
+- **오퍼레이터 진입**: `role_permissions.sso_marketing = { adminAllowed:true, operatorAllowed:false }` (설계된 기본값).
+  **Swain 결정: 차단 유지.** 필요해지면 통합 CMS → 권한정책 → 🔗 SSO 위성앱 탭에서 토글(코드 변경 0).
+- ⚠️ 운영진 전원 `members.type='admin'`이라 `requireAdmin`은 오퍼레이터도 통과함(차단은 권한 게이트 쪽).
+
+**→ MIS 쪽 배포·코드·설정 변경 없음. 추가 액션 없음.**
+
+---
+
 ## 5. 다음 메인 정독 순서
 
 1. 이 문서 (§0~§4)
