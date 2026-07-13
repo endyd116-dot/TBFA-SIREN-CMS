@@ -13,7 +13,7 @@
 |---|---|
 | main 커밋 | 461d3a9 → 00fbf13 (권한 시드 마이그 호출 완료) |
 | 통합 대상 라운드 | R32-P0 잔여(bca7673) + R33-P0 fix 4건(df75948) + R34-P1-A 인증 통합(0741a23) + R34-P1-B 성과 M 13건(798f38d) |
-| 어드민 계정 | admin / admin12345 (super_admin, milestoneRole=SM) |
+| 어드민 계정 | admin / (비번은 문서에 기재하지 않음) (super_admin, milestoneRole=SM) |
 | 검증 도구 | curl + 코드 정독 + drizzle SELECT |
 
 ---

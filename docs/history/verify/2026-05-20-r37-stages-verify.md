@@ -65,7 +65,7 @@ R36 cleanup 안착 — R37 머지 후 회귀 0.
 | 항목 | 값 |
 |---|---|
 | main 커밋 | 7f39cf7 |
-| 어드민 계정 | admin / admin12345 (super_admin, milestoneRole=SM) |
+| 어드민 계정 | admin / (비번은 문서에 기재하지 않음) (super_admin, milestoneRole=SM) |
 | 검증 도구 | curl + 코드 정독 + 라이브 알림 API |
 | 라이브 데이터 | 운영 초기 상태 — 결산·매출·비매출·재택보고서 0건 |
 

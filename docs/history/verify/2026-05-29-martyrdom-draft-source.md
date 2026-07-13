@@ -64,7 +64,7 @@
 | **증상** | `GET /api/admin-rag-status?diag=counts` → `byType: {manual:207, qna:328}` (총 535)·**martyr_* 0건**. 결과적으로 `draftSection` 응답 `ragSources` 항상 빈 배열 |
 | **영향** | R44가 의도한 "본 사건 자료 격리 RAG로 사실 인용" 정책이 **라이브에서 빈 결과만 반환** → AI가 placeholder로 회피(Swain 정책의 "(확인 필요)" 안전 폴백은 동작). **사실관계 본문 생성의 핵심 가치(자기 사건 자료로 사실 보강) 무력화** |
 | **추정 원인** | 후보 1) `admin-martyrdom-extract-background.ts:295-338` 색인 코드는 정확하나 라이브에서 한 번도 실제로 실행 안 됨(자료 업로드 시 호출 누락 또는 큐 실패) / 후보 2) embedText 호출이 일관 실패(GEMINI_EMBED_MODEL·GEMINI_EMBED_OUTPUT_DIM 환경변수 누락) / 후보 3) extract_status='done'까지 못 가서 색인 스킵 |
-| **재현** | (1) admin/admin12345 로그인 (2) 자료 5건 이상 사건(예 id=2 docs=72) 선택 → ④서면 → 섹션 1개 생성 (3) 응답 `ragSources` 0건 확인 (4) `GET /api/admin-rag-status?diag=counts` 응답에 martyr_active 없음 확인 |
+| **재현** | (1) admin/(비번 별도 전달) 로그인 (2) 자료 5건 이상 사건(예 id=2 docs=72) 선택 → ④서면 → 섹션 1개 생성 (3) 응답 `ragSources` 0건 확인 (4) `GET /api/admin-rag-status?diag=counts` 응답에 martyr_active 없음 확인 |
 | **fix 제안 (메인 권한)** | (1) `martyrdom_case_documents.extract_status` 분포 SELECT 진단 (`extract_status, COUNT(*) GROUP BY`) (2) extract_status='done'인데 ai_rag_documents에 martyr_active 청크 없는 자료 1건 골라 `admin-martyrdom-extract-background` 수동 재호출(`reindex=true`) → INSERT 동작 여부 확인 (3) embedText 실패라면 GEMINI_EMBED_* env 점검 (4) 정상화 후 대량 재색인 cron 또는 1회 보수 함수 |
 | **R44와 독립성** | R44 단일 커밋 9d494e7은 RAG 색인 동작 자체를 변경하지 않음. R44 머지 종결과 별개로 BUG-A는 사전에 존재했을 가능성 큼 (lastIndexedAt: 2026-05-25T17:04:13Z·R44 작업 전 시점). **R44 종결 차단 사유 아님** — 별도 트리거로 후속 처리 |
 
