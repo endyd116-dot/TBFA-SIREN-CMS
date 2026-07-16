@@ -74,7 +74,7 @@
         <div id="apListBody"></div>
       </div>
       <div id="apModal"></div>`;
-    c.querySelector('#apNewBtn').addEventListener('click', openDraftForm);
+    c.querySelector('#apNewBtn').addEventListener('click', () => openDraftForm());
     c.querySelectorAll('.apTab').forEach(b => b.addEventListener('click', () => {
       c.querySelectorAll('.apTab').forEach(x => x.classList.add('btn-sm-ghost'));
       b.classList.remove('btn-sm-ghost');
@@ -111,6 +111,8 @@
             <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._detail(${r.id})">상세</button>
             ${canAct ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'approve')">승인</button>
                         <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'reject')">반려</button>` : ''}
+            ${box === 'drafts' && r.status === 'rejected'
+              ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_APPROVAL._resubmit(${r.id})">재상신</button>` : ''}
             ${box === 'drafts' && !r.resolutionNo && (r.status === 'pending' || r.status === 'rejected')
               ? `<button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._delReq(${r.id})">삭제</button>` : ''}
             ${r.resolutionNo ? `<span style="align-self:center;font-size:11px;color:#059669">${esc(r.resolutionNo)}</span>` : ''}
@@ -120,35 +122,37 @@
     }).join('');
   }
 
-  async function openDraftForm() {
+  async function openDraftForm(prefill) {
     const moks = await loadMoks();
     const m = document.getElementById('apModal');
+    const p = prefill || {};
     m.innerHTML = `
       <div class="modal-backdrop" style="display:flex" id="apDraftBackdrop">
         <div class="modal" style="max-width:520px">
-          <div class="modal-head"><span class="modal-title">지출 결재 올리기</span><button class="modal-close" type="button" id="apDraftClose">×</button></div>
+          <div class="modal-head"><span class="modal-title">${p.isResubmit ? '반려건 재상신' : '지출 결재 올리기'}</span><button class="modal-close" type="button" id="apDraftClose">×</button></div>
           <div class="modal-body">
+            ${p.isResubmit ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;margin-bottom:10px">이전 반려건(${esc(p.origRequestNo || '')}) 내용을 불러왔습니다. 필요한 부분을 수정한 뒤 다시 올리세요.</div>` : ''}
             <label class="form-label">제목 *</label>
-            <input class="input" id="apfTitle" maxlength="200" placeholder="예: 추모행사 현수막 제작">
+            <input class="input" id="apfTitle" maxlength="200" placeholder="예: 추모행사 현수막 제작" value="${esc(p.title || '')}">
             <label class="form-label" style="margin-top:8px">금액(원) *</label>
-            <input class="input" id="apfAmount" type="number" min="1" placeholder="150000">
+            <input class="input" id="apfAmount" type="number" min="1" placeholder="150000" value="${p.amount || ''}">
             <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="apfLineHint">금액에 따라 결재선이 자동 결정됩니다.</div>
             <label class="form-label" style="margin-top:8px">예산 목(目) *</label>
-            <select class="input" id="apfMok"><option value="">— 예산과목(목) 선택 —</option>${moks.map(x => `<option value="${x.id}">${esc(x.label)}</option>`).join('')}</select>
+            <select class="input" id="apfMok"><option value="">— 예산과목(목) 선택 —</option>${moks.map(x => `<option value="${x.id}" ${p.budgetAccountId && String(p.budgetAccountId) === String(x.id) ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>
             <label class="form-label" style="margin-top:8px">지급처</label>
-            <input class="input" id="apfPayee" maxlength="200" placeholder="예: OO기획">
+            <input class="input" id="apfPayee" maxlength="200" placeholder="예: OO기획" value="${esc(p.payeeName || '')}">
             <label class="form-label" style="margin-top:8px">지출 예정일</label>
-            <input class="input" id="apfDate" type="date">
+            <input class="input" id="apfDate" type="date" value="${p.occurredAt ? String(p.occurredAt).slice(0, 10) : ''}">
             <label class="form-label" style="margin-top:8px">내용/사유</label>
-            <textarea class="input" id="apfDesc" rows="3"></textarea>
+            <textarea class="input" id="apfDesc" rows="3">${esc(p.description || '')}</textarea>
             <label class="form-label" style="margin-top:8px">증빙 파일 (영수증·세금계산서)</label>
             <input class="input" id="apfFile" type="file" accept="image/*,application/pdf,.xlsx,.xls,.hwp">
-            <div style="font-size:11px;color:var(--text-3);margin-top:2px">이미지·PDF·엑셀·한글 파일, 50MB 이하 (선택)</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px">이미지·PDF·엑셀·한글 파일, 50MB 이하 (선택)${p.evidenceUrl ? ' — 이전 첨부파일은 자동으로 옮겨지지 않으니 필요하면 다시 첨부하세요' : ''}</div>
             <div id="apfErr" style="color:var(--danger);font-size:12px;margin-top:6px;display:none"></div>
           </div>
           <div class="modal-foot">
             <button class="btn-sm btn-sm-ghost" type="button" id="apDraftCancel">취소</button>
-            <button class="btn-sm btn-sm-primary" type="button" id="apDraftSubmit">결재 올리기</button>
+            <button class="btn-sm btn-sm-primary" type="button" id="apDraftSubmit">${p.isResubmit ? '재상신' : '결재 올리기'}</button>
           </div>
         </div>
       </div>`;
@@ -216,6 +220,22 @@
       return null;
     }
     return fileUrl;
+  }
+
+  /* ── 반려건 재상신: 원본 내용 + 반려 사유를 불러와 새 기안 폼에 미리 채움 ── */
+  async function resubmit(id) {
+    const res = await api('GET', `/api/admin-approval-requests?id=${id}`);
+    if (!res.ok) { alert('조회 실패'); return; }
+    const d = res.data?.data || res.data;
+    const r = d.request || d;
+    const steps = d.steps || [];
+    const rejStep = [...steps].reverse().find(s => s.decision === 'rejected');
+    const note = `[재상신 · 원 결의 ${r.requestNo || ''} 반려사유: ${rejStep?.comment || '(사유 없음)'}]\n` + (r.description || '');
+    openDraftForm({
+      isResubmit: true, origRequestNo: r.requestNo,
+      title: r.title, amount: r.amount, budgetAccountId: r.budgetAccountId,
+      payeeName: r.payeeName, occurredAt: r.occurredAt, description: note,
+    });
   }
 
   async function detail(id) {
@@ -608,6 +628,6 @@
     inbox: initInbox, lines: initLines, resolutions: initResolutions,
     _detail: detail, _decide: decide, _deldel: delDelegation, _print: printResolution,
     _editLine: editLine, _delLine: deleteLine,
-    _delReq: deleteRequest, _cancelRes: cancelResolution,
+    _delReq: deleteRequest, _cancelRes: cancelResolution, _resubmit: resubmit,
   };
 })();

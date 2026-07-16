@@ -432,6 +432,11 @@
 [functions."cron-voucher-recurring"]
   schedule = "30 19 * * *"
 
+# ★ 2026-07-16: 지출 결재 지연 리마인드 (매일 KST 09:00 = UTC 00:00)
+# - pending 상태로 48시간/120시간(에스컬레이션) 정체된 건, 현재 단계 결재자에게 재알림
+[functions."cron-approval-delay-reminder"]
+  schedule = "0 0 * * *"
+
 # ★ 2026-05-16 A안: 효성 후원자 가입 흐름 — 만료된 전화 인증 row 정리 (매일 KST 03:00)
 [functions."cron-phone-verify-cleanup"]
   schedule = "0 18 * * *"
