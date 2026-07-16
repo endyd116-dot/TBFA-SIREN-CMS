@@ -139,6 +139,9 @@
             <input class="input" id="apfDate" type="date">
             <label class="form-label" style="margin-top:8px">내용/사유</label>
             <textarea class="input" id="apfDesc" rows="3"></textarea>
+            <label class="form-label" style="margin-top:8px">증빙 파일 (영수증·세금계산서)</label>
+            <input class="input" id="apfFile" type="file" accept="image/*,application/pdf,.xlsx,.xls,.hwp">
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px">이미지·PDF·엑셀·한글 파일, 50MB 이하 (선택)</div>
             <div id="apfErr" style="color:var(--danger);font-size:12px;margin-top:6px;display:none"></div>
           </div>
           <div class="modal-foot">
@@ -154,21 +157,63 @@
       const title = m.querySelector('#apfTitle').value.trim();
       const amount = parseInt(m.querySelector('#apfAmount').value) || 0;
       const budgetAccountId = parseInt(m.querySelector('#apfMok').value) || 0;
+      const file = m.querySelector('#apfFile').files[0];
       const errEl = m.querySelector('#apfErr');
+      errEl.style.display = 'none';
       if (!title || amount <= 0 || !budgetAccountId) {
         errEl.textContent = '제목·금액·예산 목은 필수입니다.'; errEl.style.display = ''; return;
+      }
+      const submitBtn = m.querySelector('#apDraftSubmit');
+      let evidenceUrl = null;
+      if (file) {
+        submitBtn.disabled = true; submitBtn.textContent = '파일 업로드 중…';
+        evidenceUrl = await uploadEvidence(file, errEl);
+        submitBtn.disabled = false; submitBtn.textContent = '결재 올리기';
+        if (!evidenceUrl) return;
       }
       const res = await api('POST', '/api/admin-approval-request-create', {
         title, amount, budgetAccountId,
         payeeName: m.querySelector('#apfPayee').value.trim(),
         occurredAt: m.querySelector('#apfDate').value || null,
         description: m.querySelector('#apfDesc').value.trim(),
+        evidenceUrl: evidenceUrl || undefined,
       });
       if (!res.ok) { errEl.textContent = '올리기 실패: ' + (res.data?.error || res.error || ''); errEl.style.display = ''; return; }
       close();
       alert('결재를 올렸습니다.');
       loadBox('drafts');
     };
+  }
+
+  /* ── R2 증빙 파일 업로드 (presign → PUT), admin-expenses.js와 동일 패턴 ── */
+  async function uploadEvidence(file, errEl) {
+    const pres = await api('POST', '/api/admin-expense-receipt-presign', {
+      fileName: file.name,
+      contentType: file.type || 'application/octet-stream',
+    });
+    if (!pres.ok) {
+      errEl.textContent = '업로드 URL 발급 실패: ' + (pres.data?.error || pres.error || ''); errEl.style.display = '';
+      return null;
+    }
+    const payload = pres.data?.data || pres.data;
+    const uploadUrl = payload?.uploadUrl;
+    const fileUrl = payload?.fileUrl;
+    if (!uploadUrl || !fileUrl) {
+      errEl.textContent = 'presign 응답에 uploadUrl/fileUrl 없음'; errEl.style.display = '';
+      return null;
+    }
+    try {
+      const r = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+      if (!r.ok) { errEl.textContent = `파일 업로드 실패 (HTTP ${r.status})`; errEl.style.display = ''; return null; }
+    } catch (e) {
+      errEl.textContent = '파일 업로드 오류: ' + String(e); errEl.style.display = '';
+      return null;
+    }
+    return fileUrl;
   }
 
   async function detail(id) {
@@ -197,6 +242,7 @@
               <div>예산 ${esc(d.budgetPath || r.budgetAccountName || '—')}</div>
             </div>
             <div style="font-size:13px;color:var(--text-2);margin-bottom:6px">기안 ${esc(r.drafterName || '')} · ${fmtDate(r.createdAt)} · 지급처 ${esc(r.payeeName || '—')}</div>
+            ${r.evidenceUrl ? `<div style="margin-bottom:10px"><a href="${esc(r.evidenceUrl)}" target="_blank" rel="noopener" class="btn-sm btn-sm-ghost" style="text-decoration:none;display:inline-block">📎 증빙 파일 보기</a></div>` : ''}
             ${r.description ? `<div style="background:#f9fafb;border-radius:8px;padding:10px;font-size:13px;margin-bottom:10px;white-space:pre-wrap">${esc(r.description)}</div>` : ''}
             ${r.resolutionNo ? `<div style="color:#059669;font-weight:600;font-size:13px;margin-bottom:8px">지출결의서 ${esc(r.resolutionNo)} 발행됨</div>` : ''}
             <table class="data-table" style="width:100%"><thead><tr><th>결재</th><th>결과</th><th>결재자</th><th>의견</th><th>일시</th></tr></thead><tbody>${stepRows}</tbody></table>
@@ -224,11 +270,16 @@
     if (!c) return;
     await loadRole();
     c.innerHTML = `<div class="panel">
-      <div class="p-head"><div class="p-title">결재라인 설정</div></div>
+      <div class="p-head">
+        <div class="p-title">결재라인 설정</div>
+        ${isSuper() ? '<div class="p-actions"><button class="btn-sm btn-sm-primary" id="apLineAddBtn" type="button">+ 결재라인 추가</button></div>' : ''}
+      </div>
       <div style="font-size:12px;color:var(--text-3);margin-bottom:8px">금액 구간에 따라 결재 단계(직책 순서)가 자동 적용됩니다. ${isSuper() ? '' : '<b>이사장(super_admin)만 수정 가능</b>합니다.'}</div>
       <div id="apLinesBody"></div>
       <div style="margin-top:24px" id="apDelegWrap"></div>
+      <div id="apLineModal"></div>
     </div>`;
+    if (isSuper()) document.getElementById('apLineAddBtn')?.addEventListener('click', () => openLineForm(null));
     await loadLines();
     await loadDelegations();
   }
@@ -238,16 +289,93 @@
     if (!res.ok) { el.innerHTML = `<div style="color:var(--danger)">조회 실패</div>`; return; }
     const lines = res.data?.data?.lines || res.data?.lines || [];
     el.innerHTML = `<table class="data-table" style="width:100%">
-      <thead><tr><th>구간</th><th>금액</th><th>결재 단계</th><th>이사회</th><th>상태</th></tr></thead>
+      <thead><tr><th>구간</th><th>금액</th><th>결재 단계</th><th>이사회</th><th>상태</th>${isSuper() ? '<th></th>' : ''}</tr></thead>
       <tbody>${lines.map(l => `<tr>
         <td>${esc(l.name)}</td>
         <td class="num">${fmtKRW(l.minAmount)} ~ ${l.maxAmount == null ? '무제한' : fmtKRW(l.maxAmount)}</td>
         <td>${esc(stepsLabel(l.steps))}</td>
-        <td>${l.boardRequired ? '' : '—'}</td>
+        <td>${l.boardRequired ? '이사회 안건' : '—'}</td>
         <td>${l.isActive ? '<span style="color:#059669">활성</span>' : '<span style="color:#9ca3af">비활성</span>'}</td>
+        ${isSuper() ? `<td style="white-space:nowrap">
+          <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._editLine(${l.id})">수정</button>
+          <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._delLine(${l.id})">삭제</button>
+        </td>` : ''}
       </tr>`).join('')}</tbody>
     </table>
-    <div style="font-size:12px;color:var(--text-3);margin-top:8px">기본 3구간: 30만 미만=국장 단독 / 30만~300만=국장→이사장 / 300만 이상=국장→이사장(이사회 안건). 금액 경계·단계 변경은 이사장 문의.</div>`;
+    <div style="font-size:12px;color:var(--text-3);margin-top:8px">기본 3구간: 30만 미만=국장 단독 / 30만~300만=국장→이사장 / 300만 이상=국장→이사장(이사회 안건). ${isSuper() ? '금액 경계·단계는 위 표에서 직접 추가·수정·삭제할 수 있습니다.' : '금액 경계·단계 변경은 이사장 문의.'}</div>`;
+    window.__apLinesCache = lines;
+  }
+
+  /* ── 결재라인 추가/수정 폼 (super_admin 전용) ── */
+  function openLineForm(existing) {
+    const m = document.getElementById('apLineModal');
+    if (!m) return;
+    const steps = existing?.steps || [];
+    m.innerHTML = `
+      <div class="modal-backdrop" style="display:flex" id="apLineBackdrop">
+        <div class="modal" style="max-width:460px">
+          <div class="modal-head"><span class="modal-title">${existing ? '결재라인 수정' : '결재라인 추가'}</span><button class="modal-close" type="button" id="apLineClose">×</button></div>
+          <div class="modal-body">
+            <label class="form-label">구간명 *</label>
+            <input class="input" id="aplName" maxlength="100" placeholder="예: 500만원 이상" value="${esc(existing?.name || '')}">
+            <label class="form-label" style="margin-top:8px">최소 금액(원) *</label>
+            <input class="input" id="aplMin" type="number" min="0" value="${existing?.minAmount ?? 0}">
+            <label class="form-label" style="margin-top:8px">최대 금액(원) — 비우면 무제한</label>
+            <input class="input" id="aplMax" type="number" min="0" value="${existing?.maxAmount ?? ''}">
+            <label class="form-label" style="margin-top:8px">결재 단계 *</label>
+            <div style="display:flex;gap:16px;margin-top:4px">
+              <label style="font-size:13px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="aplStepAdmin" ${steps.includes('admin') || !existing ? 'checked' : ''}> 국장</label>
+              <label style="font-size:13px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="aplStepSuper" ${steps.includes('super_admin') ? 'checked' : ''}> 이사장</label>
+            </div>
+            <label style="font-size:13px;display:flex;align-items:center;gap:5px;margin-top:10px"><input type="checkbox" id="aplBoard" ${existing?.boardRequired ? 'checked' : ''}> 이사회 안건 필요</label>
+            <label style="font-size:13px;display:flex;align-items:center;gap:5px;margin-top:6px"><input type="checkbox" id="aplActive" ${existing == null || existing?.isActive ? 'checked' : ''}> 활성</label>
+            <div id="aplErr" style="color:var(--danger);font-size:12px;margin-top:8px;display:none"></div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn-sm btn-sm-ghost" type="button" id="apLineCancel">취소</button>
+            <button class="btn-sm btn-sm-primary" type="button" id="apLineSubmit">${existing ? '저장' : '추가'}</button>
+          </div>
+        </div>
+      </div>`;
+    const close = () => { m.innerHTML = ''; };
+    m.querySelector('#apLineClose').onclick = close;
+    m.querySelector('#apLineCancel').onclick = close;
+    m.querySelector('#apLineSubmit').onclick = async () => {
+      const errEl = m.querySelector('#aplErr');
+      errEl.style.display = 'none';
+      const name = m.querySelector('#aplName').value.trim();
+      const minAmount = Number(m.querySelector('#aplMin').value);
+      const maxRaw = m.querySelector('#aplMax').value;
+      const maxAmount = maxRaw === '' ? null : Number(maxRaw);
+      const stepsVal = [];
+      if (m.querySelector('#aplStepAdmin').checked) stepsVal.push('admin');
+      if (m.querySelector('#aplStepSuper').checked) stepsVal.push('super_admin');
+      const boardRequired = m.querySelector('#aplBoard').checked;
+      const isActive = m.querySelector('#aplActive').checked;
+      if (!name) { errEl.textContent = '구간명은 필수입니다.'; errEl.style.display = ''; return; }
+      if (!Number.isFinite(minAmount) || minAmount < 0) { errEl.textContent = '최소 금액을 확인하세요.'; errEl.style.display = ''; return; }
+      if (maxAmount != null && (!Number.isFinite(maxAmount) || maxAmount < minAmount)) { errEl.textContent = '최대 금액은 최소 금액 이상이어야 합니다.'; errEl.style.display = ''; return; }
+      if (stepsVal.length === 0) { errEl.textContent = '결재 단계를 최소 1개 선택하세요.'; errEl.style.display = ''; return; }
+
+      const body = existing
+        ? { action: 'update', id: existing.id, name, minAmount, maxAmount, steps: stepsVal, boardRequired, isActive }
+        : { action: 'create', name, minAmount, maxAmount, steps: stepsVal, boardRequired };
+      const res = await api('POST', '/api/admin-approval-lines', body);
+      if (!res.ok) { errEl.textContent = '저장 실패: ' + (res.data?.error || res.error || ''); errEl.style.display = ''; return; }
+      close();
+      await loadLines();
+    };
+  }
+  function editLine(id) {
+    const line = (window.__apLinesCache || []).find(l => l.id === id);
+    if (!line) { alert('결재라인 정보를 찾을 수 없습니다.'); return; }
+    openLineForm(line);
+  }
+  async function deleteLine(id) {
+    if (!confirm('이 결재라인을 삭제할까요? 이 구간에 걸리는 금액대는 더 이상 결재를 올릴 수 없게 됩니다.')) return;
+    const res = await api('POST', '/api/admin-approval-lines', { action: 'delete', id });
+    if (!res.ok) { alert('삭제 실패: ' + (res.data?.error || res.error || '')); return; }
+    await loadLines();
   }
   async function loadDelegations() {
     const el = document.getElementById('apDelegWrap');
@@ -335,5 +463,6 @@
   window.SIREN_APPROVAL = {
     inbox: initInbox, lines: initLines, resolutions: initResolutions,
     _detail: detail, _decide: decide, _deldel: delDelegation, _print: printResolution,
+    _editLine: editLine, _delLine: deleteLine,
   };
 })();
