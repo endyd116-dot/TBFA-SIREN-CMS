@@ -210,7 +210,7 @@
 
   window.SIREN_BUDGET_ACCOUNTS = {
     init, load: init,
-    _: { addChild: addNode, rename, toggleActive, del, mapCode },
+    _addChild: addNode, _rename: rename, _toggleActive: toggleActive, _del: del, _mapCode: mapCode,
     _toggle: toggleNode,
     _unmap: unmap,
   };
