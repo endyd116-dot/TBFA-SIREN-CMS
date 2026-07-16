@@ -587,9 +587,11 @@
   /* ------------ 14. 초기화 ------------ */
   async function init() {
     await loadAllPartials();
-    /* Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림 */
-    await renderHeaderMenu();
+    /* Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림
+       2026-07-16: 푸터 정보 요청이 헤더 메뉴 요청 완료를 불필요하게 기다리던 지연 제거 —
+       서로 의존관계 없으므로 동시에 시작(병렬), activateGNB만 헤더 렌더 완료를 기다림 */
     renderFooter();   /* 2026-07-07 푸터 DB 설정 렌더(비차단) */
+    await renderHeaderMenu();
     activateGNB();
     setupLangToggle();
     setupSearch();
