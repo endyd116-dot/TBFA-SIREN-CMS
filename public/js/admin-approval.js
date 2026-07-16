@@ -111,6 +111,8 @@
             <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._detail(${r.id})">상세</button>
             ${canAct ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'approve')">승인</button>
                         <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'reject')">반려</button>` : ''}
+            ${box === 'drafts' && !r.resolutionNo && (r.status === 'pending' || r.status === 'rejected')
+              ? `<button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._delReq(${r.id})">삭제</button>` : ''}
             ${r.resolutionNo ? `<span style="align-self:center;font-size:11px;color:#059669">${esc(r.resolutionNo)}</span>` : ''}
           </div>
         </div>
@@ -414,22 +416,164 @@
   }
 
   /* ══════════ 화면 3: 지출결의서 ══════════ */
+  let resCache = [];
   async function initResolutions() {
     const c = document.getElementById('page-approval-resolutions');
     if (!c) return;
     await loadRole();
-    c.innerHTML = `<div class="panel"><div class="p-head"><div class="p-title">지출결의서</div></div><div id="apResBody"></div></div>`;
-    const res = await api('GET', '/api/admin-approval-requests?box=all&status=approved');
+    c.innerHTML = `<div class="panel">
+      <div class="p-head">
+        <div class="p-title">지출결의서</div>
+        <div class="p-actions" style="display:flex;gap:6px">
+          <button class="btn-sm btn-sm-ghost" id="apResCsv" type="button">CSV 내보내기</button>
+          <button class="btn-sm btn-sm-ghost" id="apResZip" type="button">발행본 일괄 다운로드</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input class="input-sm" id="apResSearch" placeholder="제목·결의번호·지급처 검색" style="max-width:220px">
+        <select class="input-sm" id="apResYear" style="width:110px"><option value="">전체 연도</option></select>
+      </div>
+      <div id="apResStatus" style="font-size:12px;color:var(--text-3);margin-bottom:8px;display:none"></div>
+      <div id="apResBody"></div>
+    </div>`;
+    document.getElementById('apResCsv').addEventListener('click', exportResolutionsCsv);
+    document.getElementById('apResZip').addEventListener('click', downloadResolutionsZip);
+    document.getElementById('apResSearch').addEventListener('input', renderResolutions);
+    document.getElementById('apResYear').addEventListener('change', renderResolutions);
+
+    const res = await api('GET', '/api/admin-approval-requests?box=all');
     const list = (res.ok ? (res.data?.data?.items || res.data?.items || res.data?.data?.requests || res.data?.requests || []) : []).filter(r => r.resolutionNo);
+    resCache = list;
+
+    const years = [...new Set(list.map(r => r.fiscalYear))].sort((a, b) => b - a);
+    const yearSel = document.getElementById('apResYear');
+    years.forEach(y => yearSel.insertAdjacentHTML('beforeend', `<option value="${y}">${y}년</option>`));
+
+    renderResolutions();
+  }
+
+  function renderResolutions() {
     const el = document.getElementById('apResBody');
+    if (!el) return;
+    const q = (document.getElementById('apResSearch')?.value || '').trim().toLowerCase();
+    const year = document.getElementById('apResYear')?.value || '';
+    const list = resCache.filter(r => {
+      if (year && String(r.fiscalYear) !== String(year)) return false;
+      if (!q) return true;
+      return [r.title, r.resolutionNo, r.payeeName].some(v => String(v || '').toLowerCase().includes(q));
+    });
     if (!list.length) { el.innerHTML = `<div style="color:var(--text-3);padding:20px;text-align:center">발행된 지출결의서가 없습니다.</div>`; return; }
     el.innerHTML = `<table class="data-table" style="width:100%">
-      <thead><tr><th>결의번호</th><th>제목</th><th>금액</th><th>예산과목</th><th>발행일</th><th></th></tr></thead>
-      <tbody>${list.map(r => `<tr>
+      <thead><tr><th>결의번호</th><th>제목</th><th>금액</th><th>예산과목</th><th>발행일</th><th>상태</th><th></th></tr></thead>
+      <tbody>${list.map(r => `<tr style="${r.status === 'canceled' ? 'opacity:.55' : ''}">
         <td><b>${esc(r.resolutionNo)}</b></td><td>${esc(r.title)}</td><td class="num">${fmtKRW(r.amount)}</td>
         <td>${esc(r.budgetAccountName || '—')}</td><td>${fmtDate(r.decidedAt || r.createdAt)}</td>
-        <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">인쇄</button></td>
+        <td>${statusBadge(r.status)}</td>
+        <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">인쇄</button>${
+          r.status === 'approved' && isSuper() ? ` <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._cancelRes(${r.id})">결재취소</button>` : ''
+        }</td>
       </tr>`).join('')}</tbody></table>`;
+  }
+
+  async function cancelResolution(id) {
+    if (!isSuper()) { alert('결재취소는 이사장만 가능합니다.'); return; }
+    const reason = prompt('취소 사유를 입력하세요 (선택)') || '';
+    if (!confirm('이 지출결의서를 취소할까요?\n연결된 지출은 예산 집행에서 제외되고, 결의번호·기록은 이력으로 남습니다.')) return;
+    const res = await api('POST', '/api/admin-approval-cancel', { requestId: id, action: 'cancel', reason });
+    if (!res.ok) { alert('취소 실패: ' + (res.data?.error || res.error || '')); return; }
+    alert('취소 처리했습니다.');
+    initResolutions();
+  }
+
+  async function deleteRequest(id) {
+    if (!confirm('이 기안을 삭제할까요? 되돌릴 수 없습니다.')) return;
+    const res = await api('POST', '/api/admin-approval-cancel', { requestId: id, action: 'delete' });
+    if (!res.ok) { alert('삭제 실패: ' + (res.data?.error || res.error || '')); return; }
+    loadBox('drafts');
+  }
+
+  function exportResolutionsCsv() {
+    const q = (document.getElementById('apResSearch')?.value || '').trim().toLowerCase();
+    const year = document.getElementById('apResYear')?.value || '';
+    const list = resCache.filter(r => {
+      if (year && String(r.fiscalYear) !== String(year)) return false;
+      if (!q) return true;
+      return [r.title, r.resolutionNo, r.payeeName].some(v => String(v || '').toLowerCase().includes(q));
+    });
+    if (!list.length) { alert('내보낼 항목이 없습니다.'); return; }
+    const header = ['결의번호', '제목', '금액', '예산과목', '발행일', '상태'];
+    const csvRows = [header.join(',')];
+    list.forEach(r => {
+      const row = [
+        r.resolutionNo || '', r.title || '', r.amount || 0, r.budgetAccountName || '',
+        fmtDate(r.decidedAt || r.createdAt), STATUS[r.status]?.t || r.status,
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+      csvRows.push(row.join(','));
+    });
+    const blob = new Blob(['﻿' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `지출결의서_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* ── 발행본 ZIP 일괄 다운로드 (workspace-files.js와 동일 CDN fallback 패턴) ── */
+  const JSZIP_CDNS = [
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  ];
+  function loadScriptFallback(urls) {
+    return new Promise((resolve, reject) => {
+      let i = 0;
+      const tryNext = () => {
+        if (i >= urls.length) return reject(new Error('모든 CDN 소스에서 로드 실패'));
+        const s = document.createElement('script');
+        s.src = urls[i++];
+        s.onload = resolve;
+        s.onerror = tryNext;
+        document.head.appendChild(s);
+      };
+      tryNext();
+    });
+  }
+  async function downloadResolutionsZip() {
+    const statusEl = document.getElementById('apResStatus');
+    const list = resCache.filter(r => r.resolutionPdfUrl);
+    if (!list.length) { alert('다운로드할 발행본이 없습니다.'); return; }
+    statusEl.style.display = ''; statusEl.textContent = 'JSZip 라이브러리 로드 중…';
+    try {
+      if (!window.JSZip) await loadScriptFallback(JSZIP_CDNS);
+    } catch (e) { statusEl.textContent = 'ZIP 라이브러리 로드 실패: ' + e.message; return; }
+
+    const zip = new window.JSZip();
+    let done = 0;
+    for (const r of list) {
+      statusEl.textContent = `다운로드 중… (${done + 1}/${list.length}) ${r.resolutionNo}`;
+      try {
+        const resp = await fetch(r.resolutionPdfUrl, { credentials: 'include' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const blob = await resp.blob();
+        zip.file(`${r.resolutionNo}.pdf`, blob);
+      } catch (e) {
+        console.warn('[zip] failed:', r.resolutionNo, e);
+      }
+      done++;
+    }
+    statusEl.textContent = 'ZIP 압축 중…';
+    try {
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `지출결의서_발행본_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      statusEl.textContent = `완료 (${done}건)`;
+      setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+    } catch (e) {
+      statusEl.textContent = 'ZIP 생성 실패: ' + e.message;
+    }
   }
   async function printResolution(id) {
     const res = await api('GET', `/api/admin-approval-requests?id=${id}`);
@@ -464,5 +608,6 @@
     inbox: initInbox, lines: initLines, resolutions: initResolutions,
     _detail: detail, _decide: decide, _deldel: delDelegation, _print: printResolution,
     _editLine: editLine, _delLine: deleteLine,
+    _delReq: deleteRequest, _cancelRes: cancelResolution,
   };
 })();
