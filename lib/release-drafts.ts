@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-13.2";
+export const APP_VERSION = "2026-07-20.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,63 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-20-receipt-attachment-fix",
+    title: "[관리자] 첨부한 증빙이 안 열리던 문제",
+    items: [
+      { text: "지출 결재·지출 관리에 올린 증빙 파일을 눌러도 빈 화면만 뜨던 문제를 고쳤습니다 — 파일은 정상적으로 올라가 있었고 열람만 막혀 있었습니다", link: "/cms-tbfa.html#approval-inbox" },
+      { text: "이미 안 열리는 상태로 굳어 있던 기존 증빙 4건도 복구했습니다 — 다시 올리지 않아도 그대로 열립니다", link: "/cms-tbfa.html#expenses" },
+    ],
+  },
+  {
+    key: "2026-07-20-resolution-pdf-format",
+    title: "[관리자] 지출결의서 서식 정리 — 결재란·표 넘침",
+    items: [
+      { text: "기안자가 결재선의 직책을 겸하는 경우 자기 자신이 결재하는 칸은 표시하지 않습니다 — 그 칸에 이사장 이름이 대신 찍히던 것도 함께 해소되었습니다", link: "/cms-tbfa.html#approval-resolutions" },
+      { text: "본문 표의 숫자·공백이 넓게 벌어져 칸 밖으로 넘치고 잘리던 문제를 고쳤습니다", link: "/cms-tbfa.html#approval-resolutions" },
+      { text: "기안일이 결의서에 표기됩니다" },
+      { text: "[이사장] 이미 발행된 결의서에 '재발행' 버튼이 생겼습니다 — 내용은 그대로 두고 서식만 새 규칙으로 다시 만듭니다", link: "/cms-tbfa.html#approval-resolutions" },
+    ],
+  },
+  {
+    key: "2026-07-16-approval-resubmit-remind",
+    title: "[관리자] 반려건 재상신 · 결재 지연 자동 알림",
+    items: [
+      { text: "반려된 지출 결재를 처음부터 다시 쓰지 않고 내용을 고쳐 다시 올릴 수 있습니다", link: "/cms-tbfa.html#approval-inbox" },
+      { text: "결재가 오래 멈춰 있으면 결재자에게 자동으로 알림이 갑니다 — 결재 대기건이 잊혀 묵히는 일을 줄입니다", link: "/cms-tbfa.html#approval-inbox" },
+    ],
+  },
+  {
+    key: "2026-07-16-resolution-manage",
+    title: "[관리자] 지출결의서 관리 기능 확장",
+    items: [
+      { text: "올린 결재를 취소하거나 기안을 삭제할 수 있습니다", link: "/cms-tbfa.html#approval-resolutions" },
+      { text: "발행된 결의서를 한 번에 모아 내려받을 수 있습니다", link: "/cms-tbfa.html#approval-resolutions" },
+      { text: "결의서 검색과 CSV 내려받기가 추가되었습니다 — 회계 정리·감사 자료 준비에 사용하세요", link: "/cms-tbfa.html#approval-resolutions" },
+    ],
+  },
+  {
+    key: "2026-07-16-approval-evidence-lines",
+    title: "[관리자] 지출 결재에 증빙 첨부 · 결재라인 직접 설정",
+    items: [
+      { text: "지출 결재를 올릴 때 영수증·계약서 등 증빙 파일을 함께 붙일 수 있습니다", link: "/cms-tbfa.html#approval-inbox" },
+      { text: "[이사장] 누가 어떤 순서로 결재하는지를 화면에서 직접 만들고 고칠 수 있습니다 — 결재선이 바뀔 때마다 개발자를 부르지 않아도 됩니다", link: "/cms-tbfa.html#approval-lines" },
+    ],
+  },
+  {
+    key: "2026-07-16-budget-accounts-fix",
+    title: "[관리자] 예산과목(관·항·목) 버튼이 눌리지 않던 문제",
+    items: [
+      { text: "예산과목 체계 화면에서 추가·수정·삭제 버튼이 전부 반응하지 않던 문제를 고쳤습니다", link: "/cms-tbfa.html#budget-accounts" },
+    ],
+  },
+  {
+    key: "2026-07-16-footer-speed",
+    title: "홈페이지 하단 협회 정보가 늦게 뜨던 문제",
+    items: [
+      { text: "페이지 맨 아래 협회 정보(주소·연락처 등)가 상단 메뉴를 다 불러올 때까지 기다렸다 뜨던 지연을 없앴습니다" },
+    ],
+  },
   {
     key: "2026-07-13-kst-io-edges",
     title: "날짜·시각 정확성 마무리 — 엑셀 날짜·시각 입력",
