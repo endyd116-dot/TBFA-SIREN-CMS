@@ -642,6 +642,11 @@
       return null;
     }
 
+    /* 3) 업로드 완료 확정 — 빠뜨리면 blob_uploads 가 pending 으로 남아
+       나중에 blob-image 가 425(미완료)로 막아 영수증을 못 본다. */
+    const conf = await api('POST', '/api/blob-confirm', { id: payload.id });
+    if (!conf.ok) { showErr(errEl, '업로드 확정 실패: ' + (conf.data?.error || conf.error || '')); return null; }
+
     return fileUrl;
   }
 
