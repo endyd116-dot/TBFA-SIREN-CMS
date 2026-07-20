@@ -85,9 +85,11 @@ async function handleDetail(id: number) {
         ar.board_required, ar.steps, ar.current_step, ar.status, ar.expense_id,
         ar.resolution_no, ar.resolution_pdf_url, ar.resolution_issued_at,
         ar.created_at, ar.updated_at, ar.decided_at,
-        ba.name AS budget_account_name, ba.parent_id AS budget_parent_id
+        ba.name AS budget_account_name, ba.parent_id AS budget_parent_id,
+        dm.role AS drafter_role
       FROM approval_requests ar
       LEFT JOIN budget_accounts ba ON ba.id = ar.budget_account_id
+      LEFT JOIN members dm ON dm.id = ar.drafter_id
       WHERE ar.id = ${id}
       LIMIT 1
     `);
@@ -157,6 +159,7 @@ async function handleDetail(id: number) {
     evidenceUrl:       reqRow.evidence_url,
     drafterId:         reqRow.drafter_id == null ? null : Number(reqRow.drafter_id),
     drafterName:       reqRow.drafter_name,
+    drafterRole:       reqRow.drafter_role || null,
     approvalLineId:    reqRow.approval_line_id == null ? null : Number(reqRow.approval_line_id),
     boardRequired:     reqRow.board_required === true || reqRow.board_required === "t",
     steps:             Array.isArray(reqRow.steps) ? reqRow.steps : [],

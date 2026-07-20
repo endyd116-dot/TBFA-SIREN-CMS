@@ -50,13 +50,25 @@ export async function generateResolutionPDF(data: ResolutionPdfData): Promise<Ui
   const W = 595 - M * 2;
   let y = 842 - 60;
 
+  /* ⚠️ 이 한글 폰트를 통째로 임베드(subset:false)하면 글자별 폭(/W)이 실리지 않아
+     page.drawText(문장)이 숫자·공백을 전각(1em)으로 벌려 → 본문 표 밖으로 넘쳐 잘린다.
+     글자별로 직접 배치(drawRun)하면 폭 계산(widthOfTextAtSize)과 렌더가 일치해 넘침이 사라진다.
+     (급여 PDF lib/payroll-pdf.ts 와 동일한 우회) */
+  const drawRun = (s: string, x: number, yy: number, size: number, color: any) => {
+    let cx = x;
+    for (const ch of Array.from(String(s ?? ""))) {
+      const w = font.widthOfTextAtSize(ch, size);
+      if (ch.trim()) page.drawText(ch, { x: cx, y: yy, size, font, color });
+      cx += w;
+    }
+  };
   const text = (s: string, x: number, yy: number, size = 11, color = black) =>
-    page.drawText(String(s ?? ""), { x, y: yy, size, font, color });
+    drawRun(s, x, yy, size, color);
   const rect = (x: number, yy: number, w: number, h: number, fill?: any) =>
     page.drawRectangle({ x, y: yy, width: w, height: h, borderColor: lineC, borderWidth: 0.8, color: fill });
   const center = (s: string, cx: number, yy: number, size = 11, color = black) => {
     const tw = font.widthOfTextAtSize(String(s ?? ""), size);
-    page.drawText(String(s ?? ""), { x: cx - tw / 2, y: yy, size, font, color });
+    drawRun(s, cx - tw / 2, yy, size, color);
   };
 
   // 제목

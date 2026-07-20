@@ -497,9 +497,18 @@
         <td>${esc(r.budgetAccountName || '—')}</td><td>${fmtDate(r.decidedAt || r.createdAt)}</td>
         <td>${statusBadge(r.status)}</td>
         <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">인쇄</button>${
-          r.status === 'approved' && isSuper() ? ` <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._cancelRes(${r.id})">결재취소</button>` : ''
+          r.status === 'approved' && isSuper() ? ` <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._regenRes(${r.id})">재발행</button> <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._cancelRes(${r.id})">결재취소</button>` : ''
         }</td>
       </tr>`).join('')}</tbody></table>`;
+  }
+
+  async function regenerateResolution(id) {
+    if (!isSuper()) { alert('재발행은 이사장만 가능합니다.'); return; }
+    if (!confirm('이 지출결의서의 발행본(PDF)을 최신 서식으로 다시 만들까요?\n결의번호·금액 등 내용은 그대로이고, 결재란·레이아웃 표기만 갱신됩니다.')) return;
+    const res = await api('POST', '/api/admin-approval-resolution-regenerate', { requestId: id });
+    if (!res.ok) { alert('재발행 실패: ' + (res.data?.error || res.error || '')); return; }
+    alert('발행본을 다시 만들었습니다. 발행본 링크에서 확인하세요.');
+    initResolutions();
   }
 
   async function cancelResolution(id) {
@@ -605,7 +614,11 @@
   async function printResolution(id) {
     const res = await api('GET', `/api/admin-approval-requests?id=${id}`);
     if (!res.ok) { alert('조회 실패'); return; }
-    const d = res.data?.data || res.data; const r = d.request || d; const steps = d.steps || [];
+    const d = res.data?.data || res.data; const r = d.request || d;
+    /* 기안자가 결재선의 직책(예: 국장)을 겸하면 그 직책 결재칸은 자기결재라 제외
+       (발행본 PDF와 동일 규칙 — lib/resolution-pdf-store) */
+    const drafterRole = r.drafterRole || null;
+    const steps = (d.steps || []).filter(s => !(drafterRole && s.role === drafterRole));
     const w = window.open('', '_blank', 'width=800,height=1000');
     const stepCells = steps.map(s => `<td style="border:1px solid #333;padding:14px 8px;text-align:center;vertical-align:bottom;height:70px">
       <div style="font-size:11px;color:#555">${ROLE_LABEL[s.role] || s.role}</div>
@@ -635,6 +648,6 @@
     inbox: initInbox, lines: initLines, resolutions: initResolutions,
     _detail: detail, _decide: decide, _deldel: delDelegation, _print: printResolution,
     _editLine: editLine, _delLine: deleteLine,
-    _delReq: deleteRequest, _cancelRes: cancelResolution, _resubmit: resubmit,
+    _delReq: deleteRequest, _cancelRes: cancelResolution, _regenRes: regenerateResolution, _resubmit: resubmit,
   };
 })();
