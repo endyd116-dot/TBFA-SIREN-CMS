@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-20.1";
+export const APP_VERSION = "2026-07-20.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-20-calendar-event-visibility",
+    title: "공유 캘린더의 일정이 안 보이던 문제",
+    items: [
+      { text: "캘린더에 등록한 일정이 흰 바탕에 흰 글씨로 나와 보이지 않던 문제를 고쳤습니다 — 일정은 정상적으로 저장되어 있었고 화면 표시만 잘못됐습니다", link: "/workspace-calendar.html" },
+      { text: "앞으로 새로운 종류의 일정이 추가되더라도 색이 지정되지 않아 안 보이는 일이 없도록 기본색을 넣었습니다", link: "/workspace-calendar.html" },
+      { text: "화면이 그대로면 새로고침(Ctrl+F5)을 한 번 해주세요" },
+    ],
+  },
   {
     key: "2026-07-20-receipt-attachment-fix",
     title: "[관리자] 첨부한 증빙이 안 열리던 문제",

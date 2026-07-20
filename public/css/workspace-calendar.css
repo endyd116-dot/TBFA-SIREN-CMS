@@ -146,6 +146,25 @@
 .wc-ev-event-deadline      { background: #fee2e2 !important; border-color: #dc2626 !important; color: #991b1b !important; }
 .wc-ev-event-counseling    { background: #fce7f3 !important; border-color: #db2777 !important; color: #9d174d !important; }
 
+/* ★ 2026-07-20: 정의되지 않은 일정 종류(향후 추가·구글 동기화 유입 등) 폴백.
+   작업 카드는 2026-05-16에 같은 결함(정의 없는 priority → FullCalendar 기본
+   파랑+흰글씨로 안 보임)을 겪고 §139에 안전망을 넣었으나 일정에는 누락돼 있었음.
+   일반 일정과 같은 톤으로 떨어뜨려 어떤 종류가 와도 반드시 보이게 한다. */
+.fc-event[class*="wc-ev-event-"]:not(.wc-ev-event-meeting):not(.wc-ev-event-board_meeting):not(.wc-ev-event-deadline):not(.wc-ev-event-counseling) {
+  background: #eff6ff !important; border-color: #2563eb !important; color: #1e40af !important;
+}
+
+/* ★ 2026-07-20: 내부 텍스트 요소가 루트의 진한 색을 강제 상속 (흰 글자 잔존 차단).
+   FullCalendar가 .fc-event-title 등 자식 요소에 자체 색(기본 흰색)을 렌더하면
+   루트에 색을 지정해도 글자만 흰색으로 남는다. 근태 캘린더(workspace-attendance.css)
+   에는 같은 이유로 이미 적용돼 있었으나 공유 캘린더에는 누락돼 있었음.
+   → 2026-07-20 '일정이 흰 배경·흰 글자로 안 보인다' 제보의 유력 원인. */
+.fc .fc-event[class*="wc-ev-"] .fc-event-main,
+.fc .fc-event[class*="wc-ev-"] .fc-event-main-frame,
+.fc .fc-event[class*="wc-ev-"] .fc-event-title,
+.fc .fc-event[class*="wc-ev-"] .fc-event-title-container,
+.fc .fc-event[class*="wc-ev-"] .fc-event-time { color: inherit !important; }
+
 /* ★ 2026-05-16 #1-2 보완: 오늘 셀 배경이 노란 메모(#fff3cd)와 겹쳐 메모가
    셀에 묻혀 직관성 떨어지던 결함. 연한 파란 톤으로 변경 + 외곽 강조 테두리
    추가해 '오늘' 구분 + 메모 박스 시인성 양쪽 보장. */
