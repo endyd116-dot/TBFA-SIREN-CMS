@@ -975,6 +975,27 @@
 
 </div>
 
+<!-- 주소 검색 모달 (거점 관리) — 2026-07-22 복원: d4f0d335 고아패널 정리 때 실수로 삭제되어 주소검색 버튼 무반응 회귀 -->
+<div id="awmAddrModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:22px 24px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:15px">주소 검색</strong>
+      <button id="awmBtnAddrModalClose" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280">✕</button>
+    </div>
+    <div style="font-size:11.5px;color:#6b7280;background:#f3f4f6;padding:8px 12px;border-radius:6px;line-height:1.5">
+      💡 정확한 <strong>행정구역(시·도)</strong>과 <strong>도로명</strong>을 함께 입력하면 검색 정확도가 높아집니다.
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="awmAddrQuery" placeholder="예: 서울특별시 강남구 테헤란로 152"
+        style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+      <button class="att-btn att-btn-primary" id="awmBtnAddrSearch">검색</button>
+    </div>
+    <div id="awmAddrResults" style="flex:1;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:8px;min-height:200px;max-height:50vh;background:#fafafa">
+      <div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">주소를 입력 후 검색하세요</div>
+    </div>
+  </div>
+</div>
+
 <!-- R39 Stage 7 A-2/A-3: 어드민 출퇴근 직접 수정 모달 -->
 <div id="awmRecEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:12px;width:min(560px,96vw);max-height:92vh;overflow-y:auto;padding:24px">

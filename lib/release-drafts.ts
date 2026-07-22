@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-20.2";
+export const APP_VERSION = "2026-07-22.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,13 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-22-workplace-address-search",
+    title: "[관리자] 근태 거점 추가 시 '주소 검색' 버튼이 눌리지 않던 문제",
+    items: [
+      { text: "근태 설정 → 거점 관리에서 거점을 추가할 때 [주소 검색] 버튼을 눌러도 아무 반응이 없던 문제를 고쳤습니다 — 주소 검색 창이 다시 정상적으로 열립니다", link: "/cms-tbfa.html#att-config" },
+    ],
+  },
   {
     key: "2026-07-20-calendar-event-visibility",
     title: "공유 캘린더의 일정이 안 보이던 문제",
