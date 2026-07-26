@@ -319,6 +319,14 @@
 [functions."migrate-employment-contracts"]
   included_files = ["assets/seals/**"]
 
+# ★ 2026-07-27 전자 근로계약 — 계약서 PDF를 만드는 함수는 한글 폰트 필요(빠뜨리면 라이브만 실패).
+[functions."contract-my-sign"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-contract-pdf"]
+  included_files = ["assets/fonts/**"]
+[functions."contract-my-pdf"]
+  included_files = ["assets/fonts/**"]
+
 # ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
 [functions."cron-org-news"]
   schedule = "0 0 * * *"
