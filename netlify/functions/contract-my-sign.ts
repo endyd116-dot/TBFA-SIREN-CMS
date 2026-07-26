@@ -13,7 +13,7 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { uploadToR2 } from "../../lib/r2-server";
-import { loadContractRow, normalizeSignaturePng, issueContractDocument } from "../../lib/contract-document";
+import { loadContractRow, normalizeSignaturePng, issueContractDocument, fillTemplate } from "../../lib/contract-document";
 import { encryptPII, maskResidentNo, piiKeyAvailable } from "../../lib/crypto-pii";
 
 export const config = { path: "/api/contract-my-sign" };
@@ -87,6 +87,17 @@ export default async function handler(req: Request, _ctx: Context) {
         rnMask = maskResidentNo(rnRaw);
       }
 
+      /* 직원이 입력한 인적사항을 fields에 병합하고 계약서 본문({{생년월일}} 등)을 채운다. */
+      let curFields: Record<string, any> = {};
+      try { curFields = typeof row.fields === "string" ? JSON.parse(row.fields) : (row.fields || {}); } catch { curFields = {}; }
+      const merged = { ...curFields };
+      if (body.birthDate) merged["생년월일"] = String(body.birthDate).trim();
+      if (body.address) merged["주소"] = String(body.address).trim();
+      if (body.phone) merged["연락처"] = String(body.phone).trim();
+      const newBodySnapshot = fillTemplate(row.body_snapshot || "", {
+        "생년월일": merged["생년월일"] || "", "주소": merged["주소"] || "", "연락처": merged["연락처"] || "",
+      });
+
       let sigKey: string | null = null;
       if (sigType === "draw" || sigType === "seal") {
         const png = parsePngDataUrl(body.signaturePng);
@@ -119,6 +130,8 @@ export default async function handler(req: Request, _ctx: Context) {
                employee_sign_device = ${ua},
                resident_no_enc = COALESCE(${rnEnc}, resident_no_enc),
                resident_no_mask = COALESCE(${rnMask}, resident_no_mask),
+               fields = ${JSON.stringify(merged)}::jsonb,
+               body_snapshot = ${newBodySnapshot},
                updated_at = NOW()
          WHERE id = ${id}`);
 

@@ -153,13 +153,15 @@ export default async function handler(req: Request, _ctx: Context) {
         }
 
         /* {{치환}} — 주민번호는 본문엔 마스킹만(평문은 최종 PDF 서명란에서 복호 렌더) */
+        /* 근로자 인적사항({{생년월일}}{{주소}}{{연락처}}{{주민번호}})은 vars에 넣지 않아 원형으로 남긴다.
+           → 직원이 서명할 때 본인이 채운다(그 전까지 PDF엔 밑줄로 표시). 성명만 직원명으로 자동 치환. */
         const vars: Record<string, string> = {
           "회사상호": ent.name || "", "회사대표자": ent.representative || "", "회사사업자번호": ent.biz_no || "", "회사주소": ent.address || "",
-          "성명": fields["성명"] || mem.name || "", "생년월일": fields["생년월일"] || "", "주소": fields["주소"] || "", "연락처": fields["연락처"] || "",
-          "주민번호": mask || "",
+          "성명": mem.name || "",
           "계약시작일": koreanDate(fields["계약시작일"]), "연봉": fields["연봉"] || "", "월지급액": fields["월지급액"] || "", "지급일": fields["지급일"] || "",
           "근무장소": fields["근무장소"] || ent.address || "", "담당업무": fields["담당업무"] || "",
           "근무시작시각": fields["근무시작시각"] || "09:00", "근무종료시각": fields["근무종료시각"] || "18:00", "수습개월": fields["수습개월"] || "3",
+          "수습임금률": fields["수습임금률"] || "90",
           "계약체결일": koreanDate(),
         };
         const bodySnapshot = fillTemplate(tpl.body, vars);
@@ -213,6 +215,54 @@ export default async function handler(req: Request, _ctx: Context) {
            WHERE id = ${id}`);
         await db.execute(sql`INSERT INTO contract_signature_events (contract_id, actor, action) VALUES (${id}, 'company', 'REISSUED')`);
         return ok({ id }, "정정 재발행했습니다. 직원의 재서명을 받습니다");
+      }
+
+      if (action === "update") {
+        step = "update";
+        const id = Number(body.id);
+        const row = await loadContractRow(id);
+        if (!row) return bad("계약을 찾을 수 없습니다", 404);
+        if (row.status !== "draft" && row.status !== "rejected") return bad("초안·반려 상태의 계약만 수정할 수 있습니다");
+        const entityId = Number(body.entityId || row.entity_id);
+        const memberId = Number(body.memberId || row.member_id);
+        const fields = body.fields || {};
+        const entR = await db.execute(sql`SELECT * FROM contract_business_entities WHERE id = ${entityId} LIMIT 1`);
+        const ent = rows(entR)[0];
+        if (!ent) return bad("사업자를 찾을 수 없습니다", 404);
+        const tplR = await db.execute(sql`SELECT * FROM contract_templates WHERE entity_id = ${entityId} AND is_active = TRUE ORDER BY version DESC LIMIT 1`);
+        const tpl = rows(tplR)[0];
+        if (!tpl) return bad("계약서 양식이 없습니다");
+        const memR = await db.execute(sql`SELECT id, name FROM members WHERE id = ${memberId} LIMIT 1`);
+        const mem = rows(memR)[0];
+        if (!mem) return bad("직원을 찾을 수 없습니다", 404);
+        const vars2: Record<string, string> = {
+          "회사상호": ent.name || "", "회사대표자": ent.representative || "", "회사사업자번호": ent.biz_no || "", "회사주소": ent.address || "",
+          "성명": mem.name || "",
+          "계약시작일": koreanDate(fields["계약시작일"]), "연봉": fields["연봉"] || "", "월지급액": fields["월지급액"] || "", "지급일": fields["지급일"] || "",
+          "근무장소": fields["근무장소"] || ent.address || "", "담당업무": fields["담당업무"] || "",
+          "근무시작시각": fields["근무시작시각"] || "09:00", "근무종료시각": fields["근무종료시각"] || "18:00", "수습개월": fields["수습개월"] || "3",
+          "수습임금률": fields["수습임금률"] || "90", "계약체결일": koreanDate(),
+        };
+        const bodySnapshot2 = fillTemplate(tpl.body, vars2);
+        await db.execute(sql`
+          UPDATE employment_contracts
+             SET entity_id = ${entityId}, template_id = ${tpl.id}, member_id = ${memberId},
+                 fields = ${JSON.stringify(fields)}::jsonb, body_snapshot = ${bodySnapshot2}, title = ${tpl.title || "근로계약서"},
+                 status = 'draft', rejected_reason = NULL, rejected_at = NULL, updated_at = NOW()
+           WHERE id = ${id}`);
+        return ok({ id }, "초안을 수정했습니다");
+      }
+
+      if (action === "delete") {
+        step = "delete";
+        const id = Number(body.id);
+        const row = await loadContractRow(id);
+        if (!row) return bad("계약을 찾을 수 없습니다", 404);
+        if (row.status !== "draft" && row.status !== "rejected") return bad("초안·반려 상태만 삭제할 수 있습니다. 발송된 계약은 무효 처리하세요");
+        await db.execute(sql`DELETE FROM contract_signature_events WHERE contract_id = ${id}`);
+        await db.execute(sql`DELETE FROM contract_attachments WHERE contract_id = ${id}`);
+        await db.execute(sql`DELETE FROM employment_contracts WHERE id = ${id}`);
+        return ok({ id }, "계약을 삭제했습니다");
       }
 
       if (action === "void") {

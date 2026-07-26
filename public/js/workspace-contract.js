@@ -44,6 +44,7 @@
     const r = await api("/api/contract-my?id=" + id);
     if (!r.ok) { toast(r.data && r.data.error || "조회 실패", true); return; }
     const c = r.data.data;
+    const f = c.fields || {};
 
     const canSign = c.status === "sent";
     const atts = (c.attachments || []).map((a) => `<div class="att-row">📎 ${esc(a.label || a.file_name || a.kind)}</div>`).join("") || '<div class="muted">첨부한 서류 없음</div>';
@@ -54,10 +55,17 @@
         <div style="border-top:1px solid #eef0f4;margin-top:16px;padding-top:14px">
           <div style="font-weight:700;margin-bottom:4px">서명</div>
           <div class="muted">아래에서 방식을 고르고 서명하면 계약이 체결됩니다. 내용에 동의하지 않으면 반려할 수 있습니다.</div>
-          <div style="margin:12px 0">
-            <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px">주민등록번호 ${c.residentNoMask ? "(등록됨: " + esc(c.residentNoMask) + " · 바꾸려면 새로 입력)" : "(계약서에 표기됩니다)"}</label>
+          <div style="margin:12px 0;padding:12px 14px;background:#f8fafc;border:1px solid #eef0f4;border-radius:8px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px">내 인적사항 (계약서에 기재됩니다)</div>
+            <label style="font-size:12px;color:#4b5563;font-weight:600;display:block;margin-bottom:3px">생년월일</label>
+            <input id="sigBirth" value="${esc(f["생년월일"] || "")}" placeholder="예: 1990-01-01" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;width:100%;font-size:14px;margin-bottom:8px">
+            <label style="font-size:12px;color:#4b5563;font-weight:600;display:block;margin-bottom:3px">주소</label>
+            <input id="sigAddr" value="${esc(f["주소"] || "")}" placeholder="집 주소" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;width:100%;font-size:14px;margin-bottom:8px">
+            <label style="font-size:12px;color:#4b5563;font-weight:600;display:block;margin-bottom:3px">연락처</label>
+            <input id="sigPhone" value="${esc(f["연락처"] || "")}" placeholder="010-0000-0000" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;width:100%;font-size:14px;margin-bottom:10px">
+            <label style="font-size:12px;color:#4b5563;font-weight:600;display:block;margin-bottom:3px">주민등록번호 ${c.residentNoMask ? "(등록됨: " + esc(c.residentNoMask) + " · 바꾸려면 새로 입력)" : ""}</label>
             <input id="sigResident" placeholder="${c.residentNoMask ? "그대로 두면 유지" : "000000-0000000"}" autocomplete="off" inputmode="numeric" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;width:100%;font-size:14px">
-            <div class="muted" style="margin-top:3px">본인만 입력하며, 이후 화면에는 앞자리만 보이고 안전하게 암호화되어 보관됩니다.</div>
+            <div class="muted" style="margin-top:4px">본인만 입력하며, 주민번호는 앞자리만 보이고 안전하게 암호화되어 보관됩니다.</div>
           </div>
           <div class="sign-tabs">
             <button class="sign-tab active" data-mode="draw">손글씨 서명</button>
@@ -88,7 +96,7 @@
     $("detailBody").innerHTML = `
       <div class="mhead"><strong>${esc(c.title || "근로계약서")} ${badge(c.status)}</strong><button class="x" id="dClose">&times;</button></div>
       <div class="muted" style="margin-bottom:8px">${esc(c.entityName)} · 대표 ${esc(c.entityRepresentative || "")}${c.companySignedAt ? " · 회사 날인 " + fmtDT(c.companySignedAt) : ""}</div>
-      <div class="doc">${esc(c.bodySnapshot || "")}</div>
+      <div class="doc">${esc(String(c.bodySnapshot || "").replace(/\{\{[^}]+\}\}/g, "____________"))}</div>
       ${signArea}`;
     $("detailModal").classList.add("open");
     $("dClose").addEventListener("click", () => $("detailModal").classList.remove("open"));
@@ -133,6 +141,8 @@
       const body = { id, action: "sign", signatureType: SIGN_MODE };
       const rn = ($("sigResident") && $("sigResident").value || "").trim();
       if (rn) body.residentNo = rn;
+      const gv = (elid) => ($(elid) && $(elid).value || "").trim();
+      body.birthDate = gv("sigBirth"); body.address = gv("sigAddr"); body.phone = gv("sigPhone");
       if (SIGN_MODE === "draw") {
         if (!dirty) { toast("서명란에 서명해 주세요", true); return; }
         body.signaturePng = canvas.toDataURL("image/png");

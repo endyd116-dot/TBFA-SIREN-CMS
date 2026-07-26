@@ -71,8 +71,12 @@
 
     const actions = [];
     if (c.status === "draft") actions.push(`<button class="btn btn-primary btn-sm" data-act="send" data-id="${c.id}">발송(회사 도장 날인)</button>`);
+    if (c.status === "draft" || c.status === "rejected") {
+      actions.push(`<button class="btn btn-default btn-sm" data-act="edit" data-id="${c.id}">수정</button>`);
+      actions.push(`<button class="btn btn-danger btn-sm" data-act="delete" data-id="${c.id}">삭제</button>`);
+    }
     if (c.status === "completed") actions.push(`<button class="btn btn-default btn-sm" data-act="reissue" data-id="${c.id}">정정 재발행</button>`);
-    if (c.status !== "voided") actions.push(`<button class="btn btn-danger btn-sm" data-act="void" data-id="${c.id}">무효</button>`);
+    if (c.status === "sent" || c.status === "completed") actions.push(`<button class="btn btn-danger btn-sm" data-act="void" data-id="${c.id}">무효</button>`);
     const pdfBtn = (c.status !== "draft")
       ? `<a class="btn btn-default btn-sm" href="/api/admin-contract-pdf?id=${c.id}" target="_blank">PDF 보기</a>`
       : `<a class="btn btn-default btn-sm" href="/api/admin-contract-pdf?id=${c.id}&draft=1" target="_blank">미리보기</a>`;
@@ -96,7 +100,14 @@
       </div>`;
     $("detailModal").classList.add("open");
     $("detailBody").querySelector("[data-close]").addEventListener("click", () => $("detailModal").classList.remove("open"));
-    $("detailBody").querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => contractAction(b.dataset.act, b.dataset.id)));
+    $("detailBody").querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.act === "edit") {
+        $("detailModal").classList.remove("open");
+        openCreateModal({ id: c.id, entityId: c.entityId, memberId: c.memberId, fields: c.fields || {} });
+        return;
+      }
+      contractAction(b.dataset.act, b.dataset.id);
+    }));
   }
 
   async function contractAction(act, id) {
@@ -113,6 +124,10 @@
       if (!confirm("정정 재발행하면 직원이 다시 서명해야 합니다. 진행할까요?")) return;
       const r = await api("/api/admin-contracts", { method: "POST", body: { action: "reissue", id } });
       toast(r.ok ? "재발행했습니다" : (r.data.error || "실패"), !r.ok);
+    } else if (act === "delete") {
+      if (!confirm("이 계약을 완전히 삭제할까요? (되돌릴 수 없습니다)")) return;
+      const r = await api("/api/admin-contracts", { method: "POST", body: { action: "delete", id } });
+      toast(r.ok ? "삭제했습니다" : (r.data.error || "실패"), !r.ok);
     }
     $("detailModal").classList.remove("open");
     loadContracts();
@@ -129,35 +144,49 @@
       MEMBERS = (m.data.data && m.data.data.members) || [];
     }
   }
-  $("btnNew").addEventListener("click", async () => {
+  let EDIT_ID = null;  // null=신규 작성, 숫자=초안 수정
+  async function openCreateModal(editContract) {
     await ensureRefs();
     const actE = ENTITIES.filter((x) => x.is_active);
     $("cEntity").innerHTML = actE.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
     $("cMember").innerHTML = MEMBERS.map((x) => `<option value="${x.id}">${esc(x.name)}${x.position ? " (" + esc(x.position) + ")" : ""}</option>`).join("");
-    ["성명", "생년월일", "주소", "연락처", "주민번호", "계약시작일", "연봉", "월지급액", "지급일", "근무장소", "담당업무"].forEach((k) => { const el = $("f_" + k); if (el) el.value = ""; });
-    $("f_수습개월").value = "3"; $("f_근무시작시각").value = "09:00"; $("f_근무종료시각").value = "18:00";
+    ["계약시작일", "연봉", "월지급액", "지급일", "근무장소", "담당업무"].forEach((k) => { const el = $("f_" + k); if (el) el.value = ""; });
+    $("f_수습개월").value = "3"; $("f_수습임금률").value = "90"; $("f_근무시작시각").value = "09:00"; $("f_근무종료시각").value = "18:00";
+    if (editContract) {
+      EDIT_ID = editContract.id;
+      $("cEntity").value = editContract.entityId;
+      $("cMember").value = editContract.memberId;
+      const f = editContract.fields || {};
+      ["계약시작일", "연봉", "월지급액", "지급일", "근무장소", "담당업무", "근무시작시각", "근무종료시각", "수습개월", "수습임금률"].forEach((k) => { const el = $("f_" + k); if (el && f[k] != null) el.value = f[k]; });
+    } else {
+      EDIT_ID = null;
+    }
     $("createModal").classList.add("open");
-  });
+  }
+  $("btnNew").addEventListener("click", () => openCreateModal(null));
 
   function collectFields() {
-    const keys = ["성명", "생년월일", "주소", "연락처", "계약시작일", "연봉", "월지급액", "지급일", "근무장소", "담당업무", "근무시작시각", "근무종료시각", "수습개월"];
+    const keys = ["계약시작일", "연봉", "월지급액", "지급일", "근무장소", "담당업무", "근무시작시각", "근무종료시각", "수습개월", "수습임금률"];
     const f = {};
-    keys.forEach((k) => { const v = $("f_" + k).value.trim(); if (v) f[k] = v; });
+    keys.forEach((k) => { const el = $("f_" + k); if (el) { const v = el.value.trim(); if (v) f[k] = v; } });
     return f;
   }
   async function createContract(thenSend) {
     const entityId = $("cEntity").value, memberId = $("cMember").value;
     if (!entityId || !memberId) { toast("사업자와 직원을 선택하세요", true); return; }
-    const body = { action: "create", entityId: Number(entityId), memberId: Number(memberId), fields: collectFields() };
+    const body = EDIT_ID
+      ? { action: "update", id: EDIT_ID, entityId: Number(entityId), memberId: Number(memberId), fields: collectFields() }
+      : { action: "create", entityId: Number(entityId), memberId: Number(memberId), fields: collectFields() };
     const r = await api("/api/admin-contracts", { method: "POST", body });
-    if (!r.ok) { toast(r.data.error || "생성 실패", true); return; }
-    const newId = r.data.data.id;
+    if (!r.ok) { toast(r.data.error || "저장 실패", true); return; }
+    const newId = EDIT_ID || r.data.data.id;
     if (thenSend) {
       const s = await api("/api/admin-contracts", { method: "POST", body: { action: "send", id: newId } });
-      toast(s.ok ? "생성 후 발송했습니다" : (s.data.error || "발송 실패"), !s.ok);
+      toast(s.ok ? "저장 후 발송했습니다" : (s.data.error || "발송 실패"), !s.ok);
     } else {
-      toast("초안을 저장했습니다");
+      toast(EDIT_ID ? "초안을 수정했습니다" : "초안을 저장했습니다");
     }
+    EDIT_ID = null;
     $("createModal").classList.remove("open");
     loadContracts();
   }

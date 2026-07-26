@@ -134,15 +134,12 @@
       <div class="grid2">
         <div class="fg"><label>사업자</label><select id="cEntity"></select></div>
         <div class="fg"><label>직원</label><select id="cMember"></select></div>
-        <div class="fg"><label>성명(계약서 표기)</label><input id="f_성명" placeholder="자동: 직원명"></div>
-        <div class="fg"><label>생년월일</label><input id="f_생년월일" placeholder="예: 1990-01-01"></div>
-        <div class="fg"><label>주소</label><input id="f_주소" placeholder="근로자 주소"></div>
-        <div class="fg"><label>연락처</label><input id="f_연락처" placeholder="010-0000-0000"></div>
         <div class="fg"><label>계약 시작일</label><input id="f_계약시작일" placeholder="예: 2026-08-01"></div>
         <div class="fg"><label>연봉(총액)</label><input id="f_연봉" placeholder="예: 금 45,000,000원 (사천오백만원, 세전)"></div>
         <div class="fg"><label>월 지급액</label><input id="f_월지급액" placeholder="예: 3,750,000"></div>
         <div class="fg"><label>지급일</label><input id="f_지급일" placeholder="예: 10일"></div>
         <div class="fg"><label>수습기간(개월)</label><input id="f_수습개월" value="3"></div>
+        <div class="fg"><label>수습 지급률(%)</label><input id="f_수습임금률" value="90" title="수습기간 임금 비율(기본 90). 100 입력 시 수습에도 전액 지급"></div>
         <div class="fg"><label>근무 시작시각</label><input id="f_근무시작시각" value="09:00"></div>
         <div class="fg"><label>근무 종료시각</label><input id="f_근무종료시각" value="18:00"></div>
         <div class="fg" style="grid-column:1/-1"><label>근무장소</label><input id="f_근무장소" placeholder="비우면 사업자 소재지"></div>
@@ -153,7 +150,7 @@
         <button class="btn btn-default" id="btnCreatePreview">미리보기 저장(초안)</button>
         <button class="btn btn-primary" id="btnCreateSend">저장 후 바로 발송</button>
       </div>
-      <div class="muted" style="margin-top:8px">발송하면 회사 도장이 자동으로 찍혀 직원에게 전달됩니다. <b>주민등록번호는 직원이 서명할 때 본인이 입력</b>하므로 여기서 넣지 않습니다. 직원이 워크스페이스에서 서명하면 완료됩니다.</div>
+      <div class="muted" style="margin-top:8px">여기서는 <b>사업자·근무조건만</b> 정합니다. <b>근로자 인적사항(생년월일·주소·연락처·주민등록번호)은 직원이 서명할 때 본인이 입력</b>하므로 이사장이 넣지 않습니다(모르는 정보 대신 계약서에 밑줄로 표시됨). 발송하면 회사 도장이 자동으로 찍혀 전달되고, 직원이 워크스페이스에서 인적사항 작성 후 서명하면 완료됩니다.</div>
     </div>
   </div>
 
@@ -207,6 +204,6 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="/js/admin-contract.js?v=20260727"></script>
+  <script src="/js/admin-contract.js?v=20260727b"></script>
 </body>
 </html>

@@ -136,7 +136,8 @@ export async function generateContractPdf(input: ContractPdfInput): Promise<Uint
   /* 본문 — body_snapshot을 줄 단위로 흘린다 */
   const lines = String(contract.bodySnapshot || "").split("\n");
   for (const raw of lines) {
-    const line = raw.replace(/\[\[SEAL:company\]\]/g, "").replace(/\s+$/g, "");
+    // 미치환 치환키({{생년월일}} 등 — 직원이 아직 안 채운 자리)는 밑줄로 표시
+    const line = raw.replace(/\[\[SEAL:company\]\]/g, "").replace(/\{\{[^}]+\}\}/g, "____________").replace(/\s+$/g, "");
     const trimmed = line.trim();
     if (!trimmed) { ctx.y -= 7; continue; }  // 빈 줄 = 간격
 
