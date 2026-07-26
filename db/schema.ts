@@ -4893,3 +4893,117 @@ export type NewPayrollAcknowledgment = typeof payrollAcknowledgments.$inferInser
 export type PayrollObjection         = typeof payrollObjections.$inferSelect;
 export type NewPayrollObjection      = typeof payrollObjections.$inferInsert;
 /* === 급여명세 전자서명·증빙보관 끝 === */
+
+/* === 전자 근로계약 시스템 (2026-07-27) — migrate-employment-contracts 호출 후 정의 활성화 === */
+
+/** 계약 주체(사업자) — 교유협·함께워크 ON·SI 등. 도장 이미지 R2 연결. CRUD. */
+export const contractBusinessEntities = pgTable("contract_business_entities", {
+  id:             serial("id").primaryKey(),
+  name:           text("name").notNull(),                                   // 상호
+  entityType:     varchar("entity_type", { length: 20 }).default("individual").notNull(), // corporation|individual
+  representative: text("representative"),                                   // 대표자
+  bizNo:          varchar("biz_no", { length: 30 }),                        // 사업자등록번호
+  address:        text("address"),
+  phone:          varchar("phone", { length: 30 }),
+  sealR2Key:      text("seal_r2_key"),                                      // 도장 이미지 R2 키 (nullable)
+  sortOrder:      integer("sort_order").default(0).notNull(),
+  isActive:       boolean("is_active").default(true).notNull(),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** 계약서 양식 — 사업자별. 조항 본문({{치환}}) + 버전. */
+export const contractTemplates = pgTable("contract_templates", {
+  id:        serial("id").primaryKey(),
+  entityId:  integer("entity_id").notNull().references(() => contractBusinessEntities.id),
+  title:     text("title").default("근로계약서").notNull(),
+  kind:      varchar("kind", { length: 30 }).default("employment").notNull(),
+  body:      text("body").notNull(),
+  version:   integer("version").default(1).notNull(),
+  isActive:  boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  entityIdx: index("contract_templates_entity_idx").on(t.entityId),
+}));
+
+/** 근로계약 본체 — 작성→발송(회사날인)→직원서명/반려→완료(R2 박제). */
+export const employmentContracts = pgTable("employment_contracts", {
+  id:              serial("id").primaryKey(),
+  entityId:        integer("entity_id").notNull().references(() => contractBusinessEntities.id),
+  templateId:      integer("template_id").references(() => contractTemplates.id),
+  memberId:        integer("member_id").notNull(),                          // 근로자 (members.id)
+  status:          varchar("status", { length: 20 }).default("draft").notNull(), // draft|sent|completed|rejected|voided
+  title:           text("title").default("근로계약서").notNull(),
+  fields:          jsonb("fields").default(sql`'{}'::jsonb`).notNull(),     // 가변필드 스냅샷
+  bodySnapshot:    text("body_snapshot"),                                   // 치환완료 본문 전문(서명당시 박제)
+  residentNoEnc:   text("resident_no_enc"),                                 // 주민번호 암호화 (nullable)
+  residentNoMask:  varchar("resident_no_mask", { length: 20 }),             // 화면표시 마스킹
+  companySealR2Key: text("company_seal_r2_key"),                            // 날인 도장 스냅샷
+  companySignedAt:  timestamp("company_signed_at", { withTimezone: true }),
+  companySignedBy:  integer("company_signed_by"),
+  employeeSigR2Key:   text("employee_sig_r2_key"),
+  employeeSigType:    varchar("employee_sig_type", { length: 10 }),         // draw|type|seal
+  employeeSignedName: text("employee_signed_name"),
+  employeeSignedAt:   timestamp("employee_signed_at", { withTimezone: true }),
+  employeeSignIp:     varchar("employee_sign_ip", { length: 64 }),
+  employeeSignDevice: text("employee_sign_device"),
+  rejectedReason:  text("rejected_reason"),
+  rejectedAt:      timestamp("rejected_at", { withTimezone: true }),
+  documentR2Key:   text("document_r2_key"),                                 // 최종 박제 PDF
+  documentSha256:  text("document_sha256"),
+  documentVersion: integer("document_version").default(1).notNull(),
+  voidedAt:        timestamp("voided_at", { withTimezone: true }),
+  voidedReason:    text("voided_reason"),
+  voidedBy:        integer("voided_by"),
+  createdBy:       integer("created_by"),
+  sentAt:          timestamp("sent_at", { withTimezone: true }),
+  createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("employment_contracts_member_idx").on(t.memberId),
+  statusIdx: index("employment_contracts_status_idx").on(t.status),
+}));
+
+/** 서명·행위 증적 — append-only. */
+export const contractSignatureEvents = pgTable("contract_signature_events", {
+  id:            serial("id").primaryKey(),
+  contractId:    integer("contract_id").notNull().references(() => employmentContracts.id),
+  actor:         varchar("actor", { length: 20 }).notNull(),                // company|employee|system
+  action:        varchar("action", { length: 20 }).notNull(),              // CREATED|SENT|VIEWED|SIGNED|REJECTED|VOIDED|REISSUED|ATTACH
+  signatureType: varchar("signature_type", { length: 10 }),
+  signedName:    text("signed_name"),
+  documentSha256: text("document_sha256"),
+  ip:            varchar("ip", { length: 64 }),
+  userAgent:     text("user_agent"),
+  meta:          jsonb("meta"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  contractIdx: index("contract_sig_events_contract_idx").on(t.contractId),
+}));
+
+/** 부속 서류 — 신분증·통장 사본 등(세금·4대보험 등록용). blob-presign 3단계 업로드. */
+export const contractAttachments = pgTable("contract_attachments", {
+  id:           serial("id").primaryKey(),
+  contractId:   integer("contract_id").notNull().references(() => employmentContracts.id),
+  kind:         varchar("kind", { length: 30 }).default("etc").notNull(),   // id_card|bankbook|etc
+  label:        text("label"),
+  blobId:       integer("blob_id"),
+  blobKey:      text("blob_key"),
+  fileName:     text("file_name"),
+  mimeType:     varchar("mime_type", { length: 100 }),
+  sizeBytes:    integer("size_bytes"),
+  uploadedBy:   integer("uploaded_by"),
+  uploadedRole: varchar("uploaded_role", { length: 20 }),                   // employee|company
+  deletedAt:    timestamp("deleted_at", { withTimezone: true }),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  contractIdx: index("contract_attachments_contract_idx").on(t.contractId),
+}));
+
+export type ContractBusinessEntity = typeof contractBusinessEntities.$inferSelect;
+export type ContractTemplate       = typeof contractTemplates.$inferSelect;
+export type EmploymentContract     = typeof employmentContracts.$inferSelect;
+export type ContractSignatureEvent = typeof contractSignatureEvents.$inferSelect;
+export type ContractAttachment     = typeof contractAttachments.$inferSelect;
+/* === 전자 근로계약 시스템 끝 === */
