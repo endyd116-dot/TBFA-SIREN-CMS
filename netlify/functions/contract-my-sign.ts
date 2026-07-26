@@ -14,6 +14,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { uploadToR2 } from "../../lib/r2-server";
 import { loadContractRow, normalizeSignaturePng, issueContractDocument } from "../../lib/contract-document";
+import { encryptPII, maskResidentNo, piiKeyAvailable } from "../../lib/crypto-pii";
 
 export const config = { path: "/api/contract-my-sign" };
 const H = { "Content-Type": "application/json; charset=utf-8" };
@@ -77,6 +78,15 @@ export default async function handler(req: Request, _ctx: Context) {
       const signedName = String(body.signedName || me.name || "").trim();
       if (!signedName) return bad("서명자 성명을 입력하세요");
 
+      /* 직원이 서명 시 본인 주민번호를 입력하면 암호화 저장(선택). 키 미설정이면 조용히 건너뜀. */
+      const rnRaw = String(body.residentNo || "").replace(/\s/g, "");
+      let rnEnc: string | null = null, rnMask: string | null = null;
+      if (rnRaw && rnRaw.replace(/\D/g, "").length >= 7) {
+        if (!piiKeyAvailable()) return bad("주민번호 암호화 키가 아직 설정되지 않았습니다. 담당자에게 알려주시거나, 주민번호는 비우고 서명해 주세요", 503);
+        rnEnc = encryptPII(rnRaw);
+        rnMask = maskResidentNo(rnRaw);
+      }
+
       let sigKey: string | null = null;
       if (sigType === "draw" || sigType === "seal") {
         const png = parsePngDataUrl(body.signaturePng);
@@ -107,6 +117,8 @@ export default async function handler(req: Request, _ctx: Context) {
                employee_signed_at = NOW(),
                employee_sign_ip = ${ip},
                employee_sign_device = ${ua},
+               resident_no_enc = COALESCE(${rnEnc}, resident_no_enc),
+               resident_no_mask = COALESCE(${rnMask}, resident_no_mask),
                updated_at = NOW()
          WHERE id = ${id}`);
 

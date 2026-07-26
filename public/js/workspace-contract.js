@@ -54,6 +54,11 @@
         <div style="border-top:1px solid #eef0f4;margin-top:16px;padding-top:14px">
           <div style="font-weight:700;margin-bottom:4px">서명</div>
           <div class="muted">아래에서 방식을 고르고 서명하면 계약이 체결됩니다. 내용에 동의하지 않으면 반려할 수 있습니다.</div>
+          <div style="margin:12px 0">
+            <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px">주민등록번호 ${c.residentNoMask ? "(등록됨: " + esc(c.residentNoMask) + " · 바꾸려면 새로 입력)" : "(계약서에 표기됩니다)"}</label>
+            <input id="sigResident" placeholder="${c.residentNoMask ? "그대로 두면 유지" : "000000-0000000"}" autocomplete="off" inputmode="numeric" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;width:100%;font-size:14px">
+            <div class="muted" style="margin-top:3px">본인만 입력하며, 이후 화면에는 앞자리만 보이고 안전하게 암호화되어 보관됩니다.</div>
+          </div>
           <div class="sign-tabs">
             <button class="sign-tab active" data-mode="draw">손글씨 서명</button>
             <button class="sign-tab" data-mode="type">성명 입력</button>
@@ -126,6 +131,8 @@
 
     $("btnSign").addEventListener("click", async () => {
       const body = { id, action: "sign", signatureType: SIGN_MODE };
+      const rn = ($("sigResident") && $("sigResident").value || "").trim();
+      if (rn) body.residentNo = rn;
       if (SIGN_MODE === "draw") {
         if (!dirty) { toast("서명란에 서명해 주세요", true); return; }
         body.signaturePng = canvas.toDataURL("image/png");

@@ -149,8 +149,6 @@
     const entityId = $("cEntity").value, memberId = $("cMember").value;
     if (!entityId || !memberId) { toast("사업자와 직원을 선택하세요", true); return; }
     const body = { action: "create", entityId: Number(entityId), memberId: Number(memberId), fields: collectFields() };
-    const rn = $("f_주민번호").value.trim();
-    if (rn) body.residentNo = rn;
     const r = await api("/api/admin-contracts", { method: "POST", body });
     if (!r.ok) { toast(r.data.error || "생성 실패", true); return; }
     const newId = r.data.data.id;
