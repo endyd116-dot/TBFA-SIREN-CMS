@@ -315,6 +315,10 @@
 [functions."admin-payroll-statutory"]
   included_files = ["assets/fonts/**"]
 
+# ★ 2026-07-27 전자 근로계약 — 초기화 마이그가 박두용 도장(seals)을 읽어 R2에 올린다.
+[functions."migrate-employment-contracts"]
+  included_files = ["assets/seals/**"]
+
 # ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
 [functions."cron-org-news"]
   schedule = "0 0 * * *"
