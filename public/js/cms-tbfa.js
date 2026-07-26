@@ -303,6 +303,7 @@
           'gamification': '게이미피케이션',
           'popups': '팝업 관리',
           'payroll': '급여관리',
+          'contract': '근로계약 관리',
           'milestone-review':   '성과관리 설정',
           'att-ops':    '근태 현황',
           'att-config': '근태 설정',
@@ -414,6 +415,7 @@
         else if (tab === 'popups')          _nfLoadIframe('page-popups');          /* Round 6: 팝업 관리 */
         else if (tab === 'comment-reports') _nfLoadIframe('page-comment-reports'); /* Round 11: 신고 관리 */
         else if (tab === 'payroll')         _nfLoadIframe('page-payroll');         /* R37: 급여관리 */
+        else if (tab === 'contract')        _nfLoadIframe('page-contract');        /* 2026-07-27: 근로계약 관리 */
         else if (tab === 'milestone-review')    _nfLoadIframe('page-milestone-review');    /* 2026-05-20: 성과관리 통합 단일 화면(6탭) */
         else if (tab === 'att-ops')    _nfLoadIframe('page-att-ops');    /* 2026-05-21: 근태 현황 (조회 8탭) */
         else if (tab === 'att-config') _nfLoadIframe('page-att-config'); /* 2026-05-21: 근태 설정 (설정 4탭) */
@@ -2533,6 +2535,7 @@
     'ai-chat': 'ai_agent_chat', 'ai-history': 'ai_agent_chat',
     'ai-cost': 'ai_config', 'ai-logs': 'ai_config', 'ai-config': 'ai_config',
     payroll: 'payroll_manage',
+    contract: 'contract_manage',
     'role-policy': 'cms_role_policy',
     'milestone-review': 'milestone:manage',
     'att-ops': 'att_manage', 'att-config': 'att_config',

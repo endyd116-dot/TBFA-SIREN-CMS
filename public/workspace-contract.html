@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <script src="/js/icons.js?v=20260727-contract"></script>
+  <script src="/js/lib-kst.js?v=3-kst-input"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 근로계약 — SIREN</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
+  <link rel="stylesheet" href="/css/workspace-attendance.css?v=18-evidence">
+  <style>
+    .wc-wrap { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+    .wc-h { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .wc-sub { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+    .wc-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; cursor: pointer; transition: box-shadow .15s; }
+    .wc-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+    .wc-card-top { display: flex; justify-content: space-between; align-items: center; }
+    .wc-card-title { font-weight: 700; font-size: 15px; }
+    .wc-card-meta { color: #6b7280; font-size: 12.5px; margin-top: 4px; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+    .b-sent { background: #dbeafe; color: #1e40af; } .b-completed { background: #dcfce7; color: #15803d; }
+    .b-rejected { background: #fef3c7; color: #92400e; } .b-voided { background: #fee2e2; color: #991b1b; }
+    .btn { padding: 9px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-primary { background: #2563eb; color: #fff; } .btn-default { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; } .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9000; align-items: center; justify-content: center; padding: 16px; }
+    .modal.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 14px; width: min(760px, 96vw); max-height: 94vh; overflow-y: auto; padding: 22px 24px; }
+    .mhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .mhead strong { font-size: 17px; } .x { background: none; border: none; font-size: 22px; cursor: pointer; color: #9ca3af; }
+    .doc { white-space: pre-wrap; font-size: 13px; line-height: 1.75; background: #fafafa; border: 1px solid #eef0f4; border-radius: 8px; padding: 18px; max-height: 46vh; overflow-y: auto; }
+    .sign-tabs { display: flex; gap: 6px; margin: 14px 0 10px; }
+    .sign-tab { padding: 7px 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: #6b7280; }
+    .sign-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    #sigCanvas { border: 2px dashed #cbd5e1; border-radius: 10px; width: 100%; height: 180px; touch-action: none; background: #fff; }
+    .muted { color: #9ca3af; font-size: 12.5px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 11px 20px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; } .toast.err { background: #b91c1c; }
+    .att-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #eef0f4; font-size: 13px; }
+  </style>
+</head>
+<body class="ws-body">
+
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon"><span class="siren-icon-wrap" data-icon="home"></span></span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li class="ws-nav-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="true">
+            <span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="wrench"></span></span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul data-sidebar-submenu="workspace" aria-hidden="false">
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="clock"></span></span><span class="ws-nav-text">근태관리</span></a></li>
+            <li><a href="/workspace-contract.html" title="내 근로계약" style="background:#eef2ff;border-radius:6px;"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="file-signature"></span></span><span class="ws-nav-text">내 근로계약</span></a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" title="마이페이지"><span class="ws-user-avatar"><span class="siren-icon-wrap" data-icon="user"></span></span><span class="ws-nav-text" id="wsSidebarUserName">사용자</span></a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃"><span class="ws-nav-icon"><span class="siren-icon-wrap" data-icon="door-open"></span></span><span class="ws-nav-text">로그아웃</span></button>
+    </div>
+  </div>
+</aside>
+
+<main class="ws-main">
+  <div class="wc-wrap">
+    <div class="wc-h">내 근로계약</div>
+    <div class="wc-sub">전달된 계약서를 확인하고 서명하세요. 서명하면 회사·본인 서명이 모두 담긴 계약서를 내려받을 수 있습니다.</div>
+    <div id="list"><div class="muted" style="text-align:center;padding:40px">불러오는 중…</div></div>
+  </div>
+</main>
+
+<!-- 상세·서명 모달 -->
+<div class="modal" id="detailModal">
+  <div class="modal-box"><div id="detailBody"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/js/workspace-contract.js?v=20260727"></script>
+</body>
+</html>

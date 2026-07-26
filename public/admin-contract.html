@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <script src="/js/icons.js?v=20260727-contract"></script>
+  <script src="/js/lib-kst.js?v=3-kst-input"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>근로계약 관리 — SIREN</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; font-size: 14px; color: #1a2035; background: #f4f6fa; padding: 22px; min-height: 100vh; }
+    h2 { font-size: 19px; margin-bottom: 4px; }
+    .sub { color: #6b7280; font-size: 12.5px; margin-bottom: 18px; }
+    .tabs { display: flex; gap: 6px; border-bottom: 2px solid #e5e7eb; margin-bottom: 18px; }
+    .tab { padding: 9px 18px; cursor: pointer; border: none; background: none; font-size: 14px; font-weight: 600; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .fg { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .fg label { font-size: 12px; color: #4b5563; font-weight: 600; }
+    .fg input, .fg select, .fg textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; font-family: inherit; }
+    .fg textarea { min-height: 320px; line-height: 1.6; }
+    .btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-default { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #eef0f4; }
+    th { color: #6b7280; font-size: 12px; font-weight: 600; background: #fafbfc; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+    .b-draft { background: #f3f4f6; color: #6b7280; }
+    .b-sent { background: #dbeafe; color: #1e40af; }
+    .b-completed { background: #dcfce7; color: #15803d; }
+    .b-rejected { background: #fef3c7; color: #92400e; }
+    .b-voided { background: #fee2e2; color: #991b1b; text-decoration: line-through; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9000; align-items: center; justify-content: center; padding: 20px; }
+    .modal.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 12px; width: min(720px, 96vw); max-height: 92vh; overflow-y: auto; padding: 24px; }
+    .modal-box.wide { width: min(920px, 96vw); }
+    .mhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .mhead strong { font-size: 16px; }
+    .x { background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted { color: #9ca3af; font-size: 12px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 11px 20px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .toast.err { background: #b91c1c; }
+    .doc-preview { white-space: pre-wrap; font-size: 12.5px; line-height: 1.7; background: #fafafa; border: 1px solid #eef0f4; border-radius: 8px; padding: 16px; max-height: 340px; overflow-y: auto; }
+    .ev { font-size: 12px; color: #4b5563; padding: 4px 0; border-bottom: 1px dashed #eef0f4; }
+  </style>
+</head>
+<body>
+  <h2>근로계약 관리</h2>
+  <div class="sub">이사장이 직원에게 전자 근로계약서를 만들어 전달 → 직원 서명 → 저장·양측 다운로드. (이사장 전용)</div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="contracts">계약</button>
+    <button class="tab" data-tab="entities">사업자·도장</button>
+    <button class="tab" data-tab="templates">계약서 양식</button>
+  </div>
+
+  <!-- ═══ 계약 ═══ -->
+  <div class="panel active" id="panel-contracts">
+    <div class="card">
+      <div class="row" style="justify-content: space-between">
+        <div class="row">
+          <div class="fg" style="margin:0">
+            <label>상태</label>
+            <select id="filterStatus">
+              <option value="">전체</option>
+              <option value="draft">작성중</option>
+              <option value="sent">서명 대기</option>
+              <option value="completed">완료</option>
+              <option value="rejected">반려</option>
+              <option value="voided">무효</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnNew"><span>+ 새 계약 작성</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>사업자</th><th>직원</th><th>상태</th><th>작성일</th><th>작업</th></tr></thead>
+        <tbody id="contractList"><tr><td colspan="6" class="muted" style="text-align:center;padding:30px">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 사업자 ═══ -->
+  <div class="panel" id="panel-entities">
+    <div class="card">
+      <div class="row" style="justify-content: space-between">
+        <strong>계약 주체(사업자)</strong>
+        <button class="btn btn-primary" id="btnNewEntity">+ 사업자 추가</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>상호</th><th>유형</th><th>대표자</th><th>사업자번호</th><th>도장</th><th>상태</th><th>작업</th></tr></thead>
+        <tbody id="entityList"><tr><td colspan="7" class="muted" style="text-align:center;padding:30px">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 양식 ═══ -->
+  <div class="panel" id="panel-templates">
+    <div class="card">
+      <div class="row">
+        <div class="fg" style="margin:0;min-width:240px">
+          <label>사업자</label>
+          <select id="tplEntity"></select>
+        </div>
+        <button class="btn btn-default" id="btnReloadTpl">불러오기</button>
+        <button class="btn btn-primary" id="btnNewTpl">+ 새 양식</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>제목</th><th>버전</th><th>상태</th><th>수정일</th><th>작업</th></tr></thead>
+        <tbody id="tplList"><tr><td colspan="5" class="muted" style="text-align:center;padding:24px">사업자를 선택하세요</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 모달: 계약 작성 ═══ -->
+  <div class="modal" id="createModal">
+    <div class="modal-box wide">
+      <div class="mhead"><strong>새 근로계약 작성</strong><button class="x" data-close>&times;</button></div>
+      <div class="grid2">
+        <div class="fg"><label>사업자</label><select id="cEntity"></select></div>
+        <div class="fg"><label>직원</label><select id="cMember"></select></div>
+        <div class="fg"><label>성명(계약서 표기)</label><input id="f_성명" placeholder="자동: 직원명"></div>
+        <div class="fg"><label>생년월일</label><input id="f_생년월일" placeholder="예: 1990-01-01"></div>
+        <div class="fg"><label>주소</label><input id="f_주소" placeholder="근로자 주소"></div>
+        <div class="fg"><label>연락처</label><input id="f_연락처" placeholder="010-0000-0000"></div>
+        <div class="fg"><label>주민등록번호(선택·암호화 저장)</label><input id="f_주민번호" placeholder="넣으면 계약서에 표기·암호화 보관" autocomplete="off"></div>
+        <div class="fg"><label>계약 시작일</label><input id="f_계약시작일" placeholder="예: 2026-08-01"></div>
+        <div class="fg"><label>연봉(총액)</label><input id="f_연봉" placeholder="예: 금 45,000,000원 (사천오백만원, 세전)"></div>
+        <div class="fg"><label>월 지급액</label><input id="f_월지급액" placeholder="예: 3,750,000"></div>
+        <div class="fg"><label>지급일</label><input id="f_지급일" placeholder="예: 10일"></div>
+        <div class="fg"><label>수습기간(개월)</label><input id="f_수습개월" value="3"></div>
+        <div class="fg"><label>근무 시작시각</label><input id="f_근무시작시각" value="09:00"></div>
+        <div class="fg"><label>근무 종료시각</label><input id="f_근무종료시각" value="18:00"></div>
+        <div class="fg" style="grid-column:1/-1"><label>근무장소</label><input id="f_근무장소" placeholder="비우면 사업자 소재지"></div>
+        <div class="fg" style="grid-column:1/-1"><label>담당업무</label><input id="f_담당업무" placeholder="예: 공유오피스 운영·회원 응대·시설 관리"></div>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-default" data-close>취소</button>
+        <button class="btn btn-default" id="btnCreatePreview">미리보기 저장(초안)</button>
+        <button class="btn btn-primary" id="btnCreateSend">저장 후 바로 발송</button>
+      </div>
+      <div class="muted" style="margin-top:8px">발송하면 회사 도장이 자동으로 찍혀 직원에게 전달됩니다. 직원이 워크스페이스에서 서명하면 완료됩니다.</div>
+    </div>
+  </div>
+
+  <!-- ═══ 모달: 계약 상세 ═══ -->
+  <div class="modal" id="detailModal">
+    <div class="modal-box wide"><div id="detailBody"></div></div>
+  </div>
+
+  <!-- ═══ 모달: 사업자 편집 ═══ -->
+  <div class="modal" id="entityModal">
+    <div class="modal-box">
+      <div class="mhead"><strong id="entTitle">사업자</strong><button class="x" data-close>&times;</button></div>
+      <input type="hidden" id="entId">
+      <div class="grid2">
+        <div class="fg"><label>상호</label><input id="entName"></div>
+        <div class="fg"><label>유형</label><select id="entType"><option value="corporation">법인·단체</option><option value="individual">개인사업자</option></select></div>
+        <div class="fg"><label>대표자</label><input id="entRep"></div>
+        <div class="fg"><label>사업자등록번호</label><input id="entBizNo"></div>
+        <div class="fg" style="grid-column:1/-1"><label>소재지</label><input id="entAddress"></div>
+        <div class="fg"><label>전화</label><input id="entPhone"></div>
+      </div>
+      <div class="card" style="margin-top:6px">
+        <label style="font-size:12px;color:#4b5563;font-weight:600">도장</label>
+        <div class="row" style="align-items:center;margin-top:6px">
+          <img id="entSealPreview" style="height:60px;border:1px solid #eef0f4;border-radius:8px;padding:4px;display:none">
+          <span id="entSealNone" class="muted">등록된 도장 없음</span>
+          <input type="file" id="entSealFile" accept="image/png,image/jpeg" style="font-size:12px">
+        </div>
+        <div class="muted" style="margin-top:4px">개인사업자 도장 또는 단체 직인 이미지(PNG 권장·투명배경). 저장 후 반영됩니다.</div>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-default" data-close>취소</button>
+        <button class="btn btn-primary" id="btnSaveEntity">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 모달: 양식 편집 ═══ -->
+  <div class="modal" id="tplModal">
+    <div class="modal-box wide">
+      <div class="mhead"><strong id="tplModalTitle">계약서 양식</strong><button class="x" data-close>&times;</button></div>
+      <input type="hidden" id="tplId"><input type="hidden" id="tplEntityId">
+      <div class="fg"><label>제목</label><input id="tplTitle" value="정규직 근로계약서"></div>
+      <div class="fg"><label>본문 (치환키: {{성명}} {{연봉}} {{계약시작일}} {{회사상호}} 등)</label><textarea id="tplBody"></textarea></div>
+      <div class="muted">치환키는 계약 작성 시 입력값으로 자동 치환됩니다. 회사 정보({{회사상호}}·{{회사대표자}}·{{회사사업자번호}}·{{회사주소}})는 사업자에서 자동. 양식을 고쳐도 이미 서명된 계약서는 바뀌지 않습니다.</div>
+      <div class="row" style="justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-default" data-close>취소</button>
+        <button class="btn btn-primary" id="btnSaveTpl">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/js/admin-contract.js?v=20260727"></script>
+</body>
+</html>

@@ -53,6 +53,16 @@ export default async function handler(req: Request, _ctx: Context) {
 
     /* ───────── GET ───────── */
     if (req.method === "GET") {
+      /* 계약 생성 모달용 — 직원(운영자) 목록 */
+      if (url.searchParams.get("members") === "1") {
+        step = "members";
+        const m = await db.execute(sql`
+          SELECT id, name, position, email FROM members
+           WHERE (type = 'admin' OR operator_active = TRUE) AND status = 'active'
+           ORDER BY name ASC`);
+        return ok({ members: rows(m) });
+      }
+
       const id = url.searchParams.get("id");
 
       if (id) {

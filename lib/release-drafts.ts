@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-22.1";
+export const APP_VERSION = "2026-07-27.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,18 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-27-employment-contract",
+    title: "전자 근로계약 시스템이 생겼습니다",
+    items: [
+      { text: "[관리자] 통합 CMS에 '근로계약 관리'가 생겼습니다 — 직원에게 근로계약서를 만들어 전달하고, 서명·보관까지 온라인으로 처리합니다", link: "/cms-tbfa.html#contract" },
+      { text: "[관리자] 계약 주체(사업자)를 여러 개 관리할 수 있습니다 — 교사유가족협의회·함께워크 ON·함께워크 SI가 기본 등록되어 있고, 도장도 미리 넣어두었습니다(교유협 도장은 필요 시 등록)", link: "/cms-tbfa.html#contract" },
+      { text: "[관리자] 계약서 양식을 사업자별로 화면에서 직접 편집할 수 있습니다 — 성명·연봉·기간 등은 계약 작성 시 자동으로 채워집니다", link: "/cms-tbfa.html#contract" },
+      { text: "[직원] 워크스페이스에 '내 근로계약'이 생겼습니다 — 전달된 계약서를 확인하고 손글씨·성명·도장 중 원하는 방식으로 서명하거나, 내용이 다르면 반려할 수 있습니다", link: "/workspace-contract.html" },
+      { text: "[직원] 서명하면 회사·본인 서명이 모두 담긴 계약서 PDF를 바로 내려받을 수 있고, 신분증·통장 사본 같은 서류도 첨부할 수 있습니다", link: "/workspace-contract.html" },
+      { text: "주민등록번호는 암호화해 보관하고 화면에는 일부만 표시합니다. 계약서 본문은 서명한 그 시점 그대로 저장되어 나중에 양식을 고쳐도 바뀌지 않습니다" },
+    ],
+  },
   {
     key: "2026-07-22-workplace-address-search",
     title: "[관리자] 근태 거점 추가 시 '주소 검색' 버튼이 눌리지 않던 문제",
