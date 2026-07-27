@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-27.1";
+export const APP_VERSION = "2026-07-27.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,23 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-07-27-updates-detail",
+    title: "업데이트 소식을 자세히 볼 수 있습니다",
+    items: [
+      { text: "'새 소식' 알림에 [자세히 보기]가 생겼습니다 — 각 업데이트의 소개·사용법·화면을 자세히 읽을 수 있습니다", link: "/updates.html" },
+      { text: "지난 소식도 '업데이트 소식' 페이지에서 모아 볼 수 있습니다", link: "/updates.html" },
+      { text: "[관리자] 소식 편집 화면에 '상세 본문'(글·이미지)과 '대표 이미지' 칸이 추가되었습니다", link: "/cms-tbfa.html#release-notes" },
+    ],
+  },
+  {
+    key: "2026-07-27-contract-notify",
+    title: "근로계약 알림",
+    items: [
+      { text: "이사장이 근로계약서를 보내면 직원에게 '근로계약서가 도착했습니다' 알림이 갑니다", link: "/workspace-contract.html" },
+      { text: "직원이 서명하거나 반려하면 이사장에게 알림이 갑니다" },
+    ],
+  },
   {
     key: "2026-07-27-employment-contract",
     title: "전자 근로계약 시스템이 생겼습니다",

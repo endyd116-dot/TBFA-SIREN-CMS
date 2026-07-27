@@ -59,7 +59,7 @@ export interface LogActivityParams {
   visibility?: ActivityVisibility;
 }
 
-export type NotifSourceType = "task" | "event" | "due_change" | "briefing" | "file_share";
+export type NotifSourceType = "task" | "event" | "due_change" | "briefing" | "file_share" | "contract";
 export type NotifChannel = "bell" | "email" | "sms" | "kakao";
 export type NotifType =
   | "reminder_3d" | "reminder_1d" | "reminder_2h"

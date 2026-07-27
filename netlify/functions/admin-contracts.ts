@@ -16,6 +16,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { fillTemplate, loadContractRow } from "../../lib/contract-document";
 import { encryptPII, maskResidentNo, piiKeyAvailable } from "../../lib/crypto-pii";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/admin-contracts" };
 const H = { "Content-Type": "application/json; charset=utf-8" };
@@ -193,6 +194,15 @@ export default async function handler(req: Request, _ctx: Context) {
                  sent_at = NOW(), updated_at = NOW()
            WHERE id = ${id}`);
         await db.execute(sql`INSERT INTO contract_signature_events (contract_id, actor, action) VALUES (${id}, 'company', 'SENT')`);
+        try {
+          await sendWorkspaceNotification({
+            memberId: Number(row.member_id), sourceType: "contract", sourceId: id,
+            notifType: "assigned", channel: "bell", category: "system",
+            title: "근로계약서가 도착했습니다",
+            body: `${row.ent_name || "회사"} 근로계약서를 확인하고 서명해 주세요.`,
+            actionUrl: "/workspace-contract.html",
+          });
+        } catch (e) { console.warn("[contract] 발송 알림 실패", e); }
         return ok({ id }, "직원에게 계약서를 전달했습니다. (직원이 워크스페이스 '내 근로계약'에서 서명)");
       }
 

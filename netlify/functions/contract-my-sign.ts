@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 import { uploadToR2 } from "../../lib/r2-server";
 import { loadContractRow, normalizeSignaturePng, issueContractDocument, fillTemplate } from "../../lib/contract-document";
 import { encryptPII, maskResidentNo, piiKeyAvailable } from "../../lib/crypto-pii";
+import { notifyAllSuperAdmins } from "../../lib/notify";
 
 export const config = { path: "/api/contract-my-sign" };
 const H = { "Content-Type": "application/json; charset=utf-8" };
@@ -68,6 +69,13 @@ export default async function handler(req: Request, _ctx: Context) {
       await db.execute(sql`
         INSERT INTO contract_signature_events (contract_id, actor, action, ip, user_agent, meta)
         VALUES (${id}, 'employee', 'REJECTED', ${ip}, ${ua}, ${JSON.stringify({ reason })}::jsonb)`);
+      try {
+        await notifyAllSuperAdmins({
+          category: "system", title: "근로계약 반려",
+          message: `${me.name || "직원"}님이 근로계약을 반려했습니다: ${reason.slice(0, 60)}`,
+          link: "/cms-tbfa.html#contract", refTable: "employment_contracts", refId: id,
+        });
+      } catch (e) { console.warn("[contract] 반려 알림 실패", e); }
       return ok({ id }, "계약을 반려했습니다. 담당자에게 전달됩니다");
     }
 
@@ -140,6 +148,14 @@ export default async function handler(req: Request, _ctx: Context) {
       await db.execute(sql`
         INSERT INTO contract_signature_events (contract_id, actor, action, signature_type, signed_name, document_sha256, ip, user_agent)
         VALUES (${id}, 'employee', 'SIGNED', ${sigType}, ${signedName}, ${iss.ok ? iss.sha256 : null}, ${ip}, ${ua})`);
+
+      try {
+        await notifyAllSuperAdmins({
+          category: "system", title: "근로계약 서명 완료",
+          message: `${signedName}님이 근로계약서에 서명했습니다. 완료된 계약서를 확인할 수 있습니다.`,
+          link: "/cms-tbfa.html#contract", refTable: "employment_contracts", refId: id,
+        });
+      } catch (e) { console.warn("[contract] 서명 알림 실패", e); }
 
       if (!iss.ok) {
         /* 서명은 기록됐으나 문서 생성 실패 — 상태는 completed 유지, 다운로드 시 즉석 생성으로 복구됨 */
