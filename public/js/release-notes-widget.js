@@ -42,6 +42,8 @@
       '.rnw-note li{font-size:13px;color:#374151;margin-bottom:6px;line-height:1.5}',
       '.rnw-go{margin-left:6px;font-size:12px;color:#2563eb;text-decoration:none;white-space:nowrap}',
       '.rnw-go:hover{text-decoration:underline}',
+      '.rnw-more{display:inline-block;margin-top:8px;font-size:12.5px;color:#7a1f2b;font-weight:700;text-decoration:none}',
+      '.rnw-more:hover{text-decoration:underline}',
       '#rnwToast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:10000;background:#111827;color:#fff;',
       'border-radius:10px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.3)}',
       '#rnwToast button{background:#7a1f2b;color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-weight:600}',
@@ -118,7 +120,8 @@
       }).join('');
       return '<div class="rnw-note"><h3>' + esc(n.title) + '</h3>' +
         '<time>' + fmtDate(n.publishedAt || n.createdAt) + '</time>' +
-        '<ul>' + items + '</ul></div>';
+        '<ul>' + items + '</ul>' +
+        '<a class="rnw-more" href="/updates.html#' + n.id + '">자세히 보기 →</a></div>';
     }).join('') || '<p style="color:#6b7280;font-size:13px">아직 등록된 소식이 없습니다.</p>';
     ov.innerHTML = '<div id="rnwModal"><header><h2>업데이트 소식</h2>' +
       '<button id="rnwClose" type="button" aria-label="닫기">' + (icon('x') || '닫기') + '</button></header>' +

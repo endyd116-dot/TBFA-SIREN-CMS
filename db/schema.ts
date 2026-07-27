@@ -4826,6 +4826,8 @@ export const releaseNotes = pgTable("release_notes", {
   draftKey: varchar("draft_key", { length: 60 }),          // 자동 초안 중복 방지 키 (수동 생성은 null)
   title: varchar("title", { length: 200 }).notNull(),
   items: jsonb("items").$type<{ text: string; link?: string }[]>().default([]).notNull(),
+  body: text("body"),                                       // 상세 본문(마크다운·소개) — 2026-07-27
+  heroImageUrl: varchar("hero_image_url", { length: 500 }), // 대표 이미지 URL(선택)
   audience: varchar("audience", { length: 20 }).default("operator").notNull(), // operator | public(향후 확장)
   status: varchar("status", { length: 20 }).default("draft").notNull(),        // draft | published
   publishedAt: timestamp("published_at"),

@@ -46,6 +46,17 @@ export default async (req: Request, _ctx: Context) => {
 
     /* ───── GET ───── */
     if (req.method === "GET") {
+      // 상세 1건 (발행분은 운영자 전원, 초안은 관리자만) — 자세한 내용·소개 보기
+      if (url.searchParams.get("id")) {
+        step = "detail";
+        const id = Number(url.searchParams.get("id") || 0);
+        if (!id) return badRequest("id 필수");
+        const [row]: any = await db.select().from(releaseNotes).where(eq(releaseNotes.id, id)).limit(1);
+        if (!row) return notFound("소식을 찾을 수 없습니다");
+        if (row.status !== "published" && !isManager) return forbidden("아직 발행되지 않은 소식입니다");
+        return ok(row);
+      }
+
       // 시드 초안 조회 (관리자)
       if (url.searchParams.get("drafts") === "1") {
         step = "drafts";
@@ -119,9 +130,11 @@ export default async (req: Request, _ctx: Context) => {
       const title = String(body.title || "").slice(0, 200).trim();
       if (!title) return badRequest("title 필수");
       const items = sanitizeItems(body.items);
+      const detailBody = body.body ? String(body.body).slice(0, 20000) : null;
+      const heroImageUrl = body.heroImageUrl ? String(body.heroImageUrl).slice(0, 500) : null;
       const inserted: any = await db
         .insert(releaseNotes)
-        .values({ title, items, status: "draft", createdBy: me.id } as any)
+        .values({ title, items, body: detailBody, heroImageUrl, status: "draft", createdBy: me.id } as any)
         .returning();
       await logAudit({
         userId: me.id, userType: "admin", userName: me.name,
@@ -167,6 +180,8 @@ export default async (req: Request, _ctx: Context) => {
       const patch: any = { updatedAt: new Date() };
       if (typeof body.title === "string" && body.title.trim()) patch.title = body.title.slice(0, 200).trim();
       if (body.items !== undefined) patch.items = sanitizeItems(body.items);
+      if (body.body !== undefined) patch.body = body.body ? String(body.body).slice(0, 20000) : null;
+      if (body.heroImageUrl !== undefined) patch.heroImageUrl = body.heroImageUrl ? String(body.heroImageUrl).slice(0, 500) : null;
       const [updated]: any = await db
         .update(releaseNotes).set(patch).where(eq(releaseNotes.id, id)).returning();
       return ok(updated, "수정되었습니다");
