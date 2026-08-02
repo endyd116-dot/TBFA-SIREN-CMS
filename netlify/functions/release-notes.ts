@@ -5,6 +5,7 @@
 // GET  ?list=1             : 전체 목록 (관리자: 이사장·국장)
 // GET  ?drafts=1           : 코드 시드 초안 중 아직 안 가져온 것 (관리자)
 // POST {importDrafts:true} : 시드 초안 → DB 초안으로 일괄 가져오기 (관리자)
+// POST {publishAll:true}   : 초안 상태인 소식 전부 발행 (관리자)
 // POST {title, items}      : 수동 초안 생성 (관리자)
 // PATCH ?id=N              : 수정 {title?, items?} / ?action=publish 발행 / ?action=unpublish 발행취소 (관리자)
 // DELETE ?id=N             : 삭제 (관리자)
@@ -123,6 +124,28 @@ export default async (req: Request, _ctx: Context) => {
           }
         }
         return ok({ imported }, imported > 0 ? `초안 ${imported}건을 가져왔어요` : "가져올 새 초안이 없습니다");
+      }
+
+      // 초안 일괄 발행 — 검토를 마친 초안들을 한 번에 운영자에게 공개 (2026-08-02)
+      if (body.publishAll === true) {
+        step = "publish_all";
+        const drafts: any = await db
+          .select({ id: releaseNotes.id })
+          .from(releaseNotes)
+          .where(eq(releaseNotes.status, "draft"));
+        if (!drafts.length) return ok({ published: 0 }, "발행할 초안이 없습니다");
+        const ids = drafts.map((d: any) => d.id);
+        const now = new Date();
+        await db
+          .update(releaseNotes)
+          .set({ status: "published", publishedAt: now, updatedAt: now } as any)
+          .where(inArray(releaseNotes.id, ids));
+        await logAudit({
+          userId: me.id, userType: "admin", userName: me.name,
+          action: "release_note.publish_all", target: `release_note:${ids.length}건`,
+          detail: { ids }, req,
+        } as any);
+        return ok({ published: ids.length }, `초안 ${ids.length}건이 발행되었습니다`);
       }
 
       // 수동 생성
