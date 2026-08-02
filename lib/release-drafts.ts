@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-07-27.2";
+export const APP_VERSION = "2026-08-02.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-02-admin-session-7days",
+    title: "[관리자] 로그인 상태 유지하면 7일 동안 로그인이 풀리지 않습니다",
+    items: [
+      { text: "로그인할 때 '로그인 상태 유지'를 체크하면 관리자 화면도 7일 동안 유지됩니다 — 기존에는 하루가 지나면 비밀번호를 다시 입력해야 했습니다", link: "/cms-tbfa.html" },
+      { text: "체크한 경우 자리를 오래 비워도 자동 로그아웃되지 않고, 우상단 시간 표시가 '6일 3시간'처럼 남은 기간을 알려줍니다" },
+      { text: "체크하지 않으면 이전과 같습니다 — 6시간 동안 아무 조작이 없으면 자동 로그아웃되고, 브라우저를 닫으면 바로 로그아웃됩니다" },
+      { text: "관리자 화면을 켜둔 채 다른 창을 보고 있으면 알림·지표 자동 새로고침이 잠시 멈췄다가, 화면으로 돌아오는 즉시 최신 내용으로 갱신됩니다 (서버 사용료 절감)" },
+    ],
+  },
   {
     key: "2026-07-27-updates-detail",
     title: "업데이트 소식을 자세히 볼 수 있습니다",

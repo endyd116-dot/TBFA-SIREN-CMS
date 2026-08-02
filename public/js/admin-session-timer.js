@@ -6,7 +6,7 @@
    자리 비우면 6시간 뒤 만료. 5분 전 연장 팝업. 타이머/버튼 클릭 시 연장.
    - 우상단 타이머 = 무활동 남은 시간(활동하면 6:00:00로 리셋)
    - 활동 중에는 25분마다 JWT를 조용히 재발급(6시간 절대만료로 작업 중 끊기는 것 방지)
-   - '로그인 유지' 세션은 무활동 해제 + 실제 만료(로그인 후 24시간)까지 카운트다운
+   - '로그인 유지' 세션은 무활동 해제 + 실제 만료(로그인 후 7일)까지 카운트다운 (2026-08-02 Swain — 1일→7일)
    - 만료 시 로그아웃 후 /admin.html 이동. 미인증(로그인 화면)이면 조용히 숨김(루프 방지)
    - 기존 admin-idle-guard.js(30분)를 대체. #sessionTimer 버튼이 있으면 그 자리, 없으면 우상단 플로팅.
    ============================================================ */
@@ -19,12 +19,19 @@
   var lastActivity = Date.now();
   var lastJwtRefresh = 0;
   var tick = null, warnOpen = false, authed = false;
-  /* 로그인 유지(remember) 모드: 무활동 자동 로그아웃 해제 + 실제 만료(로그인 후 24시간)까지 카운트다운 */
+  /* 로그인 유지(remember) 모드: 무활동 자동 로그아웃 해제 + 실제 만료(로그인 후 7일)까지 카운트다운 */
   var rememberMode = false;
   var absoluteExpiryMs = 0;   // remember 모드에서 실제 만료 시각(ms)
 
   function $(id) { return document.getElementById(id); }
-  function fmt(s) { s = Math.max(0, s | 0); var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; var mm = (h && m < 10 ? '0' : '') + m; return (h ? h + ':' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss; }
+  function fmt(s) {
+    s = Math.max(0, s | 0);
+    /* 로그인 유지(7일)에서 초 단위까지 보여주면 '167:59:59'처럼 읽기 어려움 → 하루 넘으면 '6일 3시간' */
+    if (s >= 86400) return Math.floor(s / 86400) + '일 ' + Math.floor((s % 86400) / 3600) + '시간';
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    var mm = (h && m < 10 ? '0' : '') + m;
+    return (h ? h + ':' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
   function remainSec() {
     if (rememberMode) return Math.round((absoluteExpiryMs - Date.now()) / 1000);  // 실제 만료까지
     return Math.round((IDLE_MS - (Date.now() - lastActivity)) / 1000);            // 무활동 남은 시간

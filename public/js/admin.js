@@ -106,6 +106,8 @@
   let CURRENT_ADMIN = null;
   let CURRENT_KPI = null;
   let _kpiPollTimer = null;
+  let _kpiVisBound = false;   // 화면 표시/숨김 감지 리스너 1회만 등록
+  let _kpiWanted = false;     // 관리자 화면에 들어와 있는지(숨김 → 복귀 시 재개 판단)
 
   /* I-4: 회원 목록 캐시 + 정렬 상태 */
   let _currentMembers = [];
@@ -434,7 +436,18 @@ const OPERATOR_CATEGORIES = [
   }
 
     function startKpiPolling() {
+    _kpiWanted = true;
     if (_kpiPollTimer) clearInterval(_kpiPollTimer);
+    /* 화면을 보고 있을 때만 조회 — 다른 탭·최소화 중에는 완전 정지.
+       (DB가 5분 유휴여야 잠들며 과금이 멈추는데, 켜둔 탭이 1분마다 깨우면 상시 과금 — 2026-08-02) */
+    if (!_kpiVisBound) {
+      _kpiVisBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopKpiPolling(true);      // 관리자 화면 상태는 유지한 채 조회만 정지
+        else if (_kpiWanted) startKpiPolling();          // 돌아오면 재개
+      });
+    }
+    if (document.hidden) { _kpiPollTimer = null; return; }
     _kpiPollTimer = setInterval(async () => {
       const ok = await fetchAdminMe();
       if (ok) {
@@ -456,7 +469,8 @@ const OPERATOR_CATEGORIES = [
     } catch (e) {}
   }
 
-  function stopKpiPolling() {
+  function stopKpiPolling(keepWanted) {
+    if (!keepWanted) _kpiWanted = false;   // 로그아웃·로그인 화면이면 재개 대상에서 제외
     if (_kpiPollTimer) {
       clearInterval(_kpiPollTimer);
       _kpiPollTimer = null;

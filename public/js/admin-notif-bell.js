@@ -225,12 +225,21 @@
     } catch (_) {}
   }
 
-  function start() {
+  /* 화면을 보고 있을 때만 조회 — 다른 탭·최소화 중에는 완전 정지.
+     (DB가 5분 유휴여야 잠들며 과금이 멈추는데, 켜둔 탭이 1분마다 깨우면 상시 과금 — 2026-08-02) */
+  function startPolling() {
     if (pollTimer) clearInterval(pollTimer);
-    poll();
     pollTimer = setInterval(poll, POLL_MS);
+  }
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function start() {
+    if (!document.hidden) { poll(); startPolling(); }
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) poll();
+      if (document.hidden) { stopPolling(); }
+      else { poll(); startPolling(); }   // 돌아오면 즉시 1회 조회 후 재개
     });
   }
 
