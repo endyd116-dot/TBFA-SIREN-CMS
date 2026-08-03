@@ -161,8 +161,15 @@ interface PagePlan {
   eyebrow: string | null;
   subtitle: string | null;
   layout: "default" | "wide" | "plain";
-  /** 상단 메뉴에서 이 페이지로 바꿔 연결할 옛 주소들 */
+  /** 이 주소를 가리키던 메뉴를 새 페이지 연결로 바꾼다 */
   oldHrefs: string[];
+  /**
+   * 이 페이지를 가리키는 메뉴가 **하나도 없을 때** 새로 만들어 준다.
+   * 실제 저장소를 확인해 보니 '주요 연혁'·'조직도' 메뉴가 아예 없었다
+   * (정적 헤더 파일에만 있고 저장소에는 '인사말' 하나뿐).
+   * 그대로 두면 페이지는 만들어지는데 들어갈 길이 없다.
+   */
+  fallbackMenu?: { location: string; parentHref: string | null; label: string };
   build: () => string | null;
 }
 
@@ -177,26 +184,32 @@ async function buildPlans(): Promise<PagePlan[]> {
       slug: "greeting", title: "인사말", eyebrow: "GREETING",
       subtitle: "존엄한 기억, 투명한 동행 — 교사유가족협의회가 함께합니다",
       layout: "default",
-      oldHrefs: ["/about.html#greeting", "/about.html"],
+      /* 상위 '단체소개'(/about.html)는 건드리지 않는다 — 하위 '인사말'과 중복되고,
+         옛 주소 넘기기(2차)로 어차피 이 페이지에 도착한다 */
+      oldHrefs: ["/about.html#greeting"],
+      fallbackMenu: { location: "header", parentHref: "/about.html", label: "인사말" },
       build: () => buildGreeting(pieces) || null,
     },
     {
       slug: "history", title: "주요 연혁", eyebrow: "HISTORY",
       subtitle: null, layout: "default",
       oldHrefs: ["/about.html#history"],
+      fallbackMenu: { location: "header", parentHref: "/about.html", label: "주요 연혁" },
       build: () => (pieces["about_history"] ? `<div class="history-line">${pieces["about_history"]}</div>` : null),
     },
     {
       slug: "organization", title: "조직도 · 오시는 길", eyebrow: "ORGANIZATION",
       subtitle: null, layout: "default",
       oldHrefs: ["/about.html#org"],
+      fallbackMenu: { location: "header", parentHref: "/about.html", label: "조직도 · 오시는 길" },
       build: () => buildOrganization(pieces) || null,
     },
     {
       slug: "family-support", title: "유가족 지원사업", eyebrow: "SUPPORT",
       subtitle: "심리 상담·법률 자문·장학 사업으로 함께합니다",
       layout: "default",
-      oldHrefs: ["/support.html#family", "/support.html"],
+      /* 상위 '주요 사업'(/support.html)은 건드리지 않는다 — 위와 같은 이유 */
+      oldHrefs: ["/support.html#family"],
       build: () => {
         const sec = extractSection(support, "family");
         if (!sec) return null;
@@ -346,6 +359,8 @@ export default async function handler(req: Request, _ctx: Context) {
     /* 상단 메뉴가 새 페이지를 가리키도록 연결 */
     step = "link_menus";
     const linked: any[] = [];
+    const createdMenus: any[] = [];
+
     for (const p of plans) {
       const page = rowsOf(await db.execute(sql`SELECT id FROM site_pages WHERE slug = ${p.slug} LIMIT 1`));
       if (page.length === 0) continue;
@@ -362,6 +377,47 @@ export default async function handler(req: Request, _ctx: Context) {
         `));
         upd.forEach((r: any) => linked.push({ menuId: Number(r.id), label: r.label, from: href, to: `/p/${p.slug}` }));
       }
+
+      /* 이 페이지를 가리키는 메뉴가 하나도 없으면 새로 만든다.
+         (실제 저장소에 '주요 연혁'·'조직도' 메뉴가 없어서 그냥 두면 들어갈 길이 없다) */
+      if (!p.fallbackMenu) continue;
+      const already = rowsOf(await db.execute(sql`
+        SELECT id FROM nav_menu_items WHERE site_page_id = ${pageId} LIMIT 1
+      `));
+      if (already.length > 0) continue;
+
+      let parentId: number | null = null;
+      if (p.fallbackMenu.parentHref) {
+        const parent = rowsOf(await db.execute(sql`
+          SELECT id FROM nav_menu_items
+           WHERE menu_location = ${p.fallbackMenu.location}
+             AND href = ${p.fallbackMenu.parentHref}
+             AND parent_id IS NULL
+           ORDER BY sort_order ASC LIMIT 1
+        `));
+        if (parent.length > 0) parentId = Number(parent[0].id);
+      }
+
+      /* 형제 메뉴들 뒤에 붙인다 */
+      const maxRow = rowsOf(await db.execute(sql`
+        SELECT COALESCE(MAX(sort_order), 0) AS m FROM nav_menu_items
+         WHERE menu_location = ${p.fallbackMenu.location}
+           AND parent_id IS NOT DISTINCT FROM ${parentId}
+      `));
+      const nextOrder = Number(maxRow[0]?.m || 0) + 10;
+
+      const ins = rowsOf(await db.execute(sql`
+        INSERT INTO nav_menu_items
+          (parent_id, menu_location, label, href, sort_order, is_active, target, link_type, site_page_id)
+        VALUES
+          (${parentId}, ${p.fallbackMenu.location}, ${p.fallbackMenu.label}, ${"/p/" + p.slug},
+           ${nextOrder}, true, '_self', 'page', ${pageId})
+        RETURNING id
+      `));
+      createdMenus.push({
+        menuId: Number(ins[0]?.id), label: p.fallbackMenu.label,
+        parentId, to: `/p/${p.slug}`,
+      });
     }
 
     step = "verify";
@@ -371,6 +427,7 @@ export default async function handler(req: Request, _ctx: Context) {
       ok: true, mode: "executed",
       pages: results,
       menus_linked: linked,
+      menus_created: createdMenus,
       after,
       next: [
         "1) 메인 화면 편집 → 페이지 관리에서 9개 페이지 내용 확인 (사진·표·지도가 제대로 들어갔는지)",
