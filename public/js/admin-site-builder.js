@@ -63,6 +63,18 @@
 
   /* ============ 헬퍼 ============ */
   function $(sel) { return document.querySelector(sel); }
+
+  /* 2026-08-03: 메뉴 편집은 별도 모듈(admin-nav-tree.js)의 드래그 트리로 처리한다 */
+  function navTree(opts) {
+    if (window.SIREN_NAV_TREE && window.SIREN_NAV_TREE.render) {
+      window.SIREN_NAV_TREE.render(opts);
+    } else {
+      const inner = $('#sbContentInner');
+      if (inner) {
+        inner.innerHTML = '<div class="sb-placeholder"><p>메뉴 편집 모듈 로드 실패 — admin-nav-tree.js 스크립트 태그 확인</p></div>';
+      }
+    }
+  }
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -298,11 +310,13 @@
         intro: '메인 페이지 상단 헤더의 로고 이미지·기관명·부제 문구를 편집합니다. 변경 사항은 임시저장(Draft)되며, 우측 상단 "모든 변경사항 배포"를 눌러야 운영에 반영됩니다.',
       });
     },
+    /* 2026-08-03: 납작한 표 → 끌어 옮기는 2단 트리로 교체 (아래 renderNavMenusEditor는 미사용) */
     'header.menus': function () {
-      renderNavMenusEditor({
-        title: '헤더 메뉴 관리',
+      navTree({
+        title: '상단 메뉴 관리',
         location: 'header',
-        intro: '메인 페이지 상단 헤더의 네비게이션 메뉴를 관리합니다. 라벨·링크·정렬은 임시저장 후 배포, 활성/비활성·아이콘은 즉시 반영됩니다.',
+        intro: '사이트 맨 위에 보이는 메뉴입니다. 손잡이를 잡고 끌어서 순서를 바꾸고, ' +
+               '다른 메뉴 안으로 넣으면 하위 메뉴가 됩니다. 메뉴가 가리키는 페이지의 내용도 여기서 바로 편집할 수 있습니다.',
       });
     },
     'notices_faq': function () {
@@ -329,17 +343,17 @@
       });
     },
     'footer.menus': function () {
-      renderNavMenusEditor({
+      navTree({
         title: '푸터 메뉴 관리',
         location: 'footer',
-        intro: '푸터의 메뉴(이용약관·개인정보처리방침 등) 링크를 관리합니다.',
+        intro: '사이트 맨 아래에 보이는 메뉴(이용약관·개인정보처리방침 등)입니다.',
       });
     },
     'siren_menu': function () {
-      renderNavMenusEditor({
+      navTree({
         title: '사이렌 메뉴 관리',
         location: 'siren',
-        intro: '메인 헤더의 "사이렌" 드롭다운 메뉴(사건 신고·악성민원·법률지원·자유게시판 등)를 관리합니다.',
+        intro: '상단 "사이렌" 펼침 메뉴(사건 신고·악성민원·법률지원·자유게시판 등)입니다.',
       });
     },
     'page.terms': function () {
