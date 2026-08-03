@@ -69,6 +69,9 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin/notices": "notice_manage",
   "/api/admin/content-pages": "content_edit",
   "/api/admin-curations": "content_edit",
+  /* 2026-08-03 메뉴·페이지 통합 편집 — 메뉴·사이트설정과 같은 권한키로 묶는다 */
+  "/api/admin/site-pages": "content_edit",
+  "/api/admin/site-page-revisions": "content_edit",
 };
 
 export async function requireAdmin(req: Request): Promise<
