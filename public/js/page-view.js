@@ -131,8 +131,16 @@
     var filled = await fillIfEmpty();
     await renderBreadcrumb();
     wrapWideTables();
-    /* 본문을 나중에 채운 경우 지도 등을 다시 살린다 */
-    if (filled && window.SirenPageWidgets) window.SirenPageWidgets.init();
+
+    /* 본문을 나중에 채운 경우 — 지도와 아이콘을 다시 살린다.
+       아이콘은 화면이 처음 뜰 때 한 번만 그려지므로, 뒤늦게 들어온 본문의 아이콘은
+       직접 다시 그려주지 않으면 빈 자리로 남는다. */
+    if (filled) {
+      if (window.SirenPageWidgets) window.SirenPageWidgets.init();
+      try {
+        if (window.Icons && window.Icons.hydrate) window.Icons.hydrate(document.querySelector('main'));
+      } catch (_) {}
+    }
   }
 
   if (document.readyState === 'loading') {

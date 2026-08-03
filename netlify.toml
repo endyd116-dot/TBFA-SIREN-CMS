@@ -286,6 +286,11 @@
 [functions."page-render"]
   included_files = ["public/page.html", "public/404.html"]
 
+# ★ 2026-08-03 기존 내용 옮기기(1회용): 지금 코드에 박혀 있는 본문을 읽어 편집 가능한 페이지로 옮긴다.
+#   호출 성공 후 이 함수 파일과 이 블록을 함께 삭제한다.
+[functions."migrate-page-content"]
+  included_files = ["public/support.html", "public/terms.html", "public/privacy.html", "public/ethics.html", "public/email-reject.html"]
+
 # ★ P2: 순직 인정요건 법령 AI 파싱(criteria-generate)도 법령 문서 번들 포함 필요
 [functions."admin-martyrdom-criteria-generate"]
   included_files = ["docs/law/martyrdom/**"]

@@ -194,6 +194,109 @@
 }
 
 /* =========================================================
+   약관·정책 문서 스타일
+   이용약관·개인정보처리방침·윤리경영·이메일수집거부는 원래 각 파일 안에만 스타일이
+   있었다. 본문을 저장소로 옮기면 그 스타일이 따라오지 않아 표·카드 배치가 무너지므로
+   여기로 옮겨 공용으로 만든다. (2026-08-03 이관)
+   ========================================================= */
+.page-body .legal-doc {
+  background: #fff;
+  padding: 40px 48px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  line-height: 1.85;
+  color: var(--text-1, #1f2937);
+  font-size: 14.5px;
+}
+.page-body .legal-doc h2 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px;
+  color: var(--ink, #111827);
+  margin: 32px 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--brand, #7a1f2b);
+  font-weight: 700;
+}
+.page-body .legal-doc h2:first-child { margin-top: 0; }
+.page-body .legal-doc h3 {
+  font-size: 15.5px;
+  color: var(--ink, #111827);
+  margin: 20px 0 10px;
+  font-weight: 700;
+}
+.page-body .legal-doc p { margin: 0 0 12px; color: var(--text-2, #4b5563); }
+.page-body .legal-doc ul,
+.page-body .legal-doc ol { margin: 8px 0 16px; padding-left: 24px; color: var(--text-2, #4b5563); }
+.page-body .legal-doc li { margin-bottom: 6px; }
+
+/* 시행일·개정일 안내 상자 */
+.page-body .legal-doc .meta-info,
+.page-body .meta-info {
+  background: var(--bg-soft, #f7f8fa);
+  border-left: 4px solid var(--brand, #7a1f2b);
+  padding: 16px 20px;
+  border-radius: 4px;
+  margin-bottom: 28px;
+  font-size: 13px;
+  color: var(--text-2, #4b5563);
+}
+.page-body .meta-info strong { color: var(--ink, #111827); }
+
+/* 문서 앞머리 목차 */
+.page-body .toc {
+  background: #fafaf8;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+}
+.page-body .toc h3 { margin-top: 0; font-size: 14px; color: var(--ink, #111827); }
+.page-body .toc ol { margin: 0; padding-left: 22px; font-size: 13.5px; line-height: 1.9; }
+.page-body .toc a { color: var(--text-2, #4b5563); text-decoration: none; }
+.page-body .toc a:hover { color: var(--brand, #7a1f2b); text-decoration: underline; }
+
+/* 윤리경영 원칙 카드 4장 */
+.page-body .principle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+.page-body .principle-card {
+  background: #fafaf8;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+.page-body .principle-card .icon { font-size: 28px; margin-bottom: 8px; }
+.page-body .principle-card h4 {
+  margin: 0 0 8px;
+  color: var(--brand, #7a1f2b);
+  font-size: 15px;
+  font-weight: 700;
+}
+.page-body .principle-card p { margin: 0; font-size: 13px; line-height: 1.7; color: var(--text-2, #4b5563); }
+
+/* 법령 인용 상자 */
+.page-body .law-quote {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin: 18px 0;
+  font-size: 13.5px;
+  color: #8a6a00;
+  line-height: 1.8;
+}
+.page-body .law-quote strong { color: #6b5300; }
+
+@media (max-width: 720px) {
+  .page-body .legal-doc { padding: 28px 22px; font-size: 13.5px; }
+  .page-body .legal-doc h2 { font-size: 17px; }
+  .page-body .principle-grid { grid-template-columns: 1fr; }
+}
+
+/* =========================================================
    임시저장 미리보기 안내 띠
    ========================================================= */
 .page-draft-banner {

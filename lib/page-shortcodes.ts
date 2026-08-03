@@ -21,6 +21,7 @@ export const SHORTCODE_HELP: Array<{ code: string; label: string; desc: string }
   { code: "{{donate}}", label: "후원 버튼", desc: "누르면 후원하기 창이 열립니다." },
   { code: "{{apply:support}}", label: "신청 버튼", desc: "누르면 유가족 지원 신청 창이 열립니다." },
   { code: "{{button:라벨|주소}}", label: "일반 버튼", desc: "원하는 곳으로 가는 버튼. 예) {{button:자료실 가기|/resources.html}}" },
+  { code: "{{modal:창키|문구}}", label: "창 열기", desc: "후원·신청 외의 창을 엽니다. 예) {{modal:signupModal|회원가입 후 신청}}" },
 ];
 
 function escapeHtml(s: string): string {
@@ -81,6 +82,14 @@ export function renderShortcodes(html: string, opts: ShortcodeOptions = {}): str
         if (kind !== "support") return unknown(full, opts);
         return `<p class="pw-btn-wrap"><button type="button" class="btn btn-primary pw-btn" ` +
           `data-action="open-modal" data-target="supportModal">지원 신청하기</button></p>`;
+      }
+
+      /* 창 열기 — 창키|버튼문구. 후원·신청 외의 창(회원가입 등)에 쓴다. */
+      case "modal": {
+        const [key, label] = arg.split("|").map((v) => v.trim());
+        if (!key || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(key)) return unknown(full, opts);
+        return `<p class="pw-btn-wrap"><button type="button" class="btn btn-primary pw-btn" ` +
+          `data-action="open-modal" data-target="${escapeHtml(key)}">${escapeHtml(label || "자세히 보기")}</button></p>`;
       }
 
       /* 일반 버튼 — 라벨|주소 */
