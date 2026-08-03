@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <script src="/js/icons.js?v=20260712-esign"></script>
+  <script src="/js/lib-kst.js?v=3-kst-input"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- PWA(앱 설치) -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#7a1f2b" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="SIREN" />
+<script src="/js/pwa.js?v=3" defer></script>
+
+<!-- 아래 제목·설명은 기본값이다. 실제 값은 서버(page-render)가 페이지별로 바꿔 넣는다. -->
+<title>교사유가족협의회</title>
+<meta name="description" content="(사)교사유가족협의회 — 존엄한 기억, 투명한 동행">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="교사유가족협의회">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/layout.css?v=20260706-login">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/page-content.css?v=20260803-pages">
+</head>
+<body data-page="site-page">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <!--SIREN_PAGE_CONTENT-->
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=20260712-noemoji"></script>
+  <script src="/js/auth.js?v=20260712-noemoji"></script>
+  <!-- 본문 속 [후원하기]·[지원 신청] 버튼이 여는 창 -->
+  <script src="/js/support.js?v=5"></script>
+  <script src="/js/donate.js?v=r45"></script>
+  <!-- 본문 속 지도 등 특수 요소 -->
+  <script src="/js/page-widgets.js?v=20260803-pages"></script>
+  <script src="/js/page-view.js?v=20260803-pages"></script>
+</body>
+</html>

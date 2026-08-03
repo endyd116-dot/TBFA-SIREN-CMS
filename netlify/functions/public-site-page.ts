@@ -10,6 +10,7 @@
  */
 import { authenticateAdmin } from "../../lib/auth";
 import { getPublicPage, bumpViewCount } from "../../lib/site-pages";
+import { renderShortcodes } from "../../lib/page-shortcodes";
 import { ok, badRequest, notFound, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
 export const config = { path: "/api/public/page" };
@@ -34,6 +35,10 @@ export default async (req: Request) => {
 
     /* 조회수는 실제 방문만 센다 (미리보기 제외). 실패해도 페이지 표시를 막지 않는다. */
     if (!preferDraft) { try { await bumpViewCount(page.id); } catch (_) {} }
+
+    /* 본문 속 지도·버튼 자리표시를 실제 요소로 바꿔서 내보낸다 —
+       이 API를 쓰는 쪽은 화면에 그대로 붙이므로 여기서 끝내는 게 맞다. */
+    page.contentHtml = renderShortcodes(page.contentHtml || "", { preview: preferDraft });
 
     const res = ok({ page });
     res.headers.set(

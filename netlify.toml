@@ -86,6 +86,18 @@
   status = 200
   force = true
 
+# ============================================================
+# ★ 2026-08-03 메뉴·페이지 통합 편집: 운영자가 만든 페이지 (/p/{주소})
+#   메뉴 하나가 페이지 하나를 가리킨다. 페이지를 새로 만들어도 코드 배포가 필요 없도록
+#   주소를 통째로 함수에 넘겨 처리한다. 함수가 본문을 서버에서 채워 검색 노출까지 맞춘다.
+#   ※ 반드시 아래 404 규칙보다 위에 있어야 한다 (아래에 두면 전부 404로 먹힌다)
+# ============================================================
+[[redirects]]
+  from = "/p/*"
+  to = "/api/page-render?_slug=:splat"
+  status = 200
+  force = true
+
 # ★ K-9: 커스텀 404 라우팅 (다른 redirects보다 아래에 위치해야 함)
 [[redirects]]
   from = "/*"
@@ -267,6 +279,12 @@
 #   런타임에 읽어서 head에 콘텐츠별 OG 메타 주입 후 반환하므로 정적 HTML을 번들 포함.
 [functions."page-with-seo"]
   included_files = ["public/campaign.html", "public/incident.html", "public/activity.html", "public/board-view.html", "public/family-story.html", "public/memorial-teacher.html"]
+
+# ★ 2026-08-03 메뉴·페이지 통합 편집: /p/{주소} 페이지를 그리는 함수.
+#   페이지 뼈대(page.html)와 없는 페이지용 404를 런타임에 읽으므로 번들에 포함해야 한다.
+#   빠뜨리면 로컬에서는 되고 라이브에서만 "페이지 뼈대를 찾을 수 없습니다"가 뜬다.
+[functions."page-render"]
+  included_files = ["public/page.html", "public/404.html"]
 
 # ★ P2: 순직 인정요건 법령 AI 파싱(criteria-generate)도 법령 문서 번들 포함 필요
 [functions."admin-martyrdom-criteria-generate"]
