@@ -136,7 +136,8 @@ export default async function handler(req: Request) {
            ${displayOrder ?? 0})
         RETURNING id
       `));
-      const row = (result.rows ?? [])[0];
+      /* db.execute는 드라이버에 따라 배열/{rows} 두 형태 — .rows만 보면 id를 못 읽는다 (2026-08-03) */
+      const row = (Array.isArray(result) ? result[0] : (result?.rows ?? [])[0]);
       return jsonOk({ id: row?.id }, 201);
     } catch (err) {
       return jsonError("insert_leave_type", err);
@@ -156,7 +157,8 @@ export default async function handler(req: Request) {
       const cur: any = await db.execute(sql`
         SELECT * FROM att_leave_types WHERE id = ${id} LIMIT 1
       `);
-      const existing = (cur.rows ?? [])[0];
+      /* .rows만 보면 드라이버에 따라 항상 undefined → 멀쩡한 휴가 종류가 '없음'으로 404 (2026-08-03) */
+      const existing = (Array.isArray(cur) ? cur[0] : (cur?.rows ?? [])[0]);
       if (!existing) return jsonError("not_found", new Error("휴가 종류 없음"), 404);
 
       const m = (k: string, v: any) => v === undefined ? existing[k] : v;

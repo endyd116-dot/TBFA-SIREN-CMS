@@ -38,7 +38,10 @@ export default async function handler(req: Request) {
       WHERE table_name='att_leave_requests'
         AND column_name IN ('is_half_day','half_day_period')
     `);
-    halfDayExists = Number(((c.rows ?? [])[0] ?? {}).cnt ?? 0) >= 2;
+    /* .rows만 보면 드라이버에 따라 항상 빈 배열 → 컬럼이 있는데도 없다고 판단해
+       반차·반반차 표시가 사라진다 (2026-08-03 라이브 점검에서 확인). 배열 폴백 필수. */
+    const cRows = ((c as any)?.rows ?? (c as any) ?? []) as any[];
+    halfDayExists = Number((cRows[0] ?? {}).cnt ?? 0) >= 2;
   } catch {}
 
   try {

@@ -24,6 +24,14 @@ function jsonOk(data: unknown, status = 200) {
     status, headers: { "Content-Type": "application/json" },
   });
 }
+/* db.execute 결과는 드라이버에 따라 배열 그대로 오기도 하고 { rows }로 감싸여 오기도 한다.
+   .rows만 보면 항상 빈 배열이 되어 ① 부분휴가 컬럼 존재 확인이 false로 굳고(반차·반반차 플래그가
+   통째로 저장되지 않음) ② RETURNING id를 못 읽어 신청 번호가 null이 된다.
+   2026-08-03 라이브 점검에서 실제로 드러난 문제 — 코드베이스 표준 방어 패턴으로 통일. */
+function execRows(result: any): any[] {
+  return (result?.rows ?? result ?? []) as any[];
+}
+
 function jsonError(step: string, err: any, status = 500) {
   return new Response(jsonKST({
     ok: false, error: "휴가 신청 처리 실패", step,
@@ -259,7 +267,7 @@ export default async function handler(req: Request) {
           WHERE table_name='att_leave_requests'
             AND column_name IN ('is_half_day','half_day_period')
         `);
-        halfDayExists = Number(((c.rows ?? [])[0] ?? {}).cnt ?? 0) >= 2;
+        halfDayExists = Number((execRows(c)[0] ?? {}).cnt ?? 0) >= 2;
       } catch {}
 
       let result: any;
@@ -289,8 +297,8 @@ export default async function handler(req: Request) {
         `);
       }
 
-      const row = (result.rows ?? [])[0] ?? {};
-      const leaveId = Number(row.id);
+      const row = execRows(result)[0] ?? {};
+      const leaveId = Number(row.id) || null;
 
       /* 어드민·운영자에게 결재 대기 알림 (2026-05-29 P1-2 fix·운영 시작 전) */
       try {
