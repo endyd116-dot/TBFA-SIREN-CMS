@@ -23,6 +23,58 @@
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  /* ------------ 0. 깜빡임 방지 장치 (2026-08-03) ------------
+     증상: 화면이 뜨면 **옛 메뉴가 먼저 보였다가** 잠시 뒤 수정한 메뉴로 바뀌었다.
+     원인 세 가지를 모두 없앤다.
+       ① 파일에 박혀 있던 옛 내용이 먼저 그려진다
+          → 조회가 끝날 때까지 감춰 두고, 조회에 실패했을 때만 안전망으로 드러낸다.
+       ② 머리말 조각을 다 받은 뒤에야 메뉴 조회를 시작한다(순서대로 기다림)
+          → 둘을 동시에 시작한다.
+       ③ 페이지를 옮길 때마다 처음부터 다시 받는다
+          → 마지막에 받은 값을 브라우저에 저장해 두고 즉시 그린 뒤, 뒤에서 최신값을 확인한다.
+     결과: 두 번째 방문부터는 기다림이 사실상 없고, 첫 방문에도 틀린 내용이 보이지 않는다. */
+
+  const IS_PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+
+  /* 저장해 둔 값 읽기/쓰기 — 저장 공간이 막혀 있어도 그냥 넘어간다(비공개 모드 등) */
+  function storeGet(key) {
+    if (IS_PREVIEW) return null;   // 미리보기는 항상 최신값만
+    try {
+      const raw = localStorage.getItem('siren:v1:' + key);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      return (o && o.d) || null;
+    } catch (_) { return null; }
+  }
+  function storeSet(key, data) {
+    if (IS_PREVIEW) return;
+    try {
+      localStorage.setItem('siren:v1:' + key, JSON.stringify({ t: Date.now(), d: data }));
+    } catch (_) { /* 저장 공간 가득참 등 — 무시 */ }
+  }
+
+  /* 조회가 끝나기 전까지 옛 내용을 감춘다.
+     자리는 그대로 두고 내용만 감추므로 화면이 위아래로 흔들리지 않는다. */
+  (function injectPendingStyle() {
+    const st = document.createElement('style');
+    st.setAttribute('data-siren-pending', '');
+    st.textContent =
+      '.gnb[data-gnb-pending] > li{visibility:hidden}' +
+      '[data-home-pending]{visibility:hidden}';
+    (document.head || document.documentElement).appendChild(st);
+  })();
+
+  async function fetchJson(url) {
+    try {
+      const res = await fetch(url, { credentials: 'include', cache: IS_PREVIEW ? 'no-store' : 'no-cache' });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.warn('[SIREN] 조회 실패', url, e);
+      return null;
+    }
+  }
+
   /* ------------ 1. 파셜 자동 로더 ------------ */
   const PARTIALS = [
     { slot: '#header-slot', file: '/partials/header.html' },
@@ -383,71 +435,70 @@
   }
 
   /* 메인 렌더 함수 — partials 로드 직후 호출됨 */
-  async function renderHeaderMenu() {
+  const NAV_URL = '/api/public/nav-menus' + (IS_PREVIEW ? '?preview=1' : '');
+  const NAV_STORE_KEY = 'nav-menus';
+
+  /** 감춰 둔 메뉴를 드러낸다. 어떤 경로로 끝나든 반드시 불러야 한다(안 부르면 메뉴가 영영 안 보임). */
+  function revealGnb() {
+    document.querySelectorAll('.gnb[data-gnb-pending]').forEach(el => el.removeAttribute('data-gnb-pending'));
+  }
+
+  /** 받아온 메뉴로 화면을 그린다. 그렸으면 true, 못 그렸으면 false(=옛 내용 유지). */
+  function paintHeaderMenu(json) {
     const ul = document.querySelector('ul.gnb, nav.gnb');
-    if (!ul) {
-      console.warn('[Header] .gnb element not found, skip');
-      return;
+    if (!ul || !json) return false;
+
+    let menus = extractMenusFromResponse(json);
+    if (!menus) {
+      console.warn('[Header] 메뉴 응답 형식 인식 실패', json);
+      return false;
     }
 
-    try {
-      const params = new URLSearchParams(location.search);
-      const previewParam = params.get('preview') === '1' ? '?preview=1' : '';
-      const navUrl = '/api/public/nav-menus' + previewParam;
+    /* header 위치만 (혹시 footer 등이 섞여 있으면 걸러냄) */
+    menus = menus.filter(m => {
+      const loc = m.menuLocation ?? m.menu_location;
+      return !loc || loc === 'header';
+    });
 
-      /* 캐시 확인 — 프리뷰 모드는 캐시 건너뜀 */
-      let json;
-      const cached = !previewParam && window.__sirenCache && window.__sirenCache.get(navUrl);
-      if (cached) {
-        json = cached;
-      } else {
-        const res = await fetch(navUrl, { credentials: 'include', cache: 'no-cache' });
-        if (!res.ok) {
-          console.warn('[Header] /api/public/nav-menus 응답 실패, 정적 폴백 사용:', res.status);
-          return;
-        }
-        json = await res.json();
-        if (!previewParam && window.__sirenCache) window.__sirenCache.set(navUrl, json);
-      }
+    /* 트리 형식인지 자동 감지 — 아니면 트리로 변환 */
+    const isTree = menus.some(m => Array.isArray(m.children) && m.children.length > 0);
+    if (!isTree) menus = buildMenuTree(menus);
 
-      let menus = extractMenusFromResponse(json);
+    const topLevels = menus
+      .filter(m => !(m.parentId ?? m.parent_id))
+      .sort((a, b) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0));
 
-      if (!menus) {
-        console.warn('[Header] 메뉴 응답 형식 인식 실패, 정적 폴백', json);
-        return;
-      }
-
-      /* header location만 (혹시 footer 등이 섞여 있으면 필터) */
-      menus = menus.filter(m => {
-        const loc = m.menuLocation ?? m.menu_location;
-        return !loc || loc === 'header';
-      });
-
-      /* 트리 형식인지 자동 감지 */
-      const isTree = menus.some(m => Array.isArray(m.children) && m.children.length > 0);
-      if (!isTree) {
-        /* 플랫이면 트리로 변환 */
-        menus = buildMenuTree(menus);
-      }
-
-      /* 1뎁스만 (parent_id 없는 것) + sort_order 정렬 */
-      const topLevels = menus
-        .filter(m => !(m.parentId ?? m.parent_id))
-        .sort((a, b) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0));
-
-      if (topLevels.length === 0) {
-        console.warn('[Header] 1뎁스 메뉴 0건, 정적 폴백 유지');
-        return;
-      }
-
-      /* HTML 다시 그리기 */
-      const html = topLevels.map(p => renderTopLevelMenu(p)).join('');
-      ul.innerHTML = html;
-
-      console.log(`[Header] 동적 렌더링 완료 — 1뎁스 ${topLevels.length}개`);
-    } catch (e) {
-      console.warn('[Header] 동적 렌더링 실패, 정적 폴백 사용', e);
+    if (topLevels.length === 0) {
+      console.warn('[Header] 1뎁스 메뉴 0건, 기존 내용 유지');
+      return false;
     }
+
+    ul.innerHTML = topLevels.map(p => renderTopLevelMenu(p)).join('');
+    revealGnb();
+    return true;
+  }
+
+  /** 메뉴 데이터를 받아온다 (화면은 건드리지 않음) */
+  function fetchNavJson() {
+    if (!IS_PREVIEW && window.__sirenCache) {
+      const hit = window.__sirenCache.get(NAV_URL);
+      if (hit) return Promise.resolve(hit);
+    }
+    return fetchJson(NAV_URL).then(json => {
+      if (json && !IS_PREVIEW) {
+        if (window.__sirenCache) window.__sirenCache.set(NAV_URL, json);
+        storeSet(NAV_STORE_KEY, json);
+      }
+      return json;
+    });
+  }
+
+  /** 기존 호출부(어드민 미리보기의 강제 새로고침 등) 호환용 */
+  async function renderHeaderMenu() {
+    const json = await fetchNavJson();
+    const painted = paintHeaderMenu(json);
+    revealGnb();   /* 실패해도 옛 내용을 드러내야 메뉴가 사라지지 않는다 */
+    return painted;
   }
 
   /* ------------ 10. 폼 기본 핸들러 ------------ */
@@ -554,45 +605,69 @@
   /* 2026-07-07 푸터를 DB 설정값(site_settings scope=footer)으로 렌더.
      preview=1이면 임시발행(draft) 우선 → 편집기 저장·발행이 실제 푸터에 반영.
      값이 없으면 정적 기본값 유지(폴백 안전·비차단). */
-  async function renderFooter() {
-    var footer = document.querySelector('footer');
-    if (!footer) return;
-    try {
-      var params = new URLSearchParams(location.search);
-      var previewParam = params.get('preview') === '1' ? '?preview=1' : '';
-      var res = await fetch('/api/public/footer-content' + previewParam, {
-        credentials: 'include', cache: previewParam ? 'no-store' : 'no-cache',
-      });
-      if (!res.ok) return;
-      var json = await res.json();
-      var f = (json && json.data && json.data.footer) || (json && json.footer) || {};
+  const FOOTER_URL = '/api/public/footer-content' + (IS_PREVIEW ? '?preview=1' : '');
+  const FOOTER_STORE_KEY = 'footer-content';
 
-      /* 회사정보 텍스트 — 값이 있을 때만 덮어씀 */
-      footer.querySelectorAll('[data-footer]').forEach(function (el) {
-        var v = f[el.getAttribute('data-footer')];
-        if (v != null && String(v).trim() !== '') el.textContent = String(v);
-      });
-      /* SNS 링크 — 실제 URL이 설정된 경우만 링크 연결(미설정 '#'는 정적 유지) */
-      footer.querySelectorAll('[data-footer-sns]').forEach(function (a) {
-        var v = f['sns.' + a.getAttribute('data-footer-sns')];
-        if (v && String(v).trim() !== '' && String(v) !== '#') {
-          a.href = String(v); a.target = '_blank'; a.rel = 'noopener noreferrer';
-        }
-      });
-    } catch (e) {
-      console.warn('[Footer] 렌더 실패(정적 폴백):', e);
-    }
+  /** 받아온 값으로 꼬리말을 채운다. 값이 있는 항목만 덮어쓴다(빈 값으로 지우지 않음). */
+  function paintFooter(json) {
+    var footer = document.querySelector('footer');
+    if (!footer || !json) return false;
+    var f = (json && json.data && json.data.footer) || (json && json.footer) || {};
+
+    footer.querySelectorAll('[data-footer]').forEach(function (el) {
+      var v = f[el.getAttribute('data-footer')];
+      if (v != null && String(v).trim() !== '') el.textContent = String(v);
+    });
+    /* SNS 링크 — 실제 주소가 있을 때만 연결(미설정 '#'는 그대로) */
+    footer.querySelectorAll('[data-footer-sns]').forEach(function (a) {
+      var v = f['sns.' + a.getAttribute('data-footer-sns')];
+      if (v && String(v).trim() !== '' && String(v) !== '#') {
+        a.href = String(v); a.target = '_blank'; a.rel = 'noopener noreferrer';
+      }
+    });
+    return true;
+  }
+
+  function fetchFooterJson() {
+    return fetchJson(FOOTER_URL).then(function (json) {
+      if (json && !IS_PREVIEW) storeSet(FOOTER_STORE_KEY, json);
+      return json;
+    });
+  }
+
+  async function renderFooter() {
+    paintFooter(await fetchFooterJson());
   }
 
   /* ------------ 14. 초기화 ------------ */
   async function init() {
+    /* ① 머리말 조각을 받는 동안 메뉴·꼬리말 조회를 **동시에** 시작한다.
+          예전에는 조각을 다 받은 뒤에야 조회를 시작해 기다리는 시간이 두 배였다. */
+    const navPromise = fetchNavJson();
+    const footerPromise = fetchFooterJson();
+
     await loadAllPartials();
-    /* Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림
-       2026-07-16: 푸터 정보 요청이 헤더 메뉴 요청 완료를 불필요하게 기다리던 지연 제거 —
-       서로 의존관계 없으므로 동시에 시작(병렬), activateGNB만 헤더 렌더 완료를 기다림 */
-    renderFooter();   /* 2026-07-07 푸터 DB 설정 렌더(비차단) */
-    await renderHeaderMenu();
-    activateGNB();
+
+    /* ② 저장해 둔 값이 있으면 **바로** 그린다 — 조회를 기다리지 않는다.
+          두 번째 방문부터는 이 시점에 이미 최신 모습이 완성된다. */
+    let painted = false;
+    const cachedNav = storeGet(NAV_STORE_KEY);
+    if (cachedNav) painted = paintHeaderMenu(cachedNav);
+    const cachedFooter = storeGet(FOOTER_STORE_KEY);
+    if (cachedFooter) paintFooter(cachedFooter);
+    if (painted) activateGNB();
+
+    /* ③ 조회가 끝나면 최신값으로 맞춘다(달라진 게 없으면 화면 변화도 없다). */
+    navPromise.then(json => {
+      const ok = paintHeaderMenu(json);
+      revealGnb();               /* 실패해도 감춘 것을 반드시 드러낸다 */
+      if (ok || !painted) activateGNB();
+    });
+    footerPromise.then(paintFooter);
+
+    /* 조회가 지나치게 늦거나 막혀도 메뉴가 영영 안 보이는 일이 없도록 한 번 더 안전망 */
+    setTimeout(revealGnb, 3000);
+
     setupLangToggle();
     setupSearch();
     setupRelatedSelect();
@@ -611,6 +686,26 @@
   }
 
   /* ------------ 15. 전역 노출 ------------ */
+  /**
+   * 깜빡임 없이 데이터를 화면에 반영한다.
+   * 저장해 둔 값이 있으면 **먼저 그려서** 기다림을 없애고, 조회가 끝나면 최신값으로 맞춘다.
+   * 같은 그리기 함수를 두 번 부르므로, 그리기 함수는 몇 번 불려도 결과가 같아야 한다.
+   *
+   * @param {string} key     저장 이름 (페이지·데이터 종류별로 고유하게)
+   * @param {string} url     조회 주소
+   * @param {Function} apply 받은 값으로 화면을 그리는 함수 apply(json)
+   */
+  function loadWithCache(key, url, apply) {
+    const cached = storeGet(key);
+    if (cached) { try { apply(cached); } catch (e) { console.warn('[SIREN] 저장값 적용 실패', key, e); } }
+    return fetchJson(url).then(json => {
+      if (!json) return null;
+      try { apply(json); } catch (e) { console.warn('[SIREN] 최신값 적용 실패', key, e); }
+      storeSet(key, json);
+      return json;
+    });
+  }
+
   window.SIREN = {
     $, $$, toast,
     openModal, closeModal, switchModal,
@@ -618,6 +713,10 @@
     /* 외부에서 헤더 강제 새로고침 가능 (어드민 미리보기에서 활용) */
     reloadHeader: renderHeaderMenu,
     reloadFooter: renderFooter,
+    /* 깜빡임 방지 — 다른 화면 스크립트도 같은 방식을 쓰도록 공개 */
+    loadWithCache,
+    cache: { get: storeGet, set: storeSet },
+    isPreview: IS_PREVIEW,
   };
 
 })();

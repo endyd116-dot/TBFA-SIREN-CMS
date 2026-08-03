@@ -41,7 +41,10 @@
       </div>
     </a>
 
-    <ul class="gnb">
+    <!-- ★ 2026-08-03: 아래 메뉴는 조회 실패 시를 대비한 안전망이다.
+         평소에는 감춰 두었다가(data-gnb-pending) 저장소에서 받은 실제 메뉴로 바꿔 그린다.
+         이 표시가 없으면 옛 메뉴가 먼저 보였다가 바뀌는 깜빡임이 생긴다(common.js §0). -->
+    <ul class="gnb" data-gnb-pending>
       <li data-page="about">
         <a href="/about.html">협의회 소개</a>
         <ul class="dropdown">

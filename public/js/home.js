@@ -70,14 +70,15 @@
     startSlideAuto();
   }
 
-  /* ------------ 2. 통계 API 연동 (v10 유지) ------------ */
-  async function fetchAndApplyStats() {
+  /* ------------ 2. 통계 API 연동 (v10 유지) ------------
+     2026-08-03 깜빡임 제거: 받아오기와 그리기를 나눴다.
+     저장해 둔 값이 있으면 먼저 그려서 기다림을 없애고, 조회가 끝나면 최신값으로 맞춘다. */
+  const PREVIEW_Q = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
+
+  /** 화면에 통계 숫자를 반영 (몇 번 불려도 결과가 같아야 함) */
+  function applyStats(json) {
     try {
-      const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
-      const res = await fetch('/api/public/stats' + previewParam, { credentials: 'include' });
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json.ok || !json.data) return;
+      if (!json || !json.ok || !json.data) return;
       const d = json.data;
 
       const mapping = {
@@ -116,23 +117,28 @@
         }
       });
 
-      console.log('[home.js] 통계 API 값 적용 완료', json.data._meta);
+      console.log('[home.js] 통계 값 적용 완료', json.data._meta);
     } catch (e) {
-      console.warn('[home.js] 통계 fetch 실패', e);
+      console.warn('[home.js] 통계 적용 실패', e);
     }
   }
 
-  /* ------------ Step 6-C: 메인 콘텐츠 API 연동 ------------ */
-  async function fetchAndApplyHomeContent() {
+  async function fetchAndApplyStats() {
+    if (window.SIREN && window.SIREN.loadWithCache) {
+      return window.SIREN.loadWithCache('home-stats', '/api/public/stats' + PREVIEW_Q, applyStats);
+    }
+    /* common.js가 아직 없을 때의 대비 */
     try {
-      const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
-      const res = await fetch('/api/public/home-content' + previewParam, { credentials: 'include' });
-      if (!res.ok) {
-        console.warn('[home.js] /api/public/home-content 응답 실패:', res.status);
-        return;
-      }
-      const json = await res.json();
-      if (!json.ok || !json.data) return;
+      const res = await fetch('/api/public/stats' + PREVIEW_Q, { credentials: 'include' });
+      if (res.ok) applyStats(await res.json());
+    } catch (e) { console.warn('[home.js] 통계 조회 실패', e); }
+  }
+
+  /* ------------ Step 6-C: 메인 콘텐츠 API 연동 ------------ */
+  /** 화면에 메인 콘텐츠(배너·퀵메뉴·섹션 제목 등)를 반영 */
+  function applyHomeContent(json) {
+    try {
+      if (!json || !json.ok || !json.data) return;
 
       const d = json.data;
       console.log('[home.js] 메인 콘텐츠 API 적용', json._meta);
@@ -324,8 +330,19 @@
         }
       }
     } catch (e) {
-      console.warn('[home.js] 메인 콘텐츠 fetch 실패, 정적 폴백 사용', e);
+      console.warn('[home.js] 메인 콘텐츠 적용 실패, 기본 내용 유지', e);
     }
+  }
+
+  async function fetchAndApplyHomeContent() {
+    if (window.SIREN && window.SIREN.loadWithCache) {
+      return window.SIREN.loadWithCache('home-content', '/api/public/home-content' + PREVIEW_Q, applyHomeContent);
+    }
+    /* common.js가 아직 없을 때의 대비 */
+    try {
+      const res = await fetch('/api/public/home-content' + PREVIEW_Q, { credentials: 'include' });
+      if (res.ok) applyHomeContent(await res.json());
+    } catch (e) { console.warn('[home.js] 메인 콘텐츠 조회 실패', e); }
   }
 
   /* ------------ 3. 통계 카운팅 애니메이션 ------------ */
