@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-03.1";
+export const APP_VERSION = "2026-08-03.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-03-halfday-flag-fix",
+    title: "[중요] 반차가 '종일 휴가'로 잘못 기록되던 문제",
+    items: [
+      { text: "반차를 신청하면 시스템에 '반차'라는 표시가 저장되지 않고 종일 휴가처럼 기록되던 문제를 고쳤습니다 — 차감 일수(0.5일)는 정상이었고, 기록 방식만 잘못돼 있었습니다", link: "/workspace-attendance.html" },
+      { text: "이 때문에 반차를 쓴 날 실제로 반나절 근무한 시간이 급여 집계에서 빠질 수 있었습니다. 해당되는 기록은 확인해 바로잡습니다" },
+      { text: "휴가 신청 후 화면에 신청 번호가 돌아오지 않아 스스로 철회할 수 없던 문제도 함께 고쳤습니다", link: "/workspace-attendance.html" },
+      { text: "[관리자] 휴가 종류(연차·병가 등)를 수정하려 하면 '휴가 종류 없음'이라며 저장되지 않던 문제를 고쳤습니다", link: "/cms-tbfa.html#att-config" },
+    ],
+  },
   {
     key: "2026-08-03-quarter-day-leave",
     title: "반반차(2시간) 휴가를 신청할 수 있습니다",
