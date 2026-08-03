@@ -12,7 +12,7 @@
  */
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/migrate-leave-period-len" };
 
@@ -53,7 +53,7 @@ export default async (req: Request) => {
     }
 
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (guardFailed(auth)) return auth.res;
 
     if (before == null) {
       return json({ ok: false, error: "컬럼을 찾을 수 없습니다 (half_day_period)" }, 404);
