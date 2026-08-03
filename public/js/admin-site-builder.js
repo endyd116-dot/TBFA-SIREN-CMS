@@ -202,6 +202,11 @@
     });
     _currentNode = key;
 
+    /* 2026-08-03: 화면을 바꿀 때마다 '넓게 쓰기'를 끈다.
+       페이지 관리·메뉴 관리는 표와 편집기가 넓어야 해서 각 모듈이 다시 켠다.
+       중앙 영역이 760px로 묶여 있어 그대로 두면 표가 한 글자씩 세로로 쪼개진다. */
+    document.body.classList.remove('sb-wide-mode', 'sb-hide-preview');
+
     const subtitle = $('#sbCurrentSection');
     if (subtitle) subtitle.textContent = findNodeLabel(key);
 

@@ -205,6 +205,27 @@ body[data-page="site-builder"] {
   overflow-y: auto;
 }
 
+/* ★ 2026-08-03: 페이지 관리·메뉴 관리는 표와 편집기가 넓어야 한다.
+   기본 760px 제한을 그대로 두면 표 칸이 눌려 글자가 한 글자씩 세로로 쪼개지고,
+   편집기 툴바도 세로로 쌓인다. 이 두 화면에서만 제한을 풀고 미리보기를 줄인다. */
+body.sb-wide-mode .sb-content-inner {
+  max-width: none;
+  padding-right: 20px;
+}
+body.sb-wide-mode .sb-layout { grid-template-columns: 220px 1fr 360px; }
+/* 편집기를 쓸 때는 미리보기를 접어 가장 넓게 */
+body.sb-wide-mode.sb-hide-preview .sb-layout { grid-template-columns: 220px 1fr; }
+body.sb-wide-mode.sb-hide-preview .sb-preview { display: none; }
+
+@media (max-width: 1500px) {
+  body.sb-wide-mode .sb-layout { grid-template-columns: 200px 1fr 300px; }
+}
+@media (max-width: 1280px) {
+  /* 화면이 좁으면 미리보기를 접어 편집 공간을 확보한다 */
+  body.sb-wide-mode .sb-layout { grid-template-columns: 200px 1fr; }
+  body.sb-wide-mode .sb-preview { display: none; }
+}
+
 .sb-content-inner {
   max-width: 760px;
   margin: 0 auto;

@@ -100,6 +100,9 @@
     _page = null;
     destroyEditor();
     setPreview('/index.html');
+    /* 표가 눌리지 않게 중앙 영역을 넓게 쓴다 (기본은 760px로 묶여 있다) */
+    document.body.classList.add('sb-wide-mode');
+    document.body.classList.remove('sb-hide-preview');
 
     var inner = $('#sbContentInner');
     if (!inner) return;
@@ -281,6 +284,8 @@
     _view = 'edit';
     _page = page;
     _dirty = false;
+    /* 편집기는 툴바가 한 줄에 들어가야 쓸 만하다 — 미리보기를 접어 가장 넓게 쓴다 */
+    document.body.classList.add('sb-wide-mode', 'sb-hide-preview');
 
     /* 임시저장본이 있으면 그것부터 보여준다 — 이어서 편집하는 게 자연스럽다 */
     var useDraft = !!page.hasDraft;
@@ -298,6 +303,7 @@
             (page.status !== 'published' ? ' <span class="sp-chip off">숨김</span>' : '') +
           '</div>' +
           '<div class="sp-edit-actions">' +
+            '<button type="button" class="sp-btn" id="spPreviewToggle">미리보기 보기</button>' +
             '<button type="button" class="sp-btn" id="spSettingsBtn">설정</button>' +
             '<button type="button" class="sp-btn" id="spHistoryBtn">이전 버전</button>' +
             (useDraft ? '<button type="button" class="sp-btn" id="spDiscardBtn">임시저장 버리기</button>' : '') +
@@ -342,6 +348,14 @@
     $('#spHistoryBtn').addEventListener('click', openHistory);
     var discardBtn = $('#spDiscardBtn');
     if (discardBtn) discardBtn.addEventListener('click', discardDraft);
+
+    /* 미리보기 접기/펴기 — 접으면 편집기가 넓어지고, 펴면 결과를 옆에서 볼 수 있다 */
+    var pvBtn = $('#spPreviewToggle');
+    if (pvBtn) pvBtn.addEventListener('click', function () {
+      var hidden = document.body.classList.toggle('sb-hide-preview');
+      pvBtn.textContent = hidden ? '미리보기 보기' : '미리보기 접기';
+      if (!hidden) setPreview('/p/' + _page.slug);
+    });
 
     ['spTitle', 'spEyebrow', 'spSubtitle'].forEach(function (id) {
       var el = $('#' + id);
@@ -611,13 +625,15 @@
       '.sp-intro{margin:0;font-size:13px;color:#6b7280;line-height:1.7;max-width:640px}' +
       '.sp-stats{display:flex;gap:18px;font-size:13px;color:#6b7280;margin-bottom:14px}' +
       '.sp-stats strong{color:#111}' +
+      /* 칸이 눌려 글자가 세로로 쪼개지지 않도록 최소 폭을 주고, 좁으면 표만 좌우로 넘긴다 */
       '.sp-table-wrap{overflow-x:auto}' +
-      '.sp-table{width:100%;border-collapse:collapse;font-size:14px}' +
-      '.sp-table th{text-align:left;padding:10px 12px;background:#f7f8fa;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;font-weight:600}' +
+      '.sp-table{width:100%;min-width:820px;border-collapse:collapse;font-size:14px}' +
+      '.sp-table th{text-align:left;padding:10px 12px;background:#f7f8fa;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;font-weight:600;white-space:nowrap}' +
       '.sp-table td{padding:12px;border-bottom:1px solid #f0f1f3;vertical-align:middle}' +
-      '.sp-name{font-weight:600}' +
-      '.sp-sub{font-size:12px;color:#9ca3af;margin-top:2px}' +
-      '.sp-slug{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1f5eff;text-decoration:none}' +
+      '.sp-table td:nth-child(2){min-width:230px;max-width:380px}' +
+      '.sp-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.sp-sub{font-size:12px;color:#9ca3af;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.sp-slug{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1f5eff;text-decoration:none;white-space:nowrap}' +
       '.sp-slug:hover{text-decoration:underline}' +
       '.sp-muted{color:#9ca3af;font-size:12px}' +
       '.sp-chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}' +
@@ -656,7 +672,10 @@
       '.sp-modal-note{font-size:12px;color:#6b7280;line-height:1.7;margin:0;background:#f7f8fa;padding:10px 12px;border-radius:6px}' +
       '.sp-modal-subhead{font-size:13px;font-weight:700;color:#374151}' +
       '.sp-hr{border:0;border-top:1px solid #eceef1;margin:2px 0}' +
-      '@media(max-width:900px){.sp-fields{grid-template-columns:1fr}.sp-head{flex-direction:column}}';
+      /* 편집기가 좁은 곳에 들어가도 툴바가 잘리지 않게 */
+      '#spEditorHost{min-width:0}' +
+      '#spEditorHost .sun-editor{min-width:0}' +
+      '@media(max-width:1100px){.sp-fields{grid-template-columns:1fr}.sp-head{flex-direction:column}}';
 
     var st = document.createElement('style');
     st.id = 'spStyles';

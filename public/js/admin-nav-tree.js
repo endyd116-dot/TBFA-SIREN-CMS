@@ -93,6 +93,10 @@
      ========================================================= */
   async function render(opts) {
     _opts = opts || { location: 'header', title: '메뉴 관리' };
+    /* 메뉴 한 줄에 이름·연결·버튼이 함께 들어가야 해서 넓은 폭이 필요하다
+       (중앙 영역 기본 760px 제한을 이 화면에서만 푼다) */
+    document.body.classList.add('sb-wide-mode');
+    document.body.classList.remove('sb-hide-preview');
     var inner = $('#sbContentInner');
     if (!inner) return;
     inner.innerHTML = '<div class="sb-placeholder"><p>메뉴를 불러오는 중…</p></div>';
