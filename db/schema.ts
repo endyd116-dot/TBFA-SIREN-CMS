@@ -1274,11 +1274,21 @@ export const navMenuItems = pgTable("nav_menu_items", {
   hasDraft: boolean("has_draft").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  /* ★ 2026-08-03 메뉴·페이지 통합 편집 — /api/migrate-site-pages 호출 성공 후 주석 해제.
+     ⚠️ DB에 컬럼이 없는 상태로 먼저 활성화하면 안 된다. getNavMenus()가 전체 컬럼 조회라
+        SELECT가 즉시 실패해 사이트 상단 메뉴가 통째로 사라진다 (CLAUDE.md §9.1.1).
+  linkType: varchar("link_type", { length: 20 }).default("url"),   // page | url | modal | divider | none
+  sitePageId: integer("site_page_id"),                             // link_type='page'일 때 연결된 페이지
+  draftSitePageId: integer("draft_site_page_id"),                  // 임시저장
+  */
 }, (t) => ({
   locationIdx: index("nav_menu_items_location_idx").on(t.menuLocation, t.sortOrder),
   parentIdx: index("nav_menu_items_parent_idx").on(t.parentId),
   activeIdx: index("nav_menu_items_active_idx").on(t.isActive),
   draftIdx: index("nav_menu_items_draft_idx").on(t.hasDraft),
+  /* 위 주석 해제 시 함께 활성화
+  pageIdx: index("nav_menu_items_page_idx").on(t.sitePageId),
+  */
 }));
 
 /* =========================================================
@@ -5009,3 +5019,65 @@ export type EmploymentContract     = typeof employmentContracts.$inferSelect;
 export type ContractSignatureEvent = typeof contractSignatureEvents.$inferSelect;
 export type ContractAttachment     = typeof contractAttachments.$inferSelect;
 /* === 전자 근로계약 시스템 끝 === */
+
+/* =========================================================
+   === 2026-08-03 메뉴·페이지 통합 편집 개편 ===
+   설계서: docs/active/2026-08-03-page-menu-redesign.md §3
+   메뉴 하나가 페이지 하나를 가리키고, 그 페이지 본문을 통짜로 편집한다.
+   (nav_menu_items 확장 3컬럼은 같은 파일 위쪽 nav_menu_items 정의에 주석으로 대기 중 —
+    마이그 /api/migrate-site-pages 호출 성공 후 주석 해제)
+   ========================================================= */
+
+/** 페이지 본체 — 메뉴가 가리키는 독립 페이지. 본문은 조각이 아니라 통짜 HTML. */
+export const sitePages = pgTable("site_pages", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),      // 주소 /p/{slug}
+  title: varchar("title", { length: 200 }).notNull(),             // 페이지 큰 제목
+  eyebrow: varchar("eyebrow", { length: 100 }),                   // 제목 위 영문 라벨 (GREETING 등)
+  subtitle: varchar("subtitle", { length: 300 }),                 // 제목 아래 한 줄 설명
+  contentHtml: text("content_html"),                              // 발행된 본문
+  /* Draft — 임시저장본. [배포]를 눌러야 위 발행 컬럼으로 승격된다 */
+  draftTitle: varchar("draft_title", { length: 200 }),
+  draftEyebrow: varchar("draft_eyebrow", { length: 100 }),
+  draftSubtitle: varchar("draft_subtitle", { length: 300 }),
+  draftContentHtml: text("draft_content_html"),
+  hasDraft: boolean("has_draft").default(false).notNull(),
+  /* 노출·레이아웃 */
+  status: varchar("status", { length: 20 }).default("published").notNull(),  // published | hidden
+  layout: varchar("layout", { length: 20 }).default("default").notNull(),    // default | wide | plain
+  /* 검색·공유 (비우면 title/subtitle로 대체) */
+  seoTitle: varchar("seo_title", { length: 200 }),
+  seoDescription: varchar("seo_description", { length: 500 }),
+  ogImageUrl: varchar("og_image_url", { length: 500 }),
+  sortOrder: integer("sort_order").default(0),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by"),
+}, (t) => ({
+  statusIdx: index("site_pages_status_idx").on(t.status, t.sortOrder),
+  draftIdx: index("site_pages_draft_idx").on(t.hasDraft),
+}));
+
+/** 되돌리기 백업 — 저장·배포 직전 스냅샷. 페이지당 최근 20개 유지(초과분 자동 삭제).
+    통짜 편집은 실수 한 번에 페이지 전체가 날아가므로 안전장치가 필수다. */
+export const sitePageRevisions = pgTable("site_page_revisions", {
+  id: serial("id").primaryKey(),
+  pageId: integer("page_id").notNull().references(() => sitePages.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 200 }),
+  eyebrow: varchar("eyebrow", { length: 100 }),
+  subtitle: varchar("subtitle", { length: 300 }),
+  contentHtml: text("content_html"),
+  note: varchar("note", { length: 200 }),                         // 자동 라벨 (예: "배포 전 자동 백업")
+  savedBy: integer("saved_by"),
+  savedByName: varchar("saved_by_name", { length: 100 }),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+}, (t) => ({
+  pageIdx: index("site_page_revisions_page_idx").on(t.pageId, t.savedAt),
+}));
+
+export type SitePage            = typeof sitePages.$inferSelect;
+export type NewSitePage         = typeof sitePages.$inferInsert;
+export type SitePageRevision    = typeof sitePageRevisions.$inferSelect;
+export type NewSitePageRevision = typeof sitePageRevisions.$inferInsert;
+/* === 메뉴·페이지 통합 편집 개편 끝 === */
