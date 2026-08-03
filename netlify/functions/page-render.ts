@@ -21,7 +21,14 @@ import { htmlToPlainText } from "../../lib/sanitize-page-html";
 import { getOrgMeta, getDefaultMeta, PageMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
 
-export const config = { path: "/api/page-render" };
+/**
+ * 이 함수가 `/p/{주소}`를 **직접** 받는다.
+ * 처음에는 netlify.toml의 넘김 규칙(`/p/* → /api/page-render`)에 맡겼는데 라이브에서 동작하지 않았다
+ * (정확한 주소를 지정한 기존 규칙들은 되는데, `*` 패턴 규칙만 함수로 넘어가지 않음 — 2026-08-03 실측).
+ * 함수가 경로를 직접 맡으면 넘김 규칙을 거치지 않아 더 확실하다.
+ * `/api/page-render?_slug=…` 형태도 계속 받는다(넘김 규칙이 살아 있을 때의 대비).
+ */
+export const config = { path: ["/p/:slug", "/api/page-render"] };
 
 /** 본문을 끼워 넣을 자리. public/page.html 안에 이 주석이 그대로 들어 있다. */
 const CONTENT_MARK = "<!--SIREN_PAGE_CONTENT-->";
@@ -55,7 +62,9 @@ function notFound(): Response {
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const raw = (url.searchParams.get("_slug") || "").trim();
+    /* 주소를 두 곳에서 찾는다: 실제 경로(/p/xxx) 또는 넘김 규칙이 붙여준 쿼리(_slug) */
+    const fromPath = url.pathname.match(/^\/p\/([^/?#]+)\/?$/);
+    const raw = (url.searchParams.get("_slug") || (fromPath ? decodeURIComponent(fromPath[1]) : "")).trim();
     /* 주소는 영문·숫자·하이픈만. 그 외는 잘못된 주소로 본다. */
     const slug = raw.replace(/\/+$/, "");
     if (!slug || !/^[a-z0-9][a-z0-9-]*$/i.test(slug)) return notFound();

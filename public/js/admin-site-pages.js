@@ -16,6 +16,7 @@
 
   var _view = 'list';       // 'list' | 'edit'
   var _page = null;         // 편집 중인 페이지
+  var _list = [];           // 목록 (순서 변경에 쓴다)
   var _ed = null;           // 편집기 핸들
   var _dirty = false;       // 저장 안 된 변경이 있는지
 
@@ -115,11 +116,18 @@
 
     var list = unwrap(res, 'list') || [];
     var stats = unwrap(res, 'stats') || {};
+    _list = list;
 
-    var rows = list.map(function (p) {
+    var rows = list.map(function (p, idx) {
       var visible = p.status === 'published';
       return '' +
         '<tr data-page-id="' + p.id + '">' +
+          '<td style="width:56px;white-space:nowrap">' +
+            '<button type="button" class="sp-ico" data-act="up" title="위로"' +
+              (idx === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button type="button" class="sp-ico" data-act="down" title="아래로"' +
+              (idx === list.length - 1 ? ' disabled' : '') + '>↓</button>' +
+          '</td>' +
           '<td>' +
             '<div class="sp-name">' + esc(p.title) + '</div>' +
             (p.subtitle ? '<div class="sp-sub">' + esc(p.subtitle) + '</div>' : '') +
@@ -160,6 +168,7 @@
             '<p>[＋ 새 페이지 만들기]를 눌러 첫 페이지를 만들어 보세요.</p></div>'
           : '<div class="sp-table-wrap"><table class="sp-table">' +
               '<thead><tr>' +
+                '<th style="width:56px">순서</th>' +
                 '<th>페이지 이름</th><th>주소</th>' +
                 '<th style="text-align:center;width:80px">노출</th>' +
                 '<th style="text-align:center;width:90px">상태</th>' +
@@ -178,10 +187,44 @@
         var tr = btn.closest('tr');
         var id = Number(tr && tr.getAttribute('data-page-id'));
         if (!id) return;
-        if (btn.getAttribute('data-act') === 'edit') openEditor(id);
-        else deletePage(id, tr.querySelector('.sp-name').textContent);
+        var act = btn.getAttribute('data-act');
+        if (act === 'edit') return openEditor(id);
+        if (act === 'up' || act === 'down') return movePage(id, act);
+        deletePage(id, tr.querySelector('.sp-name').textContent);
       });
     });
+  }
+
+  /**
+   * 목록에서 페이지 차례를 바꾼다.
+   * 옮긴 뒤 전체에 번호를 다시 매긴다 — 처음 만들어진 페이지들은 차례 값이 겹치거나 비어 있어서,
+   * 두 개만 맞바꾸면 순서가 그대로인 것처럼 보이는 일이 생긴다.
+   */
+  async function movePage(id, dir) {
+    var idx = -1;
+    for (var i = 0; i < _list.length; i++) { if (Number(_list[i].id) === Number(id)) { idx = i; break; } }
+    if (idx < 0) return;
+
+    var to = dir === 'up' ? idx - 1 : idx + 1;
+    if (to < 0 || to >= _list.length) return;
+
+    var arr = _list.slice();
+    var tmp = arr[idx]; arr[idx] = arr[to]; arr[to] = tmp;
+
+    var jobs = [];
+    arr.forEach(function (p, i) {
+      var want = (i + 1) * 10;
+      if (Number(p.sortOrder) !== want) {
+        jobs.push(api('/api/admin/site-pages?action=meta', { method: 'PATCH', body: { id: p.id, sortOrder: want } }));
+      }
+    });
+
+    if (jobs.length === 0) return;
+    var results = await Promise.all(jobs);
+    var failed = results.filter(function (r) { return !r.ok; }).length;
+    if (failed > 0) toast('일부 순서를 저장하지 못했습니다');
+    else toast('순서를 바꿨습니다');
+    render();
   }
 
   /* =========================================================
@@ -588,6 +631,9 @@
       '.sp-btn.publish{background:linear-gradient(135deg,#7a1f2b,#a3303f);border:none;color:#fff}' +
       '.sp-btn.lg{padding:11px 18px;font-size:14px;white-space:nowrap}' +
       '.sp-btn.xs{padding:5px 10px;font-size:12px}' +
+      '.sp-ico{width:24px;height:24px;border:1px solid #e5e7eb;background:#fff;border-radius:5px;cursor:pointer;color:#6b7280;font-size:12px;line-height:1;padding:0;margin-right:2px}' +
+      '.sp-ico:hover:not(:disabled){background:#f1f3f5;color:#111}' +
+      '.sp-ico:disabled{opacity:.3;cursor:default}' +
       '.sp-edit-top{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid #eceef1;margin-bottom:16px;flex-wrap:wrap}' +
       '.sp-edit-title{font-weight:700;font-size:16px;flex:1}' +
       '.sp-edit-actions{display:flex;gap:6px;flex-wrap:wrap}' +
