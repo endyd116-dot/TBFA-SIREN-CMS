@@ -3620,7 +3620,7 @@
           <div class="content-tabs" id="contentTabs">
             <button type="button" class="ct-tab on" data-ct="notices"><span class="siren-icon-wrap" data-icon="megaphone"></span> 공지사항</button>
             <button type="button" class="ct-tab" data-ct="faqs"><span class="siren-icon-wrap" data-icon="circle-help"></span> FAQ</button>
-            <button type="button" class="ct-tab" data-ct="about"><span class="siren-icon-wrap" data-icon="book-open"></span> 협의회 소개</button>
+            <button type="button" class="ct-tab" data-ct="about" title="메인 화면 편집으로 이전되었습니다"><span class="siren-icon-wrap" data-icon="book-open"></span> 협의회 소개 <span style="font-size:10px;opacity:.7">(이전됨)</span></button>
             <button type="button" class="ct-tab" data-ct="activity"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 주요 활동</button>
               <!-- public/admin.html — 콘텐츠 관리 탭 버튼 영역에 추가 -->
             <button type="button" class="ct-tab" data-ct="media"><span class="siren-icon-wrap" data-icon="newspaper"></span> 언론보도/갤러리</button>
@@ -3707,23 +3707,28 @@
             </div>
           </div>
 
-          <!-- M-11: 협의회 소개 탭 ─── -->
+          <!-- 협의회 소개 탭 — 2026-08-03 메인 화면 편집으로 이전됨 -->
           <div class="ct-pane" data-ct-pane="about" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title"><span class="siren-icon-wrap" data-icon="book-open"></span> 협의회 소개 페이지 콘텐츠</div>
-                <span class="p-tag">about.html</span>
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="book-open"></span> 협의회 소개</div>
+                <span class="p-tag">이전됨</span>
               </div>
 
-              <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                <span class="siren-icon-wrap" data-icon="lightbulb"></span> 8개 섹션을 각각 편집할 수 있습니다. 카드 클릭 시 Toast UI 편집기가 열립니다.<br />
-                저장 즉시 사용자 페이지(<code>/about.html</code>)에 반영됩니다.
-              </p>
-
-              <div class="about-section-grid" id="aboutSectionGrid">
-                <div style="grid-column:1 / -1;text-align:center;padding:40px;color:var(--text-3)">
-                  불러오는 중...
-                </div>
+              <div style="text-align:center;padding:44px 24px">
+                <p style="font-size:15px;font-weight:600;margin:0 0 10px">
+                  소개 페이지 편집은 <strong>메인 화면 편집</strong>으로 옮겨졌습니다.
+                </p>
+                <p style="font-size:13px;color:var(--text-3);line-height:1.8;margin:0 0 22px">
+                  이제 정해진 칸만 채우는 게 아니라 <strong>페이지 전체를 통째로</strong> 편집합니다.<br />
+                  문단·사진·표를 자유롭게 넣고 뺄 수 있고, 잘못 고쳤을 때 이전 내용으로 되돌릴 수 있습니다.<br />
+                  콘텐츠 관리에서는 이제 <strong>공지사항·FAQ·주요활동·언론보도·자료실</strong>처럼 글이 쌓이는 것만 다룹니다.
+                </p>
+                <a href="/admin-site-builder.html"
+                   onclick="window.location.href='/admin-site-builder.html';return false;"
+                   class="btn-sm btn-sm-primary" style="display:inline-block;padding:11px 22px;text-decoration:none">
+                  메인 화면 편집으로 이동
+                </a>
               </div>
             </div>
           </div>
