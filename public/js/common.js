@@ -563,11 +563,11 @@
    * 2026-06-03: 로고·파비콘·사이트이름·홈타이틀을 /api/public/brand 에서 읽어 적용.
    * 전적으로 fallback-safe — 미설정/조회실패 시 정적 기본값(코드 로고·파비콘·타이틀) 그대로 유지.
    * 헤더/푸터 DOM이 그려진 뒤 호출. */
-  async function applyBrand() {
+  const BRAND_STORE_KEY = 'brand';
+
+  /** 받아온 값으로 로고·협회명·파비콘을 반영 (몇 번 불려도 결과가 같아야 함) */
+  function paintBrand(b) {
     try {
-      const res = await fetch('/api/public/brand', { cache: 'no-store' });
-      if (!res.ok) return;
-      const b = await res.json().catch(function () { return null; });
       if (!b) return;
 
       /* 1) 로고 심볼 — 헤더/푸터 img 교체 */
@@ -599,7 +599,19 @@
         var p = location.pathname;
         if (p === '/' || p === '/index.html' || /\/index\.html$/.test(p)) document.title = b.homeTitle;
       }
-    } catch (_) { /* 무시 — 정적 기본값 유지 */ }
+    } catch (_) { /* 무시 — 기본값 유지 */ }
+  }
+
+  /** 로고·협회명 값을 받아온다 (화면은 건드리지 않음) */
+  function fetchBrandJson() {
+    return fetch('/api/public/brand', { cache: IS_PREVIEW ? 'no-store' : 'no-cache' })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (b) { if (b && !IS_PREVIEW) storeSet(BRAND_STORE_KEY, b); return b; })
+      .catch(function () { return null; });
+  }
+
+  async function applyBrand() {
+    paintBrand(await fetchBrandJson());
   }
 
   /* 2026-07-07 푸터를 DB 설정값(site_settings scope=footer)으로 렌더.
@@ -645,6 +657,7 @@
           예전에는 조각을 다 받은 뒤에야 조회를 시작해 기다리는 시간이 두 배였다. */
     const navPromise = fetchNavJson();
     const footerPromise = fetchFooterJson();
+    const brandPromise = fetchBrandJson();   /* 로고·협회명도 함께 시작 */
 
     await loadAllPartials();
 
@@ -655,6 +668,9 @@
     if (cachedNav) painted = paintHeaderMenu(cachedNav);
     const cachedFooter = storeGet(FOOTER_STORE_KEY);
     if (cachedFooter) paintFooter(cachedFooter);
+    /* 로고·협회명은 조각이 들어온 직후 바로 반영해야 한 박자 늦게 바뀌지 않는다 */
+    const cachedBrand = storeGet(BRAND_STORE_KEY);
+    if (cachedBrand) paintBrand(cachedBrand);
     if (painted) activateGNB();
 
     /* ③ 조회가 끝나면 최신값으로 맞춘다(달라진 게 없으면 화면 변화도 없다). */
@@ -664,6 +680,7 @@
       if (ok || !painted) activateGNB();
     });
     footerPromise.then(paintFooter);
+    brandPromise.then(paintBrand);
 
     /* 조회가 지나치게 늦거나 막혀도 메뉴가 영영 안 보이는 일이 없도록 한 번 더 안전망 */
     setTimeout(revealGnb, 3000);
@@ -673,7 +690,7 @@
     setupRelatedSelect();
     setupCommonForms();
     setupPreviewBanner();
-    applyBrand();   /* 2026-06-03 브랜드 설정 적용 (fallback-safe·비차단) */
+    /* 로고·협회명은 위에서 이미 시작·반영했다 (예전엔 여기서 시작해 한 박자 늦게 바뀌었음) */
     if (typeof window.SIREN_PAGE_INIT === 'function') {
       window.SIREN_PAGE_INIT();
     }
