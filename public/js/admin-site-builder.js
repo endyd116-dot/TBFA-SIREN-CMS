@@ -15,6 +15,8 @@
         { key: 'header.menus', label: '메뉴 관리' },
       ],
     },
+    /* 2026-08-03 메뉴·페이지 통합 편집 — 메뉴가 가리키는 페이지의 내용을 통째로 편집 */
+    { key: 'pages', label: '페이지 관리 (내용 편집)', leaf: true },
     {
       key: 'home', label: '메인 (홈)', expanded: true,
       children: [
@@ -367,6 +369,15 @@
         scope: 'page.ethics',
         intro: '윤리경영 안내 본문을 편집합니다.',
       });
+    },
+    /* 2026-08-03: 페이지 관리 — 메뉴가 가리키는 페이지를 만들고 내용을 통째로 편집 */
+    'pages': function () {
+      if (window.SIREN_SITE_PAGES && window.SIREN_SITE_PAGES.render) {
+        window.SIREN_SITE_PAGES.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>페이지 관리 모듈 로드 실패 — admin-site-pages.js 스크립트 태그 확인</p></div>';
+      }
     },
   };
 
@@ -1001,19 +1012,21 @@
     const inner = $('#sbContentInner');
     inner.innerHTML = '<div class="sb-placeholder"><p>배포 정보 로딩 중...</p></div>';
 
-    const [settingsRes, menusRes] = await Promise.all([
+    const [settingsRes, menusRes, pagesRes] = await Promise.all([
       api('/api/admin/site-settings'),
       api('/api/admin/nav-menus'),
+      api('/api/admin/site-pages'),
     ]);
 
     const draftSettings = settingsRes.data?.data?.stats?.drafts || 0;
     const draftMenus = menusRes.data?.data?.draftCount || 0;
-    const total = draftSettings + draftMenus;
+    const draftPages = pagesRes.ok ? (pagesRes.data?.data?.stats?.drafts || 0) : 0;
+    const total = draftSettings + draftMenus + draftPages;
 
     inner.innerHTML = `
       <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
         <h2 style="margin:0 0 24px;font-family:'Noto Serif KR',serif">배포 관리</h2>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px">
           <div style="padding:20px;background:#fef9f5;border:1px solid #f5d97a;border-radius:8px;text-align:center">
             <div style="font-size:11px;color:#86868b;text-transform:uppercase;margin-bottom:6px">설정 임시저장</div>
             <div style="font-size:32px;font-weight:700;color:#7a5e00">${draftSettings}</div>
@@ -1022,12 +1035,17 @@
             <div style="font-size:11px;color:#86868b;text-transform:uppercase;margin-bottom:6px">메뉴 임시저장</div>
             <div style="font-size:32px;font-weight:700;color:#7a5e00">${draftMenus}</div>
           </div>
+          <div style="padding:20px;background:#fef9f5;border:1px solid #f5d97a;border-radius:8px;text-align:center">
+            <div style="font-size:11px;color:#86868b;text-transform:uppercase;margin-bottom:6px">페이지 임시저장</div>
+            <div style="font-size:32px;font-weight:700;color:#7a5e00">${draftPages}</div>
+          </div>
         </div>
         <div style="padding:16px;background:#f5f5f7;border-radius:8px;margin-bottom:20px">
           <div style="font-size:13px;color:#424245;line-height:1.7">
             <strong>배포 동작:</strong><br />
             • 모든 임시저장(Draft) 변경사항이 운영 사이트에 즉시 반영됩니다<br />
-            • 배포 후에는 이전 값으로 되돌릴 수 없습니다 (수동 재입력 필요)<br />
+            • 설정·메뉴는 배포 후 이전 값으로 되돌릴 수 없습니다 (수동 재입력 필요)<br />
+            • <strong>페이지 본문은 예외</strong> — 배포 직전 내용이 자동 보관되어 [이전 버전]에서 되돌릴 수 있습니다<br />
             • 일반 사용자는 배포된 내용만 볼 수 있습니다
           </div>
         </div>
@@ -1045,14 +1063,17 @@
 
   /* ============ Draft 카운트 갱신 ============ */
   async function refreshDraftCount() {
-    const [settingsRes, menusRes] = await Promise.all([
+    const [settingsRes, menusRes, pagesRes] = await Promise.all([
       api('/api/admin/site-settings'),
       api('/api/admin/nav-menus'),
+      api('/api/admin/site-pages'),
     ]);
 
     const draftSettings = settingsRes.data?.data?.stats?.drafts || 0;
     const draftMenus = menusRes.data?.data?.draftCount || 0;
-    _draftCount = draftSettings + draftMenus;
+    /* 저장소 준비 전에는 페이지 API가 실패할 수 있다 — 그때는 0으로 본다 */
+    const draftPages = pagesRes.ok ? (pagesRes.data?.data?.stats?.drafts || 0) : 0;
+    _draftCount = draftSettings + draftMenus + draftPages;
 
     const counter = $('#sbDraftCounter');
     const countEl = $('#sbDraftCount');
@@ -1093,6 +1114,12 @@
     });
     total += r2.data?.data?.affectedCount || 0;
 
+    /* 2026-08-03: 페이지 본문도 같은 배포 버튼으로 함께 나간다 */
+    const r3 = await api('/api/admin/site-pages?action=publish', {
+      method: 'POST', body: { action: 'publish' },
+    });
+    total += r3.data?.data?.affectedCount || 0;
+
     if (btn) { btn.disabled = false; btn.textContent = '모든 변경사항 배포'; }
 
     toast(`${total}건 배포 완료`);
@@ -1103,14 +1130,22 @@
   }
 
   /* ============ iframe 미리보기 제어 ============ */
+  /* 2026-08-03: 페이지 편집 중에는 그 페이지를 미리보기로 띄운다 (기본은 메인 화면) */
+  let _previewPath = '/index.html';
+
+  function setPreviewPath(path) {
+    _previewPath = path || '/index.html';
+    reloadPreview();
+  }
+
   function reloadPreview() {
     const frame = $('#sbPreviewFrame');
     if (!frame) return;
     const ts = Date.now();
-    const url = _currentMode === 'draft'
-      ? `/index.html?preview=1&_t=${ts}`
-      : `/index.html?_t=${ts}`;
-    frame.src = url;
+    const sep = _previewPath.indexOf('?') >= 0 ? '&' : '?';
+    frame.src = _currentMode === 'draft'
+      ? `${_previewPath}${sep}preview=1&_t=${ts}`
+      : `${_previewPath}${sep}_t=${ts}`;
   }
 
   function setMode(mode) {
@@ -1197,6 +1232,7 @@
 
   window.SIREN_SITE_BUILDER = {
     reloadPreview,
+    setPreviewPath,
     refreshDraftCount,
     selectNode,
   };
