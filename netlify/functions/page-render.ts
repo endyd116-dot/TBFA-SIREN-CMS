@@ -118,7 +118,9 @@ ${preview ? '<div class="page-draft-banner">임시저장 미리보기입니다 �
 
     /* 검색·공유 메타 */
     const siteUrl = process.env.SITE_URL || `${url.protocol}//${url.host}`;
-    const plain = htmlToPlainText(page.contentHtml || "", 160);
+    /* 설명은 **자리표시를 바꾼 뒤의 본문**에서 뽑는다.
+       원본에서 뽑으면 `{{apply:support}}` 같은 표시가 검색 결과 설명에 그대로 나온다(2026-08-03 실측). */
+    const plain = htmlToPlainText(bodyHtml, 160);
     const pageMeta: PageMeta = {
       title: page.seoTitle || page.title,
       description: page.seoDescription || plain,

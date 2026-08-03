@@ -1274,9 +1274,11 @@ export const navMenuItems = pgTable("nav_menu_items", {
   hasDraft: boolean("has_draft").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  /* ★ 2026-08-03 메뉴·페이지 통합 편집 — /api/migrate-site-pages 호출 성공 후 주석 해제.
-     ⚠️ DB에 컬럼이 없는 상태로 먼저 활성화하면 안 된다. getNavMenus()가 전체 컬럼 조회라
-        SELECT가 즉시 실패해 사이트 상단 메뉴가 통째로 사라진다 (CLAUDE.md §9.1.1).
+  /* ★ 2026-08-03 메뉴·페이지 통합 편집 — 아래 3개 칸은 **저장소에 이미 만들어져 있다**
+     (2026-08-03 마이그 호출 완료). 그런데도 정의를 켜지 않고 주석으로 두는 이유:
+     이 칸들은 `lib/nav-menu-links.ts`가 직접 SQL로 읽고 쓴다. 정의를 켜면 메뉴를 읽는 모든
+     곳이 이 칸까지 함께 가져오게 되는데, 얻는 것 없이 회귀 위험만 늘어난다.
+     (전체 칸 조회 방식이라, 나중에 칸을 또 늘릴 때 같은 사고가 반복될 수 있다 — §9.1.1)
   linkType: varchar("link_type", { length: 20 }).default("url"),   // page | url | modal | divider | none
   sitePageId: integer("site_page_id"),                             // link_type='page'일 때 연결된 페이지
   draftSitePageId: integer("draft_site_page_id"),                  // 임시저장

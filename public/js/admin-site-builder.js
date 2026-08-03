@@ -45,13 +45,8 @@
         { key: 'mypage.cancellationGuide', label: '정기 후원 해지 안내' },
       ],
     },
-    {
-      key: 'static_pages', label: '정적 페이지', expanded: false,
-      children: [
-        { key: 'page.terms', label: '이용약관' },
-        { key: 'page.privacy', label: '개인정보처리방침' },
-      ],
-    },
+    /* 2026-08-03: 약관·개인정보는 '페이지 관리'로 옮겨졌다(통짜 편집·되돌리기 지원).
+       여기 남겨두면 같은 문서를 두 곳에서 고치게 되어 헷갈리므로 목록에서 뺀다. */
     { key: 'publish', label: '배포 관리', leaf: true },
   ];
 

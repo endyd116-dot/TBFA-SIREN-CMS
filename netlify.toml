@@ -87,15 +87,34 @@
   force = true
 
 # ============================================================
-# ★ 2026-08-03 메뉴·페이지 통합 편집: 운영자가 만든 페이지 (/p/{주소})
-#   메뉴 하나가 페이지 하나를 가리킨다. 페이지를 새로 만들어도 코드 배포가 필요 없도록
-#   주소를 통째로 함수에 넘겨 처리한다. 함수가 본문을 서버에서 채워 검색 노출까지 맞춘다.
-#   ※ 반드시 아래 404 규칙보다 위에 있어야 한다 (아래에 두면 전부 404로 먹힌다)
+# ★ 2026-08-03 메뉴·페이지 통합 편집: 옮겨간 정책 문서들을 새 주소로 넘긴다.
+#   본문이 저장소로 옮겨졌으므로 옛 주소로 들어온 방문자·검색엔진을 새 주소로 보낸다.
+#   (해시가 붙는 /about.html#greeting 류는 서버가 # 뒤를 볼 수 없어 각 파일의 화면단에서 처리)
+#   ※ 운영자가 만든 페이지 /p/{주소} 는 page-render 함수가 경로를 직접 받으므로
+#     여기에 넘김 규칙이 필요 없다 (* 패턴 규칙이 함수로 넘어가지 않는 문제도 있었다).
 # ============================================================
 [[redirects]]
-  from = "/p/*"
-  to = "/api/page-render?_slug=:splat"
-  status = 200
+  from = "/terms.html"
+  to = "/p/terms"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/privacy.html"
+  to = "/p/privacy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ethics.html"
+  to = "/p/ethics"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/email-reject.html"
+  to = "/p/email-reject"
+  status = 301
   force = true
 
 # ★ K-9: 커스텀 404 라우팅 (다른 redirects보다 아래에 위치해야 함)
@@ -285,11 +304,6 @@
 #   빠뜨리면 로컬에서는 되고 라이브에서만 "페이지 뼈대를 찾을 수 없습니다"가 뜬다.
 [functions."page-render"]
   included_files = ["public/page.html", "public/404.html"]
-
-# ★ 2026-08-03 기존 내용 옮기기(1회용): 지금 코드에 박혀 있는 본문을 읽어 편집 가능한 페이지로 옮긴다.
-#   호출 성공 후 이 함수 파일과 이 블록을 함께 삭제한다.
-[functions."migrate-page-content"]
-  included_files = ["public/support.html", "public/terms.html", "public/privacy.html", "public/ethics.html", "public/email-reject.html"]
 
 # ★ P2: 순직 인정요건 법령 AI 파싱(criteria-generate)도 법령 문서 번들 포함 필요
 [functions."admin-martyrdom-criteria-generate"]

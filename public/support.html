@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <!-- ★ 2026-08-03: 이 페이지의 내용은 각각 독립 페이지로 옮겨졌다.
+       주소 뒤 #부분은 서버가 볼 수 없어(브라우저만 안다) 여기서 넘긴다. -->
+  <script>
+  (function () {
+    var map = {
+      '#family':   '/p/family-support',
+      '#memorial': '/p/memorial-scholarship'
+    };
+    var to = map[location.hash] || '/p/family-support';
+    location.replace(to);
+  })();
+  </script>
+  <link rel="canonical" href="https://tbfa.co.kr/p/family-support">
   <script src="/js/icons.js?v=20260712-esign"></script>
   <script src="/js/lib-kst.js?v=3-kst-input"></script>
 <meta charset="UTF-8" />
