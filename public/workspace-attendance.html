@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <script src="/js/icons.js?v=20260712-evidence"></script>
@@ -293,11 +293,13 @@
             </select>
           </div>
           <div class="att-form-group">
-            <label>반차 여부</label>
+            <label>사용 단위</label>
             <select id="attLeaveHalf">
-              <option value="">종일</option>
-              <option value="AM">오전 반차</option>
-              <option value="PM">오후 반차</option>
+              <option value="">종일 (1일)</option>
+              <option value="AM">오전 반차 (0.5일)</option>
+              <option value="PM">오후 반차 (0.5일)</option>
+              <option value="LATE_IN">반반차 · 늦게 출근 (2시간 · 0.25일)</option>
+              <option value="EARLY_OUT">반반차 · 일찍 퇴근 (2시간 · 0.25일)</option>
             </select>
           </div>
         </div>
@@ -558,7 +560,7 @@
 <!-- 워크스페이스 공통 JS -->
 <script src="/js/workspace-common.js?v=20260712-noemoji"></script>
 <!-- 근태관리 JS -->
-<script src="/js/workspace-attendance.js?v=20260712-me"></script>
+<script src="/js/workspace-attendance.js?v=20260803-quarterday"></script>
 <!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
 <script src="/js/workspace-payroll.js?v=20260712-days"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>

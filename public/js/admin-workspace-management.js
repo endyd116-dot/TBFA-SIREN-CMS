@@ -983,6 +983,14 @@
     await loadPendingLeaves();
   }
 
+  /* 부분 휴가 라벨 — 반차(0.5일) / 반반차(0.25일, 2026-08-03) */
+  function awmPartialLeaveLabel(period) {
+    return ({
+      AM: '오전 반차', PM: '오후 반차',
+      LATE_IN: '반반차(늦게 출근)', EARLY_OUT: '반반차(일찍 퇴근)',
+    })[period] || '반차';
+  }
+
   async function loadPendingLeaves() {
     const res = await api('/api/admin-att-leave-review?status=PENDING');
     const rows = res.data?.data?.leaves || res.data?.leaves || [];
@@ -997,7 +1005,7 @@
     }
     tbody.innerHTML = rows.map(r => {
       const halfTag = r.isHalfDay
-        ? `<span class="awm-tag" style="background:#fef3c7;color:#92400e;margin-left:4px">${escHtml(r.halfDayPeriod || '반차')}</span>`
+        ? `<span class="awm-tag" style="background:#fef3c7;color:#92400e;margin-left:4px">${escHtml(awmPartialLeaveLabel(r.halfDayPeriod))}</span>`
         : '';
       return `
       <tr>
@@ -1498,7 +1506,7 @@
         mapCells = (inBtn + outBtn) || '—';
       }
       const leaveTxt = ln.leaves.length
-        ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? '반차' : '휴가').join(', ')
+        ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? awmPartialLeaveLabel(lv.half_day_period || lv.halfDayPeriod) : '휴가').join(', ')
         : '—';
       /* R39 Stage 7 A-2: 어드민 수정 버튼 / 슈퍼어드민 생성·삭제 (기록 유무로 분기) */
       const recId = r && r.id;
@@ -1557,7 +1565,7 @@
       const mins     = wmins != null ? wmins : '';
       const ot       = otm != null ? otm : '';
       const leaveTxt = ln.leaves.length
-        ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? '반차' : '휴가').join('; ')
+        ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? awmPartialLeaveLabel(lv.half_day_period || lv.halfDayPeriod) : '휴가').join('; ')
         : '';
       csvLines.push([ln.date, ln.dayName, workMode, status, checkIn, checkOut, mins, ot, leaveTxt].map(csvEsc).join(','));
     });

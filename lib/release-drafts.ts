@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-02.2";
+export const APP_VERSION = "2026-08-03.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,18 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-03-quarter-day-leave",
+    title: "반반차(2시간) 휴가를 신청할 수 있습니다",
+    items: [
+      { text: "휴가 신청에 '반반차'가 생겼습니다 — 2시간만 쓰고 연차는 0.25일만 차감됩니다", link: "/workspace-attendance.html" },
+      { text: "'늦게 출근'과 '일찍 퇴근' 중에 고르면 됩니다 — 병원·은행 볼일처럼 반나절까지는 필요 없을 때 쓰세요", link: "/workspace-attendance.html" },
+      { text: "사용 단위가 네 가지가 되었습니다 — 종일(1일) · 오전 반차(0.5일) · 오후 반차(0.5일) · 반반차(0.25일)", link: "/workspace-attendance.html" },
+      { text: "반차·반반차를 쓴 날에 출근을 찍어도 지각·조퇴로 처리되지 않습니다" },
+      { text: "그동안은 2시간 일찍 퇴근해도 연차로 처리할 방법이 없어 급여만 0.25일치 줄었습니다 — 이제 휴가로 정식 처리됩니다" },
+      { text: "[관리자] 결재 화면과 근태 현황·CSV에 '반반차(늦게 출근)'처럼 어떤 단위인지 표시됩니다", link: "/cms-tbfa.html#att-ops" },
+    ],
+  },
   {
     key: "2026-08-02-admin-session-7days",
     title: "[관리자] 로그인 상태 유지하면 7일 동안 로그인이 풀리지 않습니다",

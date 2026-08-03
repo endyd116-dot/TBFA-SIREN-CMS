@@ -4,6 +4,14 @@
 (function () {
   'use strict';
 
+  /* ─── 부분 휴가 시간대 (반차 0.5일 · 반반차 0.25일 — 2026-08-03) ─── */
+  var PARTIAL_PERIODS = ['AM', 'PM', 'LATE_IN', 'EARLY_OUT'];
+  var PARTIAL_LABEL = {
+    AM: '오전 반차', PM: '오후 반차',
+    LATE_IN: '반반차(늦게 출근)', EARLY_OUT: '반반차(일찍 퇴근)',
+  };
+  function partialLeaveLabel(period) { return PARTIAL_LABEL[period] || '반차'; }
+
   /* ─── API 헬퍼 ─── */
   async function api(path, opts = {}) {
     try {
@@ -742,9 +750,7 @@
       return;
     }
     tbody.innerHTML = rows.map(r => {
-      const halfLabel = r.isHalfDay
-        ? (r.halfDayPeriod === 'AM' ? ' · 반차(오전)' : r.halfDayPeriod === 'PM' ? ' · 반차(오후)' : ' · 반차')
-        : '';
+      const halfLabel = r.isHalfDay ? ' · ' + partialLeaveLabel(r.halfDayPeriod) : '';
       const periodText = r.startDate === r.endDate
         ? fmtDate(r.startDate)
         : `${fmtDate(r.startDate)} ~ ${fmtDate(r.endDate)}`;
@@ -793,10 +799,10 @@
     if (!start || !end) { toast('날짜를 입력하세요'); return; }
     if (start > end) { toast('종료일이 시작일보다 빠를 수 없습니다'); return; }
 
-    // 반차 — 시작=종료 단일 날짜 강제
-    const isHalfDay = half === 'AM' || half === 'PM';
+    // 반차·반반차 — 시작=종료 단일 날짜 강제
+    const isHalfDay = PARTIAL_PERIODS.indexOf(half) >= 0;
     if (isHalfDay && start !== end) {
-      toast('반차는 단일 날짜만 신청할 수 있습니다');
+      toast('반차·반반차는 단일 날짜만 신청할 수 있습니다');
       return;
     }
 
@@ -822,7 +828,7 @@
       return;
     }
     const d = res.data?.data || res.data || {};
-    toast(`휴가가 신청되었습니다 (${d.days ?? ''}일${isHalfDay ? ' · 반차' : ''})`);
+    toast(`휴가가 신청되었습니다 (${d.days ?? ''}일${isHalfDay ? ' · ' + partialLeaveLabel(half) : ''})`);
     if (btn) btn.disabled = false;
     await loadLeaveBalance();
     await loadLeaveHistory();

@@ -7,6 +7,18 @@ import { notifyAllOperators } from "../../lib/notify";
 
 export const config = { path: "/api/att-leave-request" };
 
+/* 부분 휴가 시간대
+   · 반차(0.5일)   : AM(오전) · PM(오후)
+   · 반반차(0.25일): LATE_IN(2시간 늦게 출근) · EARLY_OUT(2시간 일찍 퇴근)  — 2026-08-03 */
+const HALF_PERIODS = ["AM", "PM"];
+const QUARTER_PERIODS = ["LATE_IN", "EARLY_OUT"];
+const PERIOD_LABEL: Record<string, string> = {
+  AM: "오전 반차",
+  PM: "오후 반차",
+  LATE_IN: "반반차(늦게 출근)",
+  EARLY_OUT: "반반차(일찍 퇴근)",
+};
+
 function jsonOk(data: unknown, status = 200) {
   return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
@@ -75,28 +87,39 @@ export default async function handler(req: Request) {
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
 
-    const { leaveTypeId, startDate, endDate, reason, isHalfDay, halfDayPeriod } = body;
+    const { leaveTypeId, startDate, endDate, reason, halfDayPeriod } = body;
     if (!leaveTypeId || !startDate || !endDate) {
       return jsonError("validate", new Error("leaveTypeId, startDate, endDate 필수"), 400);
     }
 
+    /* 부분 휴가 판별 — 반차(0.5일) / 반반차(0.25일, 2026-08-03 추가).
+       반반차도 is_half_day=true로 저장한다: '그날 출근은 하되 지각·조퇴로 보지 않는다'는
+       기존 반차 처리(출근 허용·PARTIAL_LEAVE 기록·종일 LEAVE 스탬프 생략)가 그대로 맞기 때문.
+       구분은 half_day_period 값과 days로 한다 (DB 컬럼 추가 불필요). */
+    const period = String(halfDayPeriod || "");
+    const isQuarterDay = QUARTER_PERIODS.includes(period);          // LATE_IN | EARLY_OUT
+    const isPartial = isQuarterDay || HALF_PERIODS.includes(period) || body.isHalfDay === true;
+
     // 1. 서버에서 일수 직접 계산 (클라이언트 days 값 무시)
-    //    반차(isHalfDay=true)면 0.5일, 아니면 (end-start)+1
     const startMs = new Date(`${startDate}T00:00:00Z`).getTime();
     const endMs   = new Date(`${endDate}T00:00:00Z`).getTime();
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
       return jsonError("validate_date", new Error("날짜 형식이 올바르지 않습니다"), 400);
     }
     let days: number;
-    if (isHalfDay === true) {
-      // 반차는 시작=종료 강제 + 0.5일
+    if (isPartial) {
+      // 반차·반반차는 시작=종료 강제
       if (startDate !== endDate) {
-        return jsonError("validate_halfday", new Error("반차는 단일 날짜만 신청할 수 있습니다"), 400);
+        return jsonError("validate_halfday", new Error("반차·반반차는 단일 날짜만 신청할 수 있습니다"), 400);
       }
-      if (!["AM", "PM"].includes(String(halfDayPeriod))) {
-        return jsonError("validate_halfday_period", new Error("반차 시간대(halfDayPeriod)는 AM 또는 PM"), 400);
+      if (!HALF_PERIODS.includes(period) && !isQuarterDay) {
+        return jsonError(
+          "validate_halfday_period",
+          new Error("시간대는 오전 반차(AM)·오후 반차(PM)·늦게 출근(LATE_IN)·일찍 퇴근(EARLY_OUT) 중 하나여야 합니다"),
+          400,
+        );
       }
-      days = 0.5;
+      days = isQuarterDay ? 0.25 : 0.5;
     } else {
       // Q3-008 fix: 달력일 전체가 아니라 영업일(주말·att_holidays 제외)만 차감.
       //   승인 시 att_records LEAVE 스탬프는 영업일에만 찍히므로(admin-att-leave-review),
@@ -198,9 +221,9 @@ export default async function handler(req: Request) {
 
     /* 3-2. 출근 기록 충돌 검사 (2026-05-29 운영 시작 전 P1-1 fix)
        — 종일 휴가 신청 시 신청 기간 안에 이미 출근 기록(checkInTime 있는 NORMAL/LATE/EARLY_LEAVE 등)이 있으면 차단.
-       — 반차(isHalfDay)는 출근 후 반나절 휴가가 정상이라 패스.
+       — 반차·반반차는 출근 후 일부 시간만 휴가가 정상이라 패스.
        — LEAVE/HOLIDAY/ABSENT 상태는 출근 안 한 날이라 충돌 아님. */
-    if (isHalfDay !== true) {
+    if (!isPartial) {
       try {
         const attOverlap = await db
           .select({ id: attRecords.id, date: attRecords.date, status: attRecords.status })
@@ -216,7 +239,7 @@ export default async function handler(req: Request) {
         if (attOverlap.length > 0) {
           return new Response(jsonKST({
             ok: false,
-            error: `해당 기간(${attOverlap[0].date})에 이미 출근 기록이 있습니다. 반차로 신청하거나 관리자에게 출근 기록 정정을 문의하세요`,
+            error: `해당 기간(${attOverlap[0].date})에 이미 출근 기록이 있습니다. 반차·반반차로 신청하거나 관리자에게 출근 기록 정정을 문의하세요`,
             step: "attendance_overlap",
             conflict: attOverlap[0],
           }), { status: 409, headers: { "Content-Type": "application/json" } });
@@ -226,9 +249,9 @@ export default async function handler(req: Request) {
       }
     }
 
-    // 4. INSERT — 반차 컬럼은 마이그(migrate-att-r29-halfday) 적용된 환경에서만 저장
+    // 4. INSERT — 부분휴가 컬럼은 마이그(migrate-att-r29-halfday) 적용된 환경에서만 저장
     try {
-      // 반차 컬럼 존재 여부 동적 확인
+      // 부분휴가 컬럼 존재 여부 동적 확인
       let halfDayExists = false;
       try {
         const c: any = await db.execute(sql`
@@ -248,12 +271,12 @@ export default async function handler(req: Request) {
           VALUES
             (${memberUid}, ${leaveTypeId}, ${startDate}::date, ${endDate}::date,
              ${String(days)}, ${reason ?? null}, 'PENDING',
-             ${isHalfDay === true}, ${isHalfDay === true ? halfDayPeriod : null})
+             ${isPartial}, ${isPartial ? period : null})
           RETURNING id
         `);
       } else {
-        // 마이그 미적용 — 반차 플래그는 무시(0.5일은 days 컬럼에 기록됨)
-        if (isHalfDay === true) {
+        // 마이그 미적용 — 부분휴가 플래그는 무시(0.5·0.25일은 days 컬럼에 기록됨)
+        if (isPartial) {
           console.warn("[att-leave-request] half-day columns missing — flag dropped");
         }
         result = await db.execute(sql`
@@ -282,7 +305,7 @@ export default async function handler(req: Request) {
           category: "system",
           severity: "info",
           title: `휴가 결재 대기 — ${requesterName}`,
-          message: `${periodText} (${days}일${isHalfDay === true ? `·반차 ${halfDayPeriod}` : ""})${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
+          message: `${periodText} (${days}일${isPartial && PERIOD_LABEL[period] ? ` · ${PERIOD_LABEL[period]}` : ""})${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
           link: "/cms-tbfa.html#att-ops",
           refTable: "att_leave_requests",
           refId: leaveId,
