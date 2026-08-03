@@ -130,22 +130,49 @@ export default async (req: Request, _ctx: Context) => {
       if (body.publishAll === true) {
         step = "publish_all";
         const drafts: any = await db
-          .select({ id: releaseNotes.id })
+          .select({ id: releaseNotes.id, draftKey: releaseNotes.draftKey })
           .from(releaseNotes)
           .where(eq(releaseNotes.status, "draft"));
         if (!drafts.length) return ok({ published: 0 }, "발행할 초안이 없습니다");
-        const ids = drafts.map((d: any) => d.id);
         const now = new Date();
-        await db
-          .update(releaseNotes)
-          .set({ status: "published", publishedAt: now, updatedAt: now } as any)
-          .where(inArray(releaseNotes.id, ids));
+        /* 여러 건을 한 번에 발행하면 발행시각이 전부 같아져 목록이 뒤죽박죽이 된다.
+           초안 키 앞머리가 배포 날짜(2026-07-12-xxx)이므로 그 날짜를 발행일로 쓴다
+           → 게시판이 실제 배포 순서대로, 최신 소식이 위에 오도록 정렬된다. (2026-08-03) */
+        for (const d of drafts) {
+          const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.draftKey || ""));
+          const at = m ? new Date(`${m[1]}-${m[2]}-${m[3]}T09:00:00+09:00`) : now;
+          await db
+            .update(releaseNotes)
+            .set({ status: "published", publishedAt: at, updatedAt: now } as any)
+            .where(eq(releaseNotes.id, d.id));
+        }
         await logAudit({
           userId: me.id, userType: "admin", userName: me.name,
-          action: "release_note.publish_all", target: `release_note:${ids.length}건`,
-          detail: { ids }, req,
+          action: "release_note.publish_all", target: `release_note:${drafts.length}건`,
+          detail: { ids: drafts.map((d: any) => d.id) }, req,
         } as any);
-        return ok({ published: ids.length }, `초안 ${ids.length}건이 발행되었습니다`);
+        return ok({ published: drafts.length }, `초안 ${drafts.length}건이 발행되었습니다`);
+      }
+
+      /* 발행일 재정렬 — 이미 발행된 소식의 발행일을 초안 키의 배포 날짜로 맞춘다.
+         (한꺼번에 발행해 시각이 뭉친 목록을 시간순으로 되돌리는 용도) */
+      if (body.resequence === true) {
+        step = "resequence";
+        const rows: any = await db
+          .select({ id: releaseNotes.id, draftKey: releaseNotes.draftKey })
+          .from(releaseNotes)
+          .where(eq(releaseNotes.status, "published"));
+        let fixed = 0;
+        for (const r of rows) {
+          const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(r.draftKey || ""));
+          if (!m) continue;
+          await db
+            .update(releaseNotes)
+            .set({ publishedAt: new Date(`${m[1]}-${m[2]}-${m[3]}T09:00:00+09:00`) } as any)
+            .where(eq(releaseNotes.id, r.id));
+          fixed++;
+        }
+        return ok({ fixed }, `발행일 ${fixed}건을 배포 날짜로 정렬했습니다`);
       }
 
       // 수동 생성
