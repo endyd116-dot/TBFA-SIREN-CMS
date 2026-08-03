@@ -330,7 +330,7 @@
           '<span class="sp-insert-hint">누르면 본문에 표시 자리가 들어갑니다. 사이트에서는 실제 지도·버튼으로 보입니다.</span>' +
         '</div>' +
 
-        '<div id="spEditorHost"><textarea id="spEditor"></textarea></div>' +
+        '<div id="spEditorHost"><textarea id="spEditor" style="width:100%"></textarea></div>' +
 
         '<div class="sp-edit-foot">' +
           '<span class="sp-muted">주소 <a href="/p/' + esc(page.slug) + '" target="_blank" rel="noopener">/p/' + esc(page.slug) + '</a></span>' +
@@ -672,9 +672,12 @@
       '.sp-modal-note{font-size:12px;color:#6b7280;line-height:1.7;margin:0;background:#f7f8fa;padding:10px 12px;border-radius:6px}' +
       '.sp-modal-subhead{font-size:13px;font-weight:700;color:#374151}' +
       '.sp-hr{border:0;border-top:1px solid #eceef1;margin:2px 0}' +
-      /* 편집기가 좁은 곳에 들어가도 툴바가 잘리지 않게 */
-      '#spEditorHost{min-width:0}' +
-      '#spEditorHost .sun-editor{min-width:0}' +
+      /* 편집기가 감싸는 영역을 꽉 채우도록 강제 — 편집기가 자체 폭을 들고 오는 것을 막는다 */
+      '#spEditorHost{width:100%}' +
+      '#spEditorHost .sun-editor{width:100% !important;max-width:100% !important}' +
+      '#spEditorHost .se-toolbar{width:100% !important}' +
+      '#spEditorHost .se-wrapper{width:100% !important}' +
+      '#spEditorHost .se-container{width:100% !important}' +
       '@media(max-width:1100px){.sp-fields{grid-template-columns:1fr}.sp-head{flex-direction:column}}';
 
     var st = document.createElement('style');

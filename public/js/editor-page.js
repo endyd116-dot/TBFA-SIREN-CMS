@@ -224,6 +224,12 @@
         { text: '1.0', value: 1 }, { text: '1.3', value: 1.3 },
         { text: '1.6', value: 1.6 }, { text: '2.0', value: 2 }
       ],
+      /* ★ 폭을 반드시 지정한다.
+         지정하지 않으면 편집기가 원래 입력칸(textarea)의 기본 크기(약 170px)를 그대로
+         물려받아, 감싸는 영역이 아무리 넓어도 편집기만 좁게 뜨고 툴바가 세로로 쌓인다.
+         (2026-08-03 실측 — 화면이 넓은데도 글을 쓸 수 없는 상태였다) */
+      width: '100%',
+      minWidth: '100%',
       height: opts.height || '600px',
       minHeight: '400px',
       placeholder: opts.placeholder || '내용을 입력하세요. 사진은 끌어다 놓으면 올라갑니다.',
