@@ -96,6 +96,9 @@
       document.getElementById('mtBioSection').style.display = '';
     }
 
+    /* 2026-08-04: 제목 문구·개별 헌화 노출을 운영자가 정한 대로 반영 */
+    applyDisplaySettings();
+
     /* 타임라인 */
     var tl = Array.isArray(t.timeline) ? t.timeline : [];
     if (tl.length) {
@@ -120,10 +123,34 @@
     document.getElementById('mtContent').style.display = '';
   }
 
+  /* 2026-08-04: 운영자가 정한 표시 문구·개별 헌화 노출 설정
+     (관리 화면: 추모관 운영 → 선생님 소개 제목 / 발자취 제목 / 헌화 표시) */
+  var _display = { bioLabel: '약력', timelineLabel: '기억의 발자취', showTeacherOffering: true };
+
+  function applyDisplaySettings() {
+    /* 제목 문구 — 협의회에서 쓰지 않으려는 단어를 운영자가 바꿀 수 있다 */
+    var bioH = document.querySelector('#mtBioSection .mt-h2');
+    if (bioH && _display.bioLabel) bioH.textContent = _display.bioLabel;
+    var tlH = document.querySelector('#mtTimelineSection .mt-h2');
+    if (tlH && _display.timelineLabel) tlH.textContent = _display.timelineLabel;
+
+    /* 개별 헌화 숨기기 — 추모관 첫 화면에 이미 헌화가 있어 중복이고,
+       선생님 이야기에 집중하도록 감출 수 있게 한다 */
+    var offerSec = document.querySelector('.mt-offer-section');
+    if (offerSec) offerSec.style.display = _display.showTeacherOffering === false ? 'none' : '';
+  }
+
   function loadTeacher() {
     if (!_teacherId) { renderTeacher(null); return; }
     api('/api/memorial-teacher?id=' + _teacherId).then(function (res) {
+      var disp = res.ok ? unwrap(res, 'display') : null;
+      if (disp) _display = {
+        bioLabel: disp.bioLabel || _display.bioLabel,
+        timelineLabel: disp.timelineLabel || _display.timelineLabel,
+        showTeacherOffering: disp.showTeacherOffering !== false,
+      };
       renderTeacher(res.ok ? (unwrap(res, 'teacher') || null) : null);
+      applyDisplaySettings();   /* 선생님 정보가 없어도 헌화 숨김은 적용 */
     }).catch(function () { renderTeacher(null); });
   }
 

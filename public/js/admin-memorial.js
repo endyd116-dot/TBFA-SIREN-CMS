@@ -324,6 +324,13 @@ function loadSettings() {
     var s = pick(res, 'settings') || {};
     document.getElementById('sHeroYoutubeId').value = s.heroYoutubeId || '';
     document.getElementById('sHeroCopy').value = s.heroCopy || '';
+    /* 2026-08-04: 선생님 페이지 표시 설정 */
+    var bioEl = document.getElementById('sBioLabel');
+    if (bioEl) bioEl.value = s.bioLabel || '';
+    var tlEl = document.getElementById('sTimelineLabel');
+    if (tlEl) tlEl.value = s.timelineLabel || '';
+    var offEl = document.getElementById('sShowTeacherOffering');
+    if (offEl) offEl.checked = s.showTeacherOffering !== false;
     var rows = document.getElementById('bgmRows');
     rows.innerHTML = '';
     var tracks = Array.isArray(s.bgmTracks) ? s.bgmTracks : [];
@@ -355,7 +362,11 @@ function saveSettings() {
   var payload = {
     heroYoutubeId: document.getElementById('sHeroYoutubeId').value.trim() || null,
     heroCopy: document.getElementById('sHeroCopy').value.trim() || null,
-    bgmTracks: collectBgm()
+    bgmTracks: collectBgm(),
+    /* 2026-08-04: 선생님 페이지 표시 설정 (비우면 서버가 기본 문구를 쓴다) */
+    bioLabel: (document.getElementById('sBioLabel') || {}).value || '',
+    timelineLabel: (document.getElementById('sTimelineLabel') || {}).value || '',
+    showTeacherOffering: !!(document.getElementById('sShowTeacherOffering') || {}).checked
   };
   callApi('PATCH', '/api/admin-memorial-settings', payload).then(function (res) {
     if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }

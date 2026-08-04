@@ -1,4 +1,5 @@
 import { jsonKST } from "../../lib/kst";
+import { getMemorialDisplay } from "../../lib/memorial-display";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialTeachers } from "../../db/schema";
@@ -58,7 +59,11 @@ export default async function handler(req: Request, _ctx: Context) {
       letterCount,
     };
 
-    return new Response(jsonKST({ ok: true, data: { teacher } }), {
+    /* 2026-08-04: 화면에 쓸 표시 문구·개별 헌화 노출 설정을 함께 내려준다
+       (제목을 '약력' 대신 다른 말로 쓰거나, 개별 헌화를 감출 수 있도록) */
+    const display = await getMemorialDisplay();
+
+    return new Response(jsonKST({ ok: true, data: { teacher, display } }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {

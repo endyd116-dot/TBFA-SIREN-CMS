@@ -222,6 +222,26 @@ tr:last-child td { border-bottom:none; }
       <input type="text" id="sHeroCopy" maxlength="300" placeholder="우리는 당신들을 기억합니다">
     </div>
 
+    <!-- ★ 2026-08-04: 선생님 개별 페이지 표시 설정 -->
+    <div class="form-row">
+      <label>선생님 소개 제목</label>
+      <input type="text" id="sBioLabel" maxlength="50" placeholder="약력">
+      <div class="hint">선생님 페이지에서 소개 글 위에 붙는 제목입니다. 예: 선생님을 소개합니다 / 삶의 기록</div>
+    </div>
+    <div class="form-row">
+      <label>발자취 제목</label>
+      <input type="text" id="sTimelineLabel" maxlength="50" placeholder="기억의 발자취">
+      <div class="hint">날짜별 기록 위에 붙는 제목입니다. 예: 그날의 기록 / 함께한 시간</div>
+    </div>
+    <div class="form-row">
+      <label>선생님 페이지에 헌화 표시</label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer">
+        <input type="checkbox" id="sShowTeacherOffering" checked>
+        <span>선생님마다 헌화 영역을 보여줍니다</span>
+      </label>
+      <div class="hint">추모관 첫 화면에서 이미 헌화할 수 있습니다. 꺼두면 선생님 페이지에서는 헌화 영역이 사라져 이야기에 더 집중하게 됩니다.</div>
+    </div>
+
     <hr class="form-divider">
 
     <div class="form-row">
@@ -239,6 +259,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20260712-noemoji"></script>
+<script src="/js/admin-memorial.js?v=20260804-display"></script>
 </body>
 </html>

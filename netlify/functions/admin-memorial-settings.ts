@@ -3,6 +3,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { memorialSettings } from "../../db/schema";
+import { getMemorialDisplay, saveMemorialDisplay, displayColumnsReady } from "../../lib/memorial-display";
 import { eq, desc } from "drizzle-orm";
 
 export const config = { path: "/api/admin-memorial-settings" };
@@ -38,7 +39,12 @@ export default async function handler(req: Request, _ctx: Context) {
   if (method === "GET") {
     try {
       const [s] = await db.select().from(memorialSettings).orderBy(desc(memorialSettings.id)).limit(1);
-      return new Response(jsonKST({ ok: true, data: { settings: shape(s) } }), {
+      /* 2026-08-04: 표시 문구·개별 헌화 노출 설정을 함께 내려준다 */
+      const display = await getMemorialDisplay();
+      return new Response(jsonKST({
+        ok: true,
+        data: { settings: { ...shape(s), ...display }, displayReady: await displayColumnsReady() },
+      }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -70,7 +76,23 @@ export default async function handler(req: Request, _ctx: Context) {
         [row] = await db.insert(memorialSettings).values(insertData).returning();
       }
 
-      return new Response(jsonKST({ ok: true, data: { settings: shape(row) }, message: "저장되었습니다" }), {
+      /* 2026-08-04: 표시 문구·개별 헌화 노출도 함께 저장 (다른 칸을 쓰므로 별도 처리) */
+      let displayWarn: string | undefined;
+      if (body.bioLabel !== undefined || body.timelineLabel !== undefined || body.showTeacherOffering !== undefined) {
+        const r = await saveMemorialDisplay({
+          bioLabel: body.bioLabel,
+          timelineLabel: body.timelineLabel,
+          showTeacherOffering: body.showTeacherOffering,
+        });
+        if (!r.ok) displayWarn = r.error;
+      }
+      const display = await getMemorialDisplay();
+
+      return new Response(jsonKST({
+        ok: true,
+        data: { settings: { ...shape(row), ...display } },
+        message: displayWarn ? `저장되었습니다 (일부 미반영: ${displayWarn})` : "저장되었습니다",
+      }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
