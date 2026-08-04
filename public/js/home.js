@@ -14,6 +14,48 @@
   let _autoplaySpeed = 7000;
   let _autoplayEnabled = true;
 
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  /* 주요 버튼 앞에 붙는 리본 장식 (기존 화면과 같은 모양 유지) */
+  const CTA_RIBBON =
+    '<svg class="cta-ribbon" viewBox="0 0 14 16" fill="none" aria-hidden="true">' +
+    '<path d="M7 1 C 4 3, 4 7, 7 8 L 7 14 L 5 12 L 7 8 L 9 12 L 7 14 L 7 8 C 10 7, 10 3, 7 1 Z" fill="currentColor"/>' +
+    '</svg>';
+
+  /**
+   * 슬라이드에 설정된 버튼 하나를 만든다.
+   * 창을 여는 버튼이면 <button>, 다른 곳으로 가는 버튼이면 <a>로 만든다.
+   * 관리 화면에서 동작 방식을 바꿔도 예전 값(모달 대상 / 링크 주소)이 남아 있을 수 있어,
+   * 둘 중 실제로 값이 있는 쪽을 보고 판단한다.
+   */
+  function renderCta(cta, isPrimary) {
+    if (!cta || !cta.label || !String(cta.label).trim()) return '';
+    const cls = isPrimary ? 'btn btn-primary' : 'btn btn-ghost-light';
+    const ribbon = isPrimary ? CTA_RIBBON : '';
+    const label = esc(cta.label);
+
+    const wantsModal = cta.action === 'modal' || (!cta.href && !!cta.target);
+    if (wantsModal) {
+      const target = esc(cta.target || 'donateModal');
+      return `<button class="${cls}" data-action="open-modal" data-target="${target}">${ribbon}${label}</button>`;
+    }
+    const href = esc(cta.href || cta.target || '#');
+    return `<a class="${cls}" href="${href}">${ribbon}${label}</a>`;
+  }
+
+  /** 슬라이드별 버튼을 화면에 반영 (설정이 없으면 기존 버튼을 그대로 둔다) */
+  function paintSlideCta(slide) {
+    const wrap = document.querySelector('.hero .hero-btns');
+    if (!wrap || !slide) return;
+    const p = renderCta(slide.ctaPrimary, true);
+    const s = renderCta(slide.ctaSecondary, false);
+    if (!p && !s) return;          /* 설정이 아예 없으면 건드리지 않음 */
+    wrap.innerHTML = p + s;
+  }
+
   function setSlide(i) {
     const titleEl = document.getElementById('heroTitle');
     const counterEl = document.getElementById('slideCounter');
@@ -22,6 +64,8 @@
 
     slideIdx = i;
     titleEl.innerHTML = HERO_SLIDES[i].title;
+    /* 슬라이드마다 버튼 문구·연결이 다를 수 있다 (예전에는 제목만 바꿔 버튼이 안 바뀌었음) */
+    paintSlideCta(HERO_SLIDES[i]);
     if (counterEl) {
       const cur = String(i + 1).padStart(2, '0');
       const total = String(HERO_SLIDES.length).padStart(2, '0');
@@ -29,6 +73,9 @@
     }
     dots.forEach((d, k) => d.classList.toggle('on', k === i));
   }
+
+  function nextSlide() { setSlide((slideIdx + 1) % HERO_SLIDES.length); startSlideAuto(); }
+  function prevSlide() { setSlide((slideIdx - 1 + HERO_SLIDES.length) % HERO_SLIDES.length); startSlideAuto(); }
 
   function startSlideAuto() {
     stopSlideAuto();
@@ -58,12 +105,83 @@
     });
   }
 
+  /* 좌우 화살표 — 자동 전환을 껐을 때 손으로 넘길 수 있어야 한다.
+     화면 파일을 고치지 않고 여기서 만들어 붙인다(모든 페이지 공통 화면이 아니라 홈 전용). */
+  function setupArrows() {
+    const hero = document.querySelector('.hero');
+    if (!hero || hero.querySelector('.hero-arrow')) return;
+
+    if (!document.getElementById('heroArrowStyle')) {
+      const st = document.createElement('style');
+      st.id = 'heroArrowStyle';
+      st.textContent =
+        '.hero{position:relative}' +
+        '.hero-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;' +
+          'width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.28);' +
+          'background:rgba(0,0,0,.32);color:#fff;font-size:20px;line-height:1;cursor:pointer;' +
+          'display:flex;align-items:center;justify-content:center;transition:background .18s,border-color .18s}' +
+        '.hero-arrow:hover{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.6)}' +
+        '.hero-arrow.prev{left:18px}.hero-arrow.next{right:18px}' +
+        '@media(max-width:768px){.hero-arrow{width:38px;height:38px;font-size:17px}' +
+          '.hero-arrow.prev{left:8px}.hero-arrow.next{right:8px}}';
+      document.head.appendChild(st);
+    }
+
+    const prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'hero-arrow prev';
+    prev.setAttribute('aria-label', '이전 슬라이드');
+    prev.innerHTML = '‹';
+    prev.addEventListener('click', prevSlide);
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'hero-arrow next';
+    next.setAttribute('aria-label', '다음 슬라이드');
+    next.innerHTML = '›';
+    next.addEventListener('click', nextSlide);
+
+    hero.appendChild(prev);
+    hero.appendChild(next);
+  }
+
+  /* 손가락으로 좌우로 밀어 넘기기 (모바일) */
+  function setupSwipe() {
+    const hero = document.querySelector('.hero');
+    if (!hero || hero.dataset.swipeReady) return;
+    hero.dataset.swipeReady = '1';
+
+    let startX = 0, startY = 0, tracking = false;
+
+    hero.addEventListener('touchstart', (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+
+    hero.addEventListener('touchend', (e) => {
+      if (!tracking) return;
+      tracking = false;
+      const t = (e.changedTouches && e.changedTouches[0]);
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      /* 가로로 충분히 밀었을 때만 (세로 스크롤과 헷갈리지 않게) */
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx < 0) nextSlide(); else prevSlide();
+    }, { passive: true });
+  }
+
   function setupSlider() {
     rebuildSlideDots();
     setSlide(0);
+    setupArrows();
+    setupSwipe();
 
     const hero = document.querySelector('.hero');
     if (hero) {
+      /* 자동 전환이 켜져 있을 때만 의미가 있다 (꺼져 있으면 startSlideAuto가 아무 일도 안 함) */
       hero.addEventListener('mouseenter', stopSlideAuto);
       hero.addEventListener('mouseleave', startSlideAuto);
     }
@@ -172,13 +290,22 @@
 
       /* ---- 2-1. HERO ---- */
       if (d.hero) {
-        /* 슬라이드 배열 갱신 */
+        /* 슬라이드 배열 갱신
+           2026-08-04: 예전에는 제목만 가져오고 **버튼 설정을 버렸다.**
+           그래서 관리 화면에서 버튼 문구·연결을 바꿔도 화면에 반영되지 않았다. */
         if (Array.isArray(d.hero.slides) && d.hero.slides.length > 0) {
-          const active = d.hero.slides.filter((s) => s.isActive !== false);
+          const active = d.hero.slides.filter((s) => s.isActive !== false)
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
           if (active.length > 0) {
-            HERO_SLIDES = active.map((s) => ({ title: s.title || '' }));
+            HERO_SLIDES = active.map((s) => ({
+              title: s.title || '',
+              ctaPrimary: s.ctaPrimary || null,
+              ctaSecondary: s.ctaSecondary || null,
+            }));
             rebuildSlideDots();
             setSlide(0);
+            setupArrows();
+            setupSwipe();
           }
         }
         /* eyebrow 라벨 */
@@ -195,14 +322,18 @@
           const el = document.querySelector('.hero p.lead');
           if (el) el.textContent = d.hero.lead;
         }
-        /* 자동재생 속도/켜기 */
-        if (typeof d.hero.autoplaySpeed === 'number' && d.hero.autoplaySpeed > 0) {
-          _autoplaySpeed = d.hero.autoplaySpeed * 1000;
+        /* 자동 전환 속도·켜기
+           2026-08-04: 저장 형태가 참/거짓이 아니라 글자("false")나 숫자(0)로 올 수도 있어
+           그런 경우 설정이 무시되고 계속 자동 전환되던 문제가 있었다. 모두 인식하도록 넓혔다. */
+        const spd = Number(d.hero.autoplaySpeed);
+        if (Number.isFinite(spd) && spd > 0) _autoplaySpeed = spd * 1000;
+
+        const rawEnabled = d.hero.autoplayEnabled;
+        if (rawEnabled !== undefined && rawEnabled !== null && rawEnabled !== '') {
+          _autoplayEnabled = !(rawEnabled === false || rawEnabled === 0 ||
+            /^(false|0|no|off)$/i.test(String(rawEnabled).trim()));
         }
-        if (typeof d.hero.autoplayEnabled === 'boolean') {
-          _autoplayEnabled = d.hero.autoplayEnabled;
-        }
-        startSlideAuto();
+        startSlideAuto();   /* 꺼져 있으면 여기서 타이머가 멈춘다 */
       }
 
       /* ---- 2-2. 퀵메뉴 영역 표시/숨김 + 6개 박스 동적 렌더 ---- */
