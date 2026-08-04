@@ -88,7 +88,121 @@ tr:last-child td { border-bottom:none; }
 <div class="tabs">
   <div class="tab active" data-tab="teachers" onclick="switchTab('teachers')"><span class="siren-icon-wrap" data-icon="user"></span> 선생님 관리</div>
   <div class="tab" data-tab="moderation" onclick="switchTab('moderation')"><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</div>
+  <div class="tab" data-tab="spotlight" onclick="switchTab('spotlight')"><span class="siren-icon-wrap" data-icon="candle"></span> 이달의 기억</div>
   <div class="tab" data-tab="settings" onclick="switchTab('settings')"><span class="siren-icon-wrap" data-icon="settings"></span> 추모관 설정</div>
+</div>
+
+<!-- ===== ★ 2026-08-04: 이달에 기억할 선생님 ===== -->
+<div class="tab-panel" id="panel-spotlight">
+  <div class="page-hd">
+    <h2><span class="siren-icon-wrap" data-icon="candle"></span> 이달에 기억할 선생님</h2>
+    <button class="btn btn-primary" onclick="openAddSpot()">+ 항목 추가</button>
+  </div>
+
+  <div class="hint" style="margin:-8px 0 16px;line-height:1.7">
+    생신·기일처럼 <b>특별한 날</b>을 맞은 선생님을 그달에 추모관 화면에 소개합니다.
+    등록한 날짜의 <b>월</b>만 보므로 <b>해마다 다시 등록할 필요가 없습니다</b>
+    (예: 3월 12일로 등록하면 매년 3월에 자동으로 나타납니다).
+    등록된 항목이 없는 달에는 코너 전체가 보이지 않습니다.
+  </div>
+
+  <div class="form-panel" style="margin-bottom:20px">
+    <h3>코너 문구</h3>
+    <div class="form-row">
+      <label>코너 제목</label>
+      <input type="text" id="spTitle" maxlength="80" placeholder="이달에 기억할 선생님">
+    </div>
+    <div class="form-row">
+      <label>코너 설명</label>
+      <input type="text" id="spDesc" maxlength="200" placeholder="특별한 날을 맞은 선생님을 가족의 한마디와 함께 기억합니다.">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-success" onclick="saveSpotText()">문구 저장</button>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>사진</th><th>성함</th><th>날짜</th><th>구분</th><th>가족 한마디</th><th>공개</th><th>관리</th>
+      </tr></thead>
+      <tbody id="spotTbody"><tr><td colspan="7" class="tbl-empty">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="form-panel" id="spotForm" style="display:none">
+    <h3 id="spotFormTitle">항목 추가</h3>
+    <input type="hidden" id="spfId">
+
+    <div class="form-row">
+      <label>예전 사진</label>
+      <div class="photo-up">
+        <div id="spPhotoWrap"><div class="photo-preview-empty" id="spPhotoEmpty"><span class="siren-icon-wrap" data-icon="user"></span></div></div>
+        <div>
+          <input type="file" id="spfPhotoFile" accept="image/*" onchange="uploadSpotPhoto()">
+          <input type="hidden" id="spfPhotoBlobId">
+          <div class="hint">선생님의 생전 사진을 올려주세요. 비워두면 기본 표시로 나옵니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>선생님 (추모 공간 연결)</label>
+        <select id="spfTeacherId" onchange="onSpotTeacherPick()">
+          <option value="">연결하지 않음 (성함 직접 입력)</option>
+        </select>
+        <div class="hint">연결하면 화면에서 성함을 눌러 그 선생님 추모 공간으로 갑니다.</div>
+      </div>
+      <div class="form-row">
+        <label>화면에 보일 성함 *</label>
+        <input type="text" id="spfDisplayName" maxlength="60" placeholder="예: 故 ○○○ 선생님">
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>기억할 날짜 *</label>
+        <input type="date" id="spfOccasionDate">
+        <div class="hint">연도는 기록용입니다. 화면에는 “○월 ○일”로 표시되고 매년 그달에 나타납니다.</div>
+      </div>
+      <div class="form-row">
+        <label>구분</label>
+        <select id="spfOccasion">
+          <option value="birth">생신</option>
+          <option value="death">기일</option>
+          <option value="other" selected>기억하는 날</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>가족이 전하는 한마디</label>
+      <textarea id="spfFamilyMessage" class="tall" maxlength="2000" placeholder="예: 너를 그리워하며. 생일 축하해."></textarea>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>남기신 분 (예: 어머니, 동생)</label>
+        <input type="text" id="spfFamilyName" maxlength="60" placeholder="예: 어머니">
+      </div>
+      <div class="form-row">
+        <label>정렬 순서</label>
+        <input type="number" id="spfSortOrder" value="0">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer">
+        <input type="checkbox" id="spfIsActive" checked>
+        <span>추모관 화면에 공개</span>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-success" onclick="saveSpot()">저장</button>
+      <button class="btn btn-ghost" onclick="closeSpotForm()">취소</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== 1. 선생님 관리 ===== -->
@@ -259,6 +373,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20260804-display"></script>
+<script src="/js/admin-memorial.js?v=20260804-spot"></script>
 </body>
 </html>

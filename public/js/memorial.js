@@ -374,10 +374,74 @@
     });
   }
 
+  /* ───────── 이달에 기억할 선생님 (2026-08-04 신설) ─────────
+     생일·기일처럼 특별한 날을 맞은 선생님을 그달에 소개한다.
+     등록된 항목이 없으면 코너 전체를 숨긴다. */
+  var OCCASION_LABEL = { birth: '생신', death: '기일', other: '기억하는 날' };
+
+  function fmtMonthDay(dateStr) {
+    if (!dateStr) return '';
+    var m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return String(dateStr);
+    return Number(m[2]) + '월 ' + Number(m[3]) + '일';
+  }
+
+  function renderSpotlight(items, title, desc) {
+    var sec = document.getElementById('memSpotlightSection');
+    var list = document.getElementById('memSpotlightList');
+    if (!sec || !list) return;
+
+    if (!items || items.length === 0) { sec.style.display = 'none'; return; }
+
+    var tEl = document.getElementById('memSpotlightTitle');
+    if (tEl && title) tEl.textContent = title;
+    var dEl = document.getElementById('memSpotlightDesc');
+    if (dEl && desc) dEl.textContent = desc;
+
+    list.innerHTML = items.map(function (it) {
+      var day = fmtMonthDay(it.occasionDate);
+      var occ = OCCASION_LABEL[it.occasion] || OCCASION_LABEL.other;
+      var photo = it.photoUrl
+        ? '<img class="mem-spot-photo" src="' + esc(it.photoUrl) + '" alt="' + esc(it.displayName) + '"' +
+          ' onerror="this.outerHTML=\'<div class=&quot;mem-spot-photo-empty&quot;>❀</div>\'">'
+        : '<div class="mem-spot-photo-empty">❀</div>';
+
+      /* 선생님 개별 추모 공간이 연결돼 있으면 이름을 눌러 갈 수 있게 */
+      var nameHtml = it.teacherId
+        ? '<a href="/memorial-teacher.html?id=' + it.teacherId + '" style="color:inherit;text-decoration:none">' +
+            esc(it.displayName) + '</a>'
+        : esc(it.displayName);
+
+      return '<div class="mem-spot-card">' +
+        photo +
+        '<div class="mem-spot-body">' +
+          '<span class="mem-spot-day">' + esc(day + ' · ' + occ) + '</span>' +
+          '<h3 class="mem-spot-name">' + nameHtml + '</h3>' +
+          (it.familyMessage
+            ? '<div class="mem-spot-msg">' + esc(it.familyMessage) +
+              (it.familyName ? '<span class="mem-spot-from">— ' + esc(it.familyName) + '</span>' : '') +
+              '</div>'
+            : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    sec.style.display = '';
+  }
+
+  function loadSpotlights() {
+    api('/api/memorial-spotlights').then(function (res) {
+      if (!res.ok) return;
+      var items = unwrap(res, 'items') || [];
+      renderSpotlight(items, unwrap(res, 'title'), unwrap(res, 'desc'));
+    }).catch(function () { /* 실패해도 코너만 숨긴 채 나머지는 정상 */ });
+  }
+
   /* ───────── 초기화 ───────── */
   function init() {
     loadSummary();
     loadTeachers();
+    loadSpotlights();
     loadMessages(false);
     setupOffering();
     setupMessageForm();

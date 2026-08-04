@@ -54,14 +54,214 @@ function fmtDate(s) {
 
 /* ─── 탭 전환 ─── */
 function switchTab(name) {
-  ['teachers', 'moderation', 'settings'].forEach(function (t) {
-    document.getElementById('panel-' + t).classList.toggle('active', t === name);
+  ['teachers', 'moderation', 'spotlight', 'settings'].forEach(function (t) {
+    var el = document.getElementById('panel-' + t);
+    if (el) el.classList.toggle('active', t === name);
   });
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (el) {
     el.classList.toggle('active', el.dataset.tab === name);
   });
   if (name === 'moderation') loadMod();
   if (name === 'settings') loadSettings();
+  if (name === 'spotlight') loadSpots();
+}
+
+/* =========================================================
+   ★ 2026-08-04: 이달에 기억할 선생님
+   생신·기일처럼 특별한 날을 맞은 선생님을 그달에 추모관에 소개한다.
+   날짜의 '월'만 보므로 한 번 등록하면 해마다 그달에 자동으로 나타난다.
+   ========================================================= */
+var SPOT_OCCASION = { birth: '생신', death: '기일', other: '기억하는 날' };
+var _spots = [];
+
+function loadSpots() {
+  var tb = document.getElementById('spotTbody');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">불러오는 중…</td></tr>';
+
+  callApi('GET', '/api/admin-memorial-spotlights').then(function (res) {
+    if (!res.ok) {
+      tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">불러오지 못했습니다</td></tr>';
+      return;
+    }
+    var d = (res.data && res.data.data) || res.data || {};
+    _spots = d.items || [];
+
+    /* 코너 문구 */
+    var t = document.getElementById('spTitle');
+    if (t) t.value = d.title || '';
+    var ds = document.getElementById('spDesc');
+    if (ds) ds.value = d.desc || '';
+
+    /* 선생님 후보 */
+    var sel = document.getElementById('spfTeacherId');
+    if (sel) {
+      sel.innerHTML = '<option value="">연결하지 않음 (성함 직접 입력)</option>' +
+        (d.teachers || []).map(function (x) {
+          return '<option value="' + x.id + '">' + esc(x.name) + '</option>';
+        }).join('');
+    }
+
+    if (d.ready === false) {
+      tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">저장소 준비가 아직 끝나지 않았습니다. ' +
+        '관리자 주소창에 <code>/api/migrate-memorial-spotlight?run=1</code> 을 한 번 실행해 주세요.</td></tr>';
+      return;
+    }
+
+    if (_spots.length === 0) {
+      tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">등록된 항목이 없습니다. [+ 항목 추가]로 만들어 보세요.</td></tr>';
+      return;
+    }
+
+    tb.innerHTML = _spots.map(function (s) {
+      var photo = s.photoUrl
+        ? '<img src="' + esc(s.photoUrl) + '" alt="">'
+        : '<div class="no-thumb"><span class="siren-icon-wrap" data-icon="user"></span></div>';
+      var md = s.occasionDate ? (Number(s.occasionDate.slice(5, 7)) + '월 ' + Number(s.occasionDate.slice(8, 10)) + '일') : '-';
+      var msg = (s.familyMessage || '').replace(/\s+/g, ' ').slice(0, 30);
+      return '<tr>' +
+        '<td class="thumb-cell">' + photo + '</td>' +
+        '<td><b>' + esc(s.displayName) + '</b></td>' +
+        '<td style="white-space:nowrap">' + md + '</td>' +
+        '<td>' + (SPOT_OCCASION[s.occasion] || '기억하는 날') + '</td>' +
+        '<td class="mod-content">' + esc(msg) + (msg.length >= 30 ? '…' : '') + '</td>' +
+        '<td><span class="status-pill ' + (s.isActive ? 'on' : 'off') + '">' + (s.isActive ? '공개' : '숨김') + '</span></td>' +
+        '<td><div class="row-actions">' +
+          '<button class="btn btn-ghost btn-sm" onclick="editSpot(' + s.id + ')">수정</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="removeSpot(' + s.id + ')">삭제</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+
+    if (window.Icons && window.Icons.hydrate) { try { window.Icons.hydrate(tb); } catch (_) {} }
+  });
+}
+
+function saveSpotText() {
+  callApi('PATCH', '/api/admin-memorial-spotlights?action=text', {
+      title: document.getElementById('spTitle').value,
+      desc: document.getElementById('spDesc').value
+    }).then(function (res) {
+    toast(res.ok ? '코너 문구가 저장되었습니다.' : '저장 실패', res.ok ? 'success' : 'error');
+  });
+}
+
+function setSpotPhotoPreview(url) {
+  var wrap = document.getElementById('spPhotoWrap');
+  if (!wrap) return;
+  wrap.innerHTML = url
+    ? '<img class="photo-preview" src="' + esc(url) + '" alt="">'
+    : '<div class="photo-preview-empty"><span class="siren-icon-wrap" data-icon="user"></span></div>';
+}
+
+function uploadSpotPhoto() {
+  var input = document.getElementById('spfPhotoFile');
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('context', 'memorial_spotlight');
+  fd.append('isPublic', 'true');
+  toast('업로드 중…');
+  fetch('/api/blob-upload', { method: 'POST', credentials: 'include', body: fd })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok && d.ok !== false, data: d }; }); })
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && (res.data.error || res.data.message)) || '업로드 실패', 'error'); return; }
+      var id = (res.data && res.data.data && res.data.data.id) || (res.data && res.data.id) || (res.data && res.data.blobId);
+      if (!id) { toast('업로드 응답에 ID가 없습니다.', 'error'); return; }
+      document.getElementById('spfPhotoBlobId').value = id;
+      setSpotPhotoPreview('/api/blob-image?id=' + id);
+      toast('사진이 업로드되었습니다.', 'success');
+    }).catch(function (e) { toast('업로드 실패: ' + e.message, 'error'); });
+}
+
+/* 선생님을 고르면 성함을 자동으로 채워준다 (비어 있을 때만) */
+function onSpotTeacherPick() {
+  var sel = document.getElementById('spfTeacherId');
+  var nameEl = document.getElementById('spfDisplayName');
+  if (!sel || !nameEl || nameEl.value.trim()) return;
+  var opt = sel.options[sel.selectedIndex];
+  if (opt && opt.value) nameEl.value = opt.textContent;
+}
+
+function openAddSpot() {
+  document.getElementById('spotFormTitle').textContent = '항목 추가';
+  document.getElementById('spfId').value = '';
+  document.getElementById('spfTeacherId').value = '';
+  document.getElementById('spfDisplayName').value = '';
+  document.getElementById('spfOccasionDate').value = '';
+  document.getElementById('spfOccasion').value = 'other';
+  document.getElementById('spfFamilyMessage').value = '';
+  document.getElementById('spfFamilyName').value = '';
+  document.getElementById('spfSortOrder').value = '0';
+  document.getElementById('spfIsActive').checked = true;
+  document.getElementById('spfPhotoBlobId').value = '';
+  setSpotPhotoPreview('');
+  document.getElementById('spotForm').style.display = '';
+  document.getElementById('spotForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function editSpot(id) {
+  var s = null;
+  for (var i = 0; i < _spots.length; i++) if (Number(_spots[i].id) === Number(id)) s = _spots[i];
+  if (!s) return;
+
+  document.getElementById('spotFormTitle').textContent = '항목 수정 — ' + s.displayName;
+  document.getElementById('spfId').value = s.id;
+  document.getElementById('spfTeacherId').value = s.teacherId || '';
+  document.getElementById('spfDisplayName').value = s.displayName || '';
+  document.getElementById('spfOccasionDate').value = s.occasionDate || '';
+  document.getElementById('spfOccasion').value = s.occasion || 'other';
+  document.getElementById('spfFamilyMessage').value = s.familyMessage || '';
+  document.getElementById('spfFamilyName').value = s.familyName || '';
+  document.getElementById('spfSortOrder').value = s.sortOrder || 0;
+  document.getElementById('spfIsActive').checked = s.isActive !== false;
+  document.getElementById('spfPhotoBlobId').value = s.photoBlobId || '';
+  setSpotPhotoPreview(s.photoUrl || '');
+  document.getElementById('spotForm').style.display = '';
+  document.getElementById('spotForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeSpotForm() {
+  document.getElementById('spotForm').style.display = 'none';
+}
+
+function saveSpot() {
+  var id = document.getElementById('spfId').value;
+  var body = {
+    teacherId: document.getElementById('spfTeacherId').value || null,
+    displayName: document.getElementById('spfDisplayName').value.trim(),
+    occasion: document.getElementById('spfOccasion').value,
+    occasionDate: document.getElementById('spfOccasionDate').value || null,
+    photoBlobId: document.getElementById('spfPhotoBlobId').value || null,
+    familyMessage: document.getElementById('spfFamilyMessage').value,
+    familyName: document.getElementById('spfFamilyName').value.trim(),
+    isActive: document.getElementById('spfIsActive').checked,
+    sortOrder: Number(document.getElementById('spfSortOrder').value) || 0
+  };
+  if (!body.displayName) { toast('화면에 보일 성함을 입력해주세요.', 'error'); return; }
+  if (!body.occasionDate) { toast('기억할 날짜를 입력해주세요.', 'error'); return; }
+
+  if (id) body.id = Number(id);
+
+  callApi(id ? 'PATCH' : 'POST', '/api/admin-memorial-spotlights', body)
+    .then(function (res) {
+      if (!res.ok) {
+        toast((res.data && (res.data.error || res.data.message)) || '저장 실패', 'error');
+        return;
+      }
+      toast(id ? '저장되었습니다.' : '등록되었습니다.', 'success');
+      closeSpotForm();
+      loadSpots();
+    });
+}
+
+function removeSpot(id) {
+  if (!confirm('이 항목을 삭제할까요?')) return;
+  callApi('DELETE', '/api/admin-memorial-spotlights?id=' + id).then(function (res) {
+    toast(res.ok ? '삭제되었습니다.' : '삭제 실패', res.ok ? 'success' : 'error');
+    if (res.ok) loadSpots();
+  });
 }
 
 /* =========================================================

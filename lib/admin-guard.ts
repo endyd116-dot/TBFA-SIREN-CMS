@@ -23,6 +23,7 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-memorial-teachers": "cms_memorial",
   "/api/admin-memorial-settings": "cms_memorial",
   "/api/admin-memorial-moderation": "cms_memorial",
+  "/api/admin-memorial-spotlights": "cms_memorial",
   "/api/admin-family-stories": "cms_family_stories",
   "/api/admin-family-story-ai": "cms_family_stories",
   "/api/admin/receipt-settings": "receipt_config",
