@@ -50,8 +50,12 @@
    QUICK MENU
    ========================================================= */
 .quick-wrap{position:relative;z-index:5;margin-top:-58px;margin-bottom:30px}
+/* ★ 2026-08-04: 칸 수를 항목 개수에 맞춘다.
+   6칸으로 고정돼 있어서 항목을 5개나 7개로 바꾸면 빈칸이 생기거나 줄이 어긋나
+   흰 카드 안에서 한쪽으로 쏠려 보였다. home.js가 실제 개수를 --qm-cols로 알려준다.
+   (좁은 화면에서는 아래 미디어쿼리가 칸 수를 직접 정해 이 값을 덮는다) */
 .quick-grid{
-  display:grid;grid-template-columns:repeat(6,1fr);
+  display:grid;grid-template-columns:repeat(var(--qm-cols,6),1fr);
   background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);
   box-shadow:var(--shadow-lg);overflow:hidden;
 }

@@ -354,6 +354,9 @@
 
           if (activeItems.length > 0) {
             gridEl.innerHTML = activeItems.map(renderQuickItem).join('');
+            /* 칸 수를 항목 개수에 맞춰 흰 카드 안에 균등하게 채운다
+               (6칸 고정이라 개수가 다르면 한쪽으로 쏠려 보이던 문제) */
+            gridEl.style.setProperty('--qm-cols', String(Math.min(activeItems.length, 6)));
           }
         }
       }
@@ -389,6 +392,12 @@
             if (t) t.textContent = d.notice.title;
           }
         }
+        /* 몇 개까지 보여줄지 — 설정이 바뀌면 목록을 다시 그린다 */
+        const nMax = Number(d.notice.maxItems);
+        if (Number.isFinite(nMax) && nMax > 0 && nMax !== _noticeMax) {
+          _noticeMax = nMax;
+          if (_lastNotices) applyNotices(_lastNotices);
+        }
       }
 
       /* ---- 2-5. FAQ 영역 제목/표시 ---- */
@@ -400,6 +409,11 @@
             const t = faqBlock.querySelector('.sec-head .sec-title');
             if (t) t.textContent = d.faq.title;
           }
+        }
+        const fMax = Number(d.faq.maxItems);
+        if (Number.isFinite(fMax) && fMax > 0 && fMax !== _faqMax) {
+          _faqMax = fMax;
+          if (_lastFaqs) applyFaqs(_lastFaqs);
         }
       }
 
@@ -515,6 +529,116 @@
     obs.observe(stats);
   }
 
+  /* ------------ 3-B. 공지사항·자주 묻는 질문 (2026-08-04 신설) ------------
+     예전에는 이 두 영역이 **코드에 박힌 예시**여서, 관리 화면에서 공지를 지우거나
+     질문을 고쳐도 메인 화면에는 그대로 남아 있었다. 실제 자료를 불러와 채운다. */
+
+  /* 분류 표시 이름과 색 (관리 화면의 분류와 같은 기준) */
+  const NOTICE_CATS = {
+    general: { label: '일반공지', cls: 'tag-mute' },
+    member:  { label: '회원공지', cls: 'tag-sec' },
+    event:   { label: '사업안내', cls: 'tag-pri' },
+    media:   { label: '언론보도', cls: 'tag-mute' },
+  };
+
+  function fmtDate(v) {
+    if (!v) return '';
+    try {
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return '';
+      return d.getFullYear() + '.' +
+        String(d.getMonth() + 1).padStart(2, '0') + '.' +
+        String(d.getDate()).padStart(2, '0');
+    } catch (_) { return ''; }
+  }
+
+  function pickList(json, keys) {
+    const d = (json && json.data) || json || {};
+    for (const k of keys) {
+      if (Array.isArray(d[k])) return d[k];
+      if (d.data && Array.isArray(d.data[k])) return d.data[k];
+    }
+    return Array.isArray(d) ? d : [];
+  }
+
+  /* 마지막으로 받은 자료 — 노출 개수 설정이 나중에 도착하면 다시 그리는 데 쓴다 */
+  let _lastNotices = null;
+  let _lastFaqs = null;
+
+  function applyNotices(json) {
+    _lastNotices = json;
+    const ul = document.getElementById('homeNoticeList');
+    if (!ul) return;
+    const list = pickList(json, ['list', 'notices', 'items']);
+    const max = _noticeMax || 5;
+
+    if (list.length === 0) {
+      ul.innerHTML = '<li class="notice-empty" style="padding:14px 0;color:var(--text-4);font-size:13.5px">등록된 공지사항이 없습니다.</li>';
+      ul.removeAttribute('data-home-pending');
+      return;
+    }
+
+    /* 고정 공지를 앞으로, 그다음 최신순 */
+    const sorted = list.slice().sort((a, b) => {
+      const pa = a.isPinned ? 1 : 0, pb = b.isPinned ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      return new Date(b.publishedAt || b.createdAt || 0) - new Date(a.publishedAt || a.createdAt || 0);
+    }).slice(0, max);
+
+    ul.innerHTML = sorted.map((n) => {
+      const cat = NOTICE_CATS[n.category] || { label: '공지', cls: 'tag-mute' };
+      const date = fmtDate(n.publishedAt || n.createdAt);
+      return '<li>' +
+        `<span class="tag ${cat.cls}">${esc(cat.label)}</span>` +
+        `<a class="notice-title" href="/news.html#notice" style="color:inherit;text-decoration:none">${esc(n.title || '')}</a>` +
+        (date ? `<span class="notice-date">${date}</span>` : '') +
+        '</li>';
+    }).join('');
+    ul.removeAttribute('data-home-pending');
+  }
+
+  function applyFaqs(json) {
+    _lastFaqs = json;
+    const box = document.getElementById('homeFaqList');
+    if (!box) return;
+    const list = pickList(json, ['list', 'faqs', 'items']);
+    const max = _faqMax || 4;
+
+    if (list.length === 0) {
+      box.innerHTML = '<div style="padding:14px 0;color:var(--text-4);font-size:13.5px">등록된 질문이 없습니다.</div>';
+      box.removeAttribute('data-home-pending');
+      return;
+    }
+
+    const sorted = list.slice()
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      .slice(0, max);
+
+    box.innerHTML = sorted.map((f) =>
+      '<div class="faq-item">' +
+        `<div class="faq-q"><span class="q-mark">Q</span>${esc(f.question || '')}<span class="arrow">▼</span></div>` +
+        `<div class="faq-a"><div class="faq-a-inner">${esc(f.answer || '')}</div></div>` +
+      '</div>'
+    ).join('');
+    box.removeAttribute('data-home-pending');
+  }
+
+  /* 노출 개수는 메인 화면 편집의 '공지/FAQ 표시' 설정을 따른다 */
+  let _noticeMax = 5;
+  let _faqMax = 4;
+
+  function loadNoticesAndFaqs() {
+    const noticeUrl = '/api/notices?limit=20';
+    const faqUrl = '/api/faqs?limit=20';
+    if (window.SIREN && window.SIREN.loadWithCache) {
+      window.SIREN.loadWithCache('home-notices', noticeUrl, applyNotices);
+      window.SIREN.loadWithCache('home-faqs', faqUrl, applyFaqs);
+      return;
+    }
+    fetch(noticeUrl).then(r => r.ok ? r.json() : null).then(j => j && applyNotices(j)).catch(() => {});
+    fetch(faqUrl).then(r => r.ok ? r.json() : null).then(j => j && applyFaqs(j)).catch(() => {});
+  }
+
   /* ------------ 4. FAQ 아코디언 ------------ */
   function setupFAQ() {
     document.addEventListener('click', (e) => {
@@ -546,24 +670,20 @@
   }
 
   /* ------------ 6. 공지사항 클릭 ------------ */
-  function setupNoticeList() {
-    document.querySelectorAll('.notice-list li').forEach(li => {
-      li.addEventListener('click', () => {
-        const t = li.querySelector('.notice-title');
-        if (t && window.SIREN) SIREN.toast('공지사항 상세 페이지로 이동합니다');
-      });
-    });
-  }
+  /* 2026-08-04: 공지 항목이 실제 링크가 되어 누르면 공지 목록으로 이동한다.
+     예전에는 "이동합니다" 알림만 띄우고 실제로는 아무 일도 하지 않았다. */
+  function setupNoticeList() { /* 링크로 대체됨 — 남겨둘 동작 없음 */ }
 
   /* ------------ 7. 초기화 ------------ */
   async function init() {
-    /* 슬라이더는 기본값으로 먼저 작동시키고, API 응답이 오면 갱신 */
+    /* 슬라이더는 기본값으로 먼저 작동시키고, 자료가 오면 갱신 */
     setupSlider();
 
-    /* 통계 + 메인 콘텐츠를 병렬로 가져오기 */
+    /* 통계·메인 설정·공지·질문을 한꺼번에 가져오기 (서로 기다리지 않는다) */
     await Promise.all([
       fetchAndApplyStats(),
       fetchAndApplyHomeContent(),
+      loadNoticesAndFaqs(),
     ]);
 
     setupCounterObserver();
