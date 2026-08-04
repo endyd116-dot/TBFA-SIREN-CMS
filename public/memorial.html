@@ -130,6 +130,42 @@
   .mem-teachers { background:#0c0c16; color:#fff; padding:64px 0 72px; }
   .mem-grid { display:grid; grid-template-columns:1fr; gap:22px; }
   @media(min-width:560px){ .mem-grid{ grid-template-columns:repeat(2,1fr); } }
+
+  /* ★ 2026-08-04: 이달에 기억할 선생님 — 예전 사진 + 가족의 한마디 */
+  .mem-spot-list { display:grid; grid-template-columns:1fr; gap:20px; }
+  @media(min-width:820px){ .mem-spot-list{ grid-template-columns:repeat(2,1fr); } }
+  .mem-spot-card {
+    display:flex; gap:18px; align-items:flex-start;
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10);
+    border-radius:14px; padding:20px; transition:border-color .2s, background .2s;
+  }
+  .mem-spot-card:hover { background:rgba(255,255,255,.06); border-color:rgba(212,175,109,.45); }
+  .mem-spot-photo {
+    width:104px; height:104px; flex-shrink:0; border-radius:12px; object-fit:cover;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+  }
+  .mem-spot-photo-empty {
+    width:104px; height:104px; flex-shrink:0; border-radius:12px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.35); font-size:30px;
+  }
+  .mem-spot-body { flex:1; min-width:0; }
+  .mem-spot-day {
+    display:inline-block; padding:3px 11px; border-radius:999px; font-size:11.5px; font-weight:700;
+    background:rgba(212,175,109,.16); color:#d4af6d; border:1px solid rgba(212,175,109,.34);
+    margin-bottom:9px; letter-spacing:.02em;
+  }
+  .mem-spot-name { font-size:17px; font-weight:700; color:#fff; margin:0 0 4px; font-family:'Noto Serif KR',serif; }
+  .mem-spot-sub { font-size:12.5px; color:rgba(255,255,255,.5); margin:0 0 12px; }
+  .mem-spot-msg {
+    font-size:13.5px; line-height:1.85; color:rgba(255,255,255,.82);
+    padding-left:13px; border-left:2px solid rgba(212,175,109,.5); white-space:pre-line; word-break:keep-all;
+  }
+  .mem-spot-from { display:block; margin-top:9px; font-size:12px; color:rgba(255,255,255,.45); }
+  @media(max-width:520px){
+    .mem-spot-card{ flex-direction:column; gap:14px; }
+    .mem-spot-photo, .mem-spot-photo-empty{ width:100%; height:180px; }
+  }
   @media(min-width:920px){ .mem-grid{ grid-template-columns:repeat(3,1fr); } }
   .mem-card {
     display:block; text-decoration:none; color:inherit; background:rgba(255,255,255,.035);
@@ -231,6 +267,33 @@
       </div>
     </section>
 
+    <!-- ★ 2026-08-04 순서 변경: 영상 바로 아래에 선생님들이 오도록 위로 올렸다.
+         (카운터·헌화보다 선생님 이야기를 먼저 만나게 하려는 취지) -->
+    <section class="mem-teachers">
+      <div class="container">
+        <h2 class="mem-section-title mem-serif">기억하는 선생님들</h2>
+        <p class="mem-section-desc">한 분 한 분의 이야기를 만나보세요.</p>
+        <div id="memTeacherGrid" class="mem-grid" style="display:none"></div>
+        <div id="memTeacherEmpty" class="mem-empty" style="display:none">
+          <span class="ic"><span class="siren-icon-wrap" data-icon="dove"></span></span>
+          <p>곧 추모 공간이 마련됩니다.</p>
+        </div>
+        <div id="memTeacherLoading" class="mem-loading">불러오는 중…</div>
+      </div>
+    </section>
+
+    <!-- ★ 2026-08-04 신설: 이달에 기억할 선생님
+         생일·기일처럼 특별한 날을 맞은 선생님을 그달에 소개한다.
+         예전 사진과 가족이 전하는 한마디를 함께 싣는다.
+         (제목·문구는 추모관 설정에서 바꿀 수 있고, 등록된 항목이 없으면 통째로 숨긴다) -->
+    <section class="mem-spotlight" id="memSpotlightSection" style="display:none">
+      <div class="container">
+        <h2 class="mem-section-title mem-serif" id="memSpotlightTitle">이달에 기억할 선생님</h2>
+        <p class="mem-section-desc" id="memSpotlightDesc">특별한 날을 맞은 선생님을 가족의 한마디와 함께 기억합니다.</p>
+        <div id="memSpotlightList" class="mem-spot-list"></div>
+      </div>
+    </section>
+
     <!-- ② 실시간 카운터 -->
     <section class="mem-counter" id="memCounterSection">
       <div class="container">
@@ -269,20 +332,6 @@
           <input type="text" id="memOfferNick" maxlength="40" placeholder="닉네임 (선택 — 비워두면 '익명'으로 표시)">
           <button type="button" class="mem-btn-offer" id="memOfferBtn"><span class="siren-icon-wrap" data-icon="candle"></span> 헌화하기</button>
         </div>
-      </div>
-    </section>
-
-    <!-- ④ 선생님 그리드 -->
-    <section class="mem-teachers">
-      <div class="container">
-        <h2 class="mem-section-title mem-serif">기억하는 선생님들</h2>
-        <p class="mem-section-desc">한 분 한 분의 이야기를 만나보세요.</p>
-        <div id="memTeacherGrid" class="mem-grid" style="display:none"></div>
-        <div id="memTeacherEmpty" class="mem-empty" style="display:none">
-          <span class="ic"><span class="siren-icon-wrap" data-icon="dove"></span></span>
-          <p>곧 추모 공간이 마련됩니다.</p>
-        </div>
-        <div id="memTeacherLoading" class="mem-loading">불러오는 중…</div>
       </div>
     </section>
 
