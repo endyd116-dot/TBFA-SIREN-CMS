@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-03.2";
+export const APP_VERSION = "2026-08-10.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-10-payslip-unpaid-reason",
+    title: "급여명세서에 '지급에서 빠진 날'과 그 이유가 표시됩니다",
+    items: [
+      { text: "명세서를 열면 맨 위에 그 달 지급에서 빠진 날이 날짜별로 나옵니다 — 며칠이 빠졌는지, 왜 빠졌는지 한눈에 볼 수 있습니다", link: "/workspace-attendance.html" },
+      { text: "사유를 그대로 적어 드립니다 — 무급휴가 · 결근 · 공휴일 · 출근 기록 없음 · 퇴근 미기록 · 재택근무 보고서 미제출 · 소정근로시간 미달" },
+      { text: "소정 8시간을 못 채운 날은 실제 근무시간과 인정된 일수(0.75일 등)를 함께 보여줍니다" },
+      { text: "기록이 사실과 다르면 근태 화면에서 수정을 요청하세요 — 어느 날을 정정해야 하는지 바로 알 수 있습니다", link: "/workspace-attendance.html" },
+      { text: "[관리자] 급여관리 상세 화면 맨 위에도 같은 내용이 나와 직원 문의에 한 화면으로 답할 수 있습니다. 기존 명세서는 [재집계]를 눌러야 채워집니다", link: "/cms-tbfa.html#payroll" },
+    ],
+  },
   {
     key: "2026-08-03-halfday-flag-fix",
     title: "[중요] 반차가 '종일 휴가'로 잘못 기록되던 문제",

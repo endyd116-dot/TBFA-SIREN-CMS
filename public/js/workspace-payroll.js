@@ -272,6 +272,37 @@
     renderDoc();
   }
 
+  /* ── 지급에서 빠진 날 안내 ──
+     명세서를 열면 금액보다 먼저 "왜 이 달은 며칠치가 빠졌는지"가 보여야 한다.
+     날짜와 사유를 같이 보여줘야 본인이 틀린 날을 짚어 정정 요청을 할 수 있다. */
+  var WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
+  function dayLabel(ymd) {
+    var p = String(ymd).split('-');
+    if (p.length < 3) return String(ymd);
+    var dt2 = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return Number(p[1]) + '월 ' + Number(p[2]) + '일(' + WEEKDAY[dt2.getDay()] + ')';
+  }
+  function unpaidNoticeHtml(bd) {
+    var total = Number(bd && bd.unpaidTotal) || 0;
+    if (total <= 0) return '';
+    var rows = (bd && bd.unpaidDays) || [];
+    var list = rows.map(function (r) {
+      return '<li style="display:flex;gap:8px;align-items:baseline;padding:5px 0;border-top:1px solid #fde68a">' +
+        '<b style="flex:0 0 92px;color:#78350f">' + esc(dayLabel(r.date)) + '</b>' +
+        '<span style="flex:1;color:#7c2d12">' + esc(r.reason) + '</span>' +
+        '<span style="flex:0 0 auto;font-weight:700;color:#b45309">−' + r.lost + '일</span></li>';
+    }).join('');
+    return '<div style="border:1px solid #fcd34d;background:#fffbeb;border-radius:10px;padding:12px 14px;margin-bottom:14px">' +
+      '<div style="font-weight:700;color:#92400e;font-size:13.5px;margin-bottom:6px">' +
+        '이 달 지급에서 빠진 날 — 모두 ' + total + '일</div>' +
+      (list
+        ? '<ul style="list-style:none;margin:0;padding:0;font-size:12.5px">' + list + '</ul>'
+        : '<div style="font-size:12.5px;color:#7c2d12">날짜별 사유는 이 명세서를 다시 계산한 뒤부터 표시됩니다.</div>') +
+      '<div style="margin-top:8px;font-size:11.5px;color:#a16207">' +
+        '기록이 사실과 다르면 근태 화면에서 수정을 요청하거나 관리자에게 알려주세요.</div>' +
+      '</div>';
+  }
+
   function renderDoc() {
     var d = _detail;
     var slip = d.slip, org = d.org, mem = d.member, bd = d.breakdown;
@@ -310,6 +341,7 @@
     var html =
       '<button id="wpClose" type="button" aria-label="닫기">' + (icon('x') || '✕') + '</button>' +
       '<div class="wp-doc">' +
+        unpaidNoticeHtml(bd) +
         '<div class="wp-org">' +
           '<div><b style="color:#374151;font-size:13px">' + esc(org.name) + '</b>' +
             (org.regNo ? '<br>사업자번호 ' + esc(org.regNo) : '') +

@@ -103,6 +103,95 @@ export interface PayrollCalcOptions {
   memberUid?: string | number;
 }
 
+/* === 지급에서 빠진 날의 '날짜별 사유' (2026-08-10) ===
+   직원이 명세서를 열었을 때 "왜 23일 중 16일만 받았는지"를 날짜와 함께 바로 읽을 수 있어야 한다.
+   숫자 요약(무급휴가 2일·재택보고서 미제출 3일)만으로는 어느 날인지 몰라 정정 요청을 못 한다. */
+export interface UnpaidDay {
+  /** YYYY-MM-DD */
+  date: string;
+  /** 그날 지급에서 빠진 일수 (1 · 0.5 · 0.25 …) */
+  lost: number;
+  /** 직원이 그대로 읽는 사유 문장 */
+  reason: string;
+}
+
+/** 분 단위 → "6시간 40분" */
+function minsText(mins: number): string {
+  const n = Math.max(0, Math.round(mins));
+  const h = Math.floor(n / 60), m = n % 60;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+}
+
+const PERIOD_TEXT: Record<string, string> = {
+  AM: "오전 반차", PM: "오후 반차",
+  LATE_IN: "반반차(늦게 출근)", EARLY_OUT: "반반차(일찍 퇴근)",
+};
+
+/**
+ * 영업일 한 줄씩 훑어 '못 받은 날 + 이유'를 만든다.
+ * 지급일수 집계 쿼리와 같은 판정 순서를 쓴다 — 둘이 어긋나면 합계가 안 맞아 신뢰를 잃는다.
+ */
+function buildUnpaidDetail(
+  rows: any[],
+  t: { stdMins: number; T100: number; T75: number; T50: number; T25: number; remoteFrom: string },
+): UnpaidDay[] {
+  const out: UnpaidDay[] = [];
+  const stdText = minsText(t.stdMins);
+
+  for (const r of rows) {
+    const date = String(r.date ?? "").slice(0, 10);
+    if (!date) continue;
+
+    const status = String(r.status ?? "");
+    const attended = ["NORMAL", "LATE", "EARLY_LEAVE", "PARTIAL_LEAVE"].includes(status);
+    const mins = r.working_mins == null ? null : Number(r.working_mins);
+    const leaveDays = r.leave_days == null ? null : Number(r.leave_days);
+    const leavePaid = r.leave_paid === true;
+    const leaveName = String(r.leave_name ?? "휴가");
+    const periodText = PERIOD_TEXT[String(r.half_day_period ?? "")] || "";
+    const push = (lost: number, reason: string) => { if (lost > 0) out.push({ date, lost, reason }); };
+
+    // 공휴일 — 영업일(분모)에는 들어 있지만 근무일이 아니라 지급되지 않는다 (5인 미만 사업장)
+    if (r.is_holiday) {
+      push(1, attended
+        ? "공휴일 출근 — 지급일수에서 제외 (휴일근무 보상은 별도)"
+        : "공휴일 — 근무일이 아니어서 미지급");
+      continue;
+    }
+
+    // 하루를 통째로 쉰 휴가 — 유급이면 지급 대상이라 여기 나오지 않는다
+    if (leaveDays != null && leaveDays >= 1) {
+      if (leavePaid) continue;
+      push(1, `${leaveName} (무급)`);
+      continue;
+    }
+
+    if (!status) { push(1, "출근 기록 없음 — 휴가 신청도 없습니다"); continue; }
+    if (status === "ABSENT") { push(1, "결근"); continue; }
+
+    if (attended && String(r.work_mode ?? "") === "REMOTE" && !r.has_report && date >= t.remoteFrom) {
+      push(1, "재택근무 보고서 미제출 — 근무로 인정되지 않았습니다 (보고서를 내면 인정)");
+      continue;
+    }
+
+    if (attended && mins == null) {
+      push(1, "퇴근을 찍지 않아 근무시간을 알 수 없습니다 — 근태 수정 요청으로 정정하세요");
+      continue;
+    }
+
+    if (attended && mins != null) {
+      const credit = mins >= t.T100 ? 1 : mins >= t.T75 ? 0.75 : mins >= t.T50 ? 0.5 : mins >= t.T25 ? 0.25 : 0;
+      const half = periodText ? `${periodText} · ` : "";
+      push(1 - credit, `${half}근무 ${minsText(mins)} — 소정 ${stdText}에 못 미쳐 ${credit}일치만 지급`);
+      continue;
+    }
+
+    // 출근으로 잡히지 않은 그 밖의 상태 (휴가 스탬프만 있고 신청 내역이 없는 경우 등)
+    push(1, leaveDays != null ? `${leaveName}${periodText ? ` (${periodText})` : ""}` : "근무 기록이 없어 미지급");
+  }
+  return out;
+}
+
 /** 분기 계산: 1·2·3 → 1, 4·5·6 → 2, ... */
 function quarterOfMonth(month: number): number {
   return Math.ceil(month / 3);
@@ -298,6 +387,47 @@ export async function calculatePayrollForMonth(
       const unpaidLeaveDays = Number(leave.unpaid_days || 0);
       const partialLeaveDays = Number(leave.partial_days || 0);   // 반차·반반차 (근무시간으로 이미 반영)
 
+      /* 2-2-b. 지급에서 빠진 날의 날짜별 사유 (명세서 최상단에 직원이 그대로 읽는다).
+         영업일(주말 제외·공휴일 포함 = 일급의 분모)을 축으로 두고 그날의 근태·휴가를 붙여 본다.
+         보조 조회라 실패해도 빈 배열로 넘어간다 — 사유 표시 때문에 급여 계산이 멈추면 안 된다. */
+      let unpaidDetail: UnpaidDay[] = [];
+      try {
+        const dayRows = await db.execute(sql`
+          SELECT
+            d::date::text AS date,
+            (hol.id IS NOT NULL) AS is_holiday,
+            ar.status, ar.work_mode, ar.working_mins,
+            (rep.id IS NOT NULL) AS has_report,
+            lv.leave_name, lv.leave_paid, lv.leave_days, lv.half_day_period
+          FROM generate_series(${first}::date, ${last}::date, interval '1 day') d
+          LEFT JOIN att_holidays hol ON hol.date = d::date
+          LEFT JOIN att_records ar ON ar.member_uid = ${memberUid} AND ar.date = d::date
+          LEFT JOIN att_remote_work_reports rep
+            ON rep.member_uid = ${memberUid} AND rep.date = d::date
+           AND rep.status IN ('SUBMITTED', 'EXEMPTED')
+          -- 같은 날 승인 휴가가 여러 건이면 큰 것 하나만 (반차 2건 등으로 날짜가 중복되지 않도록)
+          LEFT JOIN LATERAL (
+            SELECT lt.name AS leave_name, lt.is_paid AS leave_paid,
+                   lr.days AS leave_days, lr.half_day_period
+            FROM att_leave_requests lr
+            LEFT JOIN att_leave_types lt ON lt.id = lr.leave_type_id
+            WHERE lr.member_uid = ${memberUid}
+              AND lr.status = 'APPROVED'
+              AND d::date BETWEEN lr.start_date AND lr.end_date
+            ORDER BY lr.days DESC
+            LIMIT 1
+          ) lv ON TRUE
+          WHERE EXTRACT(DOW FROM d) NOT IN (0, 6)
+          ORDER BY d
+        `);
+        unpaidDetail = buildUnpaidDetail(
+          ((dayRows as any).rows ?? (dayRows as any[]) ?? []),
+          { stdMins, T100, T75, T50, T25, remoteFrom: REMOTE_REPORT_REQUIRED_FROM },
+        );
+      } catch (err) {
+        console.warn("[payroll-calc] 미산입 사유 산출 실패:", err);
+      }
+
       // Swain 2026-05-24: 급여 명세 대상 = 기본급 + 그달 근무실적 둘 다.
       // 기본급만 있고 해당 월 출퇴근·야근·휴가가 전혀 없으면 명세서 생성/갱신 제외
       // (운영 전 0원·무의미 명세서 방지). 기존 명세서가 있으면 보존(건드리지 않음).
@@ -373,6 +503,7 @@ export async function calculatePayrollForMonth(
           noCheckoutDays,    // 퇴근 미기록 (근무시간 미확인 → 지급 0, 정정 필요)
           shortDays,         // 소정근로 미달 (0.25~0.75일치로 계산된 날)
           dailyHours,        // 소정근로시간 (지급일수 환산 기준)
+          unpaidDetail,      // 지급에서 빠진 날 + 사유 (명세서 최상단 표시용)
         },
         leave: { paidLeaveDays, unpaidLeaveDays, partialLeaveDays },
         /* 소득세 산출 근거 (근로소득 간이세액표) — 명세서에 "공제대상가족 N명 기준"으로 표기 */

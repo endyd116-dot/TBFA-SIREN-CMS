@@ -366,6 +366,43 @@
   /* 지급 항목 (편집 가능 금액) */
   /* 2026-06-03 일급제(B): 무급차감은 항상 0(무급일=출근일 미산입으로 처리)이라 편집 항목에서 제외.
      무급 일수는 '일급 산정' 줄에 정보로 표기. */
+  /* 지급에서 빠진 날 — 모달 맨 위에 날짜별 사유를 펼쳐 둔다.
+     운영자가 직원 문의("왜 이만큼만 나왔냐")에 명세서 한 화면으로 답할 수 있어야 하고,
+     같은 내용이 직원 명세서 화면에도 그대로 보인다 (계산 때 저장한 근거를 함께 읽음). */
+  const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+  function dayLabelKo(ymd) {
+    var p = String(ymd).split('-');
+    if (p.length < 3) return String(ymd);
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return Number(p[1]) + '월 ' + Number(p[2]) + '일(' + WEEKDAY_KO[d.getDay()] + ')';
+  }
+  function unpaidNoticeHtml(slip) {
+    var snap = slip.calculationSnapshot || {};
+    var dv = snap.derived || {};
+    var rows = (snap.att && Array.isArray(snap.att.unpaidDetail)) ? snap.att.unpaidDetail : [];
+    var listed = rows.filter(function (r) { return r && r.date && Number(r.lost) > 0; });
+    var total = listed.length
+      ? Math.round(listed.reduce(function (s, r) { return s + Number(r.lost); }, 0) * 100) / 100
+      : Math.max(0, Math.round(((Number(dv.monthBusinessDays) || 0) - (Number(dv.paidDays) || 0)) * 100) / 100);
+    if (total <= 0) return '';
+
+    var list = listed.map(function (r) {
+      return '<li style="display:flex;gap:8px;align-items:baseline;padding:5px 0;border-top:1px solid #fde68a">' +
+        '<b style="flex:0 0 92px;color:#78350f">' + esc(dayLabelKo(r.date)) + '</b>' +
+        '<span style="flex:1;color:#7c2d12">' + esc(String(r.reason || '')) + '</span>' +
+        '<span style="flex:0 0 auto;font-weight:700;color:#b45309">−' + Number(r.lost) + '일</span></li>';
+    }).join('');
+
+    return '<div style="border:1px solid #fcd34d;background:#fffbeb;border-radius:10px;padding:12px 14px;margin:0 0 16px">' +
+      '<div style="font-weight:700;color:#92400e;font-size:13.5px;margin-bottom:6px">' +
+        '이 달 지급에서 빠진 날 — 모두 ' + total + '일</div>' +
+      (list
+        ? '<ul style="list-style:none;margin:0;padding:0;font-size:12.5px">' + list + '</ul>'
+        : '<div style="font-size:12.5px;color:#7c2d12">' +
+          '날짜별 사유가 저장되기 전에 만들어진 명세서입니다 — [재집계]를 누르면 채워집니다.</div>') +
+      '</div>';
+  }
+
   const PAY_FIELDS = [
     { f: 'baseSalaryMonth', label: '기본급(출근일 기반)', sign: '+' },
     { f: 'performanceBonus',label: '성과 보너스', sign: '+' },
@@ -582,6 +619,7 @@
 
     const body = $('modalBody');
     body.innerHTML =
+      unpaidNoticeHtml(slip) +
       '<dt>상태</dt><dd>' + statusBadge(slip.status) +
         (editable ? '' : ' <span style="color:#0f766e;font-size:12px;font-weight:600">지급 완료 — 편집 잠금</span>') + '</dd>' +
       '<dt>근태 (출근·근무·지각·결근·유급·무급·만근)</dt>' +

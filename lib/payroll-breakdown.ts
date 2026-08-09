@@ -18,6 +18,11 @@ export interface BreakdownRow {
 
 export interface PayrollBreakdown {
   attendance: Array<{ label: string; value: string; hint?: string; warn?: boolean }>;
+  /** 지급에서 빠진 날 + 날짜별 사유 — 명세서 최상단에 그대로 보여준다 (2026-08-10).
+   *  옛 명세서에는 이 근거가 저장돼 있지 않아 빈 배열이 된다 → 다시 계산하면 채워진다. */
+  unpaidDays: Array<{ date: string; lost: number; reason: string }>;
+  /** 위 항목의 합계 = 영업일 − 지급 대상일 */
+  unpaidTotal: number;
   earnings: BreakdownRow[];
   grossPay: number;
   /** 4대보험·소득세를 매기는 기준 금액 = 세전 총액 − 비과세 지급액 */
@@ -274,8 +279,22 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
     deductions.push({ label: "기타 공제", method: "관리자 지정 공제", amount: other, kind: "DEDUCT" });
   }
 
+  /* 지급에서 빠진 날 — 계산 당시 저장해 둔 근거를 그대로 읽는다 (여기서 새로 판단하지 않는다).
+     합계는 '영업일 − 지급 대상일'과 맞아야 한다. 저장된 근거가 없는 옛 명세서는 목록만 비고,
+     합계는 두 숫자의 차이로 채워 최소한 몇 일이 빠졌는지는 보이게 한다. */
+  const unpaidDays = Array.isArray(snap?.att?.unpaidDetail)
+    ? snap.att.unpaidDetail
+        .filter((d: any) => d && d.date && num(d.lost) > 0)
+        .map((d: any) => ({ date: String(d.date), lost: num(d.lost), reason: String(d.reason ?? "") }))
+    : [];
+  const unpaidTotal = unpaidDays.length
+    ? Math.round(unpaidDays.reduce((s: number, d: any) => s + d.lost, 0) * 100) / 100
+    : Math.max(0, Math.round((monthBusinessDays - paidDays) * 100) / 100);
+
   return {
     attendance,
+    unpaidDays,
+    unpaidTotal,
     earnings,
     grossPay,
     taxableBase,
