@@ -166,3 +166,21 @@
 .siren-editor-wrap .ProseMirror p.placeholder ~ p.placeholder {
   display: none !important;
 }
+/* ============================================================
+   사진에 링크 걸기 (2026-08-11)
+   편집기 안에서 고른 사진을 눈에 띄게 표시한다 — 어떤 사진에
+   링크가 걸릴지 헷갈리지 않도록.
+   ============================================================ */
+.siren-editor-wrap .siren-img-picked {
+  outline: 3px solid var(--brand, #7a1f2b);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.siren-link-image-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  background: none;
+}
+.siren-link-image-btn:hover { color: var(--brand, #7a1f2b); }

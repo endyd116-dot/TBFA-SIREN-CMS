@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/components.css?v=3">
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=7">
@@ -231,6 +231,23 @@
   }
   .cm-inline-active.on { color: var(--success); }
   .cm-inline-active.off { color: var(--text-3); }
+
+  /* 목록에서 위/아래로 자리 옮기는 단추 (2026-08-11 공지 순서) */
+  .cm-move-wrap { display: inline-flex; gap: 3px; }
+  .cm-move {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--text-2);
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .cm-move:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+  .cm-move:disabled { opacity: .3; cursor: not-allowed; }
 
   .cm-inline-order {
     width: 56px;
@@ -3630,6 +3647,36 @@
 
           <!-- ─── 공지사항 탭 ─── -->
           <div class="ct-pane" data-ct-pane="notices">
+
+            <!-- 분류 관리 — 운영자가 직접 만들고 지운다 (기본: 일반공지 · 긴급공지) -->
+            <div class="panel" style="margin-bottom:16px">
+              <div class="p-head">
+                <div class="p-title"><span class="siren-icon-wrap" data-icon="folders"></span> 공지 분류 관리</div>
+                <button class="btn-sm btn-sm-primary" data-cm-action="new-notice-category">+ 분류 추가</button>
+              </div>
+              <div style="padding:0 2px 6px;font-size:12px;color:var(--text-3);line-height:1.7">
+                여기서 만든 분류가 사용자 화면 공지사항의 탭이 됩니다.
+                <b>끄기</b>로 바꾸면 탭에서만 감춰지고 글은 그대로 남습니다.
+                분류를 지우면 그 분류의 글은 다른 분류로 옮겨집니다.
+              </div>
+              <table class="tbl cm-table" data-content-tbl="notice-categories">
+                <thead>
+                  <tr>
+                    <th style="width:70px">순서</th>
+                    <th style="width:130px">분류 이름</th>
+                    <th style="width:120px">코드</th>
+                    <th style="width:90px">색</th>
+                    <th style="width:70px">글 수</th>
+                    <th style="width:70px">노출</th>
+                    <th style="width:150px">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
             <div class="panel">
               <div class="p-head">
                 <div class="p-title"><span class="siren-icon-wrap" data-icon="megaphone"></span> 공지사항 관리</div>
@@ -3639,10 +3686,6 @@
               <div class="cm-toolbar">
                 <select id="cmNoticeCategory">
                   <option value="">전체 분류</option>
-                  <option value="general">일반</option>
-                  <option value="member">회원</option>
-                  <option value="event">사업/행사</option>
-                  <option value="media">언론</option>
                 </select>
                 <select id="cmNoticePublished">
                   <option value="">전체 상태</option>
@@ -3652,11 +3695,18 @@
                 <input type="search" id="cmNoticeQ" placeholder="제목/내용 검색 (2자 이상)">
               </div>
 
+              <div style="padding:0 2px 10px;font-size:12px;color:var(--text-3);line-height:1.7">
+                왼쪽 <b>번호</b>가 사용자 화면에 그대로 보이는 번호입니다.
+                <b>▲▼</b> 로 자리를 옮기면 번호도 1, 2, 3 … 으로 다시 매겨집니다.
+                (분류나 검색으로 걸러 놓은 상태에서는 자리를 옮길 수 없습니다 — 전체 목록에서 옮겨 주세요.)
+              </div>
+
               <table class="tbl cm-table" data-content-tbl="notices">
                 <thead>
                   <tr>
-                    <th style="width:60px">번호</th>
-                    <th style="width:90px">분류</th>
+                    <th style="width:56px">번호</th>
+                    <th style="width:78px">순서</th>
+                    <th style="width:100px">분류</th>
                     <th>제목</th>
                     <th style="width:50px">고정</th>
                     <th style="width:60px">공개</th>
@@ -3665,7 +3715,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                  <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -5011,12 +5061,8 @@
           <div class="grid-2">
             <div class="fg">
               <label>분류</label>
-              <select id="noticeEditCategory" required>
-                <option value="general">일반공지</option>
-                <option value="member">회원공지</option>
-                <option value="event">사업/행사</option>
-                <option value="media">언론보도</option>
-              </select>
+              <!-- 분류 목록은 [공지 분류 관리]에서 만든 것으로 채워진다 -->
+              <select id="noticeEditCategory" required></select>
             </div>
             <div class="fg">
               <label>썸네일 URL <span style="font-weight:400;color:var(--text-3)">(선택)</span></label>
@@ -5755,10 +5801,10 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20260802-idlepoll"></script>
+  <script src="/js/admin.js?v=20260811-notice-cat"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
-  <script src="/js/editor.js?v=20260712-noemoji"></script>
+  <script src="/js/editor.js?v=20260811-imglink"></script>
   <script src="/js/attachment.js?v=2027-05"></script>
   <script src="/js/admin-content.js?v=20260712-noemoji"></script>
   <script src="/js/admin-signup-sources.js?v=20260712-noemoji"></script>

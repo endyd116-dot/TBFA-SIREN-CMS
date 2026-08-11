@@ -90,11 +90,14 @@ export type SupportRequestInput = z.infer<typeof supportRequestSchema>;
    공지사항 작성/수정 (관리자)
    ========================================================= */
 export const noticeSchema = z.object({
-  category: z.enum(["general", "member", "event", "media"]).default("general"),
+  /* 2026-08-11: 고정 4종 → 자유 분류. 실제 이름·색은 notice_categories 표가 갖는다.
+     여기서는 주소·저장에 안전한 형태(영문 소문자·숫자·-·_)인지만 본다. */
+  category: z.string().trim().regex(/^[a-z0-9_-]{1,30}$/i, "분류 값이 올바르지 않습니다").default("general"),
   title: z.string().trim().min(2).max(200),
   content: z.string().trim().min(1).max(50_000),
   isPinned: z.boolean().optional().default(false),
   isPublished: z.boolean().optional().default(true),
+  sortOrder: z.number().int().min(0).max(999_999).optional(),
   excerpt: z.string().max(300).optional(),
   thumbnailUrl: z.string().url().optional().or(z.literal("")),
 });

@@ -7,7 +7,7 @@
  *
  * 권한: 관리자/슈퍼관리자/운영자
  */
-import { eq, desc, and, or, ilike, count } from "drizzle-orm";
+import { eq, asc, desc, and, or, ilike, count, sql, inArray } from "drizzle-orm";
 import { db, notices, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { noticeSchema, safeValidate } from "../../lib/validation";
@@ -55,8 +55,9 @@ export default async (req: Request) => {
 
       const conditions: any[] = [];
 
-      if (category && ["general", "member", "event", "media"].includes(category)) {
-        conditions.push(eq(notices.category, category as any));
+      /* 분류는 운영자가 만들고 지우므로 고정 목록으로 막지 않는다 (2026-08-11) */
+      if (category && /^[a-z0-9_-]{1,30}$/i.test(category)) {
+        conditions.push(eq(notices.category, category));
       }
 
       if (q && q.length >= 2) {
@@ -84,8 +85,9 @@ export default async (req: Request) => {
         .where(where);
       const total = Number(totalRows[0]?.total ?? 0);
 
-      /* 목록 (고정 우선 → 최신순) */
-      const list = await db
+      /* 목록 — 사용자 화면과 같은 순서로 보여준다. 여기서 위아래로 옮긴 순서가
+         그대로 사용자 화면의 번호 1, 2, 3 이 된다. */
+      const rows = await db
         .select({
           id: notices.id,
           category: notices.category,
@@ -95,6 +97,7 @@ export default async (req: Request) => {
           authorName: notices.authorName,
           isPinned: notices.isPinned,
           isPublished: notices.isPublished,
+          sortOrder: notices.sortOrder,
           views: notices.views,
           thumbnailUrl: notices.thumbnailUrl,
           publishedAt: notices.publishedAt,
@@ -103,9 +106,17 @@ export default async (req: Request) => {
         })
         .from(notices)
         .where(where)
-        .orderBy(desc(notices.isPinned), desc(notices.createdAt))
+        .orderBy(
+          sql`CASE WHEN ${notices.sortOrder} = 0 THEN 1 ELSE 0 END`,
+          asc(notices.sortOrder),
+          desc(notices.publishedAt),
+          desc(notices.id),
+        )
         .limit(limit)
         .offset((page - 1) * limit);
+
+      const startNo = (page - 1) * limit;
+      const list = rows.map((r, i) => ({ ...r, displayNo: startNo + i + 1 }));
 
       return ok({
         list,
@@ -118,6 +129,41 @@ export default async (req: Request) => {
       });
     }
 
+    /* ===== POST ?action=reorder — 화면에 보이는 순서 다시 정하기 =====
+       관리자 화면에서 위아래로 옮긴 결과(보이는 순서 그대로의 id 목록)를 받아
+       1, 2, 3 … 을 다시 새긴다. 이 번호가 사용자 화면의 공지 번호가 된다. */
+    if (req.method === "POST" && new URL(req.url).searchParams.get("action") === "reorder") {
+      const body = await parseJson(req);
+      const ids: number[] = Array.isArray(body?.ids)
+        ? body.ids.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+        : [];
+      if (ids.length === 0) return badRequest("순서를 정할 공지 목록이 비어 있습니다");
+      if (ids.length > 500) return badRequest("한 번에 정할 수 있는 공지는 500건까지입니다");
+
+      /* 보내온 id가 실제로 있는 것들인지 확인 — 없는 번호가 섞이면 순서가 어긋난다 */
+      const found = await db
+        .select({ id: notices.id })
+        .from(notices)
+        .where(inArray(notices.id, ids));
+      if (found.length !== ids.length) return badRequest("이미 삭제된 공지가 섞여 있습니다. 새로고침 후 다시 시도해 주세요");
+
+      /* 한 문장으로 모두 갱신 — 한 건씩 돌리면 중간에 끊겼을 때 순서가 뒤엉킨다 */
+      const cases = ids.map((id, i) => sql`WHEN ${id} THEN ${i + 1}`);
+      await db.execute(sql`
+        UPDATE notices
+           SET sort_order = CASE id ${sql.join(cases, sql` `)} END,
+               updated_at = NOW()
+         WHERE id IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})
+      `);
+
+      await logAdminAction(req, admin.uid, admin.name, "notice_reorder", {
+        target: `N-x${ids.length}`,
+        detail: { count: ids.length, firstId: ids[0] },
+      });
+
+      return ok({ count: ids.length }, "공지 순서가 바뀌었습니다");
+    }
+
     /* ===== POST (신규 작성) ===== */
     if (req.method === "POST") {
       const body = await parseJson(req);
@@ -127,7 +173,13 @@ export default async (req: Request) => {
       if (!v.ok) return badRequest("입력값을 확인해 주세요", v.errors);
 
       const data = v.data;
+
+      /* 새 글은 목록 맨 위(1번). 기존 글은 한 칸씩 뒤로 민다 —
+         그래야 번호가 비지 않고 1, 2, 3 … 으로 이어진다. */
+      await db.execute(sql`UPDATE notices SET sort_order = sort_order + 1`);
+
       const insertPayload: any = {
+        sortOrder: 1,
         category: data.category || "general",
         title: data.title,
         content: data.content,
@@ -195,6 +247,9 @@ export default async (req: Request) => {
       if (has("thumbnailUrl")) updatePayload.thumbnailUrl = data.thumbnailUrl || null;
       if (has("isPinned"))     updatePayload.isPinned = data.isPinned === true;
       if (has("isPublished"))  updatePayload.isPublished = data.isPublished === true;
+      if (has("sortOrder") && Number.isFinite(Number(data.sortOrder))) {
+        updatePayload.sortOrder = Math.max(0, Number(data.sortOrder));
+      }
 
       /* publishedAt 동기화 — 공개 전환 시 발행시각 갱신, 비공개 전환 시 초기화(Q4-028) */
       if (has("isPublished")) {

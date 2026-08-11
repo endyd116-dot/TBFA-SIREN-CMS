@@ -136,9 +136,31 @@
     });
   }
 
+  /* 상세 창 닫기 — 언론보도 전용 화면(press)에는 news.js 가 없으므로 여기서 직접 맡는다.
+     소식/참여 화면에서는 news.js 와 겹치지만, 닫는 동작은 두 번 해도 결과가 같다. */
+  function closeDetail() {
+    const modal = document.getElementById('noticeViewModal');
+    if (modal) modal.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  function setupModalClose() {
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-nv-close]') || e.target.id === 'noticeViewModal') closeDetail();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modal = document.getElementById('noticeViewModal');
+      if (modal && modal.classList.contains('show')) closeDetail();
+    });
+  }
+
   function init() {
-    if (document.body.dataset.page !== 'news') return;
+    /* news = 소식/참여(혼합 화면), press = 언론보도 전용 화면 */
+    const page = document.body.dataset.page;
+    if (page !== 'news' && page !== 'press') return;
     setupTabs();
+    setupModalClose();
     loadMedia();
   }
 

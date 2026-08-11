@@ -485,7 +485,9 @@ export const supportRequests = pgTable("support_requests", {
    ========================================================= */
 export const notices = pgTable("notices", {
   id: serial("id").primaryKey(),
-  category: noticeCategoryEnum("category").default("general").notNull(),
+  /* 2026-08-11: 고정 4종에서 운영자가 만들고 지우는 자유 분류로 전환.
+     실제 분류 목록은 notice_categories 표가 갖는다 (아래 파일 끝 섹션). */
+  category: varchar("category", { length: 30 }).default("general").notNull(),
   title: varchar("title", { length: 200 }).notNull(),
   content: text("content").notNull(),
   authorId: integer("author_id").references(() => members.id, { onDelete: "set null" }),
@@ -493,6 +495,9 @@ export const notices = pgTable("notices", {
   isPinned: boolean("is_pinned").default(false),
   isPublished: boolean("is_published").default(true),
   views: integer("views").default(0),
+  /* 화면에 보이는 순서. 작을수록 위. 이 순서 그대로 번호 1, 2, 3 이 매겨진다.
+     (2026-08-11 마이그 migrate-news-split 적용 완료) */
+  sortOrder: integer("sort_order").default(0).notNull(),
   thumbnailUrl: varchar("thumbnail_url", { length: 500 }),
   excerpt: varchar("excerpt", { length: 300 }),
   publishedAt: timestamp("published_at").defaultNow(),
@@ -5083,3 +5088,27 @@ export type NewSitePage         = typeof sitePages.$inferInsert;
 export type SitePageRevision    = typeof sitePageRevisions.$inferSelect;
 export type NewSitePageRevision = typeof sitePageRevisions.$inferInsert;
 /* === 메뉴·페이지 통합 편집 개편 끝 === */
+
+/* =========================================================
+   === 주요활동 1메뉴=1화면 개편 (2026-08-11) ===
+   공지 분류를 운영자가 직접 만들고 지울 수 있게 하는 표.
+   notices.category 가 이 표의 slug 를 가리킨다 (FK는 걸지 않는다 —
+   분류를 지워도 글이 함께 사라지면 안 되므로, 없는 분류는 '일반공지'로 보여준다).
+   ========================================================= */
+export const noticeCategories = pgTable("notice_categories", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 30 }).notNull().unique(),        // notices.category 에 저장되는 값
+  label: varchar("label", { length: 50 }).notNull(),               // 화면에 보이는 이름 (일반공지 등)
+  color: varchar("color", { length: 20 }).default("mute").notNull(), // 배지 색 (mute|info|warn|danger|success)
+  sortOrder: integer("sort_order").default(0).notNull(),           // 탭에 놓이는 순서
+  isActive: boolean("is_active").default(true).notNull(),          // 끄면 탭에서 감춰진다 (글은 유지)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  sortIdx: index("notice_categories_sort_idx").on(t.sortOrder),
+  activeIdx: index("notice_categories_active_idx").on(t.isActive),
+}));
+
+export type NoticeCategory    = typeof noticeCategories.$inferSelect;
+export type NewNoticeCategory = typeof noticeCategories.$inferInsert;
+/* === 주요활동 1메뉴=1화면 개편 끝 === */

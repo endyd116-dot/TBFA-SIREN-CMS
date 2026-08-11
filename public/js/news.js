@@ -7,18 +7,26 @@
   'use strict';
 
   /* ============ 상수 ============ */
-  const NOTICE_CATEGORY_BADGE = {
-    general: '<span class="badge b-mute">일반</span>',
-    member: '<span class="badge b-info">회원</span>',
-    event: '<span class="badge b-warn">사업</span>',
-    media: '<span class="badge b-success">언론</span>',
-  };
-
   const NOTICE_LIMIT = 10;
 
   let _currentCategory = '';
   let _currentPage = 1;
   let _totalPages = 1;
+
+  /* 분류는 운영자가 백오피스에서 만들고 지운다 — 목록을 받아와서 탭과 배지를 그린다.
+     못 받아오면 '일반공지' 하나만 있는 것으로 보고 화면은 계속 뜨게 한다. */
+  let _categories = [];
+
+  function categoryLabel(slug) {
+    const c = _categories.find((x) => x.slug === slug);
+    return c ? c.label : (slug === 'general' ? '일반공지' : slug);
+  }
+
+  function categoryBadge(slug) {
+    const c = _categories.find((x) => x.slug === slug);
+    const color = c ? c.color : 'mute';
+    return '<span class="badge b-' + escapeHtml(color) + '">' + escapeHtml(categoryLabel(slug)) + '</span>';
+  }
 
   /* ============ 헬퍼 ============ */
   async function fetchJson(path) {
@@ -58,6 +66,24 @@
       String(d.getMinutes()).padStart(2, '0');
   }
 
+  /* ============ 분류 탭 로드 ============ */
+  async function loadCategories() {
+    const tabs = document.getElementById('newsTabs');
+    if (!tabs) return;
+
+    const res = await fetchJson('/api/notice-categories');
+    const list = (res.ok && res.data?.data?.list) || [];
+    _categories = list;
+    if (list.length === 0) return;   // 못 받아오면 HTML 에 있던 '전체' 탭만 남긴다
+
+    tabs.innerHTML =
+      '<button type="button" class="tab-btn' + (_currentCategory ? '' : ' on') + '" data-cat="">전체</button>' +
+      list.map((c) =>
+        '<button type="button" class="tab-btn' + (_currentCategory === c.slug ? ' on' : '') +
+        '" data-cat="' + escapeHtml(c.slug) + '">' + escapeHtml(c.label) + '</button>'
+      ).join('');
+  }
+
   /* ============ 공지사항 목록 로드 ============ */
   async function loadNotices() {
     const tbody = document.getElementById('newsTableBody');
@@ -93,16 +119,18 @@
       return;
     }
 
-    /* 행 렌더 */
-    tbody.innerHTML = list.map((n) => {
-      const catBadge = NOTICE_CATEGORY_BADGE[n.category] || '<span class="badge b-mute">' + escapeHtml(n.category) + '</span>';
-      const pinIcon = n.isPinned ? '' : '';
+    /* 행 렌더 — 번호는 목록에 보이는 자리 그대로 1, 2, 3 …
+       (예전엔 저장소 내부 번호를 그대로 찍어 5번·10번처럼 띄엄띄엄 보였다) */
+    const startNo = (_currentPage - 1) * NOTICE_LIMIT;
+    tbody.innerHTML = list.map((n, i) => {
+      const no = n.displayNo || (startNo + i + 1);
+      const pinMark = n.isPinned ? '<span class="news-pin">고정</span>' : '';
       const date = formatDate(n.publishedAt || n.createdAt);
       const views = (n.views || 0).toLocaleString();
       return '<tr data-news-id="' + n.id + '">' +
-        '<td>' + (n.isPinned ? '<span style="color:var(--danger);font-weight:700">공지</span>' : n.id) + '</td>' +
-        '<td>' + catBadge + '</td>' +
-        '<td>' + pinIcon + escapeHtml(n.title) + '</td>' +
+        '<td>' + no + '</td>' +
+        '<td>' + categoryBadge(n.category) + '</td>' +
+        '<td>' + pinMark + escapeHtml(n.title) + '</td>' +
         '<td>' + date + '</td>' +
         '<td>' + views + '</td>' +
         '</tr>';
@@ -184,9 +212,8 @@
     const n = res.data.data.notice;
     if (titleEl) titleEl.textContent = (n.isPinned ? '' : '') + n.title;
     if (metaEl) {
-      const cat = NOTICE_CATEGORY_BADGE[n.category] || escapeHtml(n.category);
       metaEl.innerHTML =
-        cat + ' · ' +
+        categoryBadge(n.category) + ' · ' +
         '<span style="font-family:Inter">' + formatDateTime(n.publishedAt || n.createdAt) + '</span>' +
         ' · 조회 ' + (n.views || 0).toLocaleString() +
         (n.authorName ? ' · ' + escapeHtml(n.authorName) : '');
@@ -329,14 +356,20 @@
 
   async function init() {
     if (_initExecuted) return;
-    if (document.body.dataset.page !== 'news') return;
+    /* news = 소식/참여(혼합 화면), notice = 공지사항 전용 화면 */
+    const page = document.body.dataset.page;
+    if (page !== 'news' && page !== 'notice') return;
     _initExecuted = true;
 
     setupEvents();
-    applyHashFilter();
 
-    /* 공지/FAQ 병렬 로드 */
-    await Promise.all([loadNotices(), loadFaqs()]);
+    /* 분류 탭을 먼저 받아야 주소 뒤 #분류 로 들어온 요청을 알아볼 수 있다 */
+    await loadCategories();
+    applyHashFilter();
+    if (_currentCategory) await loadCategories();   // 해시로 고른 탭에 표시 반영
+
+    /* 공지 목록 — FAQ 는 소식/참여 화면에만 있다 */
+    await Promise.all([loadNotices(), page === 'news' ? loadFaqs() : Promise.resolve()]);
   }
 
   /* 3가지 경로로 init 보장 (auth.js 패턴 유지) */

@@ -121,7 +121,7 @@
       if (!editorCssOk) {
         throw new Error('Toast UI Editor CSS를 모든 CDN에서 로드할 수 없습니다');
       }
-      await loadStylesheet('/css/editor.css').catch(() => {});
+      await loadStylesheet('/css/editor.css?v=20260811-imglink').catch(() => {});
 
       /* 색상 관련 CSS (옵셔널) */
       await loadCssWithFallback(CDN_FALLBACKS.colorCss, 'colorSyntax.css');
@@ -281,11 +281,107 @@
       if (typeof cs === 'function') plugins.push(cs);
     } catch (_) {}
 
+    /* ── 사진에 링크 걸기 단추 (2026-08-11) ────────────────────────
+       글에 넣은 사진을 눌렀을 때 다른 쪽으로 넘어가게 만드는 기능.
+       (배너 사진 → 신청 화면, 보도사진 → 원문 기사 같은 쓰임)
+       쓰는 순서: 편집기 안에서 사진을 한 번 클릭 → 이 단추 → 주소 입력. */
+    let _pickedImageIndex = -1;
+
+    function imagesInEditor() {
+      const ww = el.querySelector('.toastui-editor-ww-container');
+      return ww ? Array.from(ww.querySelectorAll('img')) : [];
+    }
+
+    /* 어느 사진을 고른 상태인지 기억해 둔다 (편집기 화면에서도 눈에 보이게 표시) */
+    el.addEventListener('click', (ev) => {
+      const img = ev.target && ev.target.closest ? ev.target.closest('img') : null;
+      const list = imagesInEditor();
+      list.forEach((im) => im.classList.remove('siren-img-picked'));
+      if (!img) { _pickedImageIndex = -1; return; }
+      _pickedImageIndex = list.indexOf(img);
+      if (_pickedImageIndex >= 0) img.classList.add('siren-img-picked');
+    });
+
+    function linkPickedImage() {
+      const list = imagesInEditor();
+      if (_pickedImageIndex < 0 || _pickedImageIndex >= list.length) {
+        alert('먼저 링크를 걸 사진을 한 번 클릭해 주세요.');
+        return;
+      }
+
+      /* 지금 걸려 있는 주소가 있으면 미리 채워 준다 */
+      const picked = list[_pickedImageIndex];
+      const already = picked.closest('a');
+      const answer = prompt(
+        '이 사진을 눌렀을 때 넘어갈 주소를 입력하세요.\n' +
+        '(비워 두고 확인을 누르면 걸려 있던 링크가 사라집니다)',
+        already ? already.getAttribute('href') || '' : 'https://'
+      );
+      if (answer === null) return;                 // 취소
+      const href = String(answer).trim();
+      if (href === 'https://') return;             // 아무것도 안 적음
+
+      /* 편집기가 들고 있는 글 전체를 받아 해당 사진만 손보고 되돌려 넣는다.
+         (편집기 화면의 그림만 고치면 저장될 때 반영되지 않는다) */
+      const doc = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
+      const imgs = doc.querySelectorAll('img');
+      const target = imgs[_pickedImageIndex];
+      if (!target) { alert('사진을 찾지 못했습니다. 다시 눌러 주세요.'); return; }
+
+      const wrap = target.parentElement && target.parentElement.tagName === 'A'
+        ? target.parentElement : null;
+
+      if (!href) {
+        /* 링크 없애기 — 사진만 남긴다 */
+        if (wrap && wrap.parentNode) wrap.parentNode.replaceChild(target, wrap);
+      } else {
+        const a = wrap || doc.createElement('a');
+        a.setAttribute('href', href);
+        /* 바깥 사이트로 가는 링크는 새 창에서 열어 읽던 화면을 잃지 않게 한다 */
+        if (/^https?:\/\//i.test(href)) {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+        } else {
+          a.removeAttribute('target');
+          a.removeAttribute('rel');
+        }
+        if (!wrap && target.parentNode) {
+          target.parentNode.replaceChild(a, target);
+          a.appendChild(target);
+        }
+      }
+
+      editor.setHTML(doc.body.innerHTML);
+      _pickedImageIndex = -1;
+      if (typeof onChange === 'function') {
+        try { onChange(editor.getHTML()); } catch (e) { console.error('[SirenEditor onChange]', e); }
+      }
+    }
+
+    function makeLinkImageButton() {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'toastui-editor-toolbar-icons siren-link-image-btn';
+      btn.setAttribute('aria-label', '사진에 링크 걸기');
+      btn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" ' +
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="3" y="3" width="18" height="14" rx="2"/><circle cx="8.5" cy="8" r="1.5"/>' +
+        '<path d="M21 13l-5-5-6 6"/><path d="M10 21h3a2 2 0 0 0 0-4M14 21h-3a2 2 0 0 1 0-4"/></svg>';
+      btn.addEventListener('click', (ev) => { ev.preventDefault(); linkPickedImage(); });
+      return btn;
+    }
+
     const toolbarItems = readonly ? [] : [
       ['heading', 'bold', 'italic', 'strike'],
       ['hr', 'quote'],
       ['ul', 'ol', 'task', 'indent', 'outdent'],
       ['table', 'image', 'link'],
+      [{
+        name: 'linkImage',
+        tooltip: '사진에 링크 걸기 (사진을 클릭한 뒤 누르세요)',
+        el: makeLinkImageButton(),
+      }],
       ['code', 'codeblock'],
       ['scrollSync'],
     ];

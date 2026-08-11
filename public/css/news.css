@@ -1,0 +1,200 @@
+/* =========================================================
+   news.css — 공지사항 · 언론보도 화면 공용
+   news.html / notice.html / press.html 이 함께 쓴다.
+   (2026-08-11: news.html 안에 박혀 있던 스타일을 꺼내 세 화면이 나눠 쓰게 정리)
+   ========================================================= */
+
+/* ── 분류 탭 ───────────────────────────────────────────── */
+.news-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.news-tabs .tab-btn {
+  padding: 10px 20px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text-2);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.news-tabs .tab-btn:hover { border-color: var(--brand); color: var(--brand); }
+.news-tabs .tab-btn.on {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+/* ── 공지 표 ───────────────────────────────────────────── */
+.news-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.news-table tbody tr:hover { background: var(--bg-soft); }
+.news-table .news-pin {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* ── 페이지 번호 ───────────────────────────────────────── */
+.news-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+.news-pagination button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text-2);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 0;
+}
+.news-pagination button.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+  font-weight: 700;
+}
+.news-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.news-pagination button:hover:not(.active):not(:disabled) { background: var(--bg-soft); }
+
+/* ── 공지 상세 모달 ────────────────────────────────────── */
+#noticeViewModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+#noticeViewModal.show { display: flex; }
+#noticeViewModal .modal-content {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin: auto;
+}
+#noticeViewModal .modal-header {
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+#noticeViewModal .modal-header .nv-title-wrap { flex: 1; min-width: 0; }
+#noticeViewModal .modal-header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-family: 'Noto Serif KR', serif;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+#noticeViewModal .modal-header .nv-meta { font-size: 12px; color: var(--text-3); }
+#noticeViewModal .modal-close {
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: var(--text-3);
+  line-height: 1;
+  flex-shrink: 0;
+}
+#noticeViewModal .modal-body {
+  padding: 24px 28px;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+#noticeViewModal .modal-body img { max-width: 100%; height: auto; }
+#noticeViewModal .modal-body table { max-width: 100%; }
+
+.nv-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* =========================================================
+   화면 위쪽 '꾸미는 말' — 운영자가 백오피스에서 직접 고치는 영역
+   (제목·부제는 큰 머리글로, 본문은 블로그 글처럼 아래에 붙는다)
+   ========================================================= */
+.page-intro-body {
+  max-width: 860px;
+  margin: 26px auto 0;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--text-2);
+}
+.page-intro-body:empty { display: none; }
+.page-intro-body > *:first-child { margin-top: 0; }
+.page-intro-body > *:last-child { margin-bottom: 0; }
+.page-intro-body p { margin: 0 0 1.1em; }
+.page-intro-body h2,
+.page-intro-body h3 {
+  font-family: 'Noto Serif KR', serif;
+  color: var(--text-1);
+  margin: 1.6em 0 0.6em;
+  line-height: 1.5;
+}
+.page-intro-body h2 { font-size: 21px; }
+.page-intro-body h3 { font-size: 17px; }
+.page-intro-body img { max-width: 100%; height: auto; border-radius: 10px; }
+.page-intro-body a { color: var(--brand); }
+.page-intro-body ul,
+.page-intro-body ol { padding-left: 1.4em; margin: 0 0 1.1em; }
+.page-intro-body blockquote {
+  margin: 0 0 1.2em;
+  padding: 2px 0 2px 16px;
+  border-left: 3px solid var(--brand);
+  color: var(--text-2);
+}
+/* 표는 폭이 넘칠 때 그 안에서만 옆으로 밀리게 — 화면 전체가 밀리면 안 된다 */
+.page-intro-body table { width: 100%; border-collapse: collapse; }
+.page-intro-body .table-scroll,
+.page-intro-body figure.table { overflow-x: auto; }
+
+/* =========================================================
+   화면이 좌우로 밀리지 않게 (모바일)
+   내용이 넘치더라도 그 칸 안에서만 밀리고, 화면 전체는 고정한다.
+   ========================================================= */
+@media (max-width: 768px) {
+  .news-tabs { gap: 6px; padding-bottom: 14px; margin-bottom: 20px; }
+  .news-tabs .tab-btn { padding: 8px 13px; font-size: 12.5px; }
+
+  /* 표는 통째로 감싸서 그 안에서만 옆으로 넘기게 한다 */
+  .panel:has(> .news-table) { overflow-x: auto; }
+  .news-table { min-width: 460px; }
+  .news-table th:nth-child(5),
+  .news-table td:nth-child(5) { display: none; }   /* 조회수는 좁은 화면에서 접는다 */
+
+  #noticeViewModal { padding: 16px 12px; }
+  #noticeViewModal .modal-header { padding: 16px 18px; }
+  #noticeViewModal .modal-body { padding: 18px; }
+
+  .page-intro-body { font-size: 14.5px; margin-top: 20px; }
+}

@@ -1,4 +1,16 @@
-/* =========================================================
+    const n = res.data.data.notice;
+    if (idEl) idEl.value = String(n.id);
+    if (catEl) {
+      /* 감춰 둔 분류로 저장된 글이면 그 분류도 골라 놓을 수 있게 목록에 넣어 준다 */
+      catEl.value = n.category || 'general';
+      if (catEl.value !== (n.category || 'general')) {
+        const opt = document.createElement('option');
+        opt.value = n.category;
+        opt.textContent = noticeCatLabel(n.category) + ' (감춘 분류)';
+        catEl.appendChild(opt);
+        catEl.value = n.category;
+      }
+    }/* =========================================================
    SIREN — admin.js (v9 — H-2d-3 영수증 + I-3 블랙리스트 + I-4 컬럼 정렬)
    ========================================================= */
 (function () {
@@ -1300,21 +1312,106 @@ const OPERATOR_CATEGORIES = [
   let _cmNoticeSearchTimer = null;
   let _cmFaqSearchTimer = null;
 
-  const NOTICE_CATEGORY_BADGE = {
-    general: '<span class="badge b-mute">일반</span>',
-    member: '<span class="badge b-info">회원</span>',
-    event: '<span class="badge b-warn">사업</span>',
-    media: '<span class="badge b-success">언론</span>',
-  };
+  /* ===== 공지 분류 (2026-08-11) =====
+     분류는 운영자가 [공지 분류 관리]에서 만들고 지운다. 코드에 박아두지 않는다. */
+  let _noticeCategories = [];
+
+  function noticeCatLabel(slug) {
+    const c = _noticeCategories.find((x) => x.slug === slug);
+    return c ? c.label : (slug === 'general' ? '일반공지' : String(slug || '—'));
+  }
+
+  function noticeCatBadge(slug) {
+    const c = _noticeCategories.find((x) => x.slug === slug);
+    return '<span class="badge b-' + escapeHtml(c ? c.color : 'mute') + '">' +
+      escapeHtml(noticeCatLabel(slug)) + '</span>';
+  }
+
+  /* 걸러보기 상자와 글쓰기 창의 분류 목록을 현재 분류로 다시 채운다 */
+  function fillNoticeCategorySelects() {
+    const filter = document.getElementById('cmNoticeCategory');
+    if (filter) {
+      const keep = filter.value;
+      filter.innerHTML = '<option value="">전체 분류</option>' +
+        _noticeCategories.map((c) =>
+          '<option value="' + escapeHtml(c.slug) + '">' + escapeHtml(c.label) + '</option>').join('');
+      if (keep) filter.value = keep;
+    }
+    const editor = document.getElementById('noticeEditCategory');
+    if (editor) {
+      const keep = editor.value;
+      const usable = _noticeCategories.filter((c) => c.isActive !== false);
+      editor.innerHTML = (usable.length ? usable : _noticeCategories).map((c) =>
+        '<option value="' + escapeHtml(c.slug) + '">' + escapeHtml(c.label) + '</option>').join('');
+      if (keep) editor.value = keep;
+    }
+  }
+
+  async function loadNoticeCategories() {
+    const tbody = document.querySelector('#adm-content table[data-content-tbl="notice-categories"] tbody');
+    const res = await api('/api/admin/notice-categories');
+
+    if (!res.ok || !res.data?.data) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--danger)">분류를 불러오지 못했습니다</td></tr>';
+      return;
+    }
+    _noticeCategories = res.data.data.list || [];
+    fillNoticeCategorySelects();
+
+    if (!tbody) return;
+    if (_noticeCategories.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-3)">분류가 없습니다. [+ 분류 추가]로 만들어 주세요.</td></tr>';
+      return;
+    }
+
+    const last = _noticeCategories.length - 1;
+    tbody.innerHTML = _noticeCategories.map((c, i) => {
+      const upDown =
+        '<button class="cm-move" data-cm-action="move-notice-category" data-id="' + c.id + '" data-dir="up"' +
+        (i === 0 ? ' disabled' : '') + ' title="위로">▲</button>' +
+        '<button class="cm-move" data-cm-action="move-notice-category" data-id="' + c.id + '" data-dir="down"' +
+        (i === last ? ' disabled' : '') + ' title="아래로">▼</button>';
+      const shown = c.isActive
+        ? '<span class="cm-inline-active on" data-cm-action="toggle-notice-category" data-id="' + c.id + '" data-current="true" title="누르면 탭에서 감춥니다">●</span>'
+        : '<span class="cm-inline-active off" data-cm-action="toggle-notice-category" data-id="' + c.id + '" data-current="false" title="누르면 탭에 보입니다">○</span>';
+
+      return '<tr>' +
+        '<td style="text-align:center"><div class="cm-move-wrap">' + upDown + '</div></td>' +
+        '<td>' + noticeCatBadge(c.slug) + '</td>' +
+        '<td style="font-family:Inter;font-size:11.5px;color:var(--text-3)">' + escapeHtml(c.slug) + '</td>' +
+        '<td style="font-size:11.5px">' + escapeHtml(c.color) + '</td>' +
+        '<td style="text-align:right;font-family:Inter;font-size:11.5px">' + (c.noticeCount || 0) + '</td>' +
+        '<td style="text-align:center">' + shown + '</td>' +
+        '<td><div class="cm-row-actions">' +
+          '<button class="edit" data-cm-action="edit-notice-category" data-id="' + c.id + '">수정</button>' +
+          '<button class="delete" data-cm-action="delete-notice-category" data-id="' + c.id + '">삭제</button>' +
+        '</div></td>' +
+        '</tr>';
+    }).join('');
+  }
+
 
   async function loadContent() {
+    /* 분류를 먼저 받아야 목록의 분류 배지와 걸러보기 상자를 제대로 그릴 수 있다 */
+    await loadNoticeCategories();
     await Promise.all([loadNotices(), loadFaqs()]);
   }
+
+  /* 지금 목록에 걸러보기가 걸려 있는지 — 걸러진 상태에서 순서를 옮기면
+     안 보이는 글의 자리까지 뒤엉키므로 그때는 ▲▼ 를 잠근다. */
+  function noticeListIsFiltered() {
+    const cat = document.getElementById('cmNoticeCategory')?.value || '';
+    const pub = document.getElementById('cmNoticePublished')?.value || '';
+    const q = (document.getElementById('cmNoticeQ')?.value || '').trim();
+    return !!(cat || pub || (q && q.length >= 2));
+  }
+
+  let _noticeRows = [];   // 지금 화면에 보이는 순서 그대로의 목록 (순서 옮기기에 쓴다)
 
   async function loadNotices() {
     const tbody = document.querySelector('#adm-content table[data-content-tbl="notices"] tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     const params = new URLSearchParams({ limit: '50', page: '1' });
     const cat = document.getElementById('cmNoticeCategory')?.value || '';
@@ -1327,26 +1424,38 @@ const OPERATOR_CATEGORIES = [
     const res = await api('/api/admin/notices?' + params.toString());
 
     if (!res.ok || !res.data?.data) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
 
     const list = res.data.data.list || [];
+    _noticeRows = list;
+
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">공지사항이 없습니다</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">공지사항이 없습니다</td></tr>';
       return;
     }
 
-    tbody.innerHTML = list.map((n) => {
-      const catBadge = NOTICE_CATEGORY_BADGE[n.category] || n.category;
+    const filtered = noticeListIsFiltered();
+    const last = list.length - 1;
+
+    tbody.innerHTML = list.map((n, i) => {
+      const no = n.displayNo || (i + 1);
+      const lockTitle = filtered ? ' title="걸러보기를 끄고 전체 목록에서 옮겨 주세요"' : '';
+      const upDown =
+        '<button class="cm-move" data-cm-action="move-notice" data-id="' + n.id + '" data-dir="up"' +
+        (filtered || i === 0 ? ' disabled' : '') + lockTitle + '>▲</button>' +
+        '<button class="cm-move" data-cm-action="move-notice" data-id="' + n.id + '" data-dir="down"' +
+        (filtered || i === last ? ' disabled' : '') + lockTitle + '>▼</button>';
       const pinnedMark = n.isPinned ? '<span class="cm-pinned-mark" title="상단 고정"></span>' : '<span style="color:var(--text-3)">—</span>';
       const publishedIcon = n.isPublished
         ? '<span style="color:var(--success);font-size:13px">●</span>'
         : '<span style="color:var(--text-3);font-size:13px">○</span>';
 
       return '<tr>' +
-        '<td>' + n.id + '</td>' +
-        '<td>' + catBadge + '</td>' +
+        '<td style="text-align:center;font-family:Inter;font-weight:700">' + no + '</td>' +
+        '<td style="text-align:center"><div class="cm-move-wrap">' + upDown + '</div></td>' +
+        '<td>' + noticeCatBadge(n.category) + '</td>' +
         '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(n.title) + '">' + escapeHtml(n.title) + '</td>' +
         '<td style="text-align:center">' + pinnedMark + '</td>' +
         '<td style="text-align:center">' + publishedIcon + '</td>' +
@@ -1358,6 +1467,28 @@ const OPERATOR_CATEGORIES = [
         '</tr>';
     }).join('');
   }
+
+  /* 한 칸 위/아래로 옮기고, 보이는 순서 그대로 저장한다 */
+  async function moveNotice(id, dir) {
+    if (noticeListIsFiltered()) {
+      toast('걸러보기를 끄고 전체 목록에서 순서를 옮겨 주세요', 'err');
+      return;
+    }
+    const ids = _noticeRows.map((n) => n.id);
+    const at = ids.indexOf(Number(id));
+    const to = dir === 'up' ? at - 1 : at + 1;
+    if (at < 0 || to < 0 || to >= ids.length) return;
+
+    ids.splice(to, 0, ids.splice(at, 1)[0]);
+
+    const res = await api('/api/admin/notices?action=reorder', { method: 'POST', body: { ids } });
+    if (!res.ok) {
+      toast('순서 변경 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err');
+      return;
+    }
+    await loadNotices();
+  }
+
 
   async function loadFaqs() {
     const tbody = document.querySelector('#adm-content table[data-content-tbl="faqs"] tbody');
@@ -1420,11 +1551,16 @@ const OPERATOR_CATEGORIES = [
     const pinEl = document.getElementById('noticeEditPinned');
     const pubEl = document.getElementById('noticeEditPublished');
 
+    /* 분류 목록이 비어 있으면 지금 받아온다 — 글쓰기 창의 분류는
+       [공지 분류 관리]에서 만든 것으로만 채운다 */
+    if (_noticeCategories.length === 0) await loadNoticeCategories();
+    else fillNoticeCategorySelects();
+
     /* 신규 작성 모드 */
     if (!id) {
       if (titleEl) titleEl.textContent = '새 공지 작성';
       if (idEl) idEl.value = '';
-      if (catEl) catEl.value = 'general';
+      if (catEl) catEl.selectedIndex = 0;
       if (thumbEl) thumbEl.value = '';
       if (tEl) tEl.value = '';
       if (exEl) exEl.value = '';
@@ -1448,7 +1584,18 @@ const OPERATOR_CATEGORIES = [
     }
     const n = res.data.data.notice;
     if (idEl) idEl.value = String(n.id);
-    if (catEl) catEl.value = n.category || 'general';
+    if (catEl) {
+      const want = n.category || 'general';
+      catEl.value = want;
+      /* 감춰 둔 분류로 저장된 글이면 그 분류도 고를 수 있게 목록에 넣어 준다 */
+      if (catEl.value !== want) {
+        const opt = document.createElement('option');
+        opt.value = want;
+        opt.textContent = noticeCatLabel(want) + ' (감춘 분류)';
+        catEl.appendChild(opt);
+        catEl.value = want;
+      }
+    }
     if (thumbEl) thumbEl.value = n.thumbnailUrl || '';
     if (tEl) tEl.value = n.title || '';
     if (exEl) exEl.value = n.excerpt || '';
@@ -2748,6 +2895,108 @@ const OPERATOR_CATEGORIES = [
         } else {
           toast(res.data?.error || '삭제 실패');
         }
+        return;
+      }
+
+      /* ── 공지 순서 옮기기 ── */
+      if (action === 'move-notice') {
+        e.preventDefault();
+        if (btn.disabled) return;
+        await moveNotice(Number(btn.dataset.id), btn.dataset.dir);
+        return;
+      }
+
+      /* ── 공지 분류 관리 ── */
+      if (action === 'new-notice-category') {
+        e.preventDefault();
+        const label = (prompt('새 분류 이름을 입력하세요 (예: 긴급공지)') || '').trim();
+        if (!label) return;
+        const slug = (prompt(
+          '이 분류를 저장할 때 쓸 영문 코드를 입력하세요.\n' +
+          '(영문 소문자·숫자·- _ / 예: urgent)\n' +
+          '※ 한 번 정하면 되도록 바꾸지 마세요 — 주소에 쓰입니다.', ''
+        ) || '').trim().toLowerCase();
+        if (!slug) return;
+        const color = (prompt(
+          '분류 배지 색을 고르세요.\n' +
+          'mute(회색) / info(파랑) / warn(주황) / danger(빨강) / success(초록)', 'mute'
+        ) || 'mute').trim();
+
+        const res = await api('/api/admin/notice-categories', { method: 'POST', body: { slug, label, color } });
+        if (res.ok) { toast(res.data?.message || '분류가 추가되었습니다'); await loadNoticeCategories(); await loadNotices(); }
+        else toast(res.data?.error || '분류 추가 실패', 'err');
+        return;
+      }
+
+      if (action === 'edit-notice-category') {
+        e.preventDefault();
+        const id = Number(btn.dataset.id);
+        const cur = _noticeCategories.find((c) => c.id === id);
+        if (!cur) return;
+        const label = (prompt('분류 이름', cur.label) || '').trim();
+        if (!label) return;
+        const color = (prompt(
+          '분류 배지 색\nmute(회색) / info(파랑) / warn(주황) / danger(빨강) / success(초록)', cur.color
+        ) || cur.color).trim();
+
+        const res = await api('/api/admin/notice-categories', { method: 'PATCH', body: { id, label, color } });
+        if (res.ok) { toast(res.data?.message || '분류가 수정되었습니다'); await loadNoticeCategories(); await loadNotices(); }
+        else toast(res.data?.error || '분류 수정 실패', 'err');
+        return;
+      }
+
+      if (action === 'toggle-notice-category') {
+        e.preventDefault();
+        const id = Number(btn.dataset.id);
+        const nextActive = btn.dataset.current !== 'true';
+        const res = await api('/api/admin/notice-categories', { method: 'PATCH', body: { id, isActive: nextActive } });
+        if (res.ok) { toast(nextActive ? '사용자 화면 탭에 표시합니다' : '사용자 화면 탭에서 감춥니다'); await loadNoticeCategories(); }
+        else toast(res.data?.error || '변경 실패', 'err');
+        return;
+      }
+
+      if (action === 'move-notice-category') {
+        e.preventDefault();
+        if (btn.disabled) return;
+        const id = Number(btn.dataset.id);
+        const ids = _noticeCategories.map((c) => c.id);
+        const at = ids.indexOf(id);
+        const to = btn.dataset.dir === 'up' ? at - 1 : at + 1;
+        if (at < 0 || to < 0 || to >= ids.length) return;
+        ids.splice(to, 0, ids.splice(at, 1)[0]);
+
+        const res = await api('/api/admin/notice-categories?action=reorder', { method: 'POST', body: { ids } });
+        if (res.ok) await loadNoticeCategories();
+        else toast(res.data?.error || '순서 변경 실패', 'err');
+        return;
+      }
+
+      if (action === 'delete-notice-category') {
+        e.preventDefault();
+        const id = Number(btn.dataset.id);
+        const cur = _noticeCategories.find((c) => c.id === id);
+        if (!cur) return;
+        if (_noticeCategories.length <= 1) { toast('마지막 남은 분류는 지울 수 없습니다', 'err'); return; }
+
+        const others = _noticeCategories.filter((c) => c.id !== id);
+        let moveTo = others[0].slug;
+        if (cur.noticeCount > 0) {
+          const answer = (prompt(
+            '"' + cur.label + '" 분류에 공지 ' + cur.noticeCount + '건이 있습니다.\n' +
+            '이 글들을 옮길 분류의 코드를 입력하세요.\n\n' +
+            '고를 수 있는 분류: ' + others.map((c) => c.slug + '(' + c.label + ')').join(' / '),
+            others[0].slug
+          ) || '').trim().toLowerCase();
+          if (!answer) return;
+          if (!others.some((c) => c.slug === answer)) { toast('그런 분류가 없습니다', 'err'); return; }
+          moveTo = answer;
+        } else if (!confirm('"' + cur.label + '" 분류를 삭제하시겠습니까?')) {
+          return;
+        }
+
+        const res = await api('/api/admin/notice-categories?id=' + id + '&moveTo=' + encodeURIComponent(moveTo), { method: 'DELETE' });
+        if (res.ok) { toast(res.data?.message || '분류가 삭제되었습니다'); await loadNoticeCategories(); await loadNotices(); }
+        else toast(res.data?.error || '분류 삭제 실패', 'err');
         return;
       }
 

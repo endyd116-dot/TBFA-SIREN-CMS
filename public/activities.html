@@ -32,26 +32,34 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/pages.css">
 <link rel="stylesheet" href="/css/activity.css?v=m11">
+<link rel="stylesheet" href="/css/news.css?v=20260811-split">
 </head>
 <body data-page="activities">
 
   <div id="header-slot"></div>
 
   <main>
-    <section class="page-hero">
+    <!-- 화면 위쪽 문구 — 백오피스 [페이지 편집] > '활동 내용 안내글'에서 고친다 -->
+    <section class="page-hero" data-intro="intro-activities">
       <div class="container">
-        <h1><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 주요 활동</h1>
-        <p>활동보고서 · 사진 · 활동뉴스</p>
+        <div class="sec-eyebrow" data-intro-eyebrow>OUR ACTIVITIES</div>
+        <h1><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> <span data-intro-title>활동 내용</span></h1>
+        <p data-intro-subtitle>활동보고서 · 사진 · 활동뉴스</p>
       </div>
     </section>
 
     <div class="container breadcrumb">
-      <a href="/index.html">홈</a> &nbsp;›&nbsp; <span>주요 활동</span>
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; 주요 활동 &nbsp;›&nbsp; <span data-intro-breadcrumb>활동 내용</span>
+    </div>
+
+    <!-- 인트로 본문 (운영자가 블로그처럼 자유롭게 쓰는 영역) -->
+    <div class="container">
+      <div class="page-intro-body" data-intro-body></div>
     </div>
 
     <section class="block">
@@ -93,6 +101,7 @@
 
   <script src="/js/common.js?v=20260803-fast2"></script>
   <script src="/js/auth.js?v=20260712-noemoji"></script>
+  <script src="/js/page-intro.js?v=20260811-split"></script>
   <script src="/js/activity.js?v=20260712-noemoji"></script>
 </body>
 </html>

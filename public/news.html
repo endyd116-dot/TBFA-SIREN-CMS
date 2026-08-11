@@ -32,144 +32,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/home.css">
 <link rel="stylesheet" href="/css/pages.css">
 <link rel="stylesheet" href="/css/activity.css?v=m11">
+<link rel="stylesheet" href="/css/news.css?v=20260811-split">
 
-<style>
-  /* ===== ★ K-5: 동적 공지/FAQ ===== */
-  .news-tabs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--line);
-  }
-  .news-tabs .tab-btn {
-    padding: 10px 20px;
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--text-2);
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-weight: 500;
-  }
-  .news-tabs .tab-btn:hover {
-    border-color: var(--brand);
-    color: var(--brand);
-  }
-  .news-tabs .tab-btn.on {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-  }
-
-  .news-table tbody tr { cursor: pointer; transition: background 0.1s; }
-  .news-table tbody tr:hover { background: var(--bg-soft); }
-
-  .news-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    margin-top: 30px;
-    flex-wrap: wrap;
-  }
-  .news-pagination button {
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--text-2);
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 12.5px;
-    padding: 0;
-  }
-  .news-pagination button.active {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-    font-weight: 700;
-  }
-  .news-pagination button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .news-pagination button:hover:not(.active):not(:disabled) {
-    background: var(--bg-soft);
-  }
-
-  /* 공지 상세 모달 */
-  #noticeViewModal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 9999;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 20px;
-    overflow-y: auto;
-  }
-  #noticeViewModal.show { display: flex; }
-  #noticeViewModal .modal-content {
-    background: #fff;
-    border-radius: 12px;
-    max-width: 800px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    margin: auto;
-  }
-  #noticeViewModal .modal-header {
-    padding: 20px 28px;
-    border-bottom: 1px solid var(--line);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 14px;
-  }
-  #noticeViewModal .modal-header .nv-title-wrap { flex: 1; }
-  #noticeViewModal .modal-header h3 {
-    margin: 0 0 6px;
-    font-size: 18px;
-    font-family: 'Noto Serif KR', serif;
-    line-height: 1.5;
-  }
-  #noticeViewModal .modal-header .nv-meta {
-    font-size: 12px;
-    color: var(--text-3);
-  }
-  #noticeViewModal .modal-close {
-    background: transparent;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    color: var(--text-3);
-    line-height: 1;
-    flex-shrink: 0;
-  }
-  #noticeViewModal .modal-body {
-    padding: 24px 28px;
-    font-size: 14px;
-    line-height: 1.85;
-    color: var(--text-1);
-  }
-  #noticeViewModal .modal-body img { max-width: 100%; height: auto; }
-
-  .nv-loading {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-3);
-    font-size: 13px;
-  }
-</style>
 </head>
 <body data-page="news">
 
@@ -293,8 +163,8 @@
 
   <script src="/js/common.js?v=20260803-fast2"></script>
   <script src="/js/auth.js?v=20260712-noemoji"></script>
-  <script src="/js/news.js?v=20260712-noemoji"></script>
-  <script src="/js/news-media.js?v=20260712-noemoji"></script>
+  <script src="/js/news.js?v=20260811-split"></script>
+  <script src="/js/news-media.js?v=20260811-split"></script>
   <script src="/js/support.js?v=5"></script>
   <script src="/js/home.js?v=20260804-notice"></script>
   <script src="/js/donate.js?v=r45"></script>
