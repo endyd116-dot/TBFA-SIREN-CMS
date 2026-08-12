@@ -45,23 +45,21 @@ export default async (req: Request) => {
       return forbidden("관리자 권한이 없습니다");
     }
 
-    /* 로그인 유지(remember) 선택 시 관리자 세션 7일(회원 로그인 유지와 동일 — 2026-08-02 Swain).
-       미선택 시 기존대로 6시간 JWT + 세션 쿠키(브라우저 종료 시 삭제). */
-    const wantRemember = (auth as any).remember === true;
-    const ADMIN_REMEMBER_SEC = 60 * 60 * 24 * 7; // 7일
+    /* 관리자 모드 세션은 7일 유지 (2026-08-13 Swain 지시 — 앱으로 작업 중 6시간마다 끊겨 불편).
+       홈페이지 로그인 유지 선택 여부와 무관하게 이 경로로 들어온 관리자 세션은 항상 7일 영속.
+       (무활동 자동 로그아웃도 해제 — 아래 remember 표시로 화면 타이머가 판단) */
+    const ADMIN_SESSION_SEC = 60 * 60 * 24 * 7; // 7일
 
-    /* 유지 선택: 7일 / 미선택: 6시간(2026-07-09 Swain — 무활동 세션 2h→6h) */
     const adminToken = signAdminToken({
       uid:   user.id,
       email: user.email,
       role:  (user.role ?? "operator"),
       name:  user.name,
-      remember: wantRemember,
-    }, wantRemember ? "7d" : "6h");
+      remember: true,
+    }, "7d");
     const cookie = buildCookie("siren_admin_token", adminToken, {
-      /* 유지 선택: 7일 영속 쿠키(PWA·브라우저 종료 후 재실행에도 유지)
-         미선택: null → 세션 쿠키(브라우저 종료 시 삭제) */
-      maxAge: wantRemember ? ADMIN_REMEMBER_SEC : null,
+      /* 영속 쿠키 — 앱(PWA)·브라우저를 껐다 켜도 7주 동안 유지 */
+      maxAge: ADMIN_SESSION_SEC,
     });
 
     const res = ok({
