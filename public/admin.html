@@ -2665,6 +2665,13 @@
     <link rel="stylesheet" href="/css/print.css">
 </head>
 <body>
+  <!-- 로그인 확인 중 표시 (2026-08-13) — 확인이 끝나기 전에 아래 '로그인 안내'가 먼저 보여
+       로그인돼 있는데도 튕긴 것으로 오해되던 문제를 막는다. -->
+  <div id="adminBooting" style="display:none;position:fixed;inset:0;z-index:9997;align-items:center;justify-content:center;background:#faf9f7;flex-direction:column;gap:14px">
+    <img src="/img/brand-symbol.png?v=20260603" alt="" style="width:40px;height:40px;object-fit:contain;opacity:.85">
+    <div style="font-size:13.5px;color:#64748b">관리자 화면을 불러오는 중입니다...</div>
+  </div>
+
   <!-- 관리자 로그인 화면 — 비활성화됨 (메인 사이트 통합 로그인으로 일원화)
        admin 토큰이 없는 상태에서 admin.html 직접 접근 시 안내 + 메인 리다이렉트 -->
   <div id="adminLogin" class="admin-login">
@@ -5801,7 +5808,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20260811-notice-cat"></script>
+  <script src="/js/admin.js?v=20260813-boot"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
   <script src="/js/editor.js?v=20260811-imglink"></script>

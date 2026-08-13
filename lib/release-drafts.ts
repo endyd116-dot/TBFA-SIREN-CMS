@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-11.1";
+export const APP_VERSION = "2026-08-13.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-13-admin-session",
+    title: "관리자 모드가 7일 동안 유지되고, 관리 화면이 로그인 안내로 되돌아가던 문제를 고쳤습니다",
+    items: [
+      { text: "관리자 모드로 들어가면 이제 7일 동안 로그인이 유지됩니다 — 앱이나 브라우저를 껐다 켜도 그대로입니다 (전에는 6시간 동안 손을 대지 않으면 끊겼습니다)" },
+      { text: "자리를 비워도 자동 로그아웃되지 않습니다. 화면 오른쪽 위 표시는 남은 기간을 알려 줍니다" },
+      { text: "관리 화면에 들어갔는데 '관리자 로그인 통합 안내'로 되돌아가던 문제를 고쳤습니다 — 로그인 확인을 가볍게 먼저 해서 화면을 곧바로 열고, 화면 조각 하나가 실패해도 전체가 멈추지 않게 했습니다", link: "/admin.html" },
+      { text: "로그인 확인이 끝나기 전에는 '불러오는 중' 표시가 나옵니다 — 확인 중인 상태를 로그인이 풀린 것으로 오해하지 않도록 했습니다" },
+    ],
+  },
   {
     key: "2026-08-11-news-split",
     title: "주요 활동 메뉴가 화면별로 나뉘고, 공지 분류·순서를 직접 관리합니다",

@@ -5774,45 +5774,61 @@ const OPERATOR_CATEGORIES = [
 
   /* ============ 초기화 ============ */
     async function init() {
-    setupLoginForm();
-    setupSidebar();
-    setupLogout();
-    setupDemoActions();
-    setupMemberActions();
-    setupMemberSort();
-    setupMemberTabs();   /* M-19-11 V2 */
-    setupSupportActions();
-    setupSupportReplyForm();
-    setupInlineStatusChange();
-    setupMemberInfoActions();
-    setupPromoteSearch();
-    setupPromotePick();
-    setupPromoteConfirm();
-// public/js/admin.js — init() 내부, setupOperatorActions 다음에 1줄 추가
-    setupOperatorActions();
-    setupOperatorEditModal();    /* M-15 */
-    setupReceiptSettings();
-    setupExpertAssignClick();  /* K-3 추가 */
-    setupContentActions();     /* K-5 */
-    setupNoticeEditForm();     /* K-5 */
-    setupFaqEditForm();        /* K-5 */
-    setupMemberSearch();       /* K-7 */
-    setupAddMemberModal();     /* K-7 */
-    setupTempPasswordCopy();   /* K-7 */
-    setupAdminPasswordForm();  /* K-9 */
-    setupDonationPolicy();     /* M-15 Part 3-B */
-// public/js/admin.js — init() 내부, setupHyosungDetailActions 다음 줄에 1줄 추가
-    setupHyosungActions();       /* L-8 추가 */
-    setupHyosungDetailActions(); /* L-8 추가 */
-    setupChurnActions();         /* M-19-1 추가 */
+    /* 2026-08-13: 로그인돼 있는데도 '관리자 로그인 통합 안내' 화면에서 넘어가지 않던 문제.
+       원인이 될 수 있던 두 가지를 한 번에 막는다.
+       ① 아래 준비 작업(화면 조각 연결) 중 하나가 중간에 멈추면 그 뒤의 '로그인 확인'까지
+          영영 못 갔다 → 하나씩 따로 감싸서 하나가 실패해도 나머지는 계속 진행한다.
+       ② 로그인 확인이 무거운 집계(후원·회원 통계)까지 함께 기다리느라 느렸다 →
+          가벼운 확인을 먼저 해서 관리 화면을 즉시 열고, 집계는 그다음에 채운다. */
+
+    /* ① 가벼운 로그인 확인 — 되면 안내 화면을 곧바로 걷어낸다 */
+    let quickOk = false;
+    try {
+      const quick = await api('/api/admin/me?light=1');
+      if (quick.ok && quick.data?.data?.admin) {
+        CURRENT_ADMIN = quick.data.data.admin;
+        quickOk = true;
+        document.getElementById('adminLogin')?.classList.remove('show');
+        document.getElementById('adminWrap')?.classList.add('show');
+      }
+    } catch (e) { console.warn('[admin init] 빠른 로그인 확인 실패', e); }
+
+    /* ② 화면 조각 연결 — 하나가 실패해도 전체가 멈추지 않게 각각 감싼다 */
+    const setups = [
+      setupLoginForm, setupSidebar, setupLogout, setupDemoActions,
+      setupMemberActions, setupMemberSort,
+      setupMemberTabs,            /* M-19-11 V2 */
+      setupSupportActions, setupSupportReplyForm, setupInlineStatusChange,
+      setupMemberInfoActions, setupPromoteSearch, setupPromotePick, setupPromoteConfirm,
+      setupOperatorActions,
+      setupOperatorEditModal,     /* M-15 */
+      setupReceiptSettings,
+      setupExpertAssignClick,     /* K-3 */
+      setupContentActions,        /* K-5 */
+      setupNoticeEditForm,        /* K-5 */
+      setupFaqEditForm,           /* K-5 */
+      setupMemberSearch,          /* K-7 */
+      setupAddMemberModal,        /* K-7 */
+      setupTempPasswordCopy,      /* K-7 */
+      setupAdminPasswordForm,     /* K-9 */
+      setupDonationPolicy,        /* M-15 Part 3-B */
+      setupHyosungActions,        /* L-8 */
+      setupHyosungDetailActions,  /* L-8 */
+      setupChurnActions,          /* M-19-1 */
+    ];
+    for (const fn of setups) {
+      try { fn(); } catch (e) { console.error('[admin init] 준비 실패:', fn && fn.name, e); }
+    }
 
     const isLogged = await fetchAdminMe();
 
     if (isLogged) {
       await showAdminPanel();
-    } else {
+    } else if (!quickOk) {
       showLogin();
     }
+    /* 빠른 확인은 통과했는데 집계 조회만 실패한 경우: 이미 열린 관리 화면을 닫지 않는다
+       (통계 칸만 비어 있고 나머지 기능은 그대로 쓸 수 있다) */
   }
 
   /* ============ 수납내역 엑셀 내보내기 헬퍼 (Phase 4순위 #2) ============ */
@@ -5897,13 +5913,13 @@ const OPERATOR_CATEGORIES = [
   /* ============ 부트스트랩 ============ */
   (function bootstrap() {
     function go() {
-      const login = document.getElementById('adminLogin');
-      const wrap = document.getElementById('adminWrap');
-      if (login && !login.classList.contains('show') &&
-          (!wrap || !wrap.classList.contains('show'))) {
-        login.classList.add('show');
-      }
-      init().catch((e) => console.error('[admin init]', e));
+      /* 2026-08-13: 확인이 끝나기 전에는 로그인 안내를 띄우지 않는다.
+         (로그인돼 있는데도 안내가 먼저 보여 "로그인하라는 화면으로 튕겼다"고 오해됐다)
+         확인하는 동안에는 '불러오는 중' 표시만 보여 주고, 확인 결과에 따라 화면을 정한다. */
+      const booting = document.getElementById('adminBooting');
+      if (booting) booting.style.display = 'flex';
+      const done = () => { if (booting) booting.style.display = 'none'; };
+      init().then(done, (e) => { console.error('[admin init]', e); showLogin(); done(); });
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', go);
