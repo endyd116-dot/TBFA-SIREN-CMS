@@ -1,16 +1,4 @@
-    const n = res.data.data.notice;
-    if (idEl) idEl.value = String(n.id);
-    if (catEl) {
-      /* 감춰 둔 분류로 저장된 글이면 그 분류도 골라 놓을 수 있게 목록에 넣어 준다 */
-      catEl.value = n.category || 'general';
-      if (catEl.value !== (n.category || 'general')) {
-        const opt = document.createElement('option');
-        opt.value = n.category;
-        opt.textContent = noticeCatLabel(n.category) + ' (감춘 분류)';
-        catEl.appendChild(opt);
-        catEl.value = n.category;
-      }
-    }/* =========================================================
+/* =========================================================
    SIREN — admin.js (v9 — H-2d-3 영수증 + I-3 블랙리스트 + I-4 컬럼 정렬)
    ========================================================= */
 (function () {
