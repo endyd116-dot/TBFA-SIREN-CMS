@@ -2665,16 +2665,13 @@
     <link rel="stylesheet" href="/css/print.css">
 </head>
 <body>
-  <!-- 로그인 확인 중 표시 (2026-08-13) — 확인이 끝나기 전에 아래 '로그인 안내'가 먼저 보여
-       로그인돼 있는데도 튕긴 것으로 오해되던 문제를 막는다. -->
-  <div id="adminBooting" style="display:none;position:fixed;inset:0;z-index:9997;align-items:center;justify-content:center;background:#faf9f7;flex-direction:column;gap:14px">
-    <img src="/img/brand-symbol.png?v=20260603" alt="" style="width:40px;height:40px;object-fit:contain;opacity:.85">
-    <div style="font-size:13.5px;color:#64748b">관리자 화면을 불러오는 중입니다...</div>
-  </div>
-
   <!-- 관리자 로그인 화면 — 비활성화됨 (메인 사이트 통합 로그인으로 일원화)
-       admin 토큰이 없는 상태에서 admin.html 직접 접근 시 안내 + 메인 리다이렉트 -->
-  <div id="adminLogin" class="admin-login">
+       admin 토큰이 없는 상태에서 admin.html 직접 접근 시 안내 + 메인 리다이렉트
+
+       2026-08-13: display:none 을 직접 박아 둔다. 스타일 파일이 늦게 도착하는 사이
+       이 안내가 먼저 번쩍이던 것을 없앤다(통합 CMS처럼 곧바로 넘어가 보이게).
+       로그인이 정말 없을 때만 화면 코드가 이 칸을 다시 켠다. -->
+  <div id="adminLogin" class="admin-login" style="display:none">
     <div class="login-card">
       <img src="/img/brand-symbol.png?v=20260603" alt="교사유가족협의회" style="width:48px;height:48px;object-fit:contain;margin-bottom:20px" />
       <h2 class="serif">관리자 로그인 통합 안내</h2>
@@ -5808,7 +5805,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20260813-fix"></script>
+  <script src="/js/admin.js?v=20260813-nofla"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
   <script src="/js/editor.js?v=20260811-imglink"></script>

@@ -479,7 +479,12 @@ const OPERATOR_CATEGORIES = [
 
   /* ============ 화면 전환 ============ */
   function showLogin() {
-    document.getElementById('adminLogin')?.classList.add('show');
+    /* 화면 파일에 박아 둔 '처음엔 숨김'을 여기서만 푼다 (진짜로 로그인이 없을 때) */
+    const login = document.getElementById('adminLogin');
+    if (login) {
+      login.style.display = '';
+      login.classList.add('show');
+    }
     document.getElementById('adminWrap')?.classList.remove('show');
     stopKpiPolling();
   }
@@ -5915,13 +5920,10 @@ const OPERATOR_CATEGORIES = [
   /* ============ 부트스트랩 ============ */
   (function bootstrap() {
     function go() {
-      /* 2026-08-13: 확인이 끝나기 전에는 로그인 안내를 띄우지 않는다.
-         (로그인돼 있는데도 안내가 먼저 보여 "로그인하라는 화면으로 튕겼다"고 오해됐다)
-         확인하는 동안에는 '불러오는 중' 표시만 보여 주고, 확인 결과에 따라 화면을 정한다. */
-      const booting = document.getElementById('adminBooting');
-      if (booting) booting.style.display = 'flex';
-      const done = () => { if (booting) booting.style.display = 'none'; };
-      init().then(done, (e) => { console.error('[admin init]', e); showLogin(); done(); });
+      /* 2026-08-13: 확인이 끝나기 전에는 아무것도 그리지 않는다.
+         안내 화면·불러오는 중 표시가 차례로 번쩍이던 것을 없애고,
+         확인이 끝난 뒤 관리 화면(또는 로그인 안내) 한 번만 나타나게 한다. */
+      init().catch((e) => { console.error('[admin init]', e); showLogin(); });
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', go);
