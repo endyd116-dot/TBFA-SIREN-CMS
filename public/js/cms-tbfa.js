@@ -222,7 +222,15 @@
 
   /* ============ 관리자 인증 확인 ============ */
   async function checkAuth() {
-    const res = await api('/api/admin/me');
+    let res = await api('/api/admin/me');
+    /* 2026-08-13: 홈페이지 로그인은 살아 있는데 '관리자 모드' 자격만 끊긴 경우가 잦다
+       (둘은 서로 다른 자격이다). 로그인 화면으로 돌려보내기 전에 조용히 한 번 다시 들어간다. */
+    if (!res.ok || !res.data?.data) {
+      try {
+        const re = await fetch('/api/auth/admin-elevate', { method: 'POST', credentials: 'include' });
+        if (re.ok) res = await api('/api/admin/me');
+      } catch (e) { console.warn('[cms] 관리자 모드 재진입 실패', e); }
+    }
     if (!res.ok || !res.data?.data) {
       location.href = '/admin.html';
       return null;

@@ -5782,16 +5782,30 @@ const OPERATOR_CATEGORIES = [
           가벼운 확인을 먼저 해서 관리 화면을 즉시 열고, 집계는 그다음에 채운다. */
 
     /* ① 가벼운 로그인 확인 — 되면 안내 화면을 곧바로 걷어낸다 */
-    let quickOk = false;
-    try {
-      const quick = await api('/api/admin/me?light=1');
-      if (quick.ok && quick.data?.data?.admin) {
-        CURRENT_ADMIN = quick.data.data.admin;
-        quickOk = true;
-        document.getElementById('adminLogin')?.classList.remove('show');
-        document.getElementById('adminWrap')?.classList.add('show');
-      }
-    } catch (e) { console.warn('[admin init] 빠른 로그인 확인 실패', e); }
+    async function quickAuthCheck() {
+      try {
+        const quick = await api('/api/admin/me?light=1');
+        if (quick.ok && quick.data?.data?.admin) {
+          CURRENT_ADMIN = quick.data.data.admin;
+          document.getElementById('adminLogin')?.classList.remove('show');
+          document.getElementById('adminWrap')?.classList.add('show');
+          return true;
+        }
+      } catch (e) { console.warn('[admin init] 빠른 로그인 확인 실패', e); }
+      return false;
+    }
+
+    let quickOk = await quickAuthCheck();
+
+    /* 홈페이지 로그인은 살아 있는데 '관리자 모드' 쪽 자격만 끊긴 경우가 잦다
+       (둘은 서로 다른 자격이다). 이럴 땐 홈으로 돌려보내지 말고 조용히 관리자 모드로
+       다시 들어가 그대로 화면을 연다. 홈페이지 로그인까지 없으면 그때만 안내 화면. */
+    if (!quickOk) {
+      try {
+        const re = await fetch('/api/auth/admin-elevate', { method: 'POST', credentials: 'include' });
+        if (re.ok) quickOk = await quickAuthCheck();
+      } catch (e) { console.warn('[admin init] 관리자 모드 재진입 실패', e); }
+    }
 
     /* ② 화면 조각 연결 — 하나가 실패해도 전체가 멈추지 않게 각각 감싼다 */
     const setups = [
