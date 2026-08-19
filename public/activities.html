@@ -34,7 +34,7 @@
 
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
-<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
 <link rel="stylesheet" href="/css/pages.css">
 <link rel="stylesheet" href="/css/activity.css?v=m11">
 <link rel="stylesheet" href="/css/news.css?v=20260811-split">
@@ -72,12 +72,16 @@
             <select id="actYearFilter">
               <option value="">전체 연도</option>
             </select>
+            <!-- ★ 2026-08 요청: 우측 분류 버튼(전체/활동보고서/사진/뉴스) 숨김.
+                 눌러도 나오는 내용이 적어 화면만 복잡해 보인다는 의견 → 연도 필터만 남김.
+                 나중에 분류를 다시 쓰려면 아래 주석만 풀면 그대로 되살아난다.
             <div class="act-cat-tabs" id="actCatTabs">
               <button type="button" class="act-cat-tab on" data-cat="">전체</button>
               <button type="button" class="act-cat-tab" data-cat="report"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 활동보고서</button>
               <button type="button" class="act-cat-tab" data-cat="photo"><span class="siren-icon-wrap" data-icon="camera"></span> 사진</button>
               <button type="button" class="act-cat-tab" data-cat="news"><span class="siren-icon-wrap" data-icon="newspaper"></span> 뉴스</button>
             </div>
+            -->
           </div>
 
           <!-- 앨범 -->

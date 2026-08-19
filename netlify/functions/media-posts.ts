@@ -53,9 +53,14 @@ export default async (req: Request) => {
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));
     const limit = Math.min(50, Math.max(8, Number(url.searchParams.get("limit") || 12)));
     const category = url.searchParams.get("category") || "";
+    /* ★ 2026-08: 연도 필터 — 발행일은 UTC로 저장되므로 한국 시간으로 바꿔 연도를 판정한다 */
+    const year = url.searchParams.get("year") || "";
 
     const conds: any[] = [eq(mediaPosts.isPublished, true)];
     if (VALID_CATEGORIES.includes(category)) conds.push(eq(mediaPosts.category, category as any));
+    if (/^[0-9]{4}$/.test(year)) {
+      conds.push(sqlExp`EXTRACT(YEAR FROM (${mediaPosts.publishedAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul'))::int = ${Number(year)}`);
+    }
     const where = conds.length === 1 ? conds[0] : and(...conds);
 
     const [{ total }]: any = await db.select({ total: count() }).from(mediaPosts).where(where);
@@ -74,7 +79,24 @@ export default async (req: Request) => {
       .orderBy(desc(mediaPosts.publishedAt))
       .limit(limit).offset((page - 1) * limit);
 
+    /* ★ 2026-08: 연도 드롭다운 목록 — 실패해도 본 목록은 그대로 보여준다 */
+    let yearStats: any[] = [];
+    try {
+      const r: any = await db.execute(sqlExp`
+        SELECT EXTRACT(YEAR FROM (published_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul'))::int AS year,
+               COUNT(*)::int AS count
+        FROM media_posts
+        WHERE is_published = true AND published_at IS NOT NULL
+        GROUP BY 1
+        ORDER BY 1 DESC
+      `);
+      yearStats = (r?.rows ?? r ?? []).filter((x: any) => x && x.year);
+    } catch (err) {
+      console.warn("[media-posts] yearStats 조회 실패", err);
+    }
+
     return ok({
+      yearStats,
       list: list.map((n: any) => ({
         ...n,
         thumbnailUrl: n.thumbnailBlobId ? `/api/blob-image?id=${n.thumbnailBlobId}` : null,

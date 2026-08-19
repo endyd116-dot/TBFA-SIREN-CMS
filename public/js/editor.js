@@ -121,7 +121,7 @@
       if (!editorCssOk) {
         throw new Error('Toast UI Editor CSS를 모든 CDN에서 로드할 수 없습니다');
       }
-      await loadStylesheet('/css/editor.css?v=20260811-imglink').catch(() => {});
+      await loadStylesheet('/css/editor.css?v=20260819-popup').catch(() => {});
 
       /* 색상 관련 CSS (옵셔널) */
       await loadCssWithFallback(CDN_FALLBACKS.colorCss, 'colorSyntax.css');

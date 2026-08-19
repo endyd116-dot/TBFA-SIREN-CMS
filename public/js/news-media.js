@@ -19,6 +19,7 @@
   }
 
   let _currentCat = '';
+  let _currentYear = '';   /* ★ 2026-08: 선택된 연도 ('' = 전체) */
 
   async function loadMedia() {
     const grid = document.getElementById('mediaGrid');
@@ -28,6 +29,7 @@
 
     const params = new URLSearchParams({ limit: '12', page: '1' });
     if (_currentCat) params.set('category', _currentCat);
+    if (_currentYear) params.set('year', _currentYear);   /* ★ 2026-08: 연도 필터 */
 
     try {
       const res = await fetch('/api/media-posts?' + params.toString(), { credentials: 'include' });
@@ -37,6 +39,9 @@
         grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);font-size:13px">불러오기 실패</div>';
         return;
       }
+
+      /* ★ 2026-08: 서버가 준 연도 목록으로 선택칸 채우기 (없으면 조용히 넘어감) */
+      fillYearOptions(json.data?.yearStats || []);
 
       const list = json.data?.list || [];
       if (list.length === 0) {
@@ -125,6 +130,28 @@
     document.body.style.overflow = 'hidden';
   }
 
+  /* ★ 2026-08: 연도 선택칸 채우기 — 목록을 받을 때마다 갱신하되 고른 값은 유지 */
+  function fillYearOptions(yearStats) {
+    const sel = document.getElementById('mediaYearFilter');
+    if (!sel || !Array.isArray(yearStats) || yearStats.length === 0) return;
+    const keep = sel.value;
+    let html = '<option value="">전체 연도</option>';
+    yearStats.forEach((s) => {
+      html += '<option value="' + s.year + '">' + s.year + '년 (' + s.count + ')</option>';
+    });
+    sel.innerHTML = html;
+    if (keep) sel.value = keep;
+  }
+
+  function setupYearFilter() {
+    const sel = document.getElementById('mediaYearFilter');
+    if (!sel) return;
+    sel.addEventListener('change', (e) => {
+      _currentYear = e.target.value || '';
+      loadMedia();
+    });
+  }
+
   function setupTabs() {
     document.querySelectorAll('#mediaCatTabs .act-cat-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -160,6 +187,7 @@
     const page = document.body.dataset.page;
     if (page !== 'news' && page !== 'press') return;
     setupTabs();
+    setupYearFilter();
     setupModalClose();
     loadMedia();
   }

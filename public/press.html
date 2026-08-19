@@ -34,7 +34,7 @@
 
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
-<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
 <link rel="stylesheet" href="/css/home.css">
 <link rel="stylesheet" href="/css/pages.css">
 <link rel="stylesheet" href="/css/activity.css?v=m11">
@@ -66,11 +66,20 @@
 
     <section class="block" id="media">
       <div class="container">
-        <div class="act-cat-tabs" id="mediaCatTabs" style="margin-left:0;margin-bottom:22px">
-          <button type="button" class="act-cat-tab on" data-mc="">전체</button>
-          <button type="button" class="act-cat-tab" data-mc="press"><span class="siren-icon-wrap" data-icon="newspaper"></span> 언론보도</button>
-          <button type="button" class="act-cat-tab" data-mc="photo"><span class="siren-icon-wrap" data-icon="camera"></span> 사진</button>
-          <button type="button" class="act-cat-tab" data-mc="event"><span class="siren-icon-wrap" data-icon="target"></span> 행사</button>
+        <!-- ★ 2026-08 요청: 분류 버튼(전체/언론보도/사진/행사) 제거 → 활동보고와 같이 연도로만 구분.
+             분류를 다시 쓰려면 아래 주석 블록을 풀고 이 필터를 지우면 된다.
+             <div class="act-cat-tabs" id="mediaCatTabs" style="margin-left:0;margin-bottom:22px">
+               <button type="button" class="act-cat-tab on" data-mc="">전체</button>
+               <button type="button" class="act-cat-tab" data-mc="press"><span class="siren-icon-wrap" data-icon="newspaper"></span> 언론보도</button>
+               <button type="button" class="act-cat-tab" data-mc="photo"><span class="siren-icon-wrap" data-icon="camera"></span> 사진</button>
+               <button type="button" class="act-cat-tab" data-mc="event"><span class="siren-icon-wrap" data-icon="target"></span> 행사</button>
+             </div>
+        -->
+        <div class="act-filter-bar" style="margin-left:0;margin-bottom:22px">
+          <span class="label">필터</span>
+          <select id="mediaYearFilter">
+            <option value="">전체 연도</option>
+          </select>
         </div>
 
         <div id="mediaGrid">
@@ -103,7 +112,7 @@
   <script src="/js/common.js?v=20260803-fast2"></script>
   <script src="/js/auth.js?v=20260712-noemoji"></script>
   <script src="/js/page-intro.js?v=20260811-split"></script>
-  <script src="/js/news-media.js?v=20260811-split"></script>
+  <script src="/js/news-media.js?v=20260819-yearfilter"></script>
   <script src="/js/donate.js?v=r45"></script>
 </body>
 </html>
