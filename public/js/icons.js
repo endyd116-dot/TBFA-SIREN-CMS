@@ -333,6 +333,9 @@
         var el = nodes[i];
         if (el.getAttribute("data-icon-done")) continue;
         var name = el.getAttribute("data-icon");
+        /* ★ 2026-08-20: 서버가 그린 메뉴는 저장된 값(이모지일 수 있음)을 그대로 넘긴다.
+           아이콘 이름으로 등록된 게 없으면 이모지 대응표를 한 번 더 본다. */
+        if (name && !P[name] && EMOJI[name]) name = EMOJI[name];
         var label = el.getAttribute("data-label") || null;
         el.innerHTML = Icons.svg(name, { label: label });
         el.setAttribute("data-icon-done", "1");

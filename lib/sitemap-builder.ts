@@ -32,7 +32,13 @@ export interface SitemapUrl {
  */
 const STATIC_PAGES: SitemapUrl[] = [
   { loc: "/",                       changefreq: "daily",   priority: 1.0 },
-  { loc: "/about.html",             changefreq: "monthly", priority: 0.8 },
+  { loc: "/p/greeting",             changefreq: "monthly", priority: 0.9 },
+  { loc: "/p/organization",         changefreq: "monthly", priority: 0.7 },
+  { loc: "/p/history",              changefreq: "monthly", priority: 0.7 },
+  { loc: "/p/family-support",       changefreq: "monthly", priority: 0.8 },
+  { loc: "/p/memorial-scholarship", changefreq: "monthly", priority: 0.7 },
+  { loc: "/notice.html",            changefreq: "weekly",  priority: 0.7 },
+  { loc: "/press.html",             changefreq: "weekly",  priority: 0.6 },
   { loc: "/activities.html",        changefreq: "weekly",  priority: 0.7 },
   { loc: "/news.html",              changefreq: "weekly",  priority: 0.7 },
   { loc: "/campaigns.html",         changefreq: "daily",   priority: 0.9 },
@@ -41,15 +47,18 @@ const STATIC_PAGES: SitemapUrl[] = [
   { loc: "/family-stories.html",    changefreq: "weekly",  priority: 0.7 },
   { loc: "/incidents.html",         changefreq: "weekly",  priority: 0.7 },
   { loc: "/resources.html",         changefreq: "monthly", priority: 0.6 },
-  { loc: "/ethics.html",            changefreq: "yearly",  priority: 0.4 },
+  { loc: "/p/ethics",               changefreq: "yearly",  priority: 0.4 },
   { loc: "/board.html",             changefreq: "daily",   priority: 0.7 },
-  { loc: "/ranking.html",           changefreq: "weekly",  priority: 0.6 },
+  /* ★ 2026-08-20: 포인트 랭킹은 상단 메뉴·단체 정보란이 없는 단독 화면이라
+     검색엔진에 이 사이트의 대표 페이지처럼 노출되면 오히려 손해다. 목록에서 뺀다.
+     (나중에 다른 페이지처럼 뼈대를 갖추면 되살린다)
+  // { loc: "/ranking.html",           changefreq: "weekly",  priority: 0.6 }, */
   { loc: "/legal-support.html",     changefreq: "monthly", priority: 0.6 },
   { loc: "/manual.html",            changefreq: "monthly", priority: 0.5 },
   { loc: "/report.html",            changefreq: "monthly", priority: 0.7 },
   { loc: "/report-harassment.html", changefreq: "monthly", priority: 0.7 },
-  { loc: "/terms.html",             changefreq: "yearly",  priority: 0.3 },
-  { loc: "/privacy.html",           changefreq: "yearly",  priority: 0.3 },
+  { loc: "/p/terms",                changefreq: "yearly",  priority: 0.3 },
+  { loc: "/p/privacy",              changefreq: "yearly",  priority: 0.3 },
 ];
 
 function fmtDate(d: Date | string | null | undefined): string | undefined {

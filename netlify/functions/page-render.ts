@@ -20,6 +20,7 @@ import { renderShortcodes } from "../../lib/page-shortcodes";
 import { htmlToPlainText } from "../../lib/sanitize-page-html";
 import { getOrgMeta, getDefaultMeta, PageMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
+import { loadShellData, applyShell, injectPreload } from "../../lib/shell-render";
 
 /**
  * 이 함수가 `/p/{주소}`를 **직접** 받는다.
@@ -135,7 +136,23 @@ ${preview ? '<div class="page-draft-banner">임시저장 미리보기입니다 �
       getDefaultMeta(false).catch(() => undefined),
     ]);
 
-    const finalHtml = injectMeta(html, {
+    /* ★ 2026-08-20: 상단 메뉴·단체 정보란을 서버가 미리 채운다.
+       예전에는 화면이 열린 뒤 브라우저가 따로 받아 채워서, 검색엔진·심사기관이 읽는
+       페이지 원본에는 메뉴도 단체 정보도 없었다. 실패해도 페이지는 그대로 나온다.
+       임시저장 미리보기는 편집 중 값이 섞이지 않도록 건드리지 않는다. */
+    let shellHtml = html;
+    let shellPreload: Record<string, any> = {};
+    if (!preview) {
+      try {
+        const built = applyShell(html, await loadShellData());
+        shellHtml = built.html;
+        shellPreload = built.preload;
+      } catch (e) {
+        console.warn("[page-render] 뼈대 채우기 실패 — 원본 유지", e);
+      }
+    }
+
+    const finalHtml = injectMeta(injectPreload(shellHtml, shellPreload), {
       page: pageMeta,
       org,
       defaults,

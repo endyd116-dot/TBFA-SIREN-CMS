@@ -64,7 +64,21 @@
     (document.head || document.documentElement).appendChild(st);
   })();
 
+  /* ★ 2026-08-20: 서버가 페이지에 미리 담아 보낸 값이 있으면 왕복 없이 그대로 쓴다.
+     예전에는 화면이 열릴 때마다 같은 값을 7~10번 다시 물어봐서 첫 화면이 느렸다.
+     한 번 쓰고 지운다 — 이후 갱신은 실제 조회로 최신값을 받는다. */
+  function takePreloaded(url) {
+    const pre = window.__SIREN_PRELOAD__;
+    if (!pre) return undefined;
+    if (!Object.prototype.hasOwnProperty.call(pre, url)) return undefined;
+    const value = pre[url];
+    delete pre[url];
+    return value;
+  }
+
   async function fetchJson(url) {
+    const pre = takePreloaded(url);
+    if (pre !== undefined && pre !== null) return pre;
     try {
       const res = await fetch(url, { credentials: 'include', cache: IS_PREVIEW ? 'no-store' : 'no-cache' });
       if (!res.ok) return null;
@@ -87,6 +101,9 @@
   async function loadPartial({ slot, file }) {
     const target = $(slot);
     if (!target) return;
+    /* ★ 2026-08-20: 서버가 이미 채워 보냈으면 다시 받아오지 않는다.
+       (같은 내용을 한 번 더 받아 덮어쓰면 첫 화면이 느려지고 깜빡인다) */
+    if (target.innerHTML.trim() !== '') return;
     try {
       /* 캐시 강제 무력화 — 헤더/푸터/모달 변경 시 즉시 반영 */
       const res = await fetch(file + (file.includes('?') ? '&' : '?') + 'cb=' + Date.now(),
@@ -276,11 +293,11 @@
     const sel = $('.related-select');
     if (!sel) return;
 
-    /* DB에서 동적 로드 (실패 시 placeholder만 유지) */
+    /* DB에서 동적 로드 (실패 시 placeholder만 유지)
+       ★ 2026-08-20: 서버가 미리 담아 보낸 값이 있으면 그것부터 쓴다(왕복 제거) */
     try {
-      const res = await fetch('/api/public/related-sites', { credentials: 'omit' });
-      if (res.ok) {
-        const json = await res.json();
+      const json = await fetchJson('/api/public/related-sites');
+      if (json) {
         const items = (json.data && json.data.items) || json.items || [];
         if (items.length > 0) {
           const escapeAttr = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
@@ -604,6 +621,12 @@
 
   /** 로고·협회명 값을 받아온다 (화면은 건드리지 않음) */
   function fetchBrandJson() {
+    /* ★ 2026-08-20: 서버가 미리 담아 보낸 값이 있으면 왕복 없이 그대로 쓴다 */
+    var pre = takePreloaded('/api/public/brand');
+    if (pre !== undefined && pre !== null) {
+      if (!IS_PREVIEW) storeSet(BRAND_STORE_KEY, pre);
+      return Promise.resolve(pre);
+    }
     return fetch('/api/public/brand', { cache: IS_PREVIEW ? 'no-store' : 'no-cache' })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (b) { if (b && !IS_PREVIEW) storeSet(BRAND_STORE_KEY, b); return b; })

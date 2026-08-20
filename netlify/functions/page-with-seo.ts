@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getPageMeta, getOrgMeta, getDefaultMeta, getContentMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
+import { loadShellData, applyShell, injectPreload } from "../../lib/shell-render";
 
 // P0 fix: Function v2의 config.path에서 ".html" 확장자 경로가 라우팅 미동작 →
 //   /api/page-with-seo 표준 경로로 변경. netlify.toml에서 각 .html → /api/page-with-seo?_p=/xxx.html rewrite.
@@ -82,7 +83,20 @@ export default async (req: Request) => {
       getDefaultMeta(false).catch(() => undefined),
     ]);
 
-    const finalHtml = injectMeta(html, {
+    /* ★ 2026-08-20: 상단 메뉴·단체 정보란을 서버가 미리 채운다.
+       예전에는 화면이 열린 뒤 브라우저가 따로 받아 채워서, 검색엔진·심사기관이 읽는
+       페이지 원본에는 메뉴도 단체 정보도 없었다. 실패해도 페이지는 그대로 나온다. */
+    let shellHtml = html;
+    let preload: Record<string, any> = {};
+    try {
+      const shell = applyShell(html, await loadShellData());
+      shellHtml = shell.html;
+      preload = shell.preload;
+    } catch (e) {
+      console.warn("[page-with-seo] 뼈대 채우기 실패 — 원본 유지", e);
+    }
+
+    const finalHtml = injectMeta(injectPreload(shellHtml, preload), {
       page: pageMeta,
       org,
       defaults,

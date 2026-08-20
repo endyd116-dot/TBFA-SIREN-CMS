@@ -87,6 +87,110 @@
   force = true
 
 # ============================================================
+# ★ 2026-08-20 (구글 광고그랜트 심사 대응 B단계)
+#   공개 페이지를 서버가 "다 채운 상태"로 내보낸다.
+#   예전에는 상단 메뉴·단체 정보란을 화면이 열린 뒤 브라우저가 따로 받아 채웠다.
+#   그래서 검색엔진·심사기관이 읽는 페이지 원본에는 메뉴도 단체 정보도 없었고,
+#   운영자가 어드민에서 고친 값이 그들에게 전달되지 않았다.
+#   (약관·개인정보처리방침·윤리경영·이메일무단수집거부는 /p/* 로 옮겨져 page-render가 처리)
+# ============================================================
+[[redirects]]
+  from = "/"
+  to = "/api/page-shell?_p=/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/index.html"
+  to = "/api/page-shell?_p=/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/activities.html"
+  to = "/api/page-shell?_p=/activities.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/news.html"
+  to = "/api/page-shell?_p=/news.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/notice.html"
+  to = "/api/page-shell?_p=/notice.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/press.html"
+  to = "/api/page-shell?_p=/press.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/campaigns.html"
+  to = "/api/page-shell?_p=/campaigns.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/support.html"
+  to = "/api/page-shell?_p=/support.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/memorial.html"
+  to = "/api/page-shell?_p=/memorial.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/family-stories.html"
+  to = "/api/page-shell?_p=/family-stories.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/incidents.html"
+  to = "/api/page-shell?_p=/incidents.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/resources.html"
+  to = "/api/page-shell?_p=/resources.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/board.html"
+  to = "/api/page-shell?_p=/board.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/legal-support.html"
+  to = "/api/page-shell?_p=/legal-support.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/report.html"
+  to = "/api/page-shell?_p=/report.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/report-harassment.html"
+  to = "/api/page-shell?_p=/report-harassment.html"
+  status = 200
+  force = true
+
+# ============================================================
 # ★ 2026-08-03 메뉴·페이지 통합 편집: 옮겨간 정책 문서들을 새 주소로 넘긴다.
 #   본문이 저장소로 옮겨졌으므로 옛 주소로 들어온 방문자·검색엔진을 새 주소로 보낸다.
 #   (해시가 붙는 /about.html#greeting 류는 서버가 # 뒤를 볼 수 없어 각 파일의 화면단에서 처리)
@@ -297,13 +401,26 @@
 #   campaign/incident/activity/board-view/family-story/memorial-teacher 정적 HTML을
 #   런타임에 읽어서 head에 콘텐츠별 OG 메타 주입 후 반환하므로 정적 HTML을 번들 포함.
 [functions."page-with-seo"]
-  included_files = ["public/campaign.html", "public/incident.html", "public/activity.html", "public/board-view.html", "public/family-story.html", "public/memorial-teacher.html"]
+  included_files = ["public/campaign.html", "public/incident.html", "public/activity.html", "public/board-view.html", "public/family-story.html", "public/memorial-teacher.html", "public/partials/**"]
+
+# ★ 2026-08-20 (구글 광고그랜트 심사 대응 B단계): 공개 페이지를 다 채워서 내보내는 함수.
+#   정적 페이지 원본과 공용 조각(머리말·꼬리말·모달)을 런타임에 읽으므로 번들에 포함해야 한다.
+#   빠뜨리면 로컬에서는 되고 라이브에서만 뼈대가 빈 채로 나간다.
+[functions."page-shell"]
+  included_files = [
+    "public/index.html", "public/activities.html", "public/news.html", "public/notice.html",
+    "public/press.html", "public/campaigns.html", "public/support.html", "public/memorial.html",
+    "public/family-stories.html", "public/incidents.html", "public/resources.html",
+    "public/board.html", "public/legal-support.html",
+    "public/report.html", "public/report-harassment.html",
+    "public/partials/**"
+  ]
 
 # ★ 2026-08-03 메뉴·페이지 통합 편집: /p/{주소} 페이지를 그리는 함수.
 #   페이지 뼈대(page.html)와 없는 페이지용 404를 런타임에 읽으므로 번들에 포함해야 한다.
 #   빠뜨리면 로컬에서는 되고 라이브에서만 "페이지 뼈대를 찾을 수 없습니다"가 뜬다.
 [functions."page-render"]
-  included_files = ["public/page.html", "public/404.html"]
+  included_files = ["public/page.html", "public/404.html", "public/partials/**"]
 
 # ★ P2: 순직 인정요건 법령 AI 파싱(criteria-generate)도 법령 문서 번들 포함 필요
 [functions."admin-martyrdom-criteria-generate"]
