@@ -418,7 +418,7 @@
       }
 
       /* ---- 2-6. 특별 캠페인 배너 ----
-         ★ 2026-08-20: 예전에는 배너가 화면 코드에 미리 박혀 있고(예시 숫자 68% / 68,420,000원 포함)
+         ★ 2026-08-20: 예전에는 배너가 화면 코드에 미리 박혀 있고(예시용 모금 진행률·금액 포함)
             어드민에서 끄면 나중에 숨기기만 했다. 그래서 페이지 원본에는 껐는데도 그대로 남아
             검색엔진·심사기관에는 계속 진행 중인 모금함처럼 보였다.
             이제는 어드민에서 '노출'로 켜둔 경우에만 아래 자리에 새로 그려 넣는다. */
@@ -483,6 +483,9 @@
                   </div>
                 </div>
               </section>`;
+
+            /* 배너는 화면이 열린 뒤에 만들어지므로, 진행률 게이지 애니메이션을 여기서 한 번 더 걸어준다. */
+            if (typeof setupProgressBar === 'function') setupProgressBar();
           }
         }
       }
@@ -684,7 +687,7 @@
   function setupProgressBar() {
     const bar = document.querySelector('.progress-bar');
     if (!bar) return;
-    const target = bar.style.width || '68%';
+    const target = bar.style.width || '0%';
     bar.style.width = '0%';
 
     const obs = new IntersectionObserver((entries) => {
