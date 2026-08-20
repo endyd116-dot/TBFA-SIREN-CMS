@@ -417,42 +417,72 @@
         }
       }
 
-      /* ---- 2-6. 특별 캠페인 배너 ---- */
-      if (d.specialBanner) {
-        const camp = document.querySelector('.campaign');
-        if (camp) {
-          if (d.specialBanner.visible === false) {
-            camp.parentElement?.parentElement?.style && (camp.parentElement.parentElement.style.display = 'none');
-          }
-          /* 태그 */
-          if (d.specialBanner.tag) {
-            const tagEl = camp.querySelector('.camp-tag');
-            if (tagEl) tagEl.textContent = d.specialBanner.tag;
-          }
-          /* 제목 */
-          if (d.specialBanner.title) {
-            const h3 = camp.querySelector('h3');
-            if (h3) h3.innerHTML = d.specialBanner.title;
-          }
-          /* 본문 */
-          if (d.specialBanner.lead) {
-            const lead = camp.querySelector('p.lead');
-            if (lead) lead.textContent = d.specialBanner.lead;
-          }
-          /* 모금 진행률 */
-          const goal = Number(d.specialBanner.goalAmount || 0);
-          const raised = Number(d.specialBanner.raisedAmount || 0);
-          if (goal > 0) {
-            const pct = Math.min(100, Math.round((raised / goal) * 100));
-            const bar = camp.querySelector('.progress-bar');
-            if (bar) bar.style.width = pct + '%';
-            const stats = camp.querySelector('.progress-stats');
-            if (stats) {
-              stats.innerHTML = `
-                <span>모금 진행률 <strong>${pct}%</strong></span>
-                <span>목표 <strong>${goal.toLocaleString()}원</strong> 중 <strong>${raised.toLocaleString()}원</strong></span>
-              `;
-            }
+      /* ---- 2-6. 특별 캠페인 배너 ----
+         ★ 2026-08-20: 예전에는 배너가 화면 코드에 미리 박혀 있고(예시 숫자 68% / 68,420,000원 포함)
+            어드민에서 끄면 나중에 숨기기만 했다. 그래서 페이지 원본에는 껐는데도 그대로 남아
+            검색엔진·심사기관에는 계속 진행 중인 모금함처럼 보였다.
+            이제는 어드민에서 '노출'로 켜둔 경우에만 아래 자리에 새로 그려 넣는다. */
+      {
+        const esc = (s) => String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const slot = document.getElementById("specialBannerSlot");
+        const sb = d.specialBanner;
+        if (slot) {
+          if (!sb || sb.visible !== true) {
+            slot.innerHTML = '';
+          } else {
+            const goal = Number(sb.goalAmount || 0);
+            const raised = Number(sb.raisedAmount || 0);
+            const pct = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0;
+
+            const progressHtml = goal > 0
+              ? `<div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
+                 <div class="progress-stats">
+                   <span>모금 진행률 <strong>${pct}%</strong></span>
+                   <span>목표 <strong>${goal.toLocaleString()}원</strong> 중 <strong>${raised.toLocaleString()}원</strong></span>
+                 </div>`
+              : '';
+
+            const btn = (c, cls) => {
+              if (!c || !c.label) return '';
+              const label = esc(c.label);
+              if (c.action === 'modal' && c.target) {
+                return `<button class="btn ${cls}" data-action="open-modal" data-target="${esc(c.target)}">${label}</button>`;
+              }
+              return `<a class="btn ${cls}" href="${esc(c.href || '#')}">${label}</a>`;
+            };
+            const ctaHtml = sb.cta
+              ? `<div class="hero-btns">${btn(sb.cta.primary, 'btn-primary')}${btn(sb.cta.secondary, 'btn-ghost-light')}</div>`
+              : '';
+
+            slot.innerHTML = `
+              <section class="block" style="padding-top:0">
+                <div class="container">
+                  <div class="campaign">
+                    <div style="position:relative;z-index:2">
+                      ${sb.tag ? `<span class="camp-tag">${esc(sb.tag)}</span>` : ''}
+                      ${sb.title ? `<h3>${sb.title}</h3>` : ''}
+                      ${sb.lead ? `<p class="lead">${esc(sb.lead)}</p>` : ''}
+                      ${progressHtml}
+                      ${ctaHtml}
+                    </div>
+                    <div class="camp-visual">
+                      <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="width:240px;margin:0 auto" aria-hidden="true">
+                        <defs>
+                          <linearGradient id="cv" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#7a1f2b"/>
+                            <stop offset="100%" stop-color="#3a0d14"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M100 30 C 60 70, 60 110, 100 130 L 100 220 L 70 195 L 100 130 L 130 195 L 100 220 L 100 130 C 140 110, 140 70, 100 30 Z" fill="url(#cv)"/>
+                        <ellipse cx="100" cy="70" rx="42" ry="34" fill="#3a0d14"/>
+                        <ellipse cx="100" cy="70" rx="6" ry="9" fill="#b8935a"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </section>`;
           }
         }
       }

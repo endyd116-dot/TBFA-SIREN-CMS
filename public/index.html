@@ -59,10 +59,15 @@
   "image": "https://tbfa.co.kr/og-default.png",
   "description": "교사 유가족들의 지원과 권익 보호, 모든 교사들의 사회적 문제 해결을 위해 함께하는 통합 NPO 플랫폼.",
   "foundingDate": "2024",
+  "email": "info@tbfa.co.kr",
+  "telephone": "0507-1394-5242",
+  "taxID": "1188271215",
   "address": {
     "@type": "PostalAddress",
-    "addressCountry": "KR",
-    "addressLocality": "Seoul"
+    "streetAddress": "공항대로 426 VIP빌딩 6층 618호",
+    "addressLocality": "강서구",
+    "addressRegion": "서울특별시",
+    "addressCountry": "KR"
   },
   "identifier": "1188271215",
   "sameAs": []
@@ -202,19 +207,19 @@
         </div>
         <div class="stats-grid">
           <div class="stat">
-            <div class="stat-num" data-stat-key="support.totalCount" data-target="847" data-suffix="건">0<small></small></div>
+            <div class="stat-num" data-stat-key="support.totalCount" data-target="23" data-suffix="건">23<small>건</small></div>
             <div class="stat-label">유가족 지원 건수</div>
           </div>
           <div class="stat">
-            <div class="stat-num" data-stat-key="donations.totalAmount" data-target="12830" data-suffix="만원">0<small></small></div>
+            <div class="stat-num" data-stat-key="donations.totalAmount" data-target="6000" data-suffix="만원">6,000<small>만원</small></div>
             <div class="stat-label">누적 후원금</div>
           </div>
           <div class="stat">
-            <div class="stat-num" data-stat-key="members.regularDonors" data-target="3527" data-suffix="명">0<small></small></div>
+            <div class="stat-num" data-stat-key="members.regularDonors" data-target="52" data-suffix="명">52<small>명</small></div>
             <div class="stat-label">정기 후원 회원</div>
           </div>
           <div class="stat">
-            <div class="stat-num" data-stat-key="members.volunteers" data-target="186" data-suffix="명">0<small></small></div>
+            <div class="stat-num" data-stat-key="members.volunteers" data-target="50" data-suffix="명">50<small>명</small></div>
             <div class="stat-label">전문 봉사자</div>
           </div>
         </div>
@@ -291,40 +296,12 @@
       </div>
     </section>
 
-    <!-- 특별 캠페인 -->
-    <section class="block" style="padding-top:0">
-      <div class="container">
-        <div class="campaign">
-          <div style="position:relative;z-index:2">
-            <span class="camp-tag">특별 캠페인 (SPECIAL CAMPAIGN)</span>
-            <h3>"기억의 약속" 추모 주간<br />특별 모금함이 진행 중입니다</h3>
-            <p class="lead">고인이 된 동료 교사를 기리고, 남은 가족들이 다시 일상으로 돌아갈 수 있도록 함께해 주세요. 모금액은 전액 유가족 직접 지원과 추모 사업에 사용됩니다.</p>
-            <div class="progress"><div class="progress-bar" style="width:68%"></div></div>
-            <div class="progress-stats">
-              <span>모금 진행률 <strong>68%</strong></span>
-              <span>목표 <strong>100,000,000원</strong> 중 <strong>68,420,000원</strong></span>
-            </div>
-            <div class="hero-btns">
-              <button class="btn btn-primary" data-action="open-modal" data-target="donateModal">캠페인 동참</button>
-              <a href="/report.html" class="btn btn-ghost-light">집행 내역 보기</a>
-            </div>
-          </div>
-          <div class="camp-visual">
-            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="width:240px;margin:0 auto" aria-hidden="true">
-              <defs>
-                <linearGradient id="cv" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#7a1f2b"/>
-                  <stop offset="100%" stop-color="#3a0d14"/>
-                </linearGradient>
-              </defs>
-              <path d="M100 30 C 60 70, 60 110, 100 130 L 100 220 L 70 195 L 100 130 L 130 195 L 100 220 L 100 130 C 140 110, 140 70, 100 30 Z" fill="url(#cv)"/>
-              <ellipse cx="100" cy="70" rx="42" ry="34" fill="#3a0d14"/>
-              <ellipse cx="100" cy="70" rx="6" ry="9" fill="#b8935a"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- 특별 캠페인 — 화면에 미리 박아두지 않는다.
+         어드민(싸이렌 어드민 > 홈 화면 관리 > 특별 캠페인)에서 '노출'로 켜고 내용을 채우면
+         home.js가 아래 자리에 그려 넣는다. 꺼져 있으면 아무것도 나오지 않는다.
+         ★ 2026-08-20: 예전에는 "68% / 1억 중 68,420,000원" 같은 예시 숫자가 코드에 박혀 있어서
+            어드민에서 꺼도 페이지 원본에는 그대로 남아 검색엔진·심사기관에 그 숫자가 노출됐다. -->
+    <div id="specialBannerSlot"></div>
 
   </main>
 
@@ -335,7 +312,7 @@
   <script src="/js/auth.js?v=20260712-noemoji"></script>
   <script src="/js/news.js?v=20260712-noemoji"></script>
   <script src="/js/support.js?v=2"></script>
-  <script src="/js/home.js?v=20260804-notice"></script>
+  <script src="/js/home.js?v=20260820-banner"></script>
   <script src="/js/donate.js?v=r45"></script>
   <script src="/js/home-campaigns.js?v=2027-05"></script>
   <script src="/js/site-popup.js?v=20260517r1"></script>

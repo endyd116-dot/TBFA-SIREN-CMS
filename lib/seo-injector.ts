@@ -77,9 +77,15 @@ export function injectMeta(html: string, input: InjectInput): string {
     if (org.legal_name) orgPayload.legalName = org.legal_name;
     if (org.url) orgPayload.url = org.url;
     if (org.logo_url) orgPayload.logo = abs(siteUrl, org.logo_url);
-    if (org.email) orgPayload.email = org.email;
-    if (org.phone) orgPayload.telephone = org.phone;
-    if (org.address) orgPayload.address = { "@type": "PostalAddress", streetAddress: org.address };
+    // ★ 2026-08-20: 어드민 SEO 설정에 값이 잘못 들어가면(예: 이메일 칸에 단체 이름)
+    //    검색엔진·심사기관이 읽는 단체 정보가 깨진다. 형식이 맞는 값만 내보낸다.
+    const clean = (v: any) => String(v ?? "").trim();
+    const email = clean(org.email);
+    const phone = clean(org.phone);
+    const address = clean(org.address);
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) orgPayload.email = email;
+    if (/[0-9]/.test(phone)) orgPayload.telephone = phone;
+    if (address) orgPayload.address = { "@type": "PostalAddress", streetAddress: address };
     if (org.registration_no) orgPayload.taxID = org.registration_no;
     jsonLd = `<script type="application/ld+json">${JSON.stringify(orgPayload)}</script>\n`;
   }
