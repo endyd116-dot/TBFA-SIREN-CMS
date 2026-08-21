@@ -120,6 +120,14 @@
         newScript.textContent = oldScript.textContent;
         oldScript.parentNode.replaceChild(newScript, oldScript);
       });
+
+      /* ★ 2026-08-21: 붙여 넣은 조각 안의 아이콘 자리를 채운다.
+         예전에는 조각 파일마다 아이콘 모음(47KB)을 다시 불러서 그 김에 채워졌는데,
+         그 방식이 화면 중간에서 그리기를 세 번이나 막아(구글 측정 '렌더링 차단 750ms')
+         조각에서 스크립트를 걷어냈다. 대신 여기서 직접 채운다. */
+      if (window.Icons && typeof Icons.hydrate === 'function') {
+        try { Icons.hydrate(target); } catch (err) { console.warn('[아이콘 채우기]', err); }
+      }
     } catch (e) {
       console.error('[Partial Load Failed]', file, e);
     }
