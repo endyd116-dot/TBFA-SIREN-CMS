@@ -20,7 +20,7 @@
 
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
-import { sitePages, resources, faqs } from "../../db/schema";
+import { sitePages, resources, faqs, incidents } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 export const config = { path: "/api/migrate-adgrants-c" };
@@ -203,6 +203,32 @@ async function hideJunkResources(): Promise<string> {
   }
 }
 
+/** 사건 목록에 남아 있던 '샘플' 표시 항목을 공개에서 내린다.
+ *  ★ 왜: 제목 "교권 침해 사례 (샘플)" / 설명 "관리자가 직접 사건을 등록하기 전 임시 표시용 샘플입니다."
+ *  구글 정책이 "자리표시자 텍스트 위주의 페이지"를 거부 사유로 명시한다.
+ *  지우지 않고 공개만 내린다(status를 hidden으로). 되돌릴 수 있어야 안전하다.
+ *  제목이나 설명에 '샘플'·'임시 표시용'이 들어간 것만 대상으로 한다. */
+async function hideSampleIncidents(): Promise<string> {
+  try {
+    const rows = await db
+      .select({ id: incidents.id, title: incidents.title, summary: incidents.summary })
+      .from(incidents)
+      .where(eq(incidents.status, "active"));
+
+    const sample = rows.filter((r) =>
+      /샘플|임시 표시용/.test(String(r.title || "") + " " + String(r.summary || ""))
+    );
+    if (sample.length === 0) return "정리할 샘플 항목이 없습니다";
+
+    for (const r of sample) {
+      await db.update(incidents).set({ status: "hidden" } as any).where(eq(incidents.id, r.id));
+    }
+    return `${sample.length}건 비공개 처리 (제목: ${sample.map((r) => r.title).join(", ")})`;
+  } catch (err: any) {
+    return "사건 목록 정리 실패 — " + String(err?.message || err).slice(0, 200);
+  }
+}
+
 function json(body: any, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
     status,
@@ -259,6 +285,7 @@ export default async (req: Request) => {
       id: existing.id,
       자료실정리: await hideJunkResources(),
       자주묻는질문: await seedFaqs(),
+      사건목록정리: await hideSampleIncidents(),
     });
   }
 
@@ -272,6 +299,7 @@ export default async (req: Request) => {
       id: created?.id ?? null,
       자료실정리: await hideJunkResources(),
       자주묻는질문: await seedFaqs(),
+      사건목록정리: await hideSampleIncidents(),
       다음: "어드민 > 페이지 관리에서 내용을 확인·수정하세요",
     });
   } catch (err: any) {
