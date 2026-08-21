@@ -7,8 +7,27 @@
 (function () {
   'use strict';
 
+  /* ★ 2026-08-21: 같은 주소를 동시에 여러 번 물어보지 않게 한다.
+     화면이 열릴 때 여러 코드가 각자 로그인 확인·캠페인 목록을 따로 요청해서,
+     똑같은 요청이 최대 4번까지 나가고 있었다(구글 측정 '최상 경로 최대 지연 5,239ms').
+     이미 진행 중인 같은 요청이 있으면 그 답을 같이 쓴다 — 답이 오면 바로 지우므로
+     오래된 값이 남지 않는다(읽기 요청에만 적용). */
+  const _inFlight = new Map();
+
   /* ------------ API 호출 헬퍼 ------------ */
   async function api(path, options = {}) {
+    const method = options.method || 'GET';
+    if (method === 'GET' && !options.body) {
+      const running = _inFlight.get(path);
+      if (running) return running;
+      const p = _apiRequest(path, options);
+      _inFlight.set(path, p);
+      try { return await p; } finally { _inFlight.delete(path); }
+    }
+    return _apiRequest(path, options);
+  }
+
+  async function _apiRequest(path, options = {}) {
     const opts = {
       method: options.method || 'GET',
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
