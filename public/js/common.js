@@ -420,10 +420,22 @@
         (a, b) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0)
       );
       const itemsHtml = sortedChildren.map(c => renderChildMenu(c)).join('');
-      dropdownHtml = `<ul class="dropdown">${itemsHtml}</ul>`;
+      if (itemsHtml) dropdownHtml = `<ul class="dropdown">${itemsHtml}</ul>`;
     }
 
+    /* 갈 곳도 없고 펼칠 하위도 없으면 내보내지 않는다 (죽은 메뉴 방지 — 서버 규칙과 동일) */
+    if (!dropdownHtml && hasNoDestination(parent)) return '';
+
     return `<li${dataPageAttr}${classAttr}><a ${linkAttrs}>${iconHtml}${navLabel(label)}</a>${dropdownHtml}</li>`;
+  }
+
+  /* 갈 곳이 정해지지 않은 메뉴인지 — 눌러도 제자리인 항목
+     ★ 2026-08-21: lib/shell-html.ts 의 같은 이름 함수와 규칙을 맞춘다.
+     구글 광고그랜트 정책이 "빈 페이지로 연결되는 링크"를 거부 사유로 명시. */
+  function hasNoDestination(item) {
+    if (item.opensModal ?? item.opens_modal) return false;
+    const href = String(item.href || '').trim();
+    return href === '' || href === '#';
   }
 
   /* 2뎁스 메뉴 1개 HTML */
@@ -434,6 +446,9 @@
     if (cssClass === 'dropdown-divider') {
       return `<li class="dropdown-divider"></li>`;
     }
+
+    /* 갈 곳이 없는 하위 메뉴는 내보내지 않는다 (죽은 메뉴 방지) */
+    if (hasNoDestination(child)) return '';
 
     const label = child.label || '';
     const href = child.href || '#';

@@ -15,6 +15,7 @@ import {
   boardPosts,
   memorialTeachers,
   memorialMessages,
+  sitePages,
 } from "../db/schema";
 
 export interface SitemapUrl {
@@ -91,6 +92,27 @@ function abs(siteUrl: string, locOrPath: string): string {
  */
 async function collectDynamicUrls(): Promise<SitemapUrl[]> {
   const urls: SitemapUrl[] = [];
+
+  /* 운영자가 어드민에서 만든 공개 페이지(/p/{주소})
+     ★ 2026-08-21: 지금까지 /p/greeting 등 일부만 손으로 적어 두어서, 새로 만든 페이지
+     (후원하기 등)가 검색엔진 목록에 빠졌다. 발행된 페이지를 전부 자동으로 넣는다.
+     위 고정 목록과 겹치는 주소는 아래 build 단계에서 한 번만 나가도록 걸러진다. */
+  try {
+    const rows = await db.select({
+      slug: sitePages.slug,
+      updatedAt: sitePages.updatedAt,
+      createdAt: sitePages.createdAt,
+    }).from(sitePages).where(eq(sitePages.status, "published"));
+    for (const r of rows) {
+      if (!r.slug) continue;
+      urls.push({
+        loc: `/p/${encodeURIComponent(r.slug)}`,
+        lastmod: r.updatedAt || r.createdAt,
+        changefreq: "monthly",
+        priority: 0.7,
+      });
+    }
+  } catch (e) { console.warn("[sitemap] sitePages", e); }
 
   // campaigns (isPublished=true)
   try {
@@ -211,7 +233,17 @@ async function collectDynamicUrls(): Promise<SitemapUrl[]> {
  */
 export async function buildSitemap(siteUrl: string = ""): Promise<string> {
   const dyn = await collectDynamicUrls();
-  const all = [...STATIC_PAGES, ...dyn];
+
+  /* 같은 주소가 두 번 나가지 않게 한 번만 남긴다 (고정 목록이 우선).
+     ★ 2026-08-21: 발행 페이지를 자동 수집하면서 /p/greeting 등이 겹칠 수 있게 됐다. */
+  const seen = new Set<string>();
+  const all: SitemapUrl[] = [];
+  for (const u of [...STATIC_PAGES, ...dyn]) {
+    const key = String(u.loc);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    all.push(u);
+  }
 
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);

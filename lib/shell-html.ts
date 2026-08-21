@@ -65,9 +65,20 @@ function linkAttrs(item: any): string {
   return `href="${esc(item.href || "#")}"${tgt}`;
 }
 
+/** 갈 곳이 정해지지 않은 메뉴인지 — 눌러도 아무 일도 안 일어나는 항목
+ *  ★ 2026-08-21: 주소 없는 하위 메뉴가 눌러도 제자리인 채로 노출되고 있었다.
+ *  구글 광고그랜트 정책이 "빈 페이지로 연결되는 링크·혼란스러운 메뉴"를 거부 사유로 명시하므로
+ *  하위 메뉴는 갈 곳이 없으면 아예 내보내지 않는다. (상위 메뉴는 하위를 펼치는 역할이라 예외) */
+function hasNoDestination(item: any): boolean {
+  if (item.opensModal ?? item.opens_modal) return false;
+  const href = String(item.href || "").trim();
+  return href === "" || href === "#";
+}
+
 function renderChildMenu(child: any): string {
   const cssClass = child.cssClass ?? child.css_class;
   if (cssClass === "dropdown-divider") return `<li class="dropdown-divider"></li>`;
+  if (hasNoDestination(child)) return "";
   return `<li><a ${linkAttrs(child)}>${esc(child.label || "")}</a></li>`;
 }
 
@@ -80,9 +91,11 @@ function renderTopLevelMenu(parent: any): string {
   const children = (parent.children || []).slice().sort(
     (a: any, b: any) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0)
   );
-  const dropdown = children.length
-    ? `<ul class="dropdown">${children.map(renderChildMenu).join("")}</ul>`
-    : "";
+  const childHtml = children.map(renderChildMenu).join("");
+  const dropdown = childHtml ? `<ul class="dropdown">${childHtml}</ul>` : "";
+
+  /* 갈 곳도 없고 펼칠 하위도 없으면 내보내지 않는다 (죽은 메뉴 방지) */
+  if (!dropdown && hasNoDestination(parent)) return "";
 
   return `<li${dataPageAttr}${classAttr}>` +
          `<a ${linkAttrs(parent)}>${iconSlot(parent.icon)}${esc(parent.label || "")}</a>` +

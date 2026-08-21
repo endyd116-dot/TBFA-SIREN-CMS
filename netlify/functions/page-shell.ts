@@ -19,6 +19,7 @@ import {
   readPublicFile, esc, injectPreload, revealHomePending, replaceById, applyStatValues,
   loadShellData, applyShell, withTimeout,
 } from "../../lib/shell-render";
+import { applyListSeed, hasListSeed, loadListSeed } from "../../lib/shell-lists";
 
 export const config = { path: "/api/page-shell" };
 
@@ -55,11 +56,36 @@ export default async (req: Request) => {
     const isHome = HOME_PATHS.has(pagePath);
     const siteUrl = process.env.SITE_URL || `${url.protocol}//${url.host}`;
 
-    /* ---------- 1. 뼈대(머리말·꼬리말·공용 창) 채우기 ---------- */
-    const shellData = await loadShellData();
+    /* ---------- 1. 필요한 값을 한꺼번에 읽는다 ----------
+       ★ 2026-08-21: 예전에는 뼈대 → 목록 → 검색엔진 정보를 차례로 기다렸다.
+       그만큼 첫 방문 응답이 늦어져(실측 4.5초) 구글이 "느리다"고 판정했다.
+       서로 상관없는 조회이므로 동시에 돌린다. */
+    const seoNeeded = Promise.all([
+      withTimeout(getPageMeta(pagePath, false), 2000, null as any),
+      withTimeout(getOrgMeta(false), 2000, undefined as any),
+      withTimeout(getDefaultMeta(false), 2000, undefined as any),
+    ]).catch((e) => { console.warn("[page-shell] 검색엔진 정보 조회 실패", e); return [null, undefined, undefined] as any; });
+
+    const listNeeded = (!isHome && hasListSeed(pagePath))
+      ? withTimeout(loadListSeed(pagePath), 2500, {} as any).catch(() => ({} as any))
+      : Promise.resolve({} as any);
+
+    const [shellData, listSeed, seoParts] = await Promise.all([
+      loadShellData(), listNeeded, seoNeeded,
+    ]);
+
+    /* ---------- 1-1. 뼈대(머리말·꼬리말·공용 창) 채우기 ---------- */
     const shell = applyShell(rawHtml, shellData);
     let html = shell.html;
     const preload: Record<string, any> = shell.preload;
+
+    /* ---------- 1-2. 목록 화면 내용 채우기 (활동·공지·언론보도·캠페인 등) ----------
+       지금까지 목록은 "불러오는 중..."만 나가서 검색엔진·심사기관에 내용 없는
+       페이지로 읽혔다. 서버가 실제 항목으로 채워 내보낸다.
+       실패해도 원본 그대로 — 화면은 브라우저가 어차피 다시 그린다. */
+    try {
+      html = applyListSeed(pagePath, html, listSeed);
+    } catch (e) { console.warn("[page-shell] 목록 채우기 실패", pagePath, e); }
 
     /* ---------- 2. 홈 화면 내용 채우기 ---------- */
     if (isHome) {
@@ -97,13 +123,9 @@ export default async (req: Request) => {
     /* ---------- 3. 이미 받아 둔 값 심기 (브라우저 재조회 방지) ---------- */
     html = injectPreload(html, preload);
 
-    /* ---------- 4. 검색엔진용 정보 주입 (기존 규칙 그대로) ---------- */
+    /* ---------- 4. 검색엔진용 정보 주입 (위에서 이미 읽어 둔 값) ---------- */
     try {
-      const [pageMeta, org, defaults] = await Promise.all([
-        withTimeout(getPageMeta(pagePath, false), 2000, null as any),
-        withTimeout(getOrgMeta(false), 2000, undefined as any),
-        withTimeout(getDefaultMeta(false), 2000, undefined as any),
-      ]);
+      const [pageMeta, org, defaults] = seoParts as any[];
       if (pageMeta) {
         if (!pageMeta.canonical) pageMeta.canonical = pagePath === "/index.html" ? "/" : pagePath;
         html = injectMeta(html, { page: pageMeta, org, defaults, siteUrl, currentPath: pagePath });

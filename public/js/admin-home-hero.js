@@ -444,7 +444,7 @@
     _slidesDraft.push({
       title: '새 슬라이드 제목',
       ctaPrimary: { label: '후원 동참하기', action: 'modal', target: 'donateModal' },
-      ctaSecondary: { label: '자세히 보기', action: 'link', href: '/about.html' },
+      ctaSecondary: { label: '자세히 보기', action: 'link', href: '/p/greeting' },
       sortOrder: _slidesDraft.length + 1,
       isActive: true,
     });
