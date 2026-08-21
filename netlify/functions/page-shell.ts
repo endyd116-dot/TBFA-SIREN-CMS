@@ -33,7 +33,14 @@ function htmlResponse(html: string, cacheable: boolean) {
     /* 브라우저는 매번 확인, 전송망(CDN)은 5분 보관 + 하루 동안은 옛 것이라도 즉시 응답.
        어드민에서 값을 바꿔도 늦어도 5분 안에 반영된다. */
     headers["Cache-Control"] = "public, max-age=0, must-revalidate";
-    headers["Netlify-CDN-Cache-Control"] = "public, s-maxage=300, stale-while-revalidate=86400";
+    /* ★ 2026-08-21 durable 추가 — 첫 응답이 2.2초 걸리던 문제.
+       접속 지역별 보관소가 따로 놀아서, 그 지역에 처음 온 사람은 매번 서버가
+       자료를 다 조회할 때까지 기다렸다(구글 측정: 서버 응답 2,237ms — 개선 여지 1순위).
+       잠들어 있던 저장소를 깨우는 시간까지 포함된다.
+       durable은 지역을 넘어 함께 쓰는 보관소를 둬서, 누군가 한 번 받아 간 뒤에는
+       다른 지역 사람도 기다리지 않는다. */
+    headers["Netlify-CDN-Cache-Control"] =
+      "public, durable, s-maxage=300, stale-while-revalidate=86400";
   } else {
     headers["Cache-Control"] = "no-store";
   }

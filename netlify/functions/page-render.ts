@@ -165,9 +165,13 @@ ${preview ? '<div class="page-draft-banner">임시저장 미리보기입니다 �
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         /* 미리보기는 절대 캐시하지 않는다 — 임시저장본이 방문자에게 새어나가면 안 된다 */
-        "Cache-Control": preview
-          ? "private, no-store"
-          : "public, max-age=300, s-maxage=300",
+        /* ★ 2026-08-21: 첫 응답이 느리던 문제 — 지역별 보관소가 따로 놀아서
+           그 지역 첫 방문자는 매번 서버 조회를 기다렸다. 함께 쓰는 보관소(durable)로 바꾼다. */
+        "Cache-Control": preview ? "private, no-store" : "public, max-age=0, must-revalidate",
+        ...(preview ? {} : {
+          "Netlify-CDN-Cache-Control":
+            "public, durable, s-maxage=300, stale-while-revalidate=86400",
+        }),
       },
     });
   } catch (e: any) {

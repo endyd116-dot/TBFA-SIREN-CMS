@@ -108,7 +108,10 @@ export default async (req: Request) => {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=300, s-maxage=300",
+        /* ★ 2026-08-21: 지역을 넘어 함께 쓰는 보관소(durable) — 첫 응답 지연 완화 */
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Netlify-CDN-Cache-Control":
+          "public, durable, s-maxage=300, stale-while-revalidate=86400",
       },
     });
   } catch (e: any) {
