@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@400;500;600;700&display=swap">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" data-webfont>
   <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <style>
   /* ============ 디자인 토큰 (tbfa.co.kr 실제 시스템 매칭) ============ */
@@ -476,6 +476,11 @@
     footer.page-footer { page-break-before: always; border-top: 1.5px solid #7a1f2b; }
   }
 </style>
+  <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
+  (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
+  for(var i=0;i<l.length;i++)l[i].media='all';}
+  function go(){requestAnimationFrame(function(){requestAnimationFrame(on);});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();})();</script>
 </head>
 <body>
 
