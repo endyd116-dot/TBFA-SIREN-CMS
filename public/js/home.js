@@ -63,7 +63,11 @@
     if (!titleEl || !HERO_SLIDES[i]) return;
 
     slideIdx = i;
-    titleEl.innerHTML = HERO_SLIDES[i].title;
+    /* ★ 2026-08-21: 서버가 이미 같은 제목을 그려 놨으면 다시 쓰지 않는다.
+       같은 글자를 다시 넣어도 브라우저는 '새로 그렸다'고 보고 로딩이 늦은 것으로 잰다. */
+    if (titleEl.innerHTML !== HERO_SLIDES[i].title) {
+      titleEl.innerHTML = HERO_SLIDES[i].title;
+    }
     /* 슬라이드마다 버튼 문구·연결이 다를 수 있다 (예전에는 제목만 바꿔 버튼이 안 바뀌었음) */
     paintSlideCta(HERO_SLIDES[i]);
     if (counterEl) {
@@ -77,15 +81,25 @@
   function nextSlide() { setSlide((slideIdx + 1) % HERO_SLIDES.length); startSlideAuto(); }
   function prevSlide() { setSlide((slideIdx - 1 + HERO_SLIDES.length) % HERO_SLIDES.length); startSlideAuto(); }
 
-  function startSlideAuto() {
+  /* ★ 2026-08-21: 첫 넘김만 조금 늦춘다.
+     큰 제목이 화면이 채 안정되기도 전에 바뀌면, 브라우저·검색엔진은 "가장 큰 요소가
+     아직도 그려지는 중"으로 보고 로딩이 늦은 사이트로 판정한다.
+     (2026-08-21 구글 측정: 가장 큰 그림 6.7초 — 원인이 이 자동 넘김이었다.)
+     사람에게도 첫 문구를 읽을 시간이 생기므로 손해가 없다.
+     두 번째 넘김부터는 운영자가 정한 주기 그대로. */
+  const FIRST_SLIDE_HOLD_MS = 12000;
+
+  function startSlideAuto(isFirst) {
     stopSlideAuto();
     if (!_autoplayEnabled) return;
-    slideTimer = setInterval(() => {
+    const first = isFirst ? Math.max(_autoplaySpeed, FIRST_SLIDE_HOLD_MS) : _autoplaySpeed;
+    slideTimer = setTimeout(function tick() {
       setSlide((slideIdx + 1) % HERO_SLIDES.length);
-    }, _autoplaySpeed);
+      slideTimer = setTimeout(tick, _autoplaySpeed);
+    }, first);
   }
   function stopSlideAuto() {
-    if (slideTimer) clearInterval(slideTimer);
+    if (slideTimer) clearTimeout(slideTimer);
   }
 
   /* slide-dot DOM을 슬라이드 개수에 맞게 다시 생성 */
@@ -183,9 +197,9 @@
     if (hero) {
       /* 자동 전환이 켜져 있을 때만 의미가 있다 (꺼져 있으면 startSlideAuto가 아무 일도 안 함) */
       hero.addEventListener('mouseenter', stopSlideAuto);
-      hero.addEventListener('mouseleave', startSlideAuto);
+      hero.addEventListener('mouseleave', function () { startSlideAuto(); });
     }
-    startSlideAuto();
+    startSlideAuto(true);
   }
 
   /* ------------ 2. 통계 API 연동 (v10 유지) ------------
@@ -333,7 +347,7 @@
           _autoplayEnabled = !(rawEnabled === false || rawEnabled === 0 ||
             /^(false|0|no|off)$/i.test(String(rawEnabled).trim()));
         }
-        startSlideAuto();   /* 꺼져 있으면 여기서 타이머가 멈춘다 */
+        startSlideAuto(true);   /* 꺼져 있으면 여기서 타이머가 멈춘다 */
       }
 
       /* ---- 2-2. 퀵메뉴 영역 표시/숨김 + 6개 박스 동적 렌더 ---- */
