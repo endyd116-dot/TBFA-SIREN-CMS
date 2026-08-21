@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <script src="/js/icons.js?v=20260820-ssr"></script>
-  <script src="/js/lib-kst.js?v=3-kst-input"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
@@ -30,7 +28,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
@@ -103,6 +103,8 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
+  <script src="/js/icons.js?v=20260820-ssr"></script>
+  <script src="/js/lib-kst.js?v=3-kst-input"></script>
   <script src="/js/common.js?v=20260821-nav"></script>
   <script src="/js/auth.js?v=20260712-noemoji"></script>
   <script src="/js/page-intro.js?v=20260811-split"></script>

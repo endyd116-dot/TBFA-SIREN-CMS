@@ -11,7 +11,7 @@
 //
 // 어떻게
 //   운영자가 어드민(페이지 관리)에서 계속 고칠 수 있도록 CMS 페이지로 만든다.
-//   본문의 [[donate]] 자리는 화면에서 '지금 쓰는 후원 창'을 여는 버튼이 된다 —
+//   본문의 {{donate}} 자리는 화면에서 '지금 쓰는 후원 창'을 여는 버튼이 된다 —
 //   결제 흐름은 하나도 새로 만들지 않는다(기존 창과 완전히 같은 순서).
 //
 // 호출: https://tbfa.co.kr/api/migrate-adgrants-c?run=1  (어드민 로그인 상태)
@@ -61,7 +61,7 @@ const CONTENT_HTML = `
   <li>직접 계좌이체 (입금자명을 정확히 적어 주세요)</li>
 </ul>
 
-[[donate]]
+{{donate}}
 
 <blockquote>
   정기 후원은 언제든 <strong>마이페이지 &gt; 내 후원 내역</strong>에서 직접 해지하실 수 있으며, 위약금이 없습니다.
@@ -76,9 +76,8 @@ const CONTENT_HTML = `
 
 <h3>투명하게 씁니다</h3>
 <p>
-  후원금의 쓰임은 <a href="/activities.html">활동 보고</a>와
-  <a href="/resources.html">자료실</a>에 공개합니다.
-  재무·결산 자료와 활동 내역을 누구나 확인하실 수 있습니다.
+  후원금이 어디에 쓰였는지는 <a href="/activities.html">활동 보고</a>에서 확인하실 수 있습니다.
+  현장에서 무엇을 했는지 사진과 함께 기록해 두고 있습니다.
 </p>
 
 <h3>문의</h3>
@@ -277,10 +276,32 @@ export default async (req: Request) => {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   if (existing) {
+    /* 이미 만들어진 페이지에 잘못된 조각 표기가 남아 있으면 그것만 고친다.
+       (운영자가 어드민에서 고친 내용은 덮어쓰지 않는다 — 표기가 틀린 경우만 손댄다) */
+    let 표기정정 = "고칠 것 없음";
+    try {
+      const [row] = await db
+        .select({ id: sitePages.id, contentHtml: sitePages.contentHtml })
+        .from(sitePages)
+        .where(eq(sitePages.slug, SLUG))
+        .limit(1);
+      const body = String((row as any)?.contentHtml || "");
+      if (body.includes("[[donate]]")) {
+        await db
+          .update(sitePages)
+          .set({ contentHtml: CONTENT_HTML } as any)
+          .where(eq(sitePages.slug, SLUG));
+        표기정정 = "후원 버튼이 글자로 나오던 것을 고쳤습니다";
+      }
+    } catch (err: any) {
+      표기정정 = "정정 실패 — " + String(err?.message || err).slice(0, 200);
+    }
+
     return json({
       ok: true,
       mode: "실행",
-      결과: "후원 페이지는 이미 있어서 건드리지 않았습니다 (덮어쓰기 방지)",
+      결과: "후원 페이지는 이미 있습니다",
+      표기정정,
       주소: "/p/" + SLUG,
       id: existing.id,
       자료실정리: await hideJunkResources(),
