@@ -639,7 +639,10 @@
         if (icons.length === 0) {
           var l = document.createElement('link'); l.rel = 'icon'; document.head.appendChild(l); icons = [l];
         }
-        icons.forEach(function (l) { l.href = b.faviconUrl; });
+        /* ★ 2026-08-21: 파비콘 원본도 150KB였다. 탭에는 32px로만 보인다.
+           투명 배경을 살려야 하므로 png 그대로 두고 크기만 줄인다. */
+        var favi = sizedImage(b.faviconUrl, 64).replace('&fm=webp&q=82', '&fm=png');
+        icons.forEach(function (l) { l.href = favi; });
       }
       /* 3) 사이트 이름 — 헤더/푸터에 표시된 단체명 텍스트만 교체(아이콘·small 보존) */
       if (b.siteName) {
