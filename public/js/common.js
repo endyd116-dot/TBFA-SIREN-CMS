@@ -605,14 +605,33 @@
    * 헤더/푸터 DOM이 그려진 뒤 호출. */
   const BRAND_STORE_KEY = 'brand';
 
+  /** 화면에 보이는 크기로 줄여서 받는 주소를 만든다.
+   *  우리 서버 안의 이미지만 대상으로 한다(바깥 주소는 손대지 않는다).
+   *  변환이 안 되는 환경이면 원래 주소가 그대로 쓰이므로 로고가 사라질 일은 없다. */
+  function sizedImage(url, width) {
+    try {
+      var u = String(url || '');
+      if (!u || u.indexOf('data:') === 0) return u;
+      if (/^https?:\/\//i.test(u) && u.indexOf(location.host) === -1) return u;  /* 바깥 주소 */
+      if (u.indexOf('/.netlify/images') === 0) return u;                          /* 이미 처리됨 */
+      return '/.netlify/images?url=' + encodeURIComponent(u) +
+             '&w=' + (width || 96) + '&fm=webp&q=82';
+    } catch (e) { return url; }
+  }
+
   /** 받아온 값으로 로고·협회명·파비콘을 반영 (몇 번 불려도 결과가 같아야 함) */
   function paintBrand(b) {
     try {
       if (!b) return;
 
-      /* 1) 로고 심볼 — 헤더/푸터 img 교체 */
+      /* 1) 로고 심볼 — 헤더/푸터 img 교체
+         ★ 2026-08-21: 운영자가 올린 원본이 1080×1080·540KB인데 화면에는 42px로만 보인다.
+         느린 휴대폰 회선에서 이 한 장이 화면 전체를 늦춘다(구글 측정: 절감 가능 539KB).
+         화면에 필요한 크기로 줄여서 받는다 — 원본은 그대로 두므로 운영자는 신경 쓸 게 없다. */
       if (b.logoUrl) {
-        document.querySelectorAll('.brand-img, .foot-brand img').forEach(function (img) { img.src = b.logoUrl; });
+        document.querySelectorAll('.brand-img, .foot-brand img').forEach(function (img) {
+          img.src = sizedImage(b.logoUrl, 96);
+        });
       }
       /* 2) 파비콘 — 기존 icon 링크 href 교체(없으면 생성) */
       if (b.faviconUrl) {

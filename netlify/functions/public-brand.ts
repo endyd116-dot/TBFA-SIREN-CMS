@@ -46,7 +46,10 @@ export default async (req: Request, _ctx: Context) => {
         status: 200,
         headers: {
           "content-type": meta.type || "image/png",
-          "cache-control": "public, max-age=600",
+          /* ★ 2026-08-21: 로고·파비콘 주소에는 ?v=(바뀔 때마다 달라지는 값)이 붙는다.
+             따라서 오래 보관해도 옛 그림이 남지 않는다. 10분 → 1년으로 늘려
+             재방문·다른 화면 이동 때 같은 그림을 다시 받지 않게 한다. */
+          "cache-control": "public, max-age=31536000, immutable",
         },
       });
     }
