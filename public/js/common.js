@@ -630,7 +630,13 @@
          화면에 필요한 크기로 줄여서 받는다 — 원본은 그대로 두므로 운영자는 신경 쓸 게 없다. */
       if (b.logoUrl) {
         document.querySelectorAll('.brand-img, .foot-brand img').forEach(function (img) {
-          img.src = sizedImage(b.logoUrl, 96);
+          var small = sizedImage(b.logoUrl, 96);
+          if (small === b.logoUrl) { img.src = b.logoUrl; return; }
+          /* ★ 안전망: 줄이기가 처음 한 번은 실패할 수 있다(원본을 만드는 쪽이 깨어나는 데
+             시간이 걸려 변환기가 기다리다 끊는다). 그때는 원본을 그대로 쓴다 —
+             느릴 뿐 로고가 사라지지는 않는다. */
+          img.onerror = function () { this.onerror = null; this.src = b.logoUrl; };
+          img.src = small;
         });
       }
       /* 2) 파비콘 — 기존 icon 링크 href 교체(없으면 생성) */
