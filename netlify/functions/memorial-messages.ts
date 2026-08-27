@@ -2,7 +2,8 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialMessages, memorialMessageLikes } from "../../db/schema";
-import { authenticateUser, requireActiveUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser, extractToken } from "../../lib/auth";
+import { clientIpHash } from "../../lib/client-ip";
 import { moderateMemorialText } from "../../lib/memorial-moderation";
 import { notifyAllOperators } from "../../lib/notify";
 import { eq, and, isNull, desc, sql, inArray } from "drizzle-orm";
@@ -10,6 +11,8 @@ import { eq, and, isNull, desc, sql, inArray } from "drizzle-orm";
 export const config = { path: "/api/memorial-messages" };
 
 const PAGE_SIZE = 20;
+/* ★ 2026-08-28: 로그인하지 않은 분의 연속 작성 간격 (도배 방지) */
+const ANON_COOLDOWN_SECONDS = 60;
 
 function jsonError(step: string, err: any) {
   return new Response(jsonKST({
@@ -106,11 +109,31 @@ export default async function handler(req: Request, _ctx: Context) {
 
   /* ───────────── POST: 작성·공감·신고 (회원만) ───────────── */
   if (method === "POST") {
-    const guard = await requireActiveUser(req);
-    if (!guard.ok) return (guard as { ok: false; res: Response }).res;
-    const user = (guard as { ok: true; user: import("../../lib/auth").UserPayload }).user;
     const action = url.searchParams.get("action");
     const id = parseInt(url.searchParams.get("id") || "0", 10);
+
+    /* ★ 2026-08-28: 마음 남기기는 로그인 없이도 된다.
+       추모관에 온 분의 마음은 몇 초짜리라, 그 순간에 가입 절차를 요구하면
+       회원이 되는 게 아니라 그냥 떠난다. 남긴 뒤에 가입을 권하는 편이 낫다.
+       공감·신고·삭제는 누가 했는지 남아야 하므로 종전대로 회원만 할 수 있다. */
+    const needsMember = action === "like" || action === "report" || action === "delete";
+    let user: import("../../lib/auth").UserPayload | null = null;
+
+    if (needsMember) {
+      const guard = await requireActiveUser(req);
+      if (!guard.ok) return (guard as { ok: false; res: Response }).res;
+      user = (guard as { ok: true; user: import("../../lib/auth").UserPayload }).user;
+    } else if (extractToken(req)) {
+      /* 로그인 흔적이 있으면 회원으로 받되, 토큰이 만료된 것뿐이면 익명으로 받는다.
+         단 차단된 분은 익명으로도 남길 수 없다. */
+      const guard = await requireActiveUser(req);
+      if (guard.ok) {
+        user = (guard as { ok: true; user: import("../../lib/auth").UserPayload }).user;
+      } else {
+        const blocked = (guard as { ok: false; res: Response }).res;
+        if (blocked && blocked.status === 403) return blocked;
+      }
+    }
 
     /* 공감 토글 */
     if (action === "like") {
@@ -235,11 +258,48 @@ export default async function handler(req: Request, _ctx: Context) {
       return new Response(jsonKST({ ok: false, error: "메시지는 1000자 이내로 작성해 주세요" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
-    try {
-      const authorName = isAnonymous ? "익명" : (user.name || "회원");
+    /* ★ 2026-08-28 도배 방지 — 로그인하지 않은 분만.
+       같은 기기가 잇달아 올리는 것을 막는다. 회원은 누가 썼는지 남으므로 제외. */
+    const ipHash = user ? null : clientIpHash(req);
+    if (!user) {
+      try {
+        const recent: any = await db.execute(sql`
+          SELECT 1 FROM memorial_messages
+          WHERE member_id IS NULL AND ip_hash = ${ipHash}
+            AND created_at > NOW() - (${ANON_COOLDOWN_SECONDS} * INTERVAL '1 second')
+          LIMIT 1
+        `);
+        const hit = (recent?.rows ?? recent ?? []) as any[];
+        if (hit.length > 0) {
+          return new Response(jsonKST({
+            ok: false,
+            error: `조금 전에 마음을 남기셨습니다. ${ANON_COOLDOWN_SECONDS}초 뒤에 다시 남겨주세요.`,
+          }), { status: 429, headers: { "Content-Type": "application/json" } });
+        }
+      } catch (err) {
+        /* 확인 자체가 실패하면 막지 않는다 — 정상 참여를 놓치지 않기 위해 */
+        console.warn("[memorial-messages] 도배 확인 실패", err);
+      }
+    }
 
-      /* R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
-      const mod = await moderateMemorialText(content);
+    try {
+      /* 이름 — 회원은 계정 이름, 비회원은 적어 주신 이름(비우면 익명) */
+      const typedName = String(body.authorName || "").trim().slice(0, 40);
+      const authorName = isAnonymous
+        ? "익명"
+        : (user ? (user.name || "회원") : (typedName || "익명"));
+
+      /* R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지.
+         ★ 2026-08-28: 회원 글은 종전대로 '못 봤으면 통과'(정상 글을 막지 않기 위해).
+         하지만 로그인하지 않은 글은 반대로 '못 봤으면 보류'다.
+         유가족이 직접 읽는 자리라, 아무도 안 본 글이 그대로 나가면 안 된다. */
+      const mod = await moderateMemorialText(content, { thorough: !user });
+      const holdForReview = mod.flagged || (!user && !mod.checked);
+      const holdReason = mod.flagged
+        ? (mod.reason || "부적절 판단")
+        : mod.skipReason === "budget"
+          ? "AI 검토 예산이 소진되어 보류 (비회원 작성)"
+          : "자동 검토를 하지 못해 보류 (비회원 작성)";
 
       /* ★ 2026-08-28: 선생님을 지정한 글은 언제나 '추모'다.
          통합 글만 밤(추모)·아침(응원)으로 나뉜다. */
@@ -248,22 +308,29 @@ export default async function handler(req: Request, _ctx: Context) {
 
       const insertData: any = {
         teacherId: bodyTeacherId ?? undefined,
-        memberId: user.uid,
+        memberId: user ? user.uid : null,
         authorName,
         content,
         isAnonymous,
         kind: kindToSave,
-        isHidden: mod.flagged ? true : undefined,
+        ipHash,
+        isHidden: holdForReview ? true : undefined,
       };
       const [row] = await db.insert(memorialMessages).values(insertData).returning();
 
-      if (mod.flagged) {
-        /* 부적절 보류 → 운영자·슈퍼어드민에게 검토 요청 통지 (fire-and-forget) */
+      if (holdForReview) {
+        /* 보류 → 운영자·슈퍼어드민에게 검토 요청 통지 (fire-and-forget) */
         notifyAllOperators({
           category: "support",
           severity: "warning",
-          title: "추모 메시지 자동 보류 — 검토 필요",
-          message: `AI가 부적절로 판단해 비공개 처리했습니다. (사유: ${mod.reason || "검토 필요"})`,
+          title: mod.skipReason === "budget"
+            ? "AI 검토 예산 소진 — 비회원 글이 보류되고 있습니다"
+            : "추모 메시지 자동 보류 — 검토 필요",
+          message: mod.skipReason === "budget"
+            ? `AI 검토 예산이 바닥나 비회원 글을 자동으로 확인하지 못하고 있습니다. ` +
+              `그동안 들어오는 비회원 글은 모두 비공개로 보류됩니다. ` +
+              `예산을 늘리거나, 보류된 글을 직접 확인해 공개해 주세요.`
+            : `비공개로 보류했습니다. (사유: ${holdReason})`,
           link: `/admin.html#memorial`,
           refTable: "memorial_messages",
           refId: row.id,
@@ -279,7 +346,7 @@ export default async function handler(req: Request, _ctx: Context) {
           likeCount: row.likeCount,
           createdAt: row.createdAt,
           liked: false,
-          pendingReview: mod.flagged,
+          pendingReview: holdForReview,
         } },
       }), { status: 201, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {

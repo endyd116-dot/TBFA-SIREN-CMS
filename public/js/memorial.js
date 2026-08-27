@@ -86,6 +86,37 @@
     saveMine(MINE);
   }
 
+
+  /* ───────── 남긴 뒤 가입 권유 ─────────
+     로그인 벽을 세우는 대신, 마음을 남긴 다음에 권한다.
+     이미 회원이거나 한 번 닫은 분에게는 다시 띄우지 않는다. */
+  var JOIN_KEY = 'siren:memorial:joinAsked:v1';
+  function alreadyMember() {
+    try {
+      return !!(window.Auth && window.Auth.user) ||
+             document.body.classList.contains('is-logged-in');
+    } catch (e) { return false; }
+  }
+  function inviteJoin(boxId, word) {
+    if (alreadyMember()) return;
+    try { if (localStorage.getItem(JOIN_KEY)) return; } catch (e) {}
+    var box = $(boxId);
+    if (!box) return;
+    var extra = document.createElement('div');
+    extra.className = 'mem2-mine';
+    extra.style.marginTop = '10px';
+    extra.innerHTML =
+      '<span>회원이 되시면 ' + esc(word) + ' 관련 소식과 활동을 받아보실 수 있습니다.</span>' +
+      '<button type="button" class="mem2-ghost" data-action="open-modal" data-target="signupModal">회원가입</button>' +
+      '<button type="button" class="mem2-ghost" data-m2-join-close>괜찮아요</button>';
+    box.parentNode.insertBefore(extra, box.nextSibling);
+    var close = extra.querySelector('[data-m2-join-close]');
+    if (close) close.addEventListener('click', function () {
+      try { localStorage.setItem(JOIN_KEY, '1'); } catch (e) {}
+      extra.parentNode && extra.parentNode.removeChild(extra);
+    });
+  }
+
   /* ───────── 상태 ───────── */
   var PAGE = { tribute: 1, support: 1 };
   var COUNTS = { people: 0, candles: 0, messages: 0 };
@@ -417,6 +448,11 @@
         method: 'POST',
         body: { authorName: anon ? '익명' : (nick || '익명'), content: text, isAnonymous: anon, kind: 'tribute' }
       }).then(function (r2) {
+        if (!r2.ok) {
+          finishNight(btn, '불빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — '
+            + ((r2.data && r2.data.error) || '잠시 후 다시 시도해 주세요.'));
+          return;
+        }
         if (r2.ok) {
           COUNTS.messages += 1;
           var newId = unwrap(r2, 'id') || (r2.data && r2.data.data && r2.data.data.message && r2.data.data.message.id);
@@ -441,6 +477,7 @@
       show(box, true);
       var j = $('m2JumpStar');
       if (j) j.addEventListener('click', function () { var f = $('m2FindStar'); if (f) f.click(); });
+      inviteJoin('m2NightMine', '이 선생님');
     }
   }
 
@@ -479,6 +516,7 @@
         show(box, true);
         var j = $('m2JumpFlower');
         if (j) j.addEventListener('click', function () { var f = $('m2FindFlower'); if (f) f.click(); });
+        inviteJoin('m2MornMine', '유가족 지원');
       }
     });
   }

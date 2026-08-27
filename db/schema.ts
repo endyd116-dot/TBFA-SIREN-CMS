@@ -4196,6 +4196,10 @@ export const memorialMessages = pgTable("memorial_messages", {
   /* ★ 2026-08-28 추모관 v2 — tribute: 선생님을 향한 추모(밤) / support: 유가족을 향한 응원(아침).
      기존 글은 모두 tribute 로 남는다. */
   kind:        varchar("kind", { length: 16 }).default("tribute").notNull(),
+  /* ★ 2026-08-28: 로그인하지 않은 분의 도배를 막기 위한 값.
+     개인을 알아보는 값이 아니라 되돌릴 수 없게 섞은 값이다(헌화와 같은 방식).
+     회원 글에는 넣지 않는다 — 누가 썼는지 이미 남기 때문. */
+  ipHash:      varchar("ip_hash", { length: 64 }),
   createdAt:   timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({ teacherIdx: index("memorial_messages_teacher_idx").on(t.teacherId, t.isHidden) }));
 export type MemorialMessage    = typeof memorialMessages.$inferSelect;
