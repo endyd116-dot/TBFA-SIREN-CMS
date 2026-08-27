@@ -1,6 +1,13 @@
 /* =========================================================
-   온라인 추모관 — 통합 추모 본체 (memorial.html)
-   카운터 · 헌화(촛불/국화) · 선생님 그리드 · 통합 방명록
+   온라인 추모관 v2 — 굿나잇, 굿모닝
+   ---------------------------------------------------------
+   한 화면이 밤에서 아침으로 흐른다.
+     밤   : 먼저 떠나신 선생님을 기억한다 (헌화 · 추모 한마디)
+     아침 : 남겨진 유가족을 응원한다 (근황 · 목소리 · 응원 한마디)
+
+   핵심 장치 — 같은 마음, 두 얼굴
+     참여 하나가 밤에는 하늘의 '별', 아침에는 들판의 '꽃'으로 나타난다.
+     자리는 참여 번호에서 계산하므로 다시 와도 내 것은 늘 같은 곳에 있다.
    ========================================================= */
 (function () {
   'use strict';
@@ -34,419 +41,521 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function $(id) { return document.getElementById(id); }
+  function show(el, on) { if (el) el.style.display = on ? '' : 'none'; }
   function toast(msg) {
-    if (window.SIREN && typeof window.SIREN.toast === 'function') window.SIREN.toast(msg);
+    if (window.SIREN && window.SIREN.toast) window.SIREN.toast(msg);
+    else if (window.toast) window.toast(msg);
     else console.log('[추모관]', msg);
   }
-  function isLoggedIn() {
-    return !!(window.SIREN_AUTH && window.SIREN_AUTH.user);
+  function fmtDate(v) {
+    if (!v) return '';
+    try {
+      if (window.fmtKSTDate) return window.fmtKSTDate(v);
+      var d = new Date(v);
+      return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+    } catch (e) { return ''; }
   }
-  function promptLogin(msg) {
-    toast(msg || '로그인 후 이용하실 수 있습니다.');
-    if (window.SIREN && typeof window.SIREN.openModal === 'function') {
-      setTimeout(function () { window.SIREN.openModal('loginModal'); }, 300);
+  function num(n) { return Number(n || 0).toLocaleString('ko-KR'); }
+
+  /* ───────── 내 참여 기록 (이 브라우저에만 저장) ─────────
+     서버에 따로 남기지 않는다. '내 별·내 꽃 찾기'에만 쓴다. */
+  var MINE_KEY = 'siren:memorial:mine:v2';
+  function loadMine() {
+    try {
+      var raw = localStorage.getItem(MINE_KEY);
+      var o = raw ? JSON.parse(raw) : null;
+      return {
+        tribute: (o && Array.isArray(o.tribute)) ? o.tribute : [],
+        support: (o && Array.isArray(o.support)) ? o.support : [],
+        offered: (o && o.offered) || 0
+      };
+    } catch (e) { return { tribute: [], support: [], offered: 0 }; }
+  }
+  function saveMine(m) {
+    try { localStorage.setItem(MINE_KEY, JSON.stringify(m)); } catch (e) { /* 저장 막힘 — 무시 */ }
+  }
+  var MINE = loadMine();
+  function isMine(kind, id) {
+    var arr = kind === 'support' ? MINE.support : MINE.tribute;
+    return arr.indexOf(Number(id)) !== -1;
+  }
+  function rememberMine(kind, id) {
+    var arr = kind === 'support' ? MINE.support : MINE.tribute;
+    if (id != null && arr.indexOf(Number(id)) === -1) arr.push(Number(id));
+    saveMine(MINE);
+  }
+
+  /* ───────── 상태 ───────── */
+  var PAGE = { tribute: 1, support: 1 };
+  var COUNTS = { people: 0, candles: 0, messages: 0 };
+  var CACHE = { tribute: [], support: [] };
+  var SKY = null, FIELD = null;
+  var offerType = 'candle';
+
+  /* =========================================================
+     1. 밤 ↔ 아침 전환
+     ========================================================= */
+  function initSwitch() {
+    var sw = $('m2Switch');
+    var bNight = $('m2GoNight'), bMorn = $('m2GoMorning');
+    var night = $('hallNight'), morning = $('hallMorning');
+    if (!sw || !night || !morning) return;
+
+    function goto(el) {
+      try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      catch (e) { el.scrollIntoView(); }
     }
-  }
-  function fmtDate(s) {
-    if (!s) return '';
-    var d = new Date(s);
-    if (isNaN(d.getTime())) return '';
-    var p = function (n) { return n < 10 ? '0' + n : '' + n; };
-    return d.getFullYear() + '.' + p(d.getMonth() + 1) + '.' + p(d.getDate());
-  }
+    if (bNight) bNight.addEventListener('click', function () { goto(night); });
+    if (bMorn) bMorn.addEventListener('click', function () { goto(morning); });
 
-  /* ───────── ① 카운터 (count-up) ───────── */
-  var _counterTargets = { people: 0, candles: 0, messages: 0 };
-  var _countUpDone = false;
-
-  function setCounterTargets(c) {
-    _counterTargets.people = Number(c.people) || 0;
-    /* 합산 표시: 촛불 카운트 칸에 촛불+국화 총합 (서버 candles 키가 이미 합산이면 그대로) */
-    _counterTargets.candles = Number(c.candles) || 0;
-    _counterTargets.messages = Number(c.messages) || 0;
-  }
-  function animateCount(el, target) {
-    if (!el) return;
-    var start = 0, dur = 1400, t0 = null;
-    function frame(ts) {
-      if (!t0) t0 = ts;
-      var p = Math.min(1, (ts - t0) / dur);
-      var eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(start + (target - start) * eased).toLocaleString('ko-KR');
-      if (p < 1) requestAnimationFrame(frame);
+    function setPhase(p) {
+      if (sw.dataset.phase === p) return;
+      sw.dataset.phase = p;
+      if (bNight) bNight.setAttribute('aria-selected', p === 'night' ? 'true' : 'false');
+      if (bMorn) bMorn.setAttribute('aria-selected', p === 'morning' ? 'true' : 'false');
     }
-    requestAnimationFrame(frame);
-  }
-  function runCountUp() {
-    if (_countUpDone) return;
-    _countUpDone = true;
-    animateCount(document.getElementById('cntPeople'), _counterTargets.people);
-    animateCount(document.getElementById('cntCandles'), _counterTargets.candles);
-    animateCount(document.getElementById('cntMessages'), _counterTargets.messages);
-  }
-  function watchCounter() {
-    var sec = document.getElementById('memCounterSection');
-    if (!sec) return;
-    if (!('IntersectionObserver' in window)) { runCountUp(); return; }
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { runCountUp(); io.disconnect(); } });
-    }, { threshold: 0.35 });
-    io.observe(sec);
-  }
-  function bumpCandle(delta) {
-    _counterTargets.candles += delta;
-    var el = document.getElementById('cntCandles');
-    if (el && _countUpDone) el.textContent = _counterTargets.candles.toLocaleString('ko-KR');
-  }
-  function bumpMessages(delta) {
-    _counterTargets.messages += delta;
-    var el = document.getElementById('cntMessages');
-    if (el && _countUpDone) el.textContent = _counterTargets.messages.toLocaleString('ko-KR');
-  }
 
-  /* ───────── ② 히어로 영상 (YouTube IFrame API + BGM 페이드 연동) ───────── */
-  var _heroPlayer = null;
-  function setupHero(hero) {
-    var copyEl = document.getElementById('memHeroCopy');
-    if (copyEl && hero && hero.copy) copyEl.textContent = hero.copy;
-
-    var yid = hero && hero.youtubeId;
-    var wrap = document.getElementById('memHeroVideoWrap');
-    if (!yid || !wrap) return;
-    wrap.style.display = '';
-
-    function plainIframe() {
-      if (_heroPlayer) return;
-      var mount = document.getElementById('memHeroPlayer');
-      if (!mount) return;
-      var f = document.createElement('iframe');
-      f.src = 'https://www.youtube.com/embed/' + encodeURIComponent(yid) + '?rel=0';
-      f.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      f.allowFullscreen = true;
-      mount.parentNode.replaceChild(f, mount);
-      _heroPlayer = 'plain';
-    }
-    function createPlayer() {
-      try {
-        _heroPlayer = new window.YT.Player('memHeroPlayer', {
-          videoId: yid,
-          playerVars: { rel: 0, playsinline: 1 },
-          events: {
-            onStateChange: function (ev) {
-              var S = window.YT.PlayerState;
-              if (ev.data === S.PLAYING) {
-                if (window.MemorialBGM) window.MemorialBGM.duckForVideo();
-              } else if (ev.data === S.ENDED || ev.data === S.PAUSED) {
-                if (window.MemorialBGM) window.MemorialBGM.unduckAfterVideo();
-              }
-            }
-          }
+    /* 화면 중앙이 어느 관에 있는지로 판단한다 (스크롤마다 계산하지 않는다) */
+    if (window.IntersectionObserver) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          setPhase(e.target.id === 'hallMorning' ? 'morning' : 'night');
         });
-      } catch (e) { plainIframe(); }
+      }, { rootMargin: '-45% 0px -45% 0px' });
+      io.observe(night); io.observe(morning);
     }
-
-    if (window.YT && window.YT.Player) { createPlayer(); return; }
-
-    if (!document.getElementById('yt-iframe-api')) {
-      var s = document.createElement('script');
-      s.id = 'yt-iframe-api';
-      s.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(s);
-    }
-    var prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = function () {
-      if (typeof prev === 'function') { try { prev(); } catch (e) {} }
-      createPlayer();
-    };
-    /* API 미로드 폴백 */
-    setTimeout(function () { if (!_heroPlayer) plainIframe(); }, 4000);
   }
 
-  /* ───────── 요약(summary) 로드 ───────── */
+  /* =========================================================
+     2. 요약 — 숫자 · 문구
+     ========================================================= */
   function loadSummary() {
-    api('/api/memorial-summary').then(function (res) {
-      var c = res.ok ? (unwrap(res, 'counters') || {}) : {};
-      var hero = res.ok ? (unwrap(res, 'hero') || {}) : {};
-      setCounterTargets(c);
-      setupHero(hero);
-      watchCounter();
-    }).catch(function () {
-      setCounterTargets({});
-      watchCounter();
+    return api('/api/memorial-summary').then(function (res) {
+      if (!res.ok) return;
+      var counters = unwrap(res, 'counters') || {};
+      COUNTS.people = counters.people || 0;
+      COUNTS.candles = counters.candles || 0;
+      COUNTS.messages = counters.messages || 0;
+      paintCounts();
+
+      /* 운영자가 어드민에서 고친 문구가 있으면 덮어쓴다 */
+      var hall = unwrap(res, 'hallCopy');
+      applyHallCopy(hall);
     });
   }
 
-  /* ───────── ③ 헌화 ───────── */
-  var _offerType = 'candle';
-  function setupOffering() {
-    var typesWrap = document.getElementById('memOfferTypes');
-    var btn = document.getElementById('memOfferBtn');
-    if (!typesWrap || !btn) return;
-
-    typesWrap.addEventListener('click', function (e) {
-      var card = e.target.closest('.mem-offer-type');
-      if (!card) return;
-      _offerType = card.dataset.type || 'candle';
-      Array.prototype.forEach.call(typesWrap.querySelectorAll('.mem-offer-type'), function (el) {
-        el.classList.toggle('sel', el === card);
-      });
-      btn.textContent = (_offerType === 'flower' ? '헌화하기' : '헌화하기');
-    });
-
-    btn.addEventListener('click', function () {
-      var nick = (document.getElementById('memOfferNick').value || '').trim();
-      btn.disabled = true;
-      var emoji = _offerType === 'flower' ? '' : '';
-      floatOffering(emoji);
-
-      api('/api/memorial-offering', {
-        method: 'POST',
-        body: { type: _offerType, nickname: nick || null }
-      }).then(function (res) {
-        btn.disabled = false;
-        if (res.ok) {
-          /* R41 Q2-014: 응답 total은 통합(teacher_id IS NULL) 범위만의 합계라,
-             전체 합계 카운터를 덮어쓰면 숫자가 급감한다 → 1만 증가시킨다 */
-          bumpCandle(1);
-          toast('헌화해 주셔서 감사합니다.');
-        } else {
-          /* 백엔드 연결 전(mock) — 화면만 반영 */
-          bumpCandle(1);
-          toast('헌화해 주셔서 감사합니다.');
-        }
-      }).catch(function () {
-        btn.disabled = false;
-        bumpCandle(1);
-        toast('헌화해 주셔서 감사합니다.');
-      });
+  function applyHallCopy(hall) {
+    if (!hall || typeof hall !== 'object') return;
+    var map = [
+      ['night', 'greet', 'm2NightGreet'], ['night', 'title', 'm2NightTitle'], ['night', 'sub', 'm2NightSub'],
+      ['morning', 'greet', 'm2MornGreet'], ['morning', 'title', 'm2MornTitle'], ['morning', 'sub', 'm2MornSub'],
+      ['dawn', 'line', 'm2DawnLine'], ['dawn', 'sub', 'm2DawnSub']
+    ];
+    map.forEach(function (m) {
+      var v = hall[m[0]] && hall[m[0]][m[1]];
+      var el = $(m[2]);
+      if (el && v) el.innerHTML = String(v).replace(/\n/g, '<br>');
     });
   }
-  function floatOffering(emoji) {
-    var layer = document.getElementById('memFloatLayer');
-    if (!layer) return;
-    var n = document.createElement('div');
-    n.className = 'mem-float';
-    n.textContent = emoji;
-    n.style.left = (8 + Math.random() * 84) + '%';
-    layer.appendChild(n);
-    setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 3600);
-  }
 
-  /* ───────── ④ 선생님 그리드 ───────── */
-  function teacherCard(t) {
-    var a = document.createElement('a');
-    a.className = 'mem-card';
-    a.href = '/memorial-teacher.html?id=' + encodeURIComponent(t.id);
-    var photo = t.photoUrl
-      ? '<img src="' + esc(t.photoUrl) + '" alt="' + esc(t.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
-      : '<div class="silhouette"></div>';
-    a.innerHTML =
-      '<div class="mem-card-photo">' + photo + '</div>' +
-      '<div class="mem-card-body">' +
-        '<h3 class="mem-card-name">' + esc(t.name) + '</h3>' +
-        '<p class="mem-card-region">' + esc(t.schoolRegion || '') + '</p>' +
-        '<p class="mem-card-tribute">' + esc(t.tributeLine || '') + '</p>' +
-        '<div class="mem-card-meta"><span>' + (Number(t.candleCount) || 0) + '</span>' +
-        '<span>' + (Number(t.messageCount) || 0) + '</span></div>' +
-      '</div>';
-    return a;
-  }
-  function renderTeachers(list) {
-    var grid = document.getElementById('memTeacherGrid');
-    var empty = document.getElementById('memTeacherEmpty');
-    var loading = document.getElementById('memTeacherLoading');
-    if (loading) loading.style.display = 'none';
-    if (!list || !list.length) { if (empty) empty.style.display = ''; return; }
-    grid.innerHTML = '';
-    list.forEach(function (t) { grid.appendChild(teacherCard(t)); });
-    grid.style.display = '';
-  }
-  function loadTeachers() {
-    api('/api/memorial-teachers').then(function (res) {
-      renderTeachers(res.ok ? (unwrap(res, 'teachers') || []) : []);
-    }).catch(function () { renderTeachers([]); });
-  }
+  /** 불빛 = 헌화 + 남겨진 한마디 (두 관에 같은 숫자가 나간다) */
+  function totalHearts() { return (COUNTS.candles || 0) + (COUNTS.messages || 0); }
 
-  /* ───────── ⑤ 통합 방명록 ───────── */
-  var _msgPage = 0;
-  var _msgLoading = false;
-
-  function msgEl(m) {
-    var wrap = document.createElement('div');
-    wrap.className = 'mem-msg';
-    wrap.dataset.id = m.id;
-    wrap.innerHTML =
-      '<div class="mem-msg-head">' +
-        '<span class="mem-msg-author">' + esc(m.authorName || '익명') + '</span>' +
-        '<span class="mem-msg-date">' + fmtDate(m.createdAt) + '</span>' +
-      '</div>' +
-      '<div class="mem-msg-body">' + esc(m.content) + '</div>' +
-      '<div class="mem-msg-actions">' +
-        '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">' + Icons.svg('heart') + ' <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
-        '<button type="button" class="act-report">신고</button>' +
-      '</div>';
-    wrap.querySelector('.act-like').addEventListener('click', function () { likeMsg(m.id, wrap); });
-    wrap.querySelector('.act-report').addEventListener('click', function () { reportMsg(m.id); });
-    return wrap;
-  }
-  function renderMessages(list, append) {
-    var listEl = document.getElementById('memMsgList');
-    var empty = document.getElementById('memMsgEmpty');
-    var loading = document.getElementById('memMsgLoading');
-    if (loading) loading.style.display = 'none';
-    if (!append) listEl.innerHTML = '';
-    if ((!list || !list.length) && !append && !listEl.children.length) {
-      if (empty) empty.style.display = '';
-      return;
+  function paintCounts() {
+    var t = totalHearts();
+    var a = $('m2NightCount'), b = $('m2MornCount'), same = $('m2SameLine');
+    if (a) a.textContent = num(t);
+    if (b) b.textContent = num(t);
+    if (same) {
+      same.textContent = t > 0
+        ? '밤하늘을 밝힌 그 ' + num(t) + '개의 마음이, 아침에는 같은 수의 꽃으로 피어 있습니다.'
+        : '';
     }
-    if (empty) empty.style.display = 'none';
-    (list || []).forEach(function (m) { listEl.appendChild(msgEl(m)); });
   }
-  function loadMessages(append) {
-    if (_msgLoading) return;
-    _msgLoading = true;
-    var nextPage = append ? _msgPage + 1 : 1;
-    api('/api/memorial-messages?page=' + nextPage).then(function (res) {
-      _msgLoading = false;
-      if (!res.ok) {
-        if (!append) renderMessages([], false);
-        return;
+
+  /* =========================================================
+     3. 선생님 카드
+     ========================================================= */
+  function teacherCard(t) {
+    var photo = t.photoUrl
+      ? '<img src="' + esc(t.photoUrl) + '" alt="' + esc(t.name) + '" loading="lazy" width="92" height="92">'
+      : '<span class="siren-icon-wrap m2-silhouette" data-icon="dove"></span>';
+    var meta = [t.schoolRegion, t.deathDate ? fmtDate(t.deathDate) : ''].filter(Boolean).join(' · ');
+    return '<a class="mem2-tcard" href="/memorial-teacher.html?id=' + encodeURIComponent(t.id) + '">' +
+      '<div class="mem2-tportrait">' + photo + '</div>' +
+      '<h3 class="mem2-tname">' + esc(t.name || '') + '</h3>' +
+      (meta ? '<p class="mem2-tmeta">' + esc(meta) + '</p>' : '') +
+      (t.tributeLine ? '<p class="mem2-tline">' + esc(t.tributeLine) + '</p>' : '') +
+      '<span class="mem2-tenter">기억하러 들어가기 →</span>' +
+      '</a>';
+  }
+
+  function loadTeachers() {
+    var grid = $('memTeacherGrid'), empty = $('memTeacherEmpty'), loading = $('memTeacherLoading');
+    /* 서버가 이미 채워 보냈으면 다시 그리지 않는다 (깜빡임 방지) */
+    if (grid && grid.children.length > 0 && grid.style.display !== 'none') {
+      show(loading, false);
+      return Promise.resolve();
+    }
+    return api('/api/memorial-teachers').then(function (res) {
+      show(loading, false);
+      var list = unwrap(res, 'teachers') || unwrap(res, 'list') || [];
+      if (!res.ok || !list.length) { show(empty, true); return; }
+      if (grid) {
+        grid.innerHTML = list.map(teacherCard).join('');
+        show(grid, true);
       }
-      _msgPage = nextPage;
-      var list = unwrap(res, 'messages') || [];
-      var pg = unwrap(res, 'pagination') || {};
-      renderMessages(list, append);
-      var moreWrap = document.getElementById('memMsgMoreWrap');
-      if (moreWrap) moreWrap.style.display = pg.hasMore ? '' : 'none';
-    }).catch(function () {
-      _msgLoading = false;
-      if (!append) renderMessages([], false);
+      if (window.Icons && Icons.hydrate) { try { Icons.hydrate(grid); } catch (e) {} }
     });
-  }
-  function likeMsg(id, wrap) {
-    if (!isLoggedIn()) { promptLogin('공감은 로그인 후 가능합니다.'); return; }
-    api('/api/memorial-messages?action=like&id=' + id, { method: 'POST' }).then(function (res) {
-      if (!res.ok) { toast((res.data && res.data.error) || '처리 실패'); return; }
-      var likeCount = unwrap(res, 'likeCount');
-      var liked = unwrap(res, 'liked');
-      var btn = wrap.querySelector('.act-like');
-      if (typeof likeCount === 'number') wrap.querySelector('.lc').textContent = likeCount;
-      if (btn) btn.classList.toggle('liked', !!liked);
-    }).catch(function () { toast('처리 실패'); });
-  }
-  function reportMsg(id) {
-    if (!confirm('이 글을 신고하시겠습니까? 운영자가 검토합니다.')) return;
-    api('/api/memorial-messages?action=report&id=' + id, { method: 'POST' }).then(function (res) {
-      toast(res.ok ? '신고가 접수되었습니다.' : ((res.data && res.data.error) || '신고 실패'));
-    }).catch(function () { toast('신고 실패'); });
-  }
-  function setupMessageForm() {
-    var btn = document.getElementById('memMsgSubmit');
-    var more = document.getElementById('memMsgMore');
-    if (more) more.addEventListener('click', function () { loadMessages(true); });
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      var content = (document.getElementById('memMsgContent').value || '').trim();
-      if (!content) { toast('내용을 입력해 주세요.'); return; }
-      if (!isLoggedIn()) { promptLogin('추모 글 작성은 로그인 후 가능합니다.'); return; }
-      var anon = document.getElementById('memMsgAnon').checked;
-      btn.disabled = true;
-      api('/api/memorial-messages', { method: 'POST', body: { content: content, isAnonymous: anon } })
-        .then(function (res) {
-          btn.disabled = false;
-          if (!res.ok) {
-            if (res.status === 401) { promptLogin('추모 글 작성은 로그인 후 가능합니다.'); return; }
-            toast((res.data && res.data.error) || '작성 실패');
-            return;
-          }
-          var msg = unwrap(res, 'message');
-          document.getElementById('memMsgContent').value = '';
-          document.getElementById('memMsgAnon').checked = false;
-          var empty = document.getElementById('memMsgEmpty');
-          if (empty) empty.style.display = 'none';
-          if (msg) {
-            var listEl = document.getElementById('memMsgList');
-            listEl.insertBefore(msgEl(msg), listEl.firstChild);
-          } else { loadMessages(false); }
-          bumpMessages(1);
-          toast('추모의 글이 등록되었습니다.');
-        }).catch(function () { btn.disabled = false; toast('작성 실패'); });
-    });
-  }
-
-  /* ───────── 이달에 기억할 선생님 (2026-08-04 신설) ─────────
-     생일·기일처럼 특별한 날을 맞은 선생님을 그달에 소개한다.
-     등록된 항목이 없으면 코너 전체를 숨긴다. */
-  var OCCASION_LABEL = { birth: '생신', death: '기일', other: '기억하는 날' };
-
-  function fmtMonthDay(dateStr) {
-    if (!dateStr) return '';
-    var m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return String(dateStr);
-    return Number(m[2]) + '월 ' + Number(m[3]) + '일';
-  }
-
-  function renderSpotlight(items, title, desc) {
-    var sec = document.getElementById('memSpotlightSection');
-    var list = document.getElementById('memSpotlightList');
-    if (!sec || !list) return;
-
-    if (!items || items.length === 0) { sec.style.display = 'none'; return; }
-
-    var tEl = document.getElementById('memSpotlightTitle');
-    if (tEl && title) tEl.textContent = title;
-    var dEl = document.getElementById('memSpotlightDesc');
-    if (dEl && desc) dEl.textContent = desc;
-
-    list.innerHTML = items.map(function (it) {
-      var day = fmtMonthDay(it.occasionDate);
-      var occ = OCCASION_LABEL[it.occasion] || OCCASION_LABEL.other;
-      var photo = it.photoUrl
-        ? '<img class="mem-spot-photo" src="' + esc(it.photoUrl) + '" alt="' + esc(it.displayName) + '"' +
-          ' onerror="this.outerHTML=\'<div class=&quot;mem-spot-photo-empty&quot;>❀</div>\'">'
-        : '<div class="mem-spot-photo-empty">❀</div>';
-
-      /* 선생님 개별 추모 공간이 연결돼 있으면 이름을 눌러 갈 수 있게 */
-      var nameHtml = it.teacherId
-        ? '<a href="/memorial-teacher.html?id=' + it.teacherId + '" style="color:inherit;text-decoration:none">' +
-            esc(it.displayName) + '</a>'
-        : esc(it.displayName);
-
-      return '<div class="mem-spot-card">' +
-        photo +
-        '<div class="mem-spot-body">' +
-          '<span class="mem-spot-day">' + esc(day + ' · ' + occ) + '</span>' +
-          '<h3 class="mem-spot-name">' + nameHtml + '</h3>' +
-          (it.familyMessage
-            ? '<div class="mem-spot-msg">' + esc(it.familyMessage) +
-              (it.familyName ? '<span class="mem-spot-from">— ' + esc(it.familyName) + '</span>' : '') +
-              '</div>'
-            : '') +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    sec.style.display = '';
   }
 
   function loadSpotlights() {
-    api('/api/memorial-spotlights').then(function (res) {
+    return api('/api/memorial-spotlights').then(function (res) {
       if (!res.ok) return;
-      var items = unwrap(res, 'items') || [];
-      renderSpotlight(items, unwrap(res, 'title'), unwrap(res, 'desc'));
-    }).catch(function () { /* 실패해도 코너만 숨긴 채 나머지는 정상 */ });
+      var list = unwrap(res, 'spotlights') || unwrap(res, 'list') || [];
+      if (!list.length) return;
+      var wrap = $('m2SpotList'), block = $('m2SpotlightBlock');
+      if (!wrap) return;
+      wrap.innerHTML = list.map(function (s) {
+        var t = s.teacher || s;
+        return teacherCard({
+          id: t.id, name: t.name, photoUrl: t.photoUrl,
+          schoolRegion: s.reasonLabel || t.schoolRegion,
+          tributeLine: s.familyWord || t.tributeLine
+        });
+      }).join('');
+      show(block, true);
+      if (window.Icons && Icons.hydrate) { try { Icons.hydrate(wrap); } catch (e) {} }
+    });
   }
 
-  /* ───────── 초기화 ───────── */
-  function init() {
+  /* =========================================================
+     4. 한마디 목록 (밤 = 추모 / 아침 = 응원)
+     ========================================================= */
+  var UI = {
+    tribute: { list: 'm2NightMsgs', empty: 'm2NightMsgEmpty', loading: 'm2NightMsgLoading', moreWrap: 'm2NightMoreWrap', more: 'm2NightMore' },
+    support: { list: 'm2MornMsgs', empty: 'm2MornMsgEmpty', loading: 'm2MornMsgLoading', moreWrap: 'm2MornMoreWrap', more: 'm2MornMore' }
+  };
+
+  function msgCard(m, kind) {
+    var mine = isMine(kind, m.id);
+    return '<article class="mem2-msg' + (mine ? ' mem2-msg-mine' : '') + '">' +
+      '<div class="mem2-msg-head">' +
+      '<span class="mem2-msg-name">' + esc(m.isAnonymous ? '익명' : (m.authorName || '익명')) + '</span>' +
+      '<span class="mem2-msg-date">' + esc(fmtDate(m.createdAt)) + '</span>' +
+      (mine ? '<span class="mem2-badge-mine">내가 남긴 마음</span>' : '') +
+      '</div>' +
+      '<p class="mem2-msg-body">' + esc(m.content || '') + '</p>' +
+      '</article>';
+  }
+
+  function loadMessages(kind, append) {
+    var ui = UI[kind];
+    var listEl = $(ui.list), emptyEl = $(ui.empty), loadEl = $(ui.loading);
+    var moreWrap = $(ui.moreWrap);
+    if (!append) { PAGE[kind] = 1; CACHE[kind] = []; }
+    show(loadEl, true);
+
+    return api('/api/memorial-messages?kind=' + kind + '&page=' + PAGE[kind]).then(function (res) {
+      show(loadEl, false);
+      var msgs = unwrap(res, 'messages') || [];
+      var pg = unwrap(res, 'pagination') || {};
+      if (!res.ok) { show(emptyEl, CACHE[kind].length === 0); return; }
+
+      CACHE[kind] = append ? CACHE[kind].concat(msgs) : msgs;
+      if (listEl) {
+        var html = CACHE[kind].map(function (m) { return msgCard(m, kind); }).join('');
+        listEl.innerHTML = html;
+      }
+      show(emptyEl, CACHE[kind].length === 0);
+      show(moreWrap, !!pg.hasMore);
+      refreshSky();
+    });
+  }
+
+  /* =========================================================
+     5. 하늘 · 들판
+     ========================================================= */
+  /** 한마디들을 '마음' 목록으로 바꾸고, 헌화만 한 분들은 이름 없는 불빛으로 채운다 */
+  function buildHearts(kind) {
+    var named = (CACHE[kind] || []).map(function (m) {
+      return {
+        id: 'm' + m.id,
+        name: m.isAnonymous ? '익명' : (m.authorName || '익명'),
+        text: m.content || '',
+        mine: isMine(kind, m.id)
+      };
+    });
+    var cap = (window.MemorialSky && window.MemorialSky.MAX_DRAW) || 420;
+    var total = totalHearts();
+    var fillers = Math.max(0, Math.min(total, cap) - named.length);
+    for (var i = 0; i < fillers; i++) {
+      named.push({ id: 'o' + kind + i, name: '', text: '', mine: false });
+    }
+    return { items: named, total: total };
+  }
+
+  function mountSky() {
+    if (!window.MemorialSky) return;
+    var c1 = $('m2SkyCanvas'), c2 = $('m2FieldCanvas');
+    var n = buildHearts('tribute'), s = buildHearts('support');
+
+    if (c1 && !SKY) {
+      SKY = MemorialSky.mount(c1, {
+        mode: 'star', items: n.items, total: n.total,
+        onPick: function (p) { showTip('m2SkyTip', p); }
+      });
+    }
+    if (c2 && !FIELD) {
+      FIELD = MemorialSky.mount(c2, {
+        mode: 'flower', items: s.items, total: s.total,
+        onPick: function (p) { showTip('m2FieldTip', p); }
+      });
+    }
+  }
+
+  function refreshSky() {
+    if (SKY) { var n = buildHearts('tribute'); SKY.setItems(n.items, n.total); }
+    if (FIELD) { var s = buildHearts('support'); FIELD.setItems(s.items, s.total); }
+  }
+
+  var tipTimer = null;
+  function showTip(id, p) {
+    var tip = $(id);
+    if (!tip) return;
+    if (!p.name && !p.text) {
+      tip.innerHTML = '<b>이름을 남기지 않은 불빛</b>조용히 함께해 주신 마음입니다.';
+    } else {
+      tip.innerHTML = '<b>' + esc(p.name || '익명') + (p.mine ? ' · 내 마음' : '') + '</b>' +
+        esc(p.text || '말없이 마음만 두고 가셨습니다.');
+    }
+    tip.style.left = Math.round(p.x) + 'px';
+    tip.style.top = Math.round(p.y) + 'px';
+    tip.classList.add('on');
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(function () { tip.classList.remove('on'); }, 4200);
+  }
+
+  function initFind() {
+    function find(sky, tipId, mineBoxId, word) {
+      return function () {
+        if (!sky) return;
+        var hit = sky.focusMine();
+        var box = $(mineBoxId);
+        if (hit) {
+          showTip(tipId, { x: hit.x, y: hit.y, name: hit.name, text: hit.text, mine: true });
+          if (box) {
+            box.innerHTML = '✨ 찾았습니다 — 밝게 빛나는 것이 당신의 ' + word + '입니다.';
+            show(box, true);
+          }
+        } else if (MINE.offered > 0) {
+          if (box) {
+            box.innerHTML = '당신이 밝힌 불빛도 이 안에 함께 있습니다. ' +
+              '한마디를 남기시면 다음부터는 바로 찾아드릴 수 있어요.';
+            show(box, true);
+          }
+        } else {
+          if (box) {
+            box.innerHTML = '아직 남기신 마음이 없습니다. 위에서 한마디를 남겨보세요.';
+            show(box, true);
+          }
+        }
+      };
+    }
+    var a = $('m2FindStar'), b = $('m2FindFlower');
+    if (a) a.addEventListener('click', find(SKY, 'm2SkyTip', 'm2NightMine', '별'));
+    if (b) b.addEventListener('click', find(FIELD, 'm2FieldTip', 'm2MornMine', '꽃'));
+  }
+
+  /* =========================================================
+     6. 마음 남기기
+     ========================================================= */
+  function initOfferTypes() {
+    var wrap = $('m2OfferTypes');
+    if (!wrap) return;
+    wrap.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('.mem2-offer-type');
+      if (!btn) return;
+      offerType = btn.dataset.type || 'candle';
+      Array.prototype.forEach.call(wrap.querySelectorAll('.mem2-offer-type'), function (b) {
+        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+      });
+    });
+  }
+
+  /** 밤 — 헌화(+선택 한마디) */
+  function submitNight() {
+    var btn = $('m2NightSubmit');
+    var nameEl = $('m2NightName'), msgEl = $('m2NightMsg'), anonEl = $('m2NightAnon');
+    var nick = (nameEl && nameEl.value.trim()) || '';
+    var text = (msgEl && msgEl.value.trim()) || '';
+    var anon = !!(anonEl && anonEl.checked);
+    if (btn) btn.disabled = true;
+
+    /* ① 헌화 — 한마디가 없어도 이것만으로 참여가 된다 */
+    api('/api/memorial-offering', {
+      method: 'POST',
+      body: { type: offerType, nickname: anon ? null : (nick || null) }
+    }).then(function (res) {
+      if (!res.ok) {
+        if (btn) btn.disabled = false;
+        toast((res.data && res.data.error) || '헌화하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      COUNTS.candles += 1;
+      MINE.offered = (MINE.offered || 0) + 1;
+      saveMine(MINE);
+
+      /* ② 한마디가 있으면 방명록에도 남긴다 */
+      if (!text) {
+        finishNight(btn, '불빛을 밝혔습니다. 고맙습니다.');
+        return;
+      }
+      api('/api/memorial-messages', {
+        method: 'POST',
+        body: { authorName: anon ? '익명' : (nick || '익명'), content: text, isAnonymous: anon, kind: 'tribute' }
+      }).then(function (r2) {
+        if (r2.ok) {
+          COUNTS.messages += 1;
+          var newId = unwrap(r2, 'id') || (r2.data && r2.data.data && r2.data.data.message && r2.data.data.message.id);
+          if (newId) rememberMine('tribute', newId);
+          if (msgEl) msgEl.value = '';
+          loadMessages('tribute', false);
+        }
+        finishNight(btn, '불빛과 마음을 함께 남겼습니다. 고맙습니다.');
+      });
+    });
+  }
+
+  function finishNight(btn, msg) {
+    if (btn) btn.disabled = false;
+    paintCounts();
+    refreshSky();
+    toast(msg);
+    var box = $('m2NightMine');
+    if (box) {
+      box.innerHTML = '🕯️ 당신의 불빛이 밤하늘에 더해졌습니다. ' +
+        '<button type="button" class="mem2-ghost" id="m2JumpStar">내 별 보러 가기</button>';
+      show(box, true);
+      var j = $('m2JumpStar');
+      if (j) j.addEventListener('click', function () { var f = $('m2FindStar'); if (f) f.click(); });
+    }
+  }
+
+  /** 아침 — 유가족 응원 */
+  function submitMorning() {
+    var btn = $('m2MornSubmit');
+    var nameEl = $('m2MornName'), msgEl = $('m2MornMsg'), anonEl = $('m2MornAnon');
+    var nick = (nameEl && nameEl.value.trim()) || '';
+    var text = (msgEl && msgEl.value.trim()) || '';
+    var anon = !!(anonEl && anonEl.checked);
+
+    if (!text) { toast('응원 한마디를 적어주세요.'); if (msgEl) msgEl.focus(); return; }
+    if (btn) btn.disabled = true;
+
+    api('/api/memorial-messages', {
+      method: 'POST',
+      body: { authorName: anon ? '익명' : (nick || '익명'), content: text, isAnonymous: anon, kind: 'support' }
+    }).then(function (res) {
+      if (btn) btn.disabled = false;
+      if (!res.ok) {
+        toast((res.data && res.data.error) || '응원을 남기지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      COUNTS.messages += 1;
+      var newId = unwrap(res, 'id') || (res.data && res.data.data && res.data.data.message && res.data.data.message.id);
+      if (newId) rememberMine('support', newId);
+      if (msgEl) msgEl.value = '';
+      paintCounts();
+      loadMessages('support', false);
+      toast('꽃 한 송이를 놓았습니다. 고맙습니다.');
+
+      var box = $('m2MornMine');
+      if (box) {
+        box.innerHTML = '🌸 당신의 꽃이 들판에 피었습니다. ' +
+          '<button type="button" class="mem2-ghost" id="m2JumpFlower">내 꽃 보러 가기</button>';
+        show(box, true);
+        var j = $('m2JumpFlower');
+        if (j) j.addEventListener('click', function () { var f = $('m2FindFlower'); if (f) f.click(); });
+      }
+    });
+  }
+
+  /* =========================================================
+     7. 아침 — 유가족 근황 · 목소리
+     ========================================================= */
+  var MOODS = { calm: '🌿', hope: '🌤️', thanks: '💌', daily: '☕' };
+
+  function loadFamilyNotes() {
+    var list = $('m2NoteList'), empty = $('m2NoteEmpty'), loading = $('m2NoteLoading');
+    return api('/api/memorial-family-notes').then(function (res) {
+      show(loading, false);
+      var notes = unwrap(res, 'notes') || unwrap(res, 'list') || [];
+      if (!res.ok || !notes.length) { show(empty, true); return; }
+      if (list) {
+        list.innerHTML = notes.map(function (n) {
+          return '<article class="mem2-note">' +
+            '<div class="mem2-note-mood" aria-hidden="true">' + (MOODS[n.mood] || '🌿') + '</div>' +
+            '<h3>' + esc(n.title || '') + '</h3>' +
+            '<p>' + esc(n.content || '') + '</p>' +
+            (n.authorLabel ? '<div class="mem2-note-by">' + esc(n.authorLabel) + '</div>' : '') +
+            '</article>';
+        }).join('');
+      }
+    });
+  }
+
+  function loadStories() {
+    return api('/api/family-stories').then(function (res) {
+      if (!res.ok) return;
+      var stories = unwrap(res, 'stories') || [];
+      if (!stories.length) return;
+      var list = $('m2StoryList'), block = $('m2StoryBlock');
+      if (!list) return;
+      list.innerHTML = stories.slice(0, 3).map(function (s) {
+        var thumb = s.thumbnailUrl
+          ? '<img src="' + esc(s.thumbnailUrl) + '" alt="" loading="lazy">'
+          : (s.youtubeId ? '<img src="https://i.ytimg.com/vi/' + esc(s.youtubeId) + '/hqdefault.jpg" alt="" loading="lazy">' : '');
+        return '<a class="mem2-story" href="/family-story.html?id=' + encodeURIComponent(s.id) + '">' +
+          '<div class="mem2-story-thumb">' + thumb +
+          '<span class="mem2-story-play"><span class="siren-icon-wrap" data-icon="play"></span></span></div>' +
+          '<div class="mem2-story-body">' +
+          '<h3>' + esc(s.title || '') + '</h3>' +
+          (s.summary || s.subtitle ? '<p>' + esc(s.summary || s.subtitle) + '</p>' : '') +
+          '</div></a>';
+      }).join('');
+      show(block, true);
+      if (window.Icons && Icons.hydrate) { try { Icons.hydrate(list); } catch (e) {} }
+    });
+  }
+
+  /* =========================================================
+     8. 시작
+     ========================================================= */
+  function bind() {
+    initSwitch();
+    initOfferTypes();
+    var a = $('m2NightSubmit'); if (a) a.addEventListener('click', submitNight);
+    var b = $('m2MornSubmit'); if (b) b.addEventListener('click', submitMorning);
+    var c = $('m2NightMore'); if (c) c.addEventListener('click', function () { PAGE.tribute++; loadMessages('tribute', true); });
+    var d = $('m2MornMore'); if (d) d.addEventListener('click', function () { PAGE.support++; loadMessages('support', true); });
+  }
+
+  function start() {
+    bind();
+    /* 서로 기다릴 필요가 없는 조회는 한꺼번에 */
     loadSummary();
     loadTeachers();
     loadSpotlights();
-    loadMessages(false);
-    setupOffering();
-    setupMessageForm();
+    loadFamilyNotes();
+    loadStories();
+    Promise.all([loadMessages('tribute', false), loadMessages('support', false)])
+      .then(function () { mountSky(); initFind(); })
+      .catch(function () { mountSky(); initFind(); });
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else { init(); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();

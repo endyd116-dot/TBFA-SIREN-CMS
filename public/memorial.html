@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- PWA(앱 설치) -->
 <link rel="manifest" href="/manifest.webmanifest" />
-<meta name="theme-color" content="#7a1f2b" />
+<meta name="theme-color" content="#070C16" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
 <script src="/js/pwa.js?v=3" defer></script>
 <title>온라인 추모관 | 교사유가족협의회</title>
-<meta name="description" content="교사유가족협의회 온라인 추모관입니다. 먼저 떠난 선생님들을 함께 기억하고, 촛불과 국화로 마음을 전합니다.">
+<meta name="description" content="굿나잇, 굿모닝 — 먼저 떠나신 선생님들을 기억하는 밤과, 남겨진 유가족의 오늘을 응원하는 아침. 당신이 밝힌 불빛 하나가 밤에는 별이 되고 아침에는 꽃이 됩니다.">
 <meta property="og:title" content="온라인 추모관 | 교사유가족협의회">
-<meta property="og:description" content="먼저 떠난 선생님들을 함께 기억하고, 촛불과 국화로 마음을 전합니다.">
+<meta property="og:description" content="당신이 밝힌 불빛 하나가 밤에는 별이 되고, 아침에는 꽃이 됩니다.">
 <meta property="og:image" content="https://tbfa.co.kr/og-default.png">
 <meta property="og:url" content="https://tbfa.co.kr/memorial.html">
 <meta property="og:type" content="website">
@@ -22,7 +22,7 @@
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="온라인 추모관 | 교사유가족협의회">
-<meta name="twitter:description" content="먼저 떠난 선생님들을 함께 기억하고, 촛불과 국화로 마음을 전합니다.">
+<meta name="twitter:description" content="당신이 밝힌 불빛 하나가 밤에는 별이 되고, 아침에는 꽃이 됩니다.">
 <meta name="twitter:image" content="https://tbfa.co.kr/og-default.png">
 <link rel="canonical" href="https://tbfa.co.kr/memorial.html">
 
@@ -35,342 +35,343 @@
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
-<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/memorial.css?v=20260828-v2">
 
-<style>
-  /* ===== 공통 톤 ===== */
-  body[data-page="memorial"] { background:#0c0c16; }
-  .mem-serif { font-family:'Noto Serif KR', serif; }
-
-  /* ===== ① 히어로 ===== */
-  .mem-hero {
-    position:relative; background:linear-gradient(165deg,#0a0a14 0%,#15152a 55%,#0f3460 100%);
-    color:#fff; padding:88px 0 64px; text-align:center; overflow:hidden;
-  }
-  .mem-hero .container { position:relative; z-index:2; }
-  .mem-hero-flame {
-    font-size:3rem; display:block; margin-bottom:18px; opacity:.9;
-    animation:memFlicker 3s ease-in-out infinite alternate;
-  }
-  @keyframes memFlicker {
-    0%{opacity:.72;transform:scale(1)} 50%{opacity:.96;transform:scale(1.05)} 100%{opacity:.8;transform:scale(.97)}
-  }
-  .mem-hero h1 {
-    font-family:'Noto Serif KR',serif; font-size:clamp(1.7rem,4vw,2.7rem); font-weight:700;
-    margin:0 0 14px; letter-spacing:-.02em; text-shadow:0 2px 14px rgba(0,0,0,.45); line-height:1.4;
-  }
-  .mem-hero .hero-sub { font-size:1rem; opacity:.66; font-weight:300; letter-spacing:.05em; margin:0; }
-  .mem-hero-video {
-    max-width:760px; margin:34px auto 0; position:relative; width:100%;
-    border-radius:14px; overflow:hidden; box-shadow:0 14px 48px rgba(0,0,0,.5);
-    background:#000;
-  }
-  .mem-hero-video .ratio { position:relative; width:100%; padding-top:56.25%; }
-  .mem-hero-video .ratio > * { position:absolute; inset:0; width:100%; height:100%; border:0; }
-  .mem-scroll-hint {
-    margin-top:30px; font-size:.8rem; opacity:.55; letter-spacing:.1em;
-    animation:memBob 2s ease-in-out infinite;
-  }
-  @keyframes memBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
-
-  /* ===== ② 카운터 ===== */
-  .mem-counter { background:#0f0f1e; color:#fff; padding:54px 0; border-top:1px solid #1d1d33; }
-  .mem-counter-grid {
-    display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:720px; margin:0 auto;
-  }
-  @media(max-width:560px){ .mem-counter-grid{ grid-template-columns:1fr; gap:26px; } }
-  .mem-stat { text-align:center; }
-  .mem-stat .num {
-    font-family:'Noto Serif KR',serif; font-size:clamp(1.9rem,5vw,2.6rem); font-weight:700;
-    color:#f6c45e; line-height:1.1;
-  }
-  .mem-stat .label { font-size:.85rem; opacity:.7; margin-top:8px; letter-spacing:.02em; }
-
-  /* ===== ③ 헌화 ===== */
-  .mem-offering { position:relative; background:linear-gradient(180deg,#11111f 0%,#15152a 100%); color:#fff; padding:64px 0; overflow:hidden; }
-  .mem-section-title { text-align:center; margin:0 0 8px; font-family:'Noto Serif KR',serif; font-size:1.45rem; font-weight:700; }
-  .mem-section-desc { text-align:center; font-size:.9rem; opacity:.62; margin:0 0 30px; }
-  .mem-offer-box {
-    max-width:480px; margin:0 auto; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
-    border-radius:16px; padding:28px 26px; backdrop-filter:blur(4px);
-  }
-  .mem-offer-types { display:flex; gap:12px; margin-bottom:18px; }
-  .mem-offer-type {
-    flex:1; cursor:pointer; text-align:center; padding:16px 10px; border-radius:12px;
-    border:1.5px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03);
-    transition:border-color .15s, background .15s; user-select:none;
-  }
-  .mem-offer-type .emoji { font-size:1.9rem; display:block; }
-  .mem-offer-type .nm { font-size:.85rem; margin-top:6px; opacity:.85; }
-  .mem-offer-type.sel { border-color:#f6c45e; background:rgba(246,196,94,.12); }
-  .mem-offer-box input[type=text] {
-    width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px;
-    border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff;
-    font-size:.92rem; margin-bottom:14px; font-family:inherit;
-  }
-  .mem-offer-box input::placeholder { color:rgba(255,255,255,.4); }
-  .mem-btn-offer {
-    width:100%; padding:13px; border:0; border-radius:10px; cursor:pointer;
-    background:linear-gradient(90deg,#c98a2f,#e6b35a); color:#1a1208; font-weight:700; font-size:.98rem;
-    transition:opacity .15s;
-  }
-  .mem-btn-offer:hover { opacity:.9; }
-  .mem-btn-offer:disabled { opacity:.5; cursor:not-allowed; }
-  /* 플로팅 헌화 애니메이션 */
-  .mem-float-layer { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:1; }
-  .mem-float { position:absolute; bottom:80px; font-size:1.6rem; opacity:0; animation:memRise 3.4s ease-out forwards; }
-  @keyframes memRise {
-    0%{ opacity:0; transform:translateY(0) scale(.6); }
-    15%{ opacity:.95; }
-    100%{ opacity:0; transform:translateY(-240px) scale(1.1); }
-  }
-  .mem-offer-box { position:relative; z-index:2; }
-
-  /* ===== ④ 선생님 그리드 ===== */
-  .mem-teachers { background:#0c0c16; color:#fff; padding:64px 0 72px; }
-  .mem-grid { display:grid; grid-template-columns:1fr; gap:22px; }
-  @media(min-width:560px){ .mem-grid{ grid-template-columns:repeat(2,1fr); } }
-
-  /* ★ 2026-08-04: 이달에 기억할 선생님 — 예전 사진 + 가족의 한마디 */
-  .mem-spot-list { display:grid; grid-template-columns:1fr; gap:20px; }
-  @media(min-width:820px){ .mem-spot-list{ grid-template-columns:repeat(2,1fr); } }
-  .mem-spot-card {
-    display:flex; gap:18px; align-items:flex-start;
-    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10);
-    border-radius:14px; padding:20px; transition:border-color .2s, background .2s;
-  }
-  .mem-spot-card:hover { background:rgba(255,255,255,.06); border-color:rgba(212,175,109,.45); }
-  .mem-spot-photo {
-    width:104px; height:104px; flex-shrink:0; border-radius:12px; object-fit:cover;
-    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
-  }
-  .mem-spot-photo-empty {
-    width:104px; height:104px; flex-shrink:0; border-radius:12px;
-    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
-    display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.35); font-size:30px;
-  }
-  .mem-spot-body { flex:1; min-width:0; }
-  .mem-spot-day {
-    display:inline-block; padding:3px 11px; border-radius:999px; font-size:11.5px; font-weight:700;
-    background:rgba(212,175,109,.16); color:#d4af6d; border:1px solid rgba(212,175,109,.34);
-    margin-bottom:9px; letter-spacing:.02em;
-  }
-  .mem-spot-name { font-size:17px; font-weight:700; color:#fff; margin:0 0 4px; font-family:'Noto Serif KR',serif; }
-  .mem-spot-sub { font-size:12.5px; color:rgba(255,255,255,.5); margin:0 0 12px; }
-  .mem-spot-msg {
-    font-size:13.5px; line-height:1.85; color:rgba(255,255,255,.82);
-    padding-left:13px; border-left:2px solid rgba(212,175,109,.5); white-space:pre-line; word-break:keep-all;
-  }
-  .mem-spot-from { display:block; margin-top:9px; font-size:12px; color:rgba(255,255,255,.45); }
-  @media(max-width:520px){
-    .mem-spot-card{ flex-direction:column; gap:14px; }
-    .mem-spot-photo, .mem-spot-photo-empty{ width:100%; height:180px; }
-  }
-  @media(min-width:920px){ .mem-grid{ grid-template-columns:repeat(3,1fr); } }
-  .mem-card {
-    display:block; text-decoration:none; color:inherit; background:rgba(255,255,255,.035);
-    border:1px solid rgba(255,255,255,.09); border-radius:14px; overflow:hidden;
-    transition:transform .18s, box-shadow .18s, border-color .18s;
-  }
-  .mem-card:hover { transform:translateY(-4px); border-color:rgba(246,196,94,.4); box-shadow:0 10px 30px rgba(0,0,0,.4); }
-  .mem-card-photo {
-    position:relative; width:100%; padding-top:100%; background:#1a1a2e; overflow:hidden;
-  }
-  .mem-card-photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-  .mem-card-photo .silhouette {
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:3.4rem; color:rgba(255,255,255,.22); background:linear-gradient(160deg,#16162b,#1f1f3a);
-  }
-  .mem-card-body { padding:16px 18px 20px; }
-  .mem-card-name { font-family:'Noto Serif KR',serif; font-size:1.05rem; font-weight:600; margin:0 0 4px; }
-  .mem-card-region { font-size:.78rem; opacity:.55; margin:0 0 10px; }
-  .mem-card-tribute {
-    font-size:.85rem; opacity:.82; line-height:1.55; margin:0 0 14px; min-height:2.6em;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-  }
-  .mem-card-meta { display:flex; gap:14px; font-size:.78rem; opacity:.7; }
-  .mem-empty, .mem-loading { text-align:center; padding:64px 20px; color:rgba(255,255,255,.5); }
-  .mem-empty .ic { font-size:2.4rem; display:block; margin-bottom:14px; opacity:.6; }
-
-  /* ===== ⑤ 방명록 ===== */
-  .mem-guestbook { background:#0f0f1e; color:#fff; padding:64px 0 72px; border-top:1px solid #1d1d33; }
-  .mem-gb-form {
-    max-width:680px; margin:0 auto 30px; background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px;
-  }
-  .mem-gb-form textarea {
-    width:100%; box-sizing:border-box; min-height:74px; resize:vertical; padding:12px 14px;
-    border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25);
-    color:#fff; font-size:.92rem; font-family:inherit; margin-bottom:10px;
-  }
-  .mem-gb-form textarea::placeholder { color:rgba(255,255,255,.4); }
-  .mem-gb-form-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-  .mem-gb-anon { font-size:.82rem; opacity:.8; display:flex; align-items:center; gap:6px; cursor:pointer; }
-  .mem-gb-submit {
-    padding:10px 22px; border:0; border-radius:9px; cursor:pointer; font-weight:700; font-size:.9rem;
-    background:linear-gradient(90deg,#c98a2f,#e6b35a); color:#1a1208;
-  }
-  .mem-gb-submit:disabled { opacity:.5; cursor:not-allowed; }
-  .mem-gb-list { max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
-  .mem-msg {
-    background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.08);
-    border-radius:12px; padding:16px 18px;
-  }
-  .mem-msg-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .mem-msg-author { font-weight:600; font-size:.88rem; }
-  .mem-msg-date { font-size:.74rem; opacity:.5; }
-  .mem-msg-body { font-size:.9rem; line-height:1.65; opacity:.92; white-space:pre-wrap; word-break:break-word; }
-  .mem-msg-actions { display:flex; gap:16px; margin-top:12px; }
-  .mem-msg-actions button {
-    background:none; border:0; color:rgba(255,255,255,.6); font-size:.8rem; cursor:pointer;
-    display:flex; align-items:center; gap:5px; padding:0; transition:color .15s;
-  }
-  .mem-msg-actions button:hover { color:#fff; }
-  .mem-msg-actions button.liked { color:#f08a8a; }
-  .mem-gb-more { text-align:center; margin-top:24px; }
-  .mem-gb-more button {
-    padding:10px 26px; border:1px solid rgba(255,255,255,.2); border-radius:24px;
-    background:transparent; color:#fff; cursor:pointer; font-size:.85rem; transition:background .15s;
-  }
-  .mem-gb-more button:hover { background:rgba(255,255,255,.08); }
-
-  /* ===== ⑥ 후원 CTA ===== */
-  .mem-donate {
-    background:linear-gradient(160deg,#15152a,#0f3460); color:#fff; padding:60px 0; text-align:center;
-  }
-  .mem-donate h2 { font-family:'Noto Serif KR',serif; font-size:1.4rem; font-weight:700; margin:0 0 12px; }
-  .mem-donate p { font-size:.92rem; opacity:.72; line-height:1.7; margin:0 0 24px; }
-  .mem-donate .btn-cta {
-    display:inline-block; padding:13px 34px; border-radius:28px; border:0; cursor:pointer;
-    background:linear-gradient(90deg,#c98a2f,#e6b35a); color:#1a1208; font-weight:700; font-size:1rem;
-    text-decoration:none;
-  }
-  .mem-donate .btn-cta:hover { opacity:.9; }
-</style>
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
   for(var i=0;i<l.length;i++)l[i].media='all';}
   function go(){requestAnimationFrame(function(){requestAnimationFrame(on);});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();})();</script>
 </head>
-<body data-page="memorial">
+<body data-page="memorial" class="mem2">
 
   <div id="header-slot"></div>
 
+  <!-- 밤 ↔ 아침 전환 (스크롤 위치를 따라 저절로 바뀐다) -->
+  <div class="mem2-switch" id="m2Switch" data-phase="night">
+    <div class="mem2-switch-inner" role="tablist" aria-label="추모관 전환">
+      <button type="button" class="mem2-switch-btn" id="m2GoNight" role="tab" aria-selected="true" aria-controls="hallNight">
+        <span class="m2-dot"></span>밤 · 기억
+      </button>
+      <button type="button" class="mem2-switch-btn" id="m2GoMorning" role="tab" aria-selected="false" aria-controls="hallMorning">
+        <span class="m2-dot"></span>아침 · 응원
+      </button>
+    </div>
+  </div>
+
   <main>
 
-    <!-- ① 히어로 -->
-    <section class="mem-hero">
-      <div class="container">
-        <span class="mem-hero-flame"><span class="siren-icon-wrap" data-icon="candle"></span></span>
-        <h1 id="memHeroCopy">우리는 당신들을 기억합니다</h1>
-        <p class="hero-sub">먼저 떠난 선생님들을 함께 기억합니다</p>
-        <div class="mem-hero-video" id="memHeroVideoWrap" style="display:none">
-          <div class="ratio"><div id="memHeroPlayer"></div></div>
-        </div>
-        <div class="mem-scroll-hint">아래로 스크롤하여 함께해 주세요 ↓</div>
-      </div>
-    </section>
+    <!-- ══════════════════ 밤 ══════════════════ -->
+    <section class="mem2-night" id="hallNight" aria-label="밤 — 선생님을 기억하는 자리">
 
-    <!-- ★ 2026-08-04 순서 변경: 영상 바로 아래에 선생님들이 오도록 위로 올렸다.
-         (카운터·헌화보다 선생님 이야기를 먼저 만나게 하려는 취지) -->
-    <section class="mem-teachers">
-      <div class="container">
-        <h2 class="mem-section-title mem-serif">기억하는 선생님들</h2>
-        <p class="mem-section-desc">한 분 한 분의 이야기를 만나보세요.</p>
-        <div id="memTeacherGrid" class="mem-grid" style="display:none"></div>
-        <div id="memTeacherEmpty" class="mem-empty" style="display:none">
-          <span class="ic"><span class="siren-icon-wrap" data-icon="dove"></span></span>
-          <p>현재 공개된 추모 공간이 없습니다.</p>
-        </div>
-        <div id="memTeacherLoading" class="mem-loading">불러오는 중…</div>
-      </div>
-    </section>
-
-    <!-- ★ 2026-08-04 신설: 이달에 기억할 선생님
-         생일·기일처럼 특별한 날을 맞은 선생님을 그달에 소개한다.
-         예전 사진과 가족이 전하는 한마디를 함께 싣는다.
-         (제목·문구는 추모관 설정에서 바꿀 수 있고, 등록된 항목이 없으면 통째로 숨긴다) -->
-    <section class="mem-spotlight" id="memSpotlightSection" style="display:none">
-      <div class="container">
-        <h2 class="mem-section-title mem-serif" id="memSpotlightTitle">이달에 기억할 선생님</h2>
-        <p class="mem-section-desc" id="memSpotlightDesc">특별한 날을 맞은 선생님을 가족의 한마디와 함께 기억합니다.</p>
-        <div id="memSpotlightList" class="mem-spot-list"></div>
-      </div>
-    </section>
-
-    <!-- ② 실시간 카운터 -->
-    <section class="mem-counter" id="memCounterSection">
-      <div class="container">
-        <div class="mem-counter-grid">
-          <div class="mem-stat">
-            <div class="num" id="cntPeople" data-target="0">0</div>
-            <div class="label">함께 기억한 분</div>
-          </div>
-          <div class="mem-stat">
-            <div class="num" id="cntCandles" data-target="0">0</div>
-            <div class="label">밝혀진 촛불·국화</div>
-          </div>
-          <div class="mem-stat">
-            <div class="num" id="cntMessages" data-target="0">0</div>
-            <div class="label">남겨진 추모 메시지</div>
-          </div>
+      <!-- 히어로 -->
+      <div class="mem2-hero">
+        <canvas class="mem2-hero-canvas" id="m2HeroSky" aria-hidden="true"></canvas>
+        <div class="mem2-wrap mem2-hero-inner">
+          <div class="mem2-hero-greet" id="m2NightGreet">Good night</div>
+          <h1 id="m2NightTitle">불을 끄지 않고<br><em>당신을 기다립니다</em></h1>
+          <p class="mem2-hero-sub" id="m2NightSub">
+            먼저 떠나신 선생님들의 이름을 하나씩 부릅니다.<br>
+            잊지 않는 일이 우리가 할 수 있는 첫 번째 약속입니다.
+          </p>
+          <div class="mem2-scroll-hint">내려가면 아침이 옵니다</div>
         </div>
       </div>
-    </section>
 
-    <!-- ③ 통합 헌화 -->
-    <section class="mem-offering">
-      <div class="mem-float-layer" id="memFloatLayer"></div>
-      <div class="container">
-        <h2 class="mem-section-title mem-serif">마음을 전해주세요</h2>
-        <p class="mem-section-desc">촛불 또는 국화를 선택해 헌화하실 수 있습니다. 로그인 없이도 가능합니다.</p>
-        <div class="mem-offer-box">
-          <div class="mem-offer-types" id="memOfferTypes">
-            <div class="mem-offer-type sel" data-type="candle">
-              <span class="emoji"><span class="siren-icon-wrap" data-icon="candle"></span></span><span class="nm">촛불</span>
+      <!-- 기억하는 선생님들 -->
+      <div class="mem2-block">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">In memoriam</span>
+            <h2 class="mem2-h2">기억하는 선생님들</h2>
+            <p class="mem2-lead">한 분 한 분의 이름과 이야기를 만나보실 수 있습니다.</p>
+          </div>
+          <div id="memTeacherGrid" class="mem2-teachers" style="display:none"></div>
+          <div id="memTeacherEmpty" class="mem2-empty" style="display:none">
+            현재 공개된 추모 공간이 없습니다.
+          </div>
+          <div id="memTeacherLoading" class="mem2-loading">불러오는 중…</div>
+        </div>
+      </div>
+
+      <!-- 이달에 기억할 선생님 -->
+      <div class="mem2-block" id="m2SpotlightBlock" style="display:none;padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">This month</span>
+            <h2 class="mem2-h2" id="m2SpotTitle">이달에 기억할 선생님</h2>
+            <p class="mem2-lead" id="m2SpotDesc">특별한 날을 맞은 선생님을 가족의 한마디와 함께 기억합니다.</p>
+          </div>
+          <div id="m2SpotList" class="mem2-teachers"></div>
+        </div>
+      </div>
+
+      <!-- 마음 전하기 (밤) -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Light a candle</span>
+            <h2 class="mem2-h2">불빛 하나를 밝혀주세요</h2>
+            <p class="mem2-lead">
+              로그인하지 않아도 괜찮습니다. 남겨주신 불빛은 밤하늘의 별이 되어 오래 머뭅니다.
+            </p>
+          </div>
+
+          <div class="mem2-compose">
+            <div class="mem2-offer-types" id="m2OfferTypes" role="group" aria-label="헌화 종류">
+              <button type="button" class="mem2-offer-type" data-type="candle" aria-pressed="true">
+                <span class="m2-emoji" aria-hidden="true">🕯️</span>촛불 밝히기
+              </button>
+              <button type="button" class="mem2-offer-type" data-type="flower" aria-pressed="false">
+                <span class="m2-emoji" aria-hidden="true">🤍</span>국화 올리기
+              </button>
             </div>
-            <div class="mem-offer-type" data-type="flower">
-              <span class="emoji"><span class="siren-icon-wrap" data-icon="ribbon"></span></span><span class="nm">국화</span>
+
+            <div class="mem2-field">
+              <label for="m2NightName">부르실 이름 <span style="opacity:.6">(비워두면 익명)</span></label>
+              <input type="text" class="mem2-input" id="m2NightName" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
+            </div>
+            <div class="mem2-field">
+              <label for="m2NightMsg">전하고 싶은 한마디 <span style="opacity:.6">(선택)</span></label>
+              <textarea class="mem2-textarea" id="m2NightMsg" maxlength="1000" placeholder="선생님께 닿았으면 하는 말을 남겨주세요."></textarea>
+            </div>
+            <div class="mem2-compose-foot">
+              <label class="mem2-anon"><input type="checkbox" id="m2NightAnon"> 익명으로 남기기</label>
+              <button type="button" class="mem2-submit" id="m2NightSubmit">
+                <span class="siren-icon-wrap" data-icon="candle"></span> 불빛 밝히기
+              </button>
+            </div>
+            <p class="mem2-hint">
+              남겨주신 글은 모두에게 공개됩니다. 고인과 유가족을 존중하는 마음으로 부탁드립니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 밤하늘 -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap mem2-center">
+          <span class="mem2-eyebrow">Our night sky</span>
+          <h2 class="mem2-h2">우리가 밝힌 밤하늘</h2>
+          <div class="mem2-count">
+            <b id="m2NightCount">0</b><span>개의 불빛이 이 밤을 지키고 있습니다</span>
+          </div>
+
+          <div class="mem2-field-wrap">
+            <div class="mem2-canvas-box">
+              <canvas id="m2SkyCanvas" aria-label="참여자들이 밝힌 불빛이 별로 떠 있는 밤하늘"></canvas>
+            </div>
+            <div class="mem2-tip" id="m2SkyTip" aria-live="polite"></div>
+          </div>
+
+          <div class="mem2-sky-actions">
+            <button type="button" class="mem2-ghost" id="m2FindStar">
+              <span class="siren-icon-wrap" data-icon="search"></span> 내 별 찾기
+            </button>
+          </div>
+          <div class="mem2-mine" id="m2NightMine" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- 방명록 (밤) -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Messages</span>
+            <h2 class="mem2-h2">남겨주신 마음</h2>
+          </div>
+          <div id="m2NightMsgs" class="mem2-msgs"></div>
+          <div id="m2NightMsgEmpty" class="mem2-empty" style="display:none">
+            첫 마음을 남겨주세요.
+          </div>
+          <div id="m2NightMsgLoading" class="mem2-loading">불러오는 중…</div>
+          <div class="mem2-more" id="m2NightMoreWrap" style="display:none">
+            <button type="button" class="mem2-ghost" id="m2NightMore">더 보기</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 여명 ══════════════════ -->
+    <section class="mem2-dawn" aria-label="여명 — 밤에서 아침으로">
+      <div class="mem2-wrap">
+        <div class="mem2-sun" aria-hidden="true"></div>
+        <p class="mem2-dawn-line" id="m2DawnLine">
+          기억은 슬픔에서 멈추지 않습니다.<br>남겨진 이들의 아침으로 이어집니다.
+        </p>
+        <p class="mem2-dawn-sub" id="m2DawnSub">
+          같은 마음이 이제 다른 얼굴로 피어납니다
+        </p>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 아침 ══════════════════ -->
+    <section class="mem2-morning" id="hallMorning" aria-label="아침 — 유가족을 응원하는 자리">
+
+      <!-- 히어로 -->
+      <div class="mem2-hero">
+        <div class="mem2-wrap mem2-hero-inner">
+          <div class="mem2-hero-greet" id="m2MornGreet">Good morning</div>
+          <h1 id="m2MornTitle">남겨진 이들의<br><em>오늘을 응원합니다</em></h1>
+          <p class="mem2-hero-sub" id="m2MornSub">
+            유가족의 시간은 그날에 멈춰 있지 않습니다.<br>
+            다시 걷고 있는 그분들 곁에 함께 서주세요.
+          </p>
+        </div>
+      </div>
+
+      <!-- 유가족 근황 -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Our days</span>
+            <h2 class="mem2-h2">우린 요즘 이렇게 지냅니다</h2>
+            <p class="mem2-lead">유가족이 전해온 짧은 근황입니다. 평범한 하루가 얼마나 큰 회복인지 함께 봐주세요.</p>
+          </div>
+          <div id="m2NoteList" class="mem2-notes"></div>
+          <div id="m2NoteEmpty" class="mem2-empty" style="display:none">
+            아직 전해온 근황이 없습니다.
+          </div>
+          <div id="m2NoteLoading" class="mem2-loading">불러오는 중…</div>
+        </div>
+      </div>
+
+      <!-- 유가족의 목소리 (영상) -->
+      <div class="mem2-block" id="m2StoryBlock" style="padding-top:0;display:none">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Their voices</span>
+            <h2 class="mem2-h2">유가족의 목소리</h2>
+            <p class="mem2-lead">직접 들려주는 그날 이후의 이야기입니다.</p>
+          </div>
+          <div id="m2StoryList" class="mem2-stories"></div>
+          <div class="mem2-more">
+            <a class="mem2-ghost" href="/family-stories.html" onclick="window.location.href='/family-stories.html';return false;">
+              이야기 전체 보기 →
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 응원 남기기 (아침) -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Send warmth</span>
+            <h2 class="mem2-h2">응원 한마디를 남겨주세요</h2>
+            <p class="mem2-lead">
+              거창하지 않아도 됩니다. 짧은 한 줄이 유가족에게는 하루를 버티는 힘이 됩니다.
+            </p>
+          </div>
+
+          <div class="mem2-compose">
+            <div class="mem2-field">
+              <label for="m2MornName">부르실 이름 <span style="opacity:.6">(비워두면 익명)</span></label>
+              <input type="text" class="mem2-input" id="m2MornName" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
+            </div>
+            <div class="mem2-field">
+              <label for="m2MornMsg">유가족에게 전하는 응원</label>
+              <textarea class="mem2-textarea" id="m2MornMsg" maxlength="1000" placeholder="오늘 하루도 잘 보내셨기를 바랍니다."></textarea>
+            </div>
+            <div class="mem2-compose-foot">
+              <label class="mem2-anon"><input type="checkbox" id="m2MornAnon"> 익명으로 남기기</label>
+              <button type="button" class="mem2-submit" id="m2MornSubmit">
+                <span class="siren-icon-wrap" data-icon="heart"></span> 꽃 한 송이 놓기
+              </button>
+            </div>
+            <p class="mem2-hint">
+              남겨주신 응원은 유가족이 함께 봅니다. 위로가 되는 말로 부탁드립니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 들판 -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap mem2-center">
+          <span class="mem2-eyebrow">Our field</span>
+          <h2 class="mem2-h2">우리가 피운 들판</h2>
+          <div class="mem2-count">
+            <b id="m2MornCount">0</b><span>송이의 마음이 이 아침에 피었습니다</span>
+          </div>
+          <p class="mem2-lead mem2-center" id="m2SameLine" style="margin-bottom:26px"></p>
+
+          <div class="mem2-field-wrap">
+            <div class="mem2-canvas-box">
+              <canvas id="m2FieldCanvas" aria-label="참여자들이 남긴 응원이 꽃으로 피어난 들판"></canvas>
+            </div>
+            <div class="mem2-tip" id="m2FieldTip" aria-live="polite"></div>
+          </div>
+
+          <div class="mem2-sky-actions">
+            <button type="button" class="mem2-ghost" id="m2FindFlower">
+              <span class="siren-icon-wrap" data-icon="search"></span> 내 꽃 찾기
+            </button>
+          </div>
+          <div class="mem2-mine" id="m2MornMine" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- 응원 목록 -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Cheering</span>
+            <h2 class="mem2-h2">함께 보낸 응원</h2>
+          </div>
+          <div id="m2MornMsgs" class="mem2-msgs"></div>
+          <div id="m2MornMsgEmpty" class="mem2-empty" style="display:none">
+            첫 응원을 남겨주세요.
+          </div>
+          <div id="m2MornMsgLoading" class="mem2-loading">불러오는 중…</div>
+          <div class="mem2-more" id="m2MornMoreWrap" style="display:none">
+            <button type="button" class="mem2-ghost" id="m2MornMore">더 보기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 온기의 징검다리 -->
+      <div class="mem2-block" style="padding-top:0;padding-bottom:96px">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Stepping stones</span>
+            <h2 class="mem2-h2">온기의 징검다리</h2>
+            <p class="mem2-lead">
+              마음만으로 그치지 않도록, 협의회가 유가족 곁에서 실제로 하고 있는 일입니다.
+            </p>
+          </div>
+
+          <div class="mem2-programs">
+            <div class="mem2-program">
+              <div class="mem2-program-ic"><span class="siren-icon-wrap" data-icon="heart"></span></div>
+              <h3>마음을 보듬는 심리상담</h3>
+              <p>전문 상담사가 함께하는 1:1 정서 회복 프로그램입니다. 순직 인정 여부와 관계없이, 사건이 일어난 그날부터 곁을 지킵니다.</p>
+              <a class="mem2-program-cta" href="#" data-action="open-modal" data-target="supportModal">상담 신청하기 →</a>
+            </div>
+            <div class="mem2-program">
+              <div class="mem2-program-ic"><span class="siren-icon-wrap" data-icon="scale"></span></div>
+              <h3>외롭지 않은 법률 동행</h3>
+              <p>진상규명과 순직 인정 절차에 필요한 변호사 자문과 서면 작성을 지원합니다. 혼자 감당하지 않도록 끝까지 함께 걷습니다.</p>
+              <a class="mem2-program-cta" href="/legal-support.html" onclick="window.location.href='/legal-support.html';return false;">법률 지원 보기 →</a>
+            </div>
+            <div class="mem2-program">
+              <div class="mem2-program-ic"><span class="siren-icon-wrap" data-icon="graduation-cap"></span></div>
+              <h3>아이들의 내일, 장학 사업</h3>
+              <p>유가족 자녀의 학업이 끊기지 않도록 학기별 장학금과 1:1 학습 멘토링을 지원합니다.</p>
+              <a class="mem2-program-cta" href="/p/memorial-scholarship" onclick="window.location.href='/p/memorial-scholarship';return false;">장학 사업 보기 →</a>
             </div>
           </div>
-          <input type="text" id="memOfferNick" maxlength="40" placeholder="닉네임 (선택 — 비워두면 '익명'으로 표시)">
-          <button type="button" class="mem-btn-offer" id="memOfferBtn"><span class="siren-icon-wrap" data-icon="candle"></span> 헌화하기</button>
-        </div>
-      </div>
-    </section>
 
-    <!-- ⑤ 통합 방명록 -->
-    <section class="mem-guestbook">
-      <div class="container">
-        <h2 class="mem-section-title mem-serif">방명록</h2>
-        <p class="mem-section-desc">모든 선생님께 전하는 추모의 글입니다. 작성은 회원만 가능합니다.</p>
-
-        <div class="mem-gb-form">
-          <textarea id="memMsgContent" maxlength="1000" placeholder="추모의 마음을 남겨주세요. (최대 1000자)"></textarea>
-          <div class="mem-gb-form-row">
-            <label class="mem-gb-anon"><input type="checkbox" id="memMsgAnon"> 익명으로 작성</label>
-            <button type="button" class="mem-gb-submit" id="memMsgSubmit">추모 글 남기기</button>
+          <div class="mem2-center" style="margin-top:44px">
+            <button type="button" class="mem2-submit" data-action="open-modal" data-target="donateModal">
+              <span class="siren-icon-wrap" data-icon="ribbon"></span> 이 걸음에 함께하기
+            </button>
+            <p class="mem2-hint" style="margin-top:14px">
+              후원금은 심리상담 · 법률 지원 · 장학 사업에 쓰입니다.
+              <a href="/p/donate" style="color:inherit;text-decoration:underline">후원 안내 자세히 보기</a>
+            </p>
           </div>
         </div>
-
-        <div id="memMsgList" class="mem-gb-list"></div>
-        <div id="memMsgEmpty" class="mem-empty" style="display:none">
-          <p>아직 남겨진 글이 없습니다. 첫 추모의 마음을 전해주세요.</p>
-        </div>
-        <div id="memMsgLoading" class="mem-loading">불러오는 중…</div>
-        <div class="mem-gb-more" id="memMsgMoreWrap" style="display:none">
-          <button type="button" id="memMsgMore">더 보기</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ⑥ 후원 연결 -->
-    <section class="mem-donate">
-      <div class="container">
-        <h2 class="mem-serif">기억을 행동으로</h2>
-        <p>선생님들을 기억하는 마음이 남겨진 가족과 동료 교사를 위한 힘이 됩니다.<br>교사유가족협의회의 활동에 함께해 주세요.</p>
-        <a href="#" class="btn-cta" data-action="open-modal" data-target="donateModal">후원하기</a>
       </div>
     </section>
 
@@ -383,7 +384,8 @@
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260821-dedupe" defer></script>
-  <script src="/js/memorial.js?v=20260804-spot" defer></script>
+  <script src="/js/memorial-sky.js?v=20260828-v2" defer></script>
+  <script src="/js/memorial.js?v=20260828-v2" defer></script>
   <script src="/js/memorial-bgm.js?v=3" defer></script>
 </body>
 </html>

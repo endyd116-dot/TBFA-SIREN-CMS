@@ -26,6 +26,8 @@ function shape(s: any) {
     heroYoutubeId: s?.heroYoutubeId || DEFAULT_HERO_ID,
     heroCopy:      s?.heroCopy || DEFAULT_HERO_COPY,
     bgmTracks:     Array.isArray(s?.bgmTracks) ? s.bgmTracks : [],
+    /* ★ 2026-08-28 추모관 v2 — 밤·여명·아침 구간 문구 */
+    hallCopy:      (s?.hallCopy && typeof s.hallCopy === "object") ? s.hallCopy : null,
   };
 }
 
@@ -61,6 +63,8 @@ export default async function handler(req: Request, _ctx: Context) {
     if (body.heroYoutubeId !== undefined) updates.heroYoutubeId = (body.heroYoutubeId || "").toString().slice(0, 20) || null;
     if (body.heroCopy !== undefined)      updates.heroCopy = (body.heroCopy || "").toString().slice(0, 300) || null;
     if (body.bgmTracks !== undefined)     updates.bgmTracks = Array.isArray(body.bgmTracks) ? body.bgmTracks : [];
+    /* 문구를 전부 비우면 null 로 저장한다 — 그러면 화면이 기본 문구를 쓴다 */
+    if (body.hallCopy !== undefined)      updates.hallCopy = (body.hallCopy && typeof body.hallCopy === "object") ? body.hallCopy : null;
 
     try {
       const [existing] = await db.select().from(memorialSettings).orderBy(desc(memorialSettings.id)).limit(1);
@@ -72,6 +76,7 @@ export default async function handler(req: Request, _ctx: Context) {
           heroYoutubeId: updates.heroYoutubeId ?? DEFAULT_HERO_ID,
           heroCopy:      updates.heroCopy ?? DEFAULT_HERO_COPY,
           bgmTracks:     updates.bgmTracks ?? [],
+          hallCopy:      updates.hallCopy ?? null,
         };
         [row] = await db.insert(memorialSettings).values(insertData).returning();
       }

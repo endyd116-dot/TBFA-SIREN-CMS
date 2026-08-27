@@ -4144,6 +4144,9 @@ export const memorialSettings = pgTable("memorial_settings", {
   heroYoutubeId: varchar("hero_youtube_id", { length: 20 }),
   heroCopy:      varchar("hero_copy", { length: 300 }),
   bgmTracks:     jsonb("bgm_tracks"),                       // [{title,url}]
+  /* ★ 2026-08-28 추모관 v2 — 밤·아침 두 관의 문구를 운영자가 고친다
+     { night:{greet,title,sub}, morning:{greet,title,sub}, dawn:{line,sub} } */
+  hallCopy:      jsonb("hall_copy"),
   updatedAt:     timestamp("updated_at").defaultNow().notNull(),
 });
 export type MemorialSettings    = typeof memorialSettings.$inferSelect;
@@ -4190,6 +4193,9 @@ export const memorialMessages = pgTable("memorial_messages", {
   likeCount:   integer("like_count").default(0).notNull(),
   reportCount: integer("report_count").default(0).notNull(),
   isHidden:    boolean("is_hidden").default(false).notNull(),
+  /* ★ 2026-08-28 추모관 v2 — tribute: 선생님을 향한 추모(밤) / support: 유가족을 향한 응원(아침).
+     기존 글은 모두 tribute 로 남는다. */
+  kind:        varchar("kind", { length: 16 }).default("tribute").notNull(),
   createdAt:   timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({ teacherIdx: index("memorial_messages_teacher_idx").on(t.teacherId, t.isHidden) }));
 export type MemorialMessage    = typeof memorialMessages.$inferSelect;
@@ -5112,3 +5118,28 @@ export const noticeCategories = pgTable("notice_categories", {
 export type NoticeCategory    = typeof noticeCategories.$inferSelect;
 export type NewNoticeCategory = typeof noticeCategories.$inferInsert;
 /* === 주요활동 1메뉴=1화면 개편 끝 === */
+
+/* =========================================================
+ * === 추모관 v2 (2026-08-28) — 유가족 근황 소식 ===
+ * 아침관 '우린 요즘 이렇게 지냅니다'에 나가는 짧은 근황.
+ * 운영자가 어드민에서 등록한다. 유가족 신원 보호를 위해 실명 대신
+ * 표기용 이름(authorLabel, 예: "OO 선생님 가족")만 쓴다.
+ * ========================================================= */
+export const memorialFamilyNotes = pgTable("memorial_family_notes", {
+  id:          serial("id").primaryKey(),
+  title:       varchar("title", { length: 150 }).notNull(),
+  content:     text("content").notNull(),
+  photoBlobId: integer("photo_blob_id"),
+  authorLabel: varchar("author_label", { length: 60 }),
+  mood:        varchar("mood", { length: 16 }).default("calm").notNull(),  // calm|hope|thanks|daily
+  isPublic:    boolean("is_public").default(true).notNull(),
+  sortOrder:   integer("sort_order").default(0).notNull(),
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdBy:   integer("created_by"),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  pubIdx: index("memorial_family_notes_pub_idx").on(t.isPublic, t.sortOrder, t.publishedAt),
+}));
+export type MemorialFamilyNote    = typeof memorialFamilyNotes.$inferSelect;
+export type NewMemorialFamilyNote = typeof memorialFamilyNotes.$inferInsert;

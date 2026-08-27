@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-21.1";
+export const APP_VERSION = "2026-08-28.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,19 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-28-memorial-v2",
+    title: "추모관을 새로 열었습니다 — 밤에는 기억을, 아침에는 응원을",
+    items: [
+      { text: "추모관이 '밤'과 '아침' 두 마음으로 나뉘었습니다. 화면을 내리면 밤하늘이 서서히 아침으로 밝아옵니다", link: "/memorial.html" },
+      { text: "밤 — 먼저 떠나신 선생님들을 기억하는 자리입니다. 촛불이나 국화를 올리고 한마디를 남기실 수 있습니다" },
+      { text: "아침 — 남겨진 유가족을 응원하는 자리입니다. 근황과 목소리를 보고 응원 한마디를 남기실 수 있습니다" },
+      { text: "남기신 마음 하나가 밤에는 하늘의 별이 되고, 아침에는 들판의 꽃이 됩니다. 같은 마음이 두 가지 얼굴로 보입니다" },
+      { text: "'내 별 찾기' · '내 꽃 찾기'로 내가 남긴 마음이 어디 있는지 바로 찾을 수 있습니다" },
+      { text: "[관리자] 유가족 근황을 직접 등록합니다 — 추모관 관리 > '유가족 근황' 탭. 유가족 보호를 위해 실명 대신 표기용 이름만 넣습니다", link: "/admin-memorial.html" },
+      { text: "[관리자] 밤·여명·아침 세 구간의 문구를 직접 고칠 수 있습니다 — 추모관 관리 > '추모관 설정'", link: "/admin-memorial.html" },
+    ],
+  },
   {
     key: "2026-08-21-adgrants-c",
     title: "목록 화면이 검색엔진에 빈 화면으로 보이던 문제를 고치고, 후원 전용 페이지를 열었습니다",

@@ -54,7 +54,7 @@ function fmtDate(s) {
 
 /* ─── 탭 전환 ─── */
 function switchTab(name) {
-  ['teachers', 'moderation', 'spotlight', 'settings'].forEach(function (t) {
+  ['teachers', 'moderation', 'spotlight', 'family', 'settings'].forEach(function (t) {
     var el = document.getElementById('panel-' + t);
     if (el) el.classList.toggle('active', t === name);
   });
@@ -64,6 +64,7 @@ function switchTab(name) {
   if (name === 'moderation') loadMod();
   if (name === 'settings') loadSettings();
   if (name === 'spotlight') loadSpots();
+  if (name === 'family') loadFamilyNotes();
 }
 
 /* =========================================================
@@ -524,6 +525,8 @@ function loadSettings() {
     var s = pick(res, 'settings') || {};
     document.getElementById('sHeroYoutubeId').value = s.heroYoutubeId || '';
     document.getElementById('sHeroCopy').value = s.heroCopy || '';
+    /* ★ 2026-08-28 추모관 v2 — 밤·여명·아침 문구 채우기 */
+    try { fillHallCopy(s.hallCopy); } catch (e) { /* 아래에서 정의됨 */ }
     /* 2026-08-04: 선생님 페이지 표시 설정 */
     var bioEl = document.getElementById('sBioLabel');
     if (bioEl) bioEl.value = s.bioLabel || '';
@@ -566,7 +569,9 @@ function saveSettings() {
     /* 2026-08-04: 선생님 페이지 표시 설정 (비우면 서버가 기본 문구를 쓴다) */
     bioLabel: (document.getElementById('sBioLabel') || {}).value || '',
     timelineLabel: (document.getElementById('sTimelineLabel') || {}).value || '',
-    showTeacherOffering: !!(document.getElementById('sShowTeacherOffering') || {}).checked
+    showTeacherOffering: !!(document.getElementById('sShowTeacherOffering') || {}).checked,
+    /* ★ 2026-08-28 추모관 v2 — 밤·여명·아침 구간 문구 */
+    hallCopy: collectHallCopy()
   };
   callApi('PATCH', '/api/admin-memorial-settings', payload).then(function (res) {
     if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }
@@ -576,3 +581,146 @@ function saveSettings() {
 
 /* ─── 초기화 ─── */
 loadTeachers();
+
+/* =========================================================
+   ★ 2026-08-28 추모관 v2 — 밤·아침 문구 + 유가족 근황
+   ========================================================= */
+
+/* ─── 밤·여명·아침 문구 ─── */
+function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function setVal(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; }
+
+function collectHallCopy() {
+  var c = {
+    night:   { greet: val('sNightGreet'), title: val('sNightTitle'), sub: val('sNightSub') },
+    dawn:    { line:  val('sDawnLine'),   sub:   val('sDawnSub') },
+    morning: { greet: val('sMornGreet'),  title: val('sMornTitle'), sub: val('sMornSub') }
+  };
+  /* 세 구간 모두 비어 있으면 아예 안 보낸다 — 서버가 기본 문구를 쓴다 */
+  var any = false;
+  Object.keys(c).forEach(function (k) {
+    Object.keys(c[k]).forEach(function (f) { if (c[k][f]) any = true; });
+  });
+  return any ? c : null;
+}
+
+function fillHallCopy(hall) {
+  if (!hall || typeof hall !== 'object') return;
+  setVal('sNightGreet', hall.night && hall.night.greet);
+  setVal('sNightTitle', hall.night && hall.night.title);
+  setVal('sNightSub',   hall.night && hall.night.sub);
+  setVal('sDawnLine',   hall.dawn && hall.dawn.line);
+  setVal('sDawnSub',    hall.dawn && hall.dawn.sub);
+  setVal('sMornGreet',  hall.morning && hall.morning.greet);
+  setVal('sMornTitle',  hall.morning && hall.morning.title);
+  setVal('sMornSub',    hall.morning && hall.morning.sub);
+}
+
+/* ─── 유가족 근황 ─── */
+var FN_MOODS = { calm: '🌿 담담하게', hope: '🌤️ 희망', thanks: '💌 감사', daily: '☕ 일상' };
+
+function fnEscape(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function loadFamilyNotes() {
+  var box = document.getElementById('fnList');
+  if (!box) return;
+  box.innerHTML = '<div style="padding:20px;color:#888">불러오는 중…</div>';
+  callApi('GET', '/api/admin-memorial-family-notes').then(function (res) {
+    if (!res.ok) {
+      box.innerHTML = '<div style="padding:20px;color:#c00">불러오지 못했습니다. ' +
+        fnEscape((res.data && res.data.error) || '') + '</div>';
+      return;
+    }
+    var notes = (res.data && res.data.data && res.data.data.notes) || [];
+    if (!notes.length) {
+      box.innerHTML = '<div style="padding:24px;color:#888">등록된 근황이 없습니다. 위에서 첫 소식을 남겨보세요.</div>';
+      return;
+    }
+    box.innerHTML = '<table class="tbl"><thead><tr>' +
+      '<th style="width:56px">순서</th><th>제목</th><th style="width:130px">표기명</th>' +
+      '<th style="width:110px">분위기</th><th style="width:80px">공개</th><th style="width:150px">관리</th>' +
+      '</tr></thead><tbody>' +
+      notes.map(function (n) {
+        return '<tr>' +
+          '<td>' + fnEscape(n.sortOrder) + '</td>' +
+          '<td><b>' + fnEscape(n.title) + '</b><div style="color:#888;font-size:12px;margin-top:4px">' +
+            fnEscape(String(n.content || '').slice(0, 60)) + '…</div></td>' +
+          '<td>' + fnEscape(n.authorLabel || '—') + '</td>' +
+          '<td>' + fnEscape(FN_MOODS[n.mood] || n.mood) + '</td>' +
+          '<td>' + (n.isPublic ? '공개' : '<span style="color:#c00">숨김</span>') + '</td>' +
+          '<td>' +
+            '<button class="btn btn-sm" onclick="fnEdit(' + n.id + ')">수정</button> ' +
+            '<button class="btn btn-sm" onclick="fnDelete(' + n.id + ')">삭제</button>' +
+          '</td></tr>';
+      }).join('') + '</tbody></table>';
+    window.__FN_CACHE = notes;
+  }).catch(function (e) {
+    box.innerHTML = '<div style="padding:20px;color:#c00">오류: ' + fnEscape(e.message) + '</div>';
+  });
+}
+
+function fnEdit(id) {
+  var n = (window.__FN_CACHE || []).filter(function (x) { return x.id === id; })[0];
+  if (!n) return;
+  setVal('fnId', n.id);
+  setVal('fnTitle', n.title);
+  setVal('fnContent', n.content);
+  setVal('fnAuthorLabel', n.authorLabel);
+  var mood = document.getElementById('fnMood'); if (mood) mood.value = n.mood || 'calm';
+  var pub = document.getElementById('fnPublic'); if (pub) pub.checked = !!n.isPublic;
+  setVal('fnSort', n.sortOrder);
+  var el = document.getElementById('fnTitle'); if (el) el.focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function fnReset() {
+  ['fnId', 'fnTitle', 'fnContent', 'fnAuthorLabel'].forEach(function (id) { setVal(id, ''); });
+  var mood = document.getElementById('fnMood'); if (mood) mood.value = 'calm';
+  var pub = document.getElementById('fnPublic'); if (pub) pub.checked = true;
+  setVal('fnSort', '0');
+}
+
+function fnSave() {
+  var id = val('fnId');
+  var payload = {
+    title: val('fnTitle'),
+    content: val('fnContent'),
+    authorLabel: val('fnAuthorLabel'),
+    mood: (document.getElementById('fnMood') || {}).value || 'calm',
+    isPublic: !!(document.getElementById('fnPublic') || {}).checked,
+    sortOrder: Number(val('fnSort')) || 0
+  };
+  if (!payload.title) { toast('제목을 입력해 주세요.', 'error'); return; }
+  if (!payload.content) { toast('내용을 입력해 주세요.', 'error'); return; }
+
+  var path = id
+    ? '/api/admin-memorial-family-notes?action=update&id=' + encodeURIComponent(id)
+    : '/api/admin-memorial-family-notes';
+  callApi('POST', path, payload).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }
+    toast(id ? '수정되었습니다.' : '등록되었습니다.', 'success');
+    fnReset();
+    loadFamilyNotes();
+  }).catch(function (e) { toast('저장 실패: ' + e.message, 'error'); });
+}
+
+function fnDelete(id) {
+  if (!confirm('이 근황을 삭제할까요? 되돌릴 수 없습니다.')) return;
+  callApi('POST', '/api/admin-memorial-family-notes?action=delete&id=' + encodeURIComponent(id))
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && res.data.error) || '삭제 실패', 'error'); return; }
+      toast('삭제되었습니다.', 'success');
+      loadFamilyNotes();
+    }).catch(function (e) { toast('삭제 실패: ' + e.message, 'error'); });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var save = document.getElementById('fnSave');
+  if (save) save.addEventListener('click', fnSave);
+  var reset = document.getElementById('fnReset');
+  if (reset) reset.addEventListener('click', fnReset);
+});

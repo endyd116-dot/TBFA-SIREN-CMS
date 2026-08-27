@@ -1,0 +1,79 @@
+/* Custom animations & interactive filters for Memorial Platform */
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+.delicate-float {
+  animation: float 5.5s ease-in-out infinite;
+}
+
+.glow-star {
+  box-shadow: 0 0 15px 4px rgba(255, 255, 255, 0.95), 0 0 24px 8px rgba(229, 124, 72, 0.45);
+}
+
+/* Notebook Letter lines effect */
+.notebook-lines {
+  background-image: linear-gradient(#e5e5e5 1.2px, transparent 1.2px);
+  background-size: 100% 2.2rem;
+  line-height: 2.2rem;
+  padding-left: 0.25rem;
+}
+
+/* Button pulse aura */
+.pulse-glow-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.pulse-glow-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transform: skewX(-25deg);
+  transition: 0.75s;
+}
+
+.pulse-glow-button:hover::after {
+  left: 125%;
+}
+
+/* Transition between Halls */
+.view-transition-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.view-transition-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Analog Polaroid Hover state */
+.polaroid-container {
+  box-shadow: 0 12px 28px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.polaroid-container:hover {
+  transform: scale(1.03) rotate(0deg) !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.06);
+  z-index: 10;
+}
+
+/* General word wrap safety across standard layout */
+.break-keep {
+  word-break: keep-all;
+}
+
+/* Safe viewport height scrollbars for mobile overlay popups */
+.letter-paper {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}

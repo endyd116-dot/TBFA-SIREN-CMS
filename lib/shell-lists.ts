@@ -237,10 +237,15 @@ function renderMemorialCards(list: any[]): string {
   return list
     .map(
       (t) =>
-        `<a class="mem-card" href="/memorial-teacher.html?id=${esc(t.id)}">` +
-        `<div class="mem-card-name">${esc(t.name || "")}</div>` +
-        (t.schoolRegion ? `<div class="mem-card-region">${esc(t.schoolRegion)}</div>` : "") +
-        (t.tributeLine ? `<p class="mem-card-line">${esc(t.tributeLine)}</p>` : "") +
+        /* ★ 2026-08-28 추모관 v2 — 새 카드 모양(mem2-*)에 맞춘다.
+           화면(memorial.js)이 그리는 모양과 같아야 서버가 채운 뒤 깜빡이지 않는다.
+           memorial.html 의 카드 구조를 바꾸면 여기도 같이 고칠 것. */
+        `<a class="mem2-tcard" href="/memorial-teacher.html?id=${esc(t.id)}">` +
+        `<div class="mem2-tportrait"><span class="siren-icon-wrap m2-silhouette" data-icon="dove"></span></div>` +
+        `<h3 class="mem2-tname">${esc(t.name || "")}</h3>` +
+        (t.schoolRegion ? `<p class="mem2-tmeta">${esc(t.schoolRegion)}</p>` : "") +
+        (t.tributeLine ? `<p class="mem2-tline">${esc(t.tributeLine)}</p>` : "") +
+        `<span class="mem2-tenter">기억하러 들어가기 →</span>` +
         `</a>`
     )
     .join("");

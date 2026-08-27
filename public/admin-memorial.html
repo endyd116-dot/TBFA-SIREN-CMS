@@ -89,7 +89,60 @@ tr:last-child td { border-bottom:none; }
   <div class="tab active" data-tab="teachers" onclick="switchTab('teachers')"><span class="siren-icon-wrap" data-icon="user"></span> 선생님 관리</div>
   <div class="tab" data-tab="moderation" onclick="switchTab('moderation')"><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</div>
   <div class="tab" data-tab="spotlight" onclick="switchTab('spotlight')"><span class="siren-icon-wrap" data-icon="candle"></span> 이달의 기억</div>
+  <!-- ★ 2026-08-28 추모관 v2 — 아침관(유가족 응원) 관리 -->
+  <div class="tab" data-tab="family" onclick="switchTab('family')"><span class="siren-icon-wrap" data-icon="sun"></span> 유가족 근황</div>
   <div class="tab" data-tab="settings" onclick="switchTab('settings')"><span class="siren-icon-wrap" data-icon="settings"></span> 추모관 설정</div>
+</div>
+
+<!-- ===== ★ 2026-08-28: 유가족 근황 (아침관 '우린 요즘 이렇게 지냅니다') ===== -->
+<div class="tab-panel" id="panel-family">
+  <div class="page-hd">
+    <h2><span class="siren-icon-wrap" data-icon="sun"></span> 유가족 근황</h2>
+  </div>
+  <p class="hint" style="margin:-8px 0 18px">
+    추모관 <b>아침</b> 구간의 &lsquo;우린 요즘 이렇게 지냅니다&rsquo;에 나갑니다.
+    유가족 신원 보호를 위해 <b>실명 대신 표기용 이름</b>만 적어주세요. (예: OO 선생님 가족)
+  </p>
+
+  <div class="form-panel">
+    <input type="hidden" id="fnId">
+    <div class="form-row">
+      <label>제목 <span style="color:#c00">*</span></label>
+      <input type="text" id="fnTitle" maxlength="150" placeholder="예: 아이가 이번에 중학교에 갔습니다">
+    </div>
+    <div class="form-row">
+      <label>내용 <span style="color:#c00">*</span></label>
+      <textarea id="fnContent" rows="5" placeholder="짧아도 괜찮습니다. 평범한 하루가 얼마나 큰 회복인지 전해주세요."></textarea>
+    </div>
+    <div class="form-row">
+      <label>표기용 이름</label>
+      <input type="text" id="fnAuthorLabel" maxlength="60" placeholder="예: OO 선생님 가족 · 유가족 A">
+      <div class="hint">비워두면 이름 없이 나갑니다. <b>실명·연락처는 절대 넣지 마세요.</b></div>
+    </div>
+    <div class="form-row">
+      <label>분위기 표시</label>
+      <select id="fnMood">
+        <option value="calm">🌿 담담하게</option>
+        <option value="hope">🌤️ 희망</option>
+        <option value="thanks">💌 감사</option>
+        <option value="daily">☕ 일상</option>
+      </select>
+      <div class="hint">카드 위에 붙는 작은 그림입니다.</div>
+    </div>
+    <div class="form-row" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+      <label style="margin:0"><input type="checkbox" id="fnPublic" checked> 공개</label>
+      <label style="margin:0;display:flex;align-items:center;gap:8px">
+        정렬 <input type="number" id="fnSort" value="0" style="width:90px">
+      </label>
+      <div class="hint" style="margin:0">숫자가 작을수록 먼저 나옵니다.</div>
+    </div>
+    <div class="form-row">
+      <button class="btn btn-primary" id="fnSave">저장</button>
+      <button class="btn" id="fnReset" type="button">새로 쓰기</button>
+    </div>
+  </div>
+
+  <div id="fnList" style="margin-top:24px"></div>
 </div>
 
 <!-- ===== ★ 2026-08-04: 이달에 기억할 선생님 ===== -->
@@ -334,6 +387,28 @@ tr:last-child td { border-bottom:none; }
     <div class="form-row">
       <label>헌사 카피 (히어로 문구)</label>
       <input type="text" id="sHeroCopy" maxlength="300" placeholder="우리는 당신들을 기억합니다">
+    </div>
+
+    <!-- ★ 2026-08-28 추모관 v2 — 밤·아침 문구 -->
+    <div class="form-row" style="border-top:1px solid #e5e5e5;padding-top:18px;margin-top:6px">
+      <label style="font-size:15px"><b>🌙 밤 구간 문구</b> — 선생님을 기억하는 자리</label>
+      <div class="hint" style="margin-bottom:10px">비워두면 기본 문구가 나갑니다. 제목은 줄바꿈이 그대로 반영됩니다.</div>
+      <input type="text" id="sNightGreet" maxlength="60" placeholder="Good night" style="margin-bottom:8px">
+      <textarea id="sNightTitle" rows="2" placeholder="불을 끄지 않고&#10;당신을 기다립니다" style="margin-bottom:8px"></textarea>
+      <textarea id="sNightSub" rows="2" placeholder="먼저 떠나신 선생님들의 이름을 하나씩 부릅니다."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label style="font-size:15px"><b>🌅 여명 구간 문구</b> — 밤에서 아침으로 넘어가는 자리</label>
+      <textarea id="sDawnLine" rows="2" placeholder="기억은 슬픔에서 멈추지 않습니다.&#10;남겨진 이들의 아침으로 이어집니다." style="margin-bottom:8px"></textarea>
+      <input type="text" id="sDawnSub" maxlength="120" placeholder="같은 마음이 이제 다른 얼굴로 피어납니다">
+    </div>
+
+    <div class="form-row" style="border-bottom:1px solid #e5e5e5;padding-bottom:18px">
+      <label style="font-size:15px"><b>☀️ 아침 구간 문구</b> — 유가족을 응원하는 자리</label>
+      <input type="text" id="sMornGreet" maxlength="60" placeholder="Good morning" style="margin-bottom:8px">
+      <textarea id="sMornTitle" rows="2" placeholder="남겨진 이들의&#10;오늘을 응원합니다" style="margin-bottom:8px"></textarea>
+      <textarea id="sMornSub" rows="2" placeholder="유가족의 시간은 그날에 멈춰 있지 않습니다."></textarea>
     </div>
 
     <!-- ★ 2026-08-04: 선생님 개별 페이지 표시 설정 -->

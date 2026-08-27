@@ -34,6 +34,8 @@ export default async function handler(_req: Request, _ctx: Context) {
     let heroYoutubeId = DEFAULT_HERO_ID;
     let heroCopy = DEFAULT_HERO_COPY;
     let bgmTracks: any[] = [];
+    /* ★ 2026-08-28 추모관 v2 — 밤·아침 화면 문구 (운영자가 어드민에서 고친다) */
+    let hallCopy: any = null;
     try {
       const [s] = await db
         .select()
@@ -44,6 +46,7 @@ export default async function handler(_req: Request, _ctx: Context) {
         if (s.heroYoutubeId) heroYoutubeId = s.heroYoutubeId;
         if (s.heroCopy) heroCopy = s.heroCopy;
         if (Array.isArray(s.bgmTracks)) bgmTracks = s.bgmTracks as any[];
+        if (s.hallCopy && typeof s.hallCopy === "object") hallCopy = s.hallCopy;
       }
     } catch (err) {
       console.warn("[memorial-summary] settings 조회 실패", err);
@@ -55,6 +58,7 @@ export default async function handler(_req: Request, _ctx: Context) {
         counters: { people, candles, messages },
         hero: { youtubeId: heroYoutubeId, copy: heroCopy },
         bgmTracks,
+        hallCopy,
       },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {

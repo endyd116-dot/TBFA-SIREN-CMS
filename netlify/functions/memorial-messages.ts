@@ -33,9 +33,19 @@ export default async function handler(req: Request, _ctx: Context) {
       const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
       const offset = (page - 1) * PAGE_SIZE;
 
+      /* ★ 2026-08-28 추모관 v2 — 어느 마음인지로 나눈다.
+         kind=tribute(밤, 선생님 추모) / kind=support(아침, 유가족 응원)
+         값을 안 주면 예전처럼 추모만 내보낸다(기존 화면 호환). */
+      const kindRaw = (url.searchParams.get("kind") || "").trim();
+      const kind = kindRaw === "support" ? "support" : "tribute";
+
       const scope = teacherId
         ? and(eq(memorialMessages.teacherId, teacherId), eq(memorialMessages.isHidden, false))
-        : and(isNull(memorialMessages.teacherId), eq(memorialMessages.isHidden, false));
+        : and(
+            isNull(memorialMessages.teacherId),
+            eq(memorialMessages.isHidden, false),
+            eq(memorialMessages.kind, kind),
+          );
 
       const rows = await db
         .select({
@@ -44,6 +54,7 @@ export default async function handler(req: Request, _ctx: Context) {
           authorName: memorialMessages.authorName,
           content:    memorialMessages.content,
           likeCount:  memorialMessages.likeCount,
+          isAnonymous: memorialMessages.isAnonymous,
           createdAt:  memorialMessages.createdAt,
         })
         .from(memorialMessages)
@@ -230,12 +241,18 @@ export default async function handler(req: Request, _ctx: Context) {
       /* R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
       const mod = await moderateMemorialText(content);
 
+      /* ★ 2026-08-28: 선생님을 지정한 글은 언제나 '추모'다.
+         통합 글만 밤(추모)·아침(응원)으로 나뉜다. */
+      const bodyKind = (body.kind || "").toString().trim();
+      const kindToSave = (!bodyTeacherId && bodyKind === "support") ? "support" : "tribute";
+
       const insertData: any = {
         teacherId: bodyTeacherId ?? undefined,
         memberId: user.uid,
         authorName,
         content,
         isAnonymous,
+        kind: kindToSave,
         isHidden: mod.flagged ? true : undefined,
       };
       const [row] = await db.insert(memorialMessages).values(insertData).returning();

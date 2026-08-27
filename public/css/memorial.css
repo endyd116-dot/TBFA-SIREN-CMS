@@ -1,0 +1,510 @@
+/* =========================================================
+   SIREN 추모관 v2 — 굿나잇, 굿모닝
+   ---------------------------------------------------------
+   한 화면이 밤에서 아침으로 흘러간다.
+     밤   : 먼저 떠나신 선생님들을 기억하는 자리
+     여명 : 두 마음을 잇는 구간
+     아침 : 남겨진 유가족을 지지하고 응원하는 자리
+
+   이름 앞에 mem2- 를 붙여 옛 추모관 스타일과 섞이지 않게 한다.
+   배경 전환은 전부 CSS 그라데이션이다 — 스크롤마다 계산하지 않으므로 가볍다.
+   ========================================================= */
+
+:root {
+  /* 밤 */
+  --m2-night-1:   #070C16;
+  --m2-night-2:   #0E1729;
+  --m2-night-3:   #16223B;
+  --m2-ink:       #EEF1F7;
+  --m2-ink-mute:  #939CB2;
+  --m2-candle:    #E8A855;
+  --m2-candle-dim:#B98543;
+
+  /* 아침 */
+  --m2-morn-1:    #FBF8F3;
+  --m2-morn-2:    #F3EDE3;
+  --m2-earth:     #2C312D;
+  --m2-earth-mute:#6E7670;
+  --m2-leaf:      #3B584E;
+  --m2-bloom:     #D68E3A;
+  --m2-petal:     #F6D5DC;
+
+  --m2-serif: 'Noto Serif KR', serif;
+}
+
+/* 화면 폭 안전장치 — 어느 구간에서도 좌우로 밀리지 않게 */
+.mem2 * { box-sizing: border-box; }
+.mem2 { overflow-x: clip; }
+
+.mem2-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+.mem2-serif { font-family: var(--m2-serif); font-weight: 600; letter-spacing: -.02em; }
+
+/* ── 구간 제목 ─────────────────────────────────────────── */
+.mem2-eyebrow {
+  font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+  opacity: .62; margin-bottom: 14px; display: block;
+}
+.mem2-h2 {
+  font-family: var(--m2-serif); font-weight: 700;
+  font-size: clamp(24px, 4.4vw, 38px); line-height: 1.4; margin: 0 0 12px;
+  letter-spacing: -.03em; word-break: keep-all;
+}
+.mem2-lead {
+  font-size: clamp(14px, 2.1vw, 16px); line-height: 1.9; opacity: .78;
+  margin: 0 0 34px; word-break: keep-all; max-width: 60ch;
+}
+.mem2-center { text-align: center; }
+.mem2-center .mem2-lead { margin-left: auto; margin-right: auto; }
+
+/* ── 상단 관 전환 ──────────────────────────────────────── */
+.mem2-switch {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; justify-content: center;
+  padding: 14px 16px;
+  pointer-events: none;
+}
+.mem2-switch-inner {
+  pointer-events: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px; border-radius: 999px;
+  background: rgba(10, 16, 30, .72);
+  border: 1px solid rgba(255, 255, 255, .14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
+  transition: background .5s ease, border-color .5s ease, box-shadow .5s ease;
+}
+.mem2-switch-btn {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600;
+  color: rgba(255, 255, 255, .62);
+  padding: 9px 18px; border-radius: 999px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: color .3s ease, background .3s ease;
+}
+.mem2-switch-btn .m2-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; opacity: .5; flex: none;
+  transition: opacity .3s ease, box-shadow .3s ease;
+}
+.mem2-switch-btn[aria-selected="true"] {
+  background: linear-gradient(135deg, var(--m2-candle), #C9783A);
+  color: #fff;
+}
+.mem2-switch-btn[aria-selected="true"] .m2-dot {
+  opacity: 1; box-shadow: 0 0 8px rgba(255, 240, 210, .9);
+}
+/* 아침 구간에 들어오면 알약이 밝아진다 */
+.mem2-switch[data-phase="morning"] .mem2-switch-inner {
+  background: rgba(255, 253, 249, .84);
+  border-color: rgba(60, 70, 60, .16);
+  box-shadow: 0 8px 30px rgba(90, 70, 50, .14);
+}
+.mem2-switch[data-phase="morning"] .mem2-switch-btn { color: rgba(44, 49, 45, .58); }
+.mem2-switch[data-phase="morning"] .mem2-switch-btn[aria-selected="true"] {
+  background: linear-gradient(135deg, var(--m2-leaf), #55786A); color: #fff;
+}
+
+/* ── 밤 ────────────────────────────────────────────────── */
+.mem2-night {
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 70% 8%, rgba(72, 96, 150, .28), transparent 60%),
+    radial-gradient(90% 70% at 12% 92%, rgba(232, 168, 85, .10), transparent 62%),
+    linear-gradient(180deg, var(--m2-night-1) 0%, var(--m2-night-2) 45%, var(--m2-night-3) 100%);
+  color: var(--m2-ink);
+}
+.mem2-night .mem2-lead { color: var(--m2-ink-mute); opacity: 1; }
+
+/* 히어로 */
+.mem2-hero {
+  position: relative; min-height: 76vh;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 70px 0 90px; text-align: center;
+}
+.mem2-hero-greet {
+  font-family: var(--m2-serif); font-size: clamp(13px, 2vw, 15px);
+  letter-spacing: .4em; text-transform: uppercase;
+  color: var(--m2-candle); margin-bottom: 26px;
+}
+.mem2-hero h1 {
+  font-family: var(--m2-serif); font-weight: 700;
+  font-size: clamp(28px, 6vw, 52px); line-height: 1.5;
+  margin: 0 0 22px; letter-spacing: -.035em; word-break: keep-all;
+}
+.mem2-hero h1 em { font-style: normal; color: var(--m2-candle); }
+.mem2-hero-sub {
+  font-size: clamp(14px, 2.2vw, 17px); line-height: 1.95;
+  color: var(--m2-ink-mute); max-width: 46ch; margin: 0 auto; word-break: keep-all;
+}
+.mem2-hero-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; opacity: .9;
+}
+.mem2-hero-inner { position: relative; z-index: 1; }
+
+.mem2-scroll-hint {
+  margin-top: 52px; font-size: 12px; letter-spacing: .18em;
+  color: rgba(238, 241, 247, .42); display: inline-flex; flex-direction: column;
+  align-items: center; gap: 10px;
+}
+.mem2-scroll-hint::after {
+  content: ''; width: 1px; height: 42px;
+  background: linear-gradient(180deg, rgba(232, 168, 85, .8), transparent);
+}
+
+/* 선생님 카드 */
+.mem2-block { padding: 76px 0; }
+.mem2-teachers { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); }
+.mem2-tcard {
+  display: block; text-decoration: none; color: inherit;
+  background: linear-gradient(165deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02));
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: 18px; padding: 26px 22px 24px; text-align: center;
+  transition: transform .32s cubic-bezier(.2,.7,.3,1), border-color .32s ease, box-shadow .32s ease;
+}
+.mem2-tcard:hover, .mem2-tcard:focus-visible {
+  transform: translateY(-5px);
+  border-color: rgba(232, 168, 85, .5);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .38);
+}
+.mem2-tportrait {
+  width: 92px; height: 92px; margin: 0 auto 18px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 36%, rgba(232,168,85,.34), rgba(20,31,50,.9) 68%);
+  border: 1px solid rgba(255, 255, 255, .18);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  position: relative;
+}
+.mem2-tportrait img { width: 100%; height: 100%; object-fit: cover; }
+.mem2-tportrait .m2-silhouette { width: 42px; height: 42px; opacity: .5; }
+.mem2-tname { font-family: var(--m2-serif); font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+.mem2-tmeta { font-size: 12.5px; color: var(--m2-ink-mute); margin: 0 0 12px; }
+.mem2-tline {
+  font-size: 13px; line-height: 1.8; color: rgba(238, 241, 247, .74);
+  word-break: keep-all; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mem2-tenter {
+  margin-top: 16px; font-size: 12px; color: var(--m2-candle);
+  display: inline-flex; align-items: center; gap: 5px; opacity: .82;
+}
+
+/* ── 여명 ──────────────────────────────────────────────── */
+.mem2-dawn {
+  position: relative; padding: 96px 0 104px; text-align: center;
+  background: linear-gradient(180deg,
+    var(--m2-night-3) 0%,
+    #2A2C42 22%,
+    #55415199 42%,
+    #8C6156 60%,
+    #C79A7E 76%,
+    #E9CFB6 88%,
+    var(--m2-morn-1) 100%);
+  color: #FFF3E4;
+}
+.mem2-dawn .mem2-h2 { color: #FFF6EA; text-shadow: 0 2px 24px rgba(60, 30, 20, .3); }
+.mem2-dawn-line {
+  font-family: var(--m2-serif); font-size: clamp(17px, 3.2vw, 26px);
+  line-height: 1.85; word-break: keep-all; margin: 0 auto; max-width: 24ch;
+}
+.mem2-dawn-sub {
+  margin-top: 20px; font-size: 14px; line-height: 1.9;
+  color: rgba(60, 36, 26, .72); word-break: keep-all;
+}
+.mem2-sun {
+  width: 84px; height: 84px; margin: 0 auto 34px; border-radius: 50%;
+  background: radial-gradient(circle, #FFE9C2 0%, #F3B45F 52%, rgba(243, 180, 95, 0) 72%);
+  box-shadow: 0 0 70px rgba(243, 180, 95, .55);
+}
+
+/* ── 아침 ──────────────────────────────────────────────── */
+.mem2-morning {
+  position: relative;
+  background:
+    radial-gradient(100% 60% at 82% 4%, rgba(246, 213, 220, .38), transparent 58%),
+    radial-gradient(80% 50% at 8% 78%, rgba(214, 235, 216, .40), transparent 62%),
+    linear-gradient(180deg, var(--m2-morn-1) 0%, var(--m2-morn-2) 100%);
+  color: var(--m2-earth);
+}
+.mem2-morning .mem2-lead { color: var(--m2-earth-mute); opacity: 1; }
+.mem2-morning .mem2-eyebrow { color: var(--m2-leaf); opacity: .8; }
+.mem2-morning .mem2-hero-greet { color: var(--m2-leaf); }
+.mem2-morning .mem2-hero h1 em { color: var(--m2-bloom); }
+.mem2-morning .mem2-hero-sub { color: var(--m2-earth-mute); }
+.mem2-morning .mem2-hero { min-height: 62vh; padding: 60px 0 70px; }
+
+/* 유가족 근황 카드 */
+.mem2-notes { display: grid; gap: 22px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.mem2-note {
+  background: #fff; border: 1px solid rgba(60, 70, 60, .10);
+  border-radius: 20px; padding: 26px 24px;
+  box-shadow: 0 4px 18px rgba(90, 74, 56, .07);
+  transition: transform .3s ease, box-shadow .3s ease;
+  position: relative; overflow: hidden;
+}
+.mem2-note:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(90, 74, 56, .12); }
+.mem2-note::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--m2-bloom), var(--m2-petal));
+}
+.mem2-note-mood { font-size: 22px; line-height: 1; margin-bottom: 14px; }
+.mem2-note h3 {
+  font-family: var(--m2-serif); font-size: 17px; font-weight: 700;
+  margin: 0 0 10px; word-break: keep-all; line-height: 1.6;
+}
+.mem2-note p {
+  font-size: 14px; line-height: 1.92; color: var(--m2-earth-mute);
+  margin: 0 0 16px; word-break: keep-all; white-space: pre-line;
+}
+.mem2-note-by {
+  font-size: 12.5px; color: var(--m2-leaf); font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.mem2-note-by::before { content: ''; width: 14px; height: 1px; background: currentColor; opacity: .5; }
+
+/* 유가족 목소리(영상) */
+.mem2-stories { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.mem2-story {
+  display: block; text-decoration: none; color: inherit;
+  background: #fff; border: 1px solid rgba(60, 70, 60, .10);
+  border-radius: 18px; overflow: hidden;
+  box-shadow: 0 4px 18px rgba(90, 74, 56, .07);
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.mem2-story:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(90, 74, 56, .14); }
+.mem2-story-thumb {
+  position: relative; aspect-ratio: 16 / 9; background: #E8E2D8;
+  display: flex; align-items: center; justify-content: center;
+}
+.mem2-story-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.mem2-story-play {
+  position: absolute; width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(255, 255, 255, .92); display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .2); color: var(--m2-leaf);
+}
+.mem2-story-body { padding: 18px 20px 20px; }
+.mem2-story-body h3 {
+  font-family: var(--m2-serif); font-size: 15.5px; font-weight: 700;
+  margin: 0 0 8px; line-height: 1.6; word-break: keep-all;
+}
+.mem2-story-body p {
+  font-size: 13px; line-height: 1.8; color: var(--m2-earth-mute); margin: 0;
+  word-break: keep-all;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ── 마음 남기기 (밤·아침 공통 뼈대) ─────────────────────── */
+.mem2-compose {
+  border-radius: 22px; padding: 30px 26px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .05);
+}
+.mem2-morning .mem2-compose {
+  background: #fff; border-color: rgba(60, 70, 60, .10);
+  box-shadow: 0 6px 24px rgba(90, 74, 56, .08);
+}
+.mem2-offer-types { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.mem2-offer-type {
+  flex: 1 1 130px; min-width: 130px;
+  appearance: none; border: 1px solid rgba(255, 255, 255, .18); background: none;
+  color: inherit; font: inherit; font-size: 14px; cursor: pointer;
+  padding: 16px 12px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transition: border-color .25s ease, background .25s ease, transform .25s ease;
+}
+.mem2-offer-type .m2-emoji { font-size: 26px; line-height: 1; }
+.mem2-offer-type[aria-pressed="true"] {
+  border-color: var(--m2-candle); background: rgba(232, 168, 85, .14);
+  transform: translateY(-2px);
+}
+.mem2-morning .mem2-offer-type { border-color: rgba(60, 70, 60, .14); }
+.mem2-morning .mem2-offer-type[aria-pressed="true"] {
+  border-color: var(--m2-leaf); background: rgba(59, 88, 78, .09);
+}
+
+.mem2-field { margin-bottom: 14px; }
+.mem2-field label { display: block; font-size: 12.5px; margin-bottom: 7px; opacity: .72; }
+.mem2-input, .mem2-textarea {
+  width: 100%; font: inherit; font-size: 14px; color: inherit;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 12px; padding: 13px 14px; line-height: 1.7;
+  transition: border-color .2s ease, background .2s ease;
+}
+.mem2-textarea { min-height: 104px; resize: vertical; }
+.mem2-input:focus, .mem2-textarea:focus {
+  outline: none; border-color: var(--m2-candle); background: rgba(255, 255, 255, .1);
+}
+.mem2-input::placeholder, .mem2-textarea::placeholder { color: rgba(238, 241, 247, .38); }
+.mem2-morning .mem2-input, .mem2-morning .mem2-textarea {
+  background: #FBF9F5; border-color: rgba(60, 70, 60, .16);
+}
+.mem2-morning .mem2-input:focus, .mem2-morning .mem2-textarea:focus { border-color: var(--m2-leaf); background: #fff; }
+.mem2-morning .mem2-input::placeholder, .mem2-morning .mem2-textarea::placeholder { color: rgba(44, 49, 45, .36); }
+
+.mem2-compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.mem2-anon { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; opacity: .78; cursor: pointer; }
+.mem2-submit {
+  appearance: none; border: 0; cursor: pointer; font: inherit;
+  font-size: 14px; font-weight: 600; color: #fff;
+  padding: 13px 26px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--m2-candle), #C9783A);
+  box-shadow: 0 6px 20px rgba(201, 120, 58, .3);
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.mem2-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(201, 120, 58, .38); }
+.mem2-submit:disabled { opacity: .55; cursor: default; }
+.mem2-morning .mem2-submit {
+  background: linear-gradient(135deg, var(--m2-leaf), #55786A);
+  box-shadow: 0 6px 20px rgba(59, 88, 78, .28);
+}
+.mem2-hint { font-size: 12.5px; opacity: .6; margin: 14px 0 0; line-height: 1.7; word-break: keep-all; }
+
+/* ── 하늘·들판 (참여 시각화) ───────────────────────────── */
+.mem2-field-wrap { position: relative; }
+.mem2-canvas-box {
+  position: relative; width: 100%;
+  height: clamp(300px, 46vw, 440px);
+  border-radius: 24px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: radial-gradient(120% 100% at 50% 100%, rgba(232,168,85,.08), transparent 62%);
+}
+.mem2-morning .mem2-canvas-box {
+  border-color: rgba(60, 70, 60, .10);
+  background: linear-gradient(180deg, rgba(214,235,216,.28) 0%, rgba(255,253,248,.9) 74%);
+}
+.mem2-canvas-box canvas { display: block; width: 100%; height: 100%; }
+
+.mem2-count {
+  display: flex; align-items: baseline; justify-content: center; gap: 10px;
+  margin: 26px 0 10px; flex-wrap: wrap;
+}
+.mem2-count b {
+  font-family: var(--m2-serif); font-size: clamp(32px, 7vw, 54px); font-weight: 700;
+  color: var(--m2-candle); letter-spacing: -.03em; line-height: 1;
+}
+.mem2-morning .mem2-count b { color: var(--m2-bloom); }
+.mem2-count span { font-size: 14.5px; opacity: .8; }
+
+.mem2-sky-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.mem2-ghost {
+  appearance: none; cursor: pointer; font: inherit; font-size: 13px;
+  padding: 11px 20px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .22); background: none; color: inherit;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: border-color .25s ease, background .25s ease;
+}
+.mem2-ghost:hover { border-color: var(--m2-candle); background: rgba(232, 168, 85, .1); }
+.mem2-morning .mem2-ghost { border-color: rgba(60, 70, 60, .2); }
+.mem2-morning .mem2-ghost:hover { border-color: var(--m2-leaf); background: rgba(59, 88, 78, .07); }
+
+/* 별·꽃 눌렀을 때 뜨는 쪽지 */
+.mem2-tip {
+  position: absolute; z-index: 5; max-width: 260px;
+  padding: 13px 16px; border-radius: 14px;
+  background: rgba(12, 18, 32, .94); color: #EEF1F7;
+  border: 1px solid rgba(232, 168, 85, .34);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .45);
+  font-size: 13px; line-height: 1.75; word-break: keep-all;
+  transform: translate(-50%, -118%); pointer-events: none;
+  opacity: 0; transition: opacity .25s ease;
+}
+.mem2-tip.on { opacity: 1; }
+.mem2-tip b { display: block; font-size: 12px; color: var(--m2-candle); margin-bottom: 5px; font-weight: 600; }
+.mem2-morning .mem2-tip {
+  background: rgba(255, 253, 249, .97); color: var(--m2-earth);
+  border-color: rgba(214, 142, 58, .34);
+  box-shadow: 0 12px 30px rgba(90, 74, 56, .2);
+}
+.mem2-morning .mem2-tip b { color: var(--m2-bloom); }
+
+/* 내 참여 안내 띠 */
+.mem2-mine {
+  margin-top: 16px; padding: 13px 18px; border-radius: 14px;
+  font-size: 13px; line-height: 1.7; word-break: keep-all;
+  border: 1px dashed rgba(232, 168, 85, .45);
+  background: rgba(232, 168, 85, .09);
+  display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap;
+}
+.mem2-morning .mem2-mine { border-color: rgba(214, 142, 58, .45); background: rgba(214, 142, 58, .08); }
+
+/* ── 방명록 목록 ───────────────────────────────────────── */
+.mem2-msgs { display: grid; gap: 14px; }
+.mem2-msg {
+  border-radius: 16px; padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: rgba(255, 255, 255, .04);
+}
+.mem2-morning .mem2-msg {
+  background: #fff; border-color: rgba(60, 70, 60, .09);
+  box-shadow: 0 3px 14px rgba(90, 74, 56, .05);
+}
+.mem2-msg-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.mem2-msg-name { font-size: 13.5px; font-weight: 600; }
+.mem2-msg-date { font-size: 12px; opacity: .5; }
+.mem2-msg-body { font-size: 14px; line-height: 1.9; opacity: .86; word-break: keep-all; white-space: pre-line; margin: 0; }
+.mem2-msg-mine { border-color: rgba(232, 168, 85, .5); }
+.mem2-morning .mem2-msg-mine { border-color: rgba(214, 142, 58, .5); }
+.mem2-badge-mine {
+  font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  background: rgba(232, 168, 85, .18); color: var(--m2-candle); font-weight: 600;
+}
+.mem2-morning .mem2-badge-mine { background: rgba(214, 142, 58, .14); color: var(--m2-bloom); }
+
+/* ── 온기의 징검다리 (지원 프로그램) ─────────────────────── */
+.mem2-programs { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.mem2-program {
+  background: #fff; border: 1px solid rgba(60, 70, 60, .10);
+  border-radius: 20px; padding: 28px 24px;
+  box-shadow: 0 4px 18px rgba(90, 74, 56, .07);
+  display: flex; flex-direction: column;
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.mem2-program:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(90, 74, 56, .13); }
+.mem2-program-ic {
+  width: 50px; height: 50px; border-radius: 15px; margin-bottom: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(59, 88, 78, .12), rgba(214, 142, 58, .12));
+  color: var(--m2-leaf);
+}
+.mem2-program h3 { font-family: var(--m2-serif); font-size: 17px; font-weight: 700; margin: 0 0 10px; }
+.mem2-program p {
+  font-size: 13.5px; line-height: 1.85; color: var(--m2-earth-mute);
+  margin: 0 0 20px; word-break: keep-all; flex: 1;
+}
+.mem2-program-cta {
+  font-size: 13px; font-weight: 600; color: var(--m2-leaf);
+  display: inline-flex; align-items: center; gap: 6px;
+  text-decoration: none; align-self: flex-start;
+}
+.mem2-program-cta:hover { text-decoration: underline; }
+
+/* ── 상태 표시 ─────────────────────────────────────────── */
+.mem2-loading, .mem2-empty {
+  text-align: center; padding: 46px 20px; font-size: 14px; opacity: .55; line-height: 1.8;
+}
+.mem2-more { text-align: center; margin-top: 22px; }
+
+/* ── 반응형 ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .mem2-block { padding: 56px 0; }
+  .mem2-hero { min-height: 68vh; padding: 48px 0 64px; }
+  .mem2-dawn { padding: 72px 0 78px; }
+  .mem2-compose { padding: 24px 18px; border-radius: 18px; }
+  .mem2-switch-btn { padding: 8px 13px; font-size: 12px; }
+  .mem2-teachers { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .mem2-tportrait { width: 72px; height: 72px; }
+  .mem2-canvas-box { height: clamp(260px, 62vw, 340px); border-radius: 18px; }
+}
+
+/* ── 동작 줄이기를 켠 분 ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .mem2-tcard, .mem2-note, .mem2-story, .mem2-program, .mem2-submit {
+    transition: none !important;
+  }
+  .mem2-tcard:hover, .mem2-note:hover, .mem2-story:hover, .mem2-program:hover,
+  .mem2-submit:hover:not(:disabled) { transform: none !important; }
+  html { scroll-behavior: auto !important; }
+}

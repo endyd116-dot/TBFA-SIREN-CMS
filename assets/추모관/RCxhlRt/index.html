@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>굿나잇, 굿모닝 - 사단법인 교사유가족협의회</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primaryNavy: '#0B1528',
+            cardNavy: '#141F32',
+            warmSand: '#FAF8F5',
+            accentOrange: '#E57C48',
+            softPink: '#F8D8CC',
+            mutedYellow: '#F7E4B2',
+            mintGreen: '#D4ECE1',
+            deepForest: '#3B584E',
+            textDark: '#2C2C2C',
+          },
+          fontFamily: {
+            myeongjo: ['Nanum Myeongjo', 'KoPub Batang', 'serif'],
+            sans: ['Pretendard', 'Noto Sans KR', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts for Korean Elegance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-primaryNavy text-white font-sans antialiased selection:bg-accentOrange selection:text-white transition-colors duration-700 ease-in-out overflow-x-hidden">
+
+  <!-- GLOBAL NAVIGATION HEADER -->
+  <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300 backdrop-blur-md border-b border-white/10" id="global-header">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row items-center justify-between gap-3 md:h-20 md:py-0">
+      
+      <!-- Logo -->
+      <a href="#" class="flex items-center space-x-3 group" id="logo-btn">
+        <div class="relative w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-gradient-to-tr from-accentOrange/30 to-white/10 rounded-lg p-1.5 border border-white/20 group-hover:border-accentOrange/50 transition-all">
+          <!-- Geometric Star Shape -->
+          <svg class="w-full h-full text-accentOrange animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor" fill-opacity="0.1" />
+          </svg>
+        </div>
+        <span class="font-myeongjo text-base md:text-xl font-bold tracking-wider text-white whitespace-nowrap">굿나잇, 굿모닝</span>
+      </a>
+
+      <!-- Center Tab Capsule -->
+      <div class="bg-black/40 p-1 rounded-full border border-white/10 flex items-center shadow-lg w-full max-w-sm md:max-w-md">
+        <button id="tab-hall1" class="flex-1 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-medium tracking-wide transition-all duration-500 bg-accentOrange text-white shadow-md text-center">
+          추모관 1 : 꺼지지 않는 밤
+        </button>
+        <button id="tab-hall2" class="flex-1 py-1.5 md:py-2.5 rounded-full text-xs md:text-sm font-medium tracking-wide transition-all duration-500 text-white/70 hover:text-white text-center">
+          추모관 2 : 다시 뜨는 아침
+        </button>
+      </div>
+
+      <!-- Right Support Action -->
+      <button id="nav-support-btn" class="hidden sm:flex items-center space-x-2 bg-gradient-to-r from-accentOrange to-orange-600 hover:from-accentOrange/90 hover:to-orange-700 text-white font-medium px-4 py-2 md:px-5 md:py-2.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-orange-500/20 active:scale-95 text-xs md:text-sm whitespace-nowrap">
+        <i data-lucide="heart" class="w-3.5 h-3.5 md:w-4 md:h-4 fill-current"></i>
+        <span>온기 보태기</span>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- MOUNT POINT FOR THE ACTIVE VIEW -->
+  <main id="app-root" class="pt-28 md:pt-20 min-h-screen">
+    <!-- Dynamic content injected here by app.js -->
+  </main>
+
+  <!-- GLOBAL FOOTER -->
+  <footer class="bg-black/40 border-t border-white/10 py-10 px-4 sm:px-6 relative z-10 transition-colors duration-700" id="global-footer">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-6">
+      <div class="space-y-2">
+        <div class="flex items-center justify-center md:justify-start space-x-2">
+          <span class="font-myeongjo text-base md:text-lg font-bold text-white">사단법인 교사유가족협의회</span>
+        </div>
+        <p class="text-xs md:text-sm text-white/50 font-light leading-relaxed max-w-xl break-keep">
+          우리가 살아생전 사랑했던 따뜻한 마음들이 모여, 지지 않는 은하수가 되도록 함께 걷겠습니다.<br>
+          © 2026 사단법인 교사유가족협의회. All rights reserved.
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto justify-center md:justify-end">
+        <button id="footer-retract-btn" class="w-full sm:w-auto text-xs text-white/40 hover:text-white/80 border border-white/10 rounded-full px-4 py-2 hover:bg-white/5 transition-all">
+          ⓘ 메시지 철회 및 수정 신청
+        </button>
+        <span class="text-xs text-white/30 whitespace-nowrap">사업자 등록번호: 120-82-XXXXX</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- FLOWER PETAL CANVAS OVERLAY -->
+  <canvas id="petal-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- SCRIPTS -->
+  <script type="module" src="data.js"></script>
+  <script type="module" src="state.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
