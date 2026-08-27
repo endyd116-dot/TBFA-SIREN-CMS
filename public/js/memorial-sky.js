@@ -18,7 +18,8 @@
 (function (global) {
   'use strict';
 
-  var MAX_DRAW = 420;          /* 실제로 그리는 최대 개수 */
+  var MAX_DRAW = 1400;         /* 실제로 그리는 최대 개수 (도장 방식이라 여유 있다) */
+  var MIN_DRAW = 90;           /* 참여가 적어도 하늘이 허전하지 않게 채우는 최소치 */
   var DPR_CAP = 2;             /* 고해상도 화면에서도 2배까지만 (그 이상은 낭비) */
 
   /* 참여 번호 → 늘 같은 값 (같은 사람은 늘 같은 자리) */
@@ -52,6 +53,8 @@
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.mode = (opts && opts.mode) === 'flower' ? 'flower' : 'star';
+    /* 배경으로 깔릴 때는 글자를 방해하지 않도록 한 톤 낮춘다 */
+    this.asBackdrop = !!(opts && opts.backdrop);
     this.items = [];
     this.total = 0;
     this.nodes = [];
@@ -167,6 +170,7 @@
     var ctx = this.ctx;
     if (!ctx) return;
     ctx.clearRect(0, 0, this.w, this.h);
+    ctx.globalAlpha = this.asBackdrop ? 0.72 : 1;
     var now = this.t;
     var focusOn = this.focusIdx >= 0 && (this.still || Date.now() < this.focusUntil);
 
@@ -178,36 +182,71 @@
       if (this.mode === 'flower') this._flower(ctx, n, px, py, now, hot);
       else this._star(ctx, n, px, py, now, hot);
     }
+    ctx.globalAlpha = 1;
   };
+
+  /* ── 별 도장 ──────────────────────────────────────────────
+     예전에는 별 하나마다 매번 번짐(그라데이션)을 새로 만들었다.
+     400개면 1초에 24,000번을 다시 만드는 셈이라, 개수를 늘릴 수 없었다.
+     이제 별 그림을 딱 두 번(보통·내 별)만 만들어 두고 도장 찍듯 붙인다.
+     화면이 커져 별이 많아져도 부담이 거의 늘지 않는다. */
+  var STAR_SPRITE = { normal: null, mine: null, size: 0 };
+
+  function buildStarSprite(warm) {
+    var R = 32;                       /* 도장 한 장의 반지름 */
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = R * 2;
+    var c = cv.getContext('2d');
+    var g = c.createRadialGradient(R, R, 0, R, R, R);
+    g.addColorStop(0.00, 'rgba(255,255,255,1)');
+    g.addColorStop(0.10, 'rgba(' + warm + ',0.95)');
+    g.addColorStop(0.35, 'rgba(' + warm + ',0.28)');
+    g.addColorStop(1.00, 'rgba(' + warm + ',0)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(R, R, R, 0, Math.PI * 2);
+    c.fill();
+    return cv;
+  }
+
+  function starSprites() {
+    if (!STAR_SPRITE.normal) {
+      try {
+        STAR_SPRITE.normal = buildStarSprite('255,247,232');
+        STAR_SPRITE.mine = buildStarSprite('232,168,85');
+        STAR_SPRITE.size = 64;
+      } catch (e) { /* 만들 수 없으면 아래에서 원으로 그린다 */ }
+    }
+    return STAR_SPRITE;
+  }
 
   Sky.prototype._star = function (ctx, n, px, py, now, hot) {
     var tw = this.still ? 0.85 : 0.62 + 0.38 * Math.sin(now * 1.1 + n.p);
-    var base = (n.mine ? 2.5 : 1.5) * n.s;
-    var rad = base * (hot ? 2.1 : 1);
-    var alpha = (n.mine ? 0.92 : 0.5 + 0.42 * tw) * (hot ? 1 : 1);
+    var alpha = n.mine ? 0.95 : (0.42 + 0.45 * tw);
+    /* 화면이 넓을수록 별도 조금 크게 — 배경 전체로 퍼져도 허전하지 않게 */
+    var scale = 1 + Math.min(0.5, this.w / 2600);
+    var draw = (n.mine ? 13 : 7) * n.s * scale * (hot ? 1.9 : 1);
 
-    /* 번짐 */
-    var glow = ctx.createRadialGradient(px, py, 0, px, py, rad * (n.mine || hot ? 7 : 4.5));
-    var warm = n.mine ? '232,168,85' : '255,247,232';
-    glow.addColorStop(0, 'rgba(' + warm + ',' + (alpha * 0.55).toFixed(3) + ')');
-    glow.addColorStop(1, 'rgba(' + warm + ',0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(px, py, rad * (n.mine || hot ? 7 : 4.5), 0, Math.PI * 2);
-    ctx.fill();
+    var sp = starSprites();
+    var img = n.mine ? sp.mine : sp.normal;
+    if (img) {
+      ctx.globalAlpha = Math.min(1, alpha);
+      ctx.drawImage(img, px - draw, py - draw, draw * 2, draw * 2);
+      ctx.globalAlpha = 1;
+    } else {
+      /* 도장을 못 만든 환경 — 단순한 점으로라도 보이게 한다 */
+      ctx.fillStyle = 'rgba(255,252,245,' + alpha.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(1, draw * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    /* 심지 */
-    ctx.fillStyle = 'rgba(255,252,245,' + Math.min(1, alpha + 0.25).toFixed(3) + ')';
-    ctx.beginPath();
-    ctx.arc(px, py, rad, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* 내 별 — 둘레에 얇은 테 */
+    /* 내 별 · 짚은 별 — 둘레에 얇은 테로 알려준다 */
     if (n.mine || hot) {
-      ctx.strokeStyle = 'rgba(232,168,85,' + (hot ? 0.9 : 0.45) + ')';
+      ctx.strokeStyle = 'rgba(232,168,85,' + (hot ? 0.85 : 0.4) + ')';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(px, py, rad * (hot ? 5.5 : 4), 0, Math.PI * 2);
+      ctx.arc(px, py, draw * (hot ? 0.9 : 0.7), 0, Math.PI * 2);
       ctx.stroke();
     }
   };
@@ -299,6 +338,20 @@
       name: n.name, text: n.text, mine: n.mine,
       x: n.x * this.w, y: n.y * this.h,
     });
+  };
+
+  /** 특정 마음 하나를 잠시 밝힌다 (목록에서 '이 마음의 별 보기') */
+  Sky.prototype.focusId = function (id) {
+    var idx = -1;
+    for (var i = 0; i < this.nodes.length; i++) {
+      if (String(this.nodes[i].id) === String(id)) { idx = i; break; }
+    }
+    if (idx < 0) return null;
+    this.focusIdx = idx;
+    this.focusUntil = Date.now() + 5000;
+    this._start();
+    var n = this.nodes[idx];
+    return { x: n.x * this.w, y: n.y * this.h, name: n.name, text: n.text };
   };
 
   /** '내 별 찾기' — 내 것을 잠시 밝힌다. 없으면 false */

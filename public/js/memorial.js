@@ -282,6 +282,10 @@
       (mine ? '<span class="mem2-badge-mine">내가 남긴 마음</span>' : '') +
       '</div>' +
       '<p class="mem2-msg-body">' + esc(m.content || '') + '</p>' +
+      '<button type="button" class="mem2-locate" data-m2-locate="' + esc(m.id) + '" ' +
+        'data-m2-kind="' + esc(kind) + '">' +
+        (kind === 'support' ? '이 마음의 꽃 보기 →' : '이 마음의 별 보기 →') +
+      '</button>' +
       '</article>';
   }
 
@@ -331,32 +335,21 @@
     return { items: named, total: total };
   }
 
-  var HERO = null;
-  function mountHeroSky() {
-    if (!window.MemorialSky || HERO) return;
-    var c = $('m2HeroSky');
-    if (!c) return;
-    /* 히어로는 장식이다 — 참여와 무관하게 은은한 별만 띄운다 */
-    var deco = [];
-    for (var i = 0; i < 120; i++) deco.push({ id: 'hero' + i });
-    HERO = MemorialSky.mount(c, { mode: 'star', items: deco, total: deco.length });
-  }
-
   function mountSky() {
     if (!window.MemorialSky) return;
-    var c1 = $('m2SkyCanvas'), c2 = $('m2FieldCanvas');
-    var n = buildHearts('tribute'), s = buildHearts('support');
+    var c1 = $('m2NightSky'), c2 = $('m2MornField');
+    var n = buildHearts('tribute'), s2 = buildHearts('support');
 
+    /* 배경으로 깔리므로 클릭을 받지 않는다(글자 선택·복사를 지키기 위해).
+       대신 아래 목록의 '이 마음의 별 보기'로 찾아간다. */
     if (c1 && !SKY) {
       SKY = MemorialSky.mount(c1, {
-        mode: 'star', items: n.items, total: n.total,
-        onPick: function (p) { showTip('m2SkyTip', p); }
+        mode: 'star', backdrop: true, items: n.items, total: n.total
       });
     }
     if (c2 && !FIELD) {
       FIELD = MemorialSky.mount(c2, {
-        mode: 'flower', items: s.items, total: s.total,
-        onPick: function (p) { showTip('m2FieldTip', p); }
+        mode: 'flower', backdrop: true, items: s2.items, total: s2.total
       });
     }
   }
@@ -367,34 +360,32 @@
   }
 
   var tipTimer = null;
-  function showTip(id, p) {
-    var tip = $(id);
-    if (!tip) return;
-    if (!p.name && !p.text) {
-      tip.innerHTML = '<b>이름을 남기지 않은 불빛</b>조용히 함께해 주신 마음입니다.';
-    } else {
-      tip.innerHTML = '<b>' + esc(p.name || '익명') + (p.mine ? ' · 내 마음' : '') + '</b>' +
-        esc(p.text || '말없이 마음만 두고 가셨습니다.');
+  function flashNote(text) {
+    var el = $('m2Note');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'm2Note';
+      el.className = 'mem2-note-toast';
+      document.body.appendChild(el);
     }
-    tip.style.left = Math.round(p.x) + 'px';
-    tip.style.top = Math.round(p.y) + 'px';
-    tip.classList.add('on');
+    el.innerHTML = text;
+    el.classList.add('on');
     clearTimeout(tipTimer);
-    tipTimer = setTimeout(function () { tip.classList.remove('on'); }, 4200);
+    tipTimer = setTimeout(function () { el.classList.remove('on'); }, 5200);
   }
 
   function initFind() {
-    function find(sky, tipId, mineBoxId, word) {
+    function find(which, mineBoxId, word) {
       return function () {
+        var sky = which === 'night' ? SKY : FIELD;
+        var box = $(mineBoxId);
         if (!sky) return;
         var hit = sky.focusMine();
-        var box = $(mineBoxId);
         if (hit) {
-          showTip(tipId, { x: hit.x, y: hit.y, name: hit.name, text: hit.text, mine: true });
-          if (box) {
-            box.innerHTML = '✨ 찾았습니다 — 밝게 빛나는 것이 당신의 ' + word + '입니다.';
-            show(box, true);
-          }
+          scrollToBackdrop(which, hit.y);
+          flashNote('<b>찾았습니다</b>밝게 빛나는 것이 당신의 ' + esc(word) + '입니다.' +
+            (hit.text ? '<br><span style="opacity:.8">“' + esc(hit.text) + '”</span>' : ''));
+          if (box) { box.innerHTML = '✨ 당신의 ' + esc(word) + '이 잠시 밝아집니다.'; show(box, true); }
         } else if (MINE.offered > 0) {
           if (box) {
             box.innerHTML = '당신이 밝힌 불빛도 이 안에 함께 있습니다. ' +
@@ -410,8 +401,33 @@
       };
     }
     var a = $('m2FindStar'), b = $('m2FindFlower');
-    if (a) a.addEventListener('click', find(SKY, 'm2SkyTip', 'm2NightMine', '별'));
-    if (b) b.addEventListener('click', find(FIELD, 'm2FieldTip', 'm2MornMine', '꽃'));
+    if (a) a.addEventListener('click', find('night', 'm2NightMine', '별'));
+    if (b) b.addEventListener('click', find('morning', 'm2MornMine', '꽃'));
+
+    /* 목록의 '이 마음의 별 보기' — 글을 읽다가 그 별로 찾아간다.
+       배경은 클릭을 받지 않으므로(글자 복사를 지키려고) 이 방향으로 잇는다. */
+    document.addEventListener('click', function (ev) {
+      var btn = ev.target.closest && ev.target.closest('[data-m2-locate]');
+      if (!btn) return;
+      var kind = btn.getAttribute('data-m2-kind') || 'tribute';
+      var id = btn.getAttribute('data-m2-locate');
+      var sky = kind === 'support' ? FIELD : SKY;
+      if (!sky) return;
+      var hit = sky.focusId('m' + id);
+      if (!hit) { flashNote('<b>아직 하늘에 뜨지 않았습니다</b>잠시 뒤 다시 시도해 주세요.'); return; }
+      scrollToBackdrop(kind === 'support' ? 'morning' : 'night', hit.y);
+      flashNote('<b>' + esc(hit.name || '익명') + '</b>' + esc(hit.text || ''));
+    });
+  }
+
+  /** 배경에서 그 자리가 화면 가운데 오도록 스크롤한다 */
+  function scrollToBackdrop(which, yInCanvas) {
+    var host = which === 'morning' ? $('hallMorning') : $('hallNight');
+    if (!host) return;
+    var top = host.getBoundingClientRect().top + window.pageYOffset;
+    var target = top + (yInCanvas || 0) - (window.innerHeight / 2);
+    try { window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' }); }
+    catch (e) { window.scrollTo(0, Math.max(0, target)); }
   }
 
   /* =========================================================

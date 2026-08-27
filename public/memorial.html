@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
-<link rel="stylesheet" href="/css/memorial.css?v=20260828-v2">
+<link rel="stylesheet" href="/css/memorial.css?v=20260828-bg">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -63,10 +63,11 @@
 
     <!-- ══════════════════ 밤 ══════════════════ -->
     <section class="mem2-night" id="hallNight" aria-label="밤 — 선생님을 기억하는 자리">
+      <!-- 이 구간 전체가 밤하늘이다. 참여한 마음이 별이 되어 배경에 퍼진다. -->
+      <canvas class="mem2-backdrop" id="m2NightSky" aria-hidden="true"></canvas>
 
       <!-- 히어로 -->
       <div class="mem2-hero">
-        <canvas class="mem2-hero-canvas" id="m2HeroSky" aria-hidden="true"></canvas>
         <div class="mem2-wrap mem2-hero-inner">
           <div class="mem2-hero-greet" id="m2NightGreet">Good night</div>
           <h1 id="m2NightTitle">불을 끄지 않고<br><em>당신을 기다립니다</em></h1>
@@ -158,12 +159,9 @@
             <b id="m2NightCount">0</b><span>개의 불빛이 이 밤을 지키고 있습니다</span>
           </div>
 
-          <div class="mem2-field-wrap">
-            <div class="mem2-canvas-box">
-              <canvas id="m2SkyCanvas" aria-label="참여자들이 밝힌 불빛이 별로 떠 있는 밤하늘"></canvas>
-            </div>
-            <div class="mem2-tip" id="m2SkyTip" aria-live="polite"></div>
-          </div>
+          <p class="mem2-lead mem2-center" style="margin-bottom:8px">
+            이 화면을 채우고 있는 별 하나하나가 누군가 밝힌 불빛입니다.
+          </p>
 
           <div class="mem2-sky-actions">
             <button type="button" class="mem2-ghost" id="m2FindStar">
@@ -208,6 +206,8 @@
 
     <!-- ══════════════════ 아침 ══════════════════ -->
     <section class="mem2-morning" id="hallMorning" aria-label="아침 — 유가족을 응원하는 자리">
+      <!-- 이 구간 전체가 들판이다. 같은 마음이 꽃이 되어 배경에 핀다. -->
+      <canvas class="mem2-backdrop mem2-backdrop-field" id="m2MornField" aria-hidden="true"></canvas>
 
       <!-- 히어로 -->
       <div class="mem2-hero">
@@ -298,12 +298,9 @@
           </div>
           <p class="mem2-lead mem2-center" id="m2SameLine" style="margin-bottom:26px"></p>
 
-          <div class="mem2-field-wrap">
-            <div class="mem2-canvas-box">
-              <canvas id="m2FieldCanvas" aria-label="참여자들이 남긴 응원이 꽃으로 피어난 들판"></canvas>
-            </div>
-            <div class="mem2-tip" id="m2FieldTip" aria-live="polite"></div>
-          </div>
+          <p class="mem2-lead mem2-center" style="margin-bottom:8px">
+            이 화면에 피어 있는 꽃 하나하나가 누군가 보낸 응원입니다.
+          </p>
 
           <div class="mem2-sky-actions">
             <button type="button" class="mem2-ghost" id="m2FindFlower">
@@ -386,8 +383,8 @@
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260821-dedupe" defer></script>
-  <script src="/js/memorial-sky.js?v=20260828-fix" defer></script>
-  <script src="/js/memorial.js?v=20260828-fix" defer></script>
+  <script src="/js/memorial-sky.js?v=20260828-bg" defer></script>
+  <script src="/js/memorial.js?v=20260828-bg" defer></script>
   <script src="/js/memorial-bgm.js?v=3" defer></script>
 </body>
 </html>
