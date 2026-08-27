@@ -2,8 +2,8 @@ import { jsonKST } from "../../lib/kst";
 import { getMemorialDisplay } from "../../lib/memorial-display";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { memorialTeachers } from "../../db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { memorialTeachers, memorialTeacherPhotos } from "../../db/schema";
+import { eq, and, asc, sql } from "drizzle-orm";
 
 export const config = { path: "/api/memorial-teacher" };
 
@@ -54,10 +54,41 @@ export default async function handler(req: Request, _ctx: Context) {
       tributeLine:  t.tributeLine,
       bioHtml:      t.bioHtml,
       timeline:     Array.isArray(t.timeline) ? t.timeline : [],
+      /* ★ 2026-08-28: 이 선생님 화면의 문구를 개별로 손볼 수 있게 함께 내려준다 */
+      pageCopy:     (t as any).pageCopy && typeof (t as any).pageCopy === "object" ? (t as any).pageCopy : null,
       candleCount,
       messageCount,
       letterCount,
+      photos: [] as any[],
     };
+
+    /* ★ 2026-08-28: 생전의 순간(사진). 운영자가 등록한 공개분만.
+       실패해도 화면은 나와야 하므로 빈 배열로 계속한다. */
+    try {
+      const rows = await db
+        .select({
+          id: memorialTeacherPhotos.id,
+          blobId: memorialTeacherPhotos.blobId,
+          caption: memorialTeacherPhotos.caption,
+          detail: memorialTeacherPhotos.detail,
+          takenLabel: memorialTeacherPhotos.takenLabel,
+        })
+        .from(memorialTeacherPhotos)
+        .where(and(
+          eq(memorialTeacherPhotos.teacherId, id),
+          eq(memorialTeacherPhotos.isPublic, true),
+        ))
+        .orderBy(asc(memorialTeacherPhotos.sortOrder), asc(memorialTeacherPhotos.id));
+      teacher.photos = rows.map((r) => ({
+        id: r.id,
+        url: r.blobId ? `/api/blob-image?id=${r.blobId}` : null,
+        caption: r.caption,
+        detail: r.detail,
+        takenLabel: r.takenLabel,
+      }));
+    } catch (err) {
+      console.warn("[memorial-teacher] 사진 조회 실패", err);
+    }
 
     /* 2026-08-04: 화면에 쓸 표시 문구·개별 헌화 노출 설정을 함께 내려준다
        (제목을 '약력' 대신 다른 말로 쓰거나, 개별 헌화를 감출 수 있도록) */

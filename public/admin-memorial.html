@@ -351,6 +351,57 @@ tr:last-child td { border-bottom:none; }
       <button class="btn btn-success" onclick="saveTeacher()">저장</button>
       <button class="btn btn-ghost" onclick="closeTeacherForm()">취소</button>
     </div>
+
+    <!-- ★ 2026-08-28 추모관 v2 — 생전의 순간(사진).
+         선생님을 먼저 저장해야 사진을 붙일 수 있다(어느 선생님인지 정해져야 하므로). -->
+    <div id="tpSection" style="display:none;border-top:1px solid #e5e5e5;margin-top:26px;padding-top:22px">
+      <h3><span class="siren-icon-wrap" data-icon="image"></span> 생전의 순간 (사진)</h3>
+      <p class="hint" style="margin:-4px 0 16px">
+        선생님 화면의 &lsquo;함께한 순간들&rsquo;에 나갑니다. 사진을 누르면 아래에 적은 이야기가 펼쳐집니다.<br>
+        <b>유가족이 보내주신 사진만</b> 올려주세요.
+      </p>
+
+      <div class="form-row">
+        <label>사진 <span style="color:#ef4444">*</span></label>
+        <div class="photo-up">
+          <div id="tpPreviewWrap"><div class="photo-preview-empty" id="tpEmpty"><span class="siren-icon-wrap" data-icon="image"></span></div></div>
+          <div>
+            <input type="file" id="tpFile" accept="image/*" onchange="tpUpload()">
+            <input type="hidden" id="tpBlobId">
+            <input type="hidden" id="tpId">
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>사진 설명 (한 줄) <span style="color:#ef4444">*</span></label>
+        <input type="text" id="tpCaption" maxlength="120" placeholder="예: 아이들과 함께한 가을 운동회">
+      </div>
+      <div class="form-row">
+        <label>그날의 이야기</label>
+        <textarea id="tpDetail" rows="4" placeholder="사진을 눌렀을 때 나오는 글입니다. 없어도 됩니다."></textarea>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>시기 표기</label>
+          <input type="text" id="tpTaken" maxlength="60" placeholder="예: 2022년 가을">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>정렬</label>
+          <input type="number" id="tpSort" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <label style="display:inline-flex;align-items:center;gap:8px">
+          <input type="checkbox" id="tpPublic" checked> 공개
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="tpSave" type="button">사진 저장</button>
+        <button class="btn btn-ghost" id="tpReset" type="button">새로 쓰기</button>
+      </div>
+
+      <div id="tpList" style="margin-top:18px"></div>
+    </div>
   </div>
 </div>
 
@@ -448,6 +499,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20260804-spot"></script>
+<script src="/js/admin-memorial.js?v=20260828-photos"></script>
 </body>
 </html>

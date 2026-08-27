@@ -4162,6 +4162,9 @@ export const memorialTeachers = pgTable("memorial_teachers", {
   tributeLine:  varchar("tribute_line", { length: 200 }),
   bioHtml:      text("bio_html"),
   timeline:     jsonb("timeline"),                         // [{date,title,desc}]
+  /* ★ 2026-08-28 추모관 v2 — 이 선생님 화면의 문구를 개별로 손보는 자리.
+     비워두면 공통 문구를 쓴다. { eyebrow, lead, letterTitle, photoTitle, ... } */
+  pageCopy:     jsonb("page_copy"),
   isPublic:     boolean("is_public").default(true).notNull(),
   sortOrder:    integer("sort_order").default(0).notNull(),
   createdBy:    integer("created_by"),
@@ -5147,3 +5150,26 @@ export const memorialFamilyNotes = pgTable("memorial_family_notes", {
 }));
 export type MemorialFamilyNote    = typeof memorialFamilyNotes.$inferSelect;
 export type NewMemorialFamilyNote = typeof memorialFamilyNotes.$inferInsert;
+
+/* =========================================================
+ * === 추모관 v2 (2026-08-28) — 선생님의 생전 순간 (폴라로이드) ===
+ * 선생님 개별 화면에 나가는 사진 한 장 + 짧은 설명 + 더 긴 이야기.
+ * 고인·유가족의 사진이라 아무나 올릴 수 없다 — 운영자만 등록한다(Swain A안).
+ * ========================================================= */
+export const memorialTeacherPhotos = pgTable("memorial_teacher_photos", {
+  id:         serial("id").primaryKey(),
+  teacherId:  integer("teacher_id").notNull(),
+  blobId:     integer("blob_id"),                       // /api/blob-image?id= 로 표시
+  caption:    varchar("caption", { length: 120 }).notNull(),   // 사진 아래 한 줄
+  detail:     text("detail"),                            // 눌렀을 때 나오는 이야기
+  takenLabel: varchar("taken_label", { length: 60 }),     // "2022년 가을" 같은 표기
+  sortOrder:  integer("sort_order").default(0).notNull(),
+  isPublic:   boolean("is_public").default(true).notNull(),
+  createdBy:  integer("created_by"),
+  createdAt:  timestamp("created_at").defaultNow().notNull(),
+  updatedAt:  timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  teacherIdx: index("memorial_teacher_photos_idx").on(t.teacherId, t.isPublic, t.sortOrder),
+}));
+export type MemorialTeacherPhoto    = typeof memorialTeacherPhotos.$inferSelect;
+export type NewMemorialTeacherPhoto = typeof memorialTeacherPhotos.$inferInsert;

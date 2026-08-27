@@ -333,6 +333,9 @@ function editTeacher(id) {
   (Array.isArray(t.timeline) ? t.timeline : []).forEach(function (e) { addTimelineRow(e); });
 
   document.getElementById('teacherFormTitle').textContent = '선생님 수정';
+  /* ★ 2026-08-28: 이 선생님의 생전 사진 관리도 함께 켠다
+     (사진 기능이 없어도 편집 자체는 되어야 하므로 감싸 둔다) */
+  try { tpOpenFor(id); } catch (e) { console.warn('[사진 관리]', e); }
   document.getElementById('teacherForm').style.display = '';
   document.getElementById('teacherForm').scrollIntoView({ behavior: 'smooth' });
 }
@@ -340,6 +343,7 @@ function closeTeacherForm() {
   document.getElementById('teacherForm').style.display = 'none';
   clearTeacherForm();
   _editingTeacherId = null;
+  try { tpOpenFor(0); } catch (e) {}
 }
 function clearTeacherForm() {
   ['fId', 'fName', 'fSchoolRegion', 'fBirthDate', 'fDeathDate', 'fTributeLine', 'fBioHtml', 'fPhotoBlobId'].forEach(function (id) {
@@ -723,4 +727,167 @@ document.addEventListener('DOMContentLoaded', function () {
   if (save) save.addEventListener('click', fnSave);
   var reset = document.getElementById('fnReset');
   if (reset) reset.addEventListener('click', fnReset);
+});
+
+/* =========================================================
+   ★ 2026-08-28 추모관 v2 — 선생님의 생전 순간 (사진)
+   고인·유가족의 사진이라 운영자만 등록한다(Swain A안).
+   사진 파일은 기존 업로드 경로(/api/blob-upload)를 그대로 쓴다.
+   ========================================================= */
+var TP_TEACHER_ID = 0;
+
+function tpEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function tpVal(id) { var el = document.getElementById(id); return el ? String(el.value).trim() : ''; }
+function tpSet(id, v) { var el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); }
+
+function tpPreview(url) {
+  var wrap = document.getElementById('tpPreviewWrap');
+  if (!wrap) return;
+  wrap.innerHTML = url
+    ? '<img src="' + tpEsc(url) + '" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:8px">'
+    : '<div class="photo-preview-empty" id="tpEmpty"><span class="siren-icon-wrap" data-icon="image"></span></div>';
+}
+
+/** 선생님 편집을 열 때 함께 켠다 — 어느 선생님인지 정해져야 사진을 붙일 수 있다 */
+function tpOpenFor(teacherId) {
+  TP_TEACHER_ID = Number(teacherId) || 0;
+  var sec = document.getElementById('tpSection');
+  if (!sec) return;
+  if (!TP_TEACHER_ID) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  tpReset();
+  tpLoad();
+}
+
+function tpReset() {
+  ['tpId', 'tpBlobId', 'tpCaption', 'tpDetail', 'tpTaken'].forEach(function (id) { tpSet(id, ''); });
+  tpSet('tpSort', '0');
+  var pub = document.getElementById('tpPublic'); if (pub) pub.checked = true;
+  tpPreview('');
+}
+
+function tpUpload() {
+  var input = document.getElementById('tpFile');
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('context', 'memorial_teacher');
+  fd.append('isPublic', 'true');
+  toast('업로드 중…');
+  fetch('/api/blob-upload', { method: 'POST', credentials: 'include', body: fd })
+    .then(function (r) {
+      return r.json().catch(function () { return {}; })
+        .then(function (d) { return { ok: r.ok && d.ok !== false, data: d }; });
+    })
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && (res.data.error || res.data.message)) || '업로드 실패', 'error'); return; }
+      var id = (res.data && res.data.data && res.data.data.id) || (res.data && res.data.id) || (res.data && res.data.blobId);
+      if (!id) { toast('업로드 응답에 ID가 없습니다.', 'error'); return; }
+      tpSet('tpBlobId', id);
+      tpPreview('/api/blob-image?id=' + id);
+      toast('사진이 업로드되었습니다.', 'success');
+    })
+    .catch(function (e) { toast('업로드 실패: ' + e.message, 'error'); });
+}
+
+function tpLoad() {
+  var box = document.getElementById('tpList');
+  if (!box || !TP_TEACHER_ID) return;
+  box.innerHTML = '<div style="padding:16px;color:#888">불러오는 중…</div>';
+  callApi('GET', '/api/admin-memorial-teacher-photos?teacherId=' + TP_TEACHER_ID).then(function (res) {
+    if (!res.ok) {
+      box.innerHTML = '<div style="padding:16px;color:#c00">' +
+        tpEsc((res.data && res.data.error) || '불러오지 못했습니다') + '</div>';
+      return;
+    }
+    var photos = (res.data && res.data.data && res.data.data.photos) || [];
+    window.__TP_CACHE = photos;
+    if (!photos.length) {
+      box.innerHTML = '<div style="padding:18px;color:#888">등록된 사진이 없습니다.</div>';
+      return;
+    }
+    box.innerHTML = '<table class="tbl"><thead><tr>' +
+      '<th style="width:78px">사진</th><th>설명</th><th style="width:110px">시기</th>' +
+      '<th style="width:56px">순서</th><th style="width:70px">공개</th><th style="width:140px">관리</th>' +
+      '</tr></thead><tbody>' +
+      photos.map(function (p) {
+        return '<tr>' +
+          '<td>' + (p.blobId
+            ? '<img src="/api/blob-image?id=' + p.blobId + '" alt="" style="width:60px;height:46px;object-fit:cover;border-radius:5px">'
+            : '—') + '</td>' +
+          '<td><b>' + tpEsc(p.caption) + '</b>' +
+            (p.detail ? '<div style="color:#888;font-size:12px;margin-top:4px">' +
+              tpEsc(String(p.detail).slice(0, 50)) + '…</div>' : '') + '</td>' +
+          '<td>' + tpEsc(p.takenLabel || '—') + '</td>' +
+          '<td>' + tpEsc(p.sortOrder) + '</td>' +
+          '<td>' + (p.isPublic ? '공개' : '<span style="color:#c00">숨김</span>') + '</td>' +
+          '<td>' +
+            '<button class="btn btn-sm" onclick="tpEdit(' + p.id + ')">수정</button> ' +
+            '<button class="btn btn-sm" onclick="tpDelete(' + p.id + ')">삭제</button>' +
+          '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function (e) {
+    box.innerHTML = '<div style="padding:16px;color:#c00">오류: ' + tpEsc(e.message) + '</div>';
+  });
+}
+
+function tpEdit(id) {
+  var p = (window.__TP_CACHE || []).filter(function (x) { return x.id === id; })[0];
+  if (!p) return;
+  tpSet('tpId', p.id);
+  tpSet('tpBlobId', p.blobId || '');
+  tpSet('tpCaption', p.caption);
+  tpSet('tpDetail', p.detail);
+  tpSet('tpTaken', p.takenLabel);
+  tpSet('tpSort', p.sortOrder);
+  var pub = document.getElementById('tpPublic'); if (pub) pub.checked = !!p.isPublic;
+  tpPreview(p.blobId ? '/api/blob-image?id=' + p.blobId : '');
+  var el = document.getElementById('tpCaption'); if (el) el.focus();
+}
+
+function tpSave() {
+  if (!TP_TEACHER_ID) { toast('선생님을 먼저 저장해 주세요.', 'error'); return; }
+  var id = tpVal('tpId');
+  var payload = {
+    blobId: Number(tpVal('tpBlobId')) || null,
+    caption: tpVal('tpCaption'),
+    detail: tpVal('tpDetail'),
+    takenLabel: tpVal('tpTaken'),
+    sortOrder: Number(tpVal('tpSort')) || 0,
+    isPublic: !!(document.getElementById('tpPublic') || {}).checked
+  };
+  if (!payload.caption) { toast('사진 설명을 입력해 주세요.', 'error'); return; }
+  if (!id && !payload.blobId) { toast('사진을 먼저 올려주세요.', 'error'); return; }
+
+  var path = id
+    ? '/api/admin-memorial-teacher-photos?action=update&id=' + encodeURIComponent(id)
+    : '/api/admin-memorial-teacher-photos?teacherId=' + TP_TEACHER_ID;
+  callApi('POST', path, payload).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }
+    toast(id ? '수정되었습니다.' : '사진이 추가되었습니다.', 'success');
+    tpReset();
+    tpLoad();
+  }).catch(function (e) { toast('저장 실패: ' + e.message, 'error'); });
+}
+
+function tpDelete(id) {
+  if (!confirm('이 사진을 삭제할까요? 되돌릴 수 없습니다.')) return;
+  callApi('POST', '/api/admin-memorial-teacher-photos?action=delete&id=' + encodeURIComponent(id))
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && res.data.error) || '삭제 실패', 'error'); return; }
+      toast('삭제되었습니다.', 'success');
+      tpLoad();
+    }).catch(function (e) { toast('삭제 실패: ' + e.message, 'error'); });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var s = document.getElementById('tpSave');
+  if (s) s.addEventListener('click', tpSave);
+  var r = document.getElementById('tpReset');
+  if (r) r.addEventListener('click', tpReset);
 });
