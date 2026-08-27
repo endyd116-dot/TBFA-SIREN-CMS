@@ -119,7 +119,7 @@
 
   /* ───────── 상태 ───────── */
   var PAGE = { tribute: 1, support: 1 };
-  var COUNTS = { people: 0, candles: 0, messages: 0 };
+  var COUNTS = { people: 0, candles: 0, messages: 0, support: 0 };
   var CACHE = { tribute: [], support: [] };
   var SKY = null, FIELD = null;
   var offerType = 'candle';
@@ -169,6 +169,7 @@
       COUNTS.people = counters.people || 0;
       COUNTS.candles = counters.candles || 0;
       COUNTS.messages = counters.messages || 0;
+      COUNTS.support = counters.support || 0;
       paintCounts();
 
       /* 운영자가 어드민에서 고친 문구가 있으면 덮어쓴다 */
@@ -192,7 +193,10 @@
   }
 
   /** 불빛 = 헌화 + 남겨진 한마디 (두 관에 같은 숫자가 나간다) */
-  function totalHearts() { return (COUNTS.candles || 0) + (COUNTS.messages || 0); }
+  /* 불빛 하나 = 참여 한 번.
+     밤에서 한마디를 남기면 헌화도 함께 생기므로 헌화 수가 곧 밤의 참여 수다.
+     여기에 아침의 응원만 더한다(예전엔 한 번 참여가 둘로 세어졌다). */
+  function totalHearts() { return (COUNTS.candles || 0) + (COUNTS.support || 0); }
 
   function paintCounts() {
     var t = totalHearts();
@@ -532,6 +536,7 @@
         return;
       }
       COUNTS.messages += 1;
+      COUNTS.support += 1;
       var newId = unwrap(res, 'id') || (res.data && res.data.data && res.data.data.message && res.data.data.message.id);
       if (newId) rememberMine('support', newId);
       if (msgEl) msgEl.value = '';
@@ -613,7 +618,6 @@
 
   function start() {
     bind();
-    mountHeroSky();
     /* 서로 기다릴 필요가 없는 조회는 한꺼번에 */
     loadSummary();
     loadTeachers();

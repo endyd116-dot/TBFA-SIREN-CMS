@@ -30,8 +30,8 @@
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
-<link rel="stylesheet" href="/css/memorial.css?v=20260828-bg">
-<link rel="stylesheet" href="/css/memorial-teacher.css?v=20260828-v2">
+<link rel="stylesheet" href="/css/memorial.css?v=20260828-fix">
+<link rel="stylesheet" href="/css/memorial-teacher.css?v=20260828-r2">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -45,7 +45,7 @@
 
   <main>
 
-    <!-- ── 첫 화면 ─────────────────────────────────── -->
+    <!-- ══ 1. 첫 화면 — 한 사람 앞에 서는 자리 ══════════ -->
     <section class="mt2-hero">
       <canvas class="mt2-hero-sky" id="mtHeroSky" aria-hidden="true"></canvas>
       <div class="mt2-wrap mt2-hero-inner">
@@ -54,145 +54,152 @@
         </a>
 
         <div class="mt2-head">
-          <div class="mt2-portrait" id="mtPortrait">
-            <span class="siren-icon-wrap m2-silhouette" data-icon="dove"></span>
-          </div>
-          <div class="mt2-id">
-            <h1 class="mt2-name" id="mtName">불러오는 중…</h1>
-            <div class="mt2-meta" id="mtMeta"></div>
-            <p class="mt2-tribute" id="mtTribute" style="display:none"></p>
-          </div>
-        </div>
+          <p class="mt2-lead-line" id="mtLeadLine">그리운 사람의 따뜻한 눈빛을 기억하며</p>
+          <blockquote class="mt2-quote" id="mtQuote" style="display:none"></blockquote>
 
-        <div class="mt2-stats" id="mtStats" style="display:none">
-          <div class="mt2-stat"><b id="mtCandle">0</b><span>밝혀진 불빛</span></div>
-          <div class="mt2-stat"><b id="mtMsg">0</b><span>남겨진 한마디</span></div>
-          <div class="mt2-stat"><b id="mtLetter">0</b><span>받은 편지</span></div>
+          <figure class="mt2-frame">
+            <div class="mt2-portrait" id="mtPortrait">
+              <span class="siren-icon-wrap m2-silhouette" data-icon="dove"></span>
+            </div>
+            <figcaption class="mt2-frame-cap" id="mtFrameCap">
+              아침 햇살이 가만히 머무는 선생님의 빈 자리
+            </figcaption>
+          </figure>
+
+          <h1 class="mt2-name" id="mtName">불러오는 중…</h1>
+          <div class="mt2-years" id="mtYears" style="display:none"></div>
+          <div class="mt2-meta" id="mtMeta"></div>
         </div>
       </div>
     </section>
 
-    <!-- ── 소개 ────────────────────────────────────── -->
-    <section class="mt2-sec" id="mtBioSec" style="display:none">
+    <!-- ══ 2. 소개 ══════════════════════════════════════ -->
+    <section class="mt2-sec mt2-sec-bio" id="mtBioSec" style="display:none">
       <div class="mt2-wrap">
-        <div class="mt2-sec-head">
-          <span class="mt2-eyebrow">About</span>
-          <h2 class="mt2-h2" id="mtBioTitle">선생님을 소개합니다</h2>
-        </div>
         <div class="mt2-bio" id="mtBio"></div>
       </div>
     </section>
 
-    <!-- ── 생전의 순간 (사진) ──────────────────────── -->
+    <!-- ══ 3. 선생님의 어느 하루 — 폴라로이드 ═══════════ -->
     <section class="mt2-sec" id="mtPhotoSec" style="display:none">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
-          <span class="mt2-eyebrow">Moments</span>
-          <h2 class="mt2-h2" id="mtPhotoTitle">함께한 순간들</h2>
-          <p class="mt2-desc" id="mtPhotoDesc">사진을 누르면 그날의 이야기를 볼 수 있습니다.</p>
+          <span class="mt2-tag" id="mtPhotoTag">선생님의 어느 하루</span>
+          <h2 class="mt2-h2" id="mtPhotoTitle">웃고 계신 얼굴로 기억합니다</h2>
+          <p class="mt2-desc" id="mtPhotoDesc">
+            사진을 누르면 그날의 이야기가 열립니다.
+          </p>
         </div>
-        <div class="mt2-photos" id="mtPhotos"></div>
+        <div class="mt2-polas" id="mtPhotos"></div>
       </div>
     </section>
 
-    <!-- ── 기록 ────────────────────────────────────── -->
-    <section class="mt2-sec" id="mtTimelineSec" style="display:none">
+    <!-- ══ 4. 기억의 편지 — 도착한 마음 ═════════════════ -->
+    <section class="mt2-sec mt2-sec-letters">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
-          <span class="mt2-eyebrow">Footsteps</span>
-          <h2 class="mt2-h2" id="mtTimelineTitle">기억의 발자취</h2>
+          <span class="mt2-tag" id="mtLtTag">기억의 편지</span>
+          <h2 class="mt2-h2" id="mtLetterTitle">그리움이 보내온 편지</h2>
+          <p class="mt2-desc" id="mtLtDesc">
+            봉투를 누르면 그 안에 담긴 이야기를 읽으실 수 있습니다.
+          </p>
         </div>
-        <div class="mt2-timeline" id="mtTimeline"></div>
+
+        <div id="mtLetters" class="mt2-envelopes"></div>
+        <div id="mtLtEmpty" class="mt2-empty" style="display:none">
+          아직 도착한 편지가 없습니다.<br>첫 편지를 남겨주시겠어요?
+        </div>
+        <div id="mtLtLoading" class="mt2-loading">불러오는 중…</div>
+        <div class="mt2-center" id="mtLtMoreWrap" style="display:none">
+          <button type="button" class="mt2-ghost" id="mtLtMore">편지 더 보기</button>
+        </div>
       </div>
     </section>
 
-    <!-- ── 마음 전하기 ─────────────────────────────── -->
-    <section class="mt2-sec" id="mtOfferSec">
+    <!-- ══ 5. 편지 쓰기 ═════════════════════════════════ -->
+    <section class="mt2-sec">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
-          <span class="mt2-eyebrow">Light a candle</span>
-          <h2 class="mt2-h2">이 선생님께 마음을 전합니다</h2>
-          <p class="mt2-desc">로그인 없이도 남기실 수 있습니다.</p>
+          <span class="mt2-tag" id="mtWriteTag">편지 쓰기</span>
+          <h2 class="mt2-h2" id="mtWriteTitle">선생님께 전하고 싶은 이야기</h2>
+          <p class="mt2-desc" id="mtWriteDesc">한 줄로는 다 담기지 않는 마음을 천천히 적어주세요.</p>
         </div>
 
-        <div class="mt2-panel">
-          <div class="mt2-offer-row" id="mtOfferTypes" role="group" aria-label="헌화 종류">
+        <div class="mt2-paper">
+          <div class="mt2-field">
+            <label for="mtLtTitle">편지 제목</label>
+            <input type="text" class="mt2-input" id="mtLtTitle" maxlength="150" placeholder="예: 선생님께">
+          </div>
+          <div class="mt2-field">
+            <label for="mtLtBody">편지 내용</label>
+            <textarea class="mt2-input mt2-area" id="mtLtBody" placeholder="천천히 적어주세요."></textarea>
+          </div>
+          <div class="mt2-foot">
+            <label class="mt2-check"><input type="checkbox" id="mtLtAnon"> 이름 없이 보내기</label>
+            <button type="button" class="mt2-btn" id="mtLtSubmit">편지 보내기</button>
+          </div>
+          <p class="mt2-hint" id="mtLtHint">편지는 로그인 후 보내실 수 있습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ 6. 마음 두고 가기 — 헌화 + 한마디 ════════════ -->
+    <section class="mt2-sec mt2-sec-offer" id="mtOfferSec">
+      <div class="mt2-wrap">
+        <div class="mt2-sec-head">
+          <span class="mt2-tag" id="mtOfferTag">마음 두고 가기</span>
+          <h2 class="mt2-h2" id="mtOfferTitle">잠시 머물다 가셔도 좋습니다</h2>
+          <p class="mt2-desc" id="mtOfferDesc">로그인 없이도 남기실 수 있습니다. 한 줄이어도 충분합니다.</p>
+        </div>
+
+        <div class="mt2-paper">
+          <div class="mt2-offer-row" id="mtOfferTypes" role="group" aria-label="놓고 갈 것">
             <button type="button" class="mt2-offer" data-type="candle" aria-pressed="true">
-              <span class="m2-emoji" aria-hidden="true">🕯️</span>촛불 밝히기
+              <span class="m2-emoji" aria-hidden="true">🕯️</span>
+              <b>촛불 밝히기</b>
+              <small>어두운 밤을 함께 지킵니다</small>
             </button>
             <button type="button" class="mt2-offer" data-type="flower" aria-pressed="false">
-              <span class="m2-emoji" aria-hidden="true">🤍</span>국화 올리기
+              <span class="m2-emoji" aria-hidden="true">🤍</span>
+              <b>국화 올리기</b>
+              <small>말 대신 꽃 한 송이를 둡니다</small>
             </button>
           </div>
 
-          <div class="mem2-field">
-            <label for="mtName2">부르실 이름 <span style="opacity:.6">(비워두면 익명)</span></label>
-            <input type="text" class="mem2-input" id="mtName2" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
+          <div class="mt2-field">
+            <label for="mtName2">부르실 이름 <span class="mt2-opt">(비워두면 익명)</span></label>
+            <input type="text" class="mt2-input" id="mtName2" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
           </div>
-          <div class="mem2-field">
-            <label for="mtMsgText">전하고 싶은 한마디 <span style="opacity:.6">(선택)</span></label>
-            <textarea class="mem2-textarea" id="mtMsgText" maxlength="1000" placeholder="선생님께 닿았으면 하는 말을 남겨주세요."></textarea>
+          <div class="mt2-field">
+            <label for="mtMsgText">전하고 싶은 한마디 <span class="mt2-opt">(선택)</span></label>
+            <textarea class="mt2-input mt2-area" id="mtMsgText" maxlength="1000"
+                      placeholder="선생님께 닿았으면 하는 말을 남겨주세요."></textarea>
           </div>
-          <div class="mem2-compose-foot">
-            <label class="mem2-anon"><input type="checkbox" id="mtAnon"> 익명으로 남기기</label>
-            <button type="button" class="mem2-submit" id="mtOfferBtn">
-              <span class="siren-icon-wrap" data-icon="candle"></span> 마음 전하기
-            </button>
+          <div class="mt2-foot">
+            <label class="mt2-check"><input type="checkbox" id="mtAnon"> 이름 없이 남기기</label>
+            <button type="button" class="mt2-btn" id="mtOfferBtn">마음 전하기</button>
           </div>
-          <p class="mem2-hint">
-            남겨주신 글은 모두에게 공개됩니다. 고인과 유가족을 존중하는 마음으로 부탁드립니다.<br>
+          <p class="mt2-hint">
+            남겨주신 글은 모두에게 보입니다. 고인과 유가족을 존중하는 마음으로 부탁드립니다.<br>
             부적절한 글은 자동 검토와 운영자 확인을 거쳐 가려집니다.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- ── 남겨주신 한마디 ─────────────────────────── -->
+    <!-- ══ 7. 남겨주신 한마디 ═══════════════════════════ -->
     <section class="mt2-sec">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
-          <span class="mt2-eyebrow">Messages</span>
-          <h2 class="mt2-h2">남겨주신 한마디</h2>
+          <span class="mt2-tag" id="mtNoteTag">머물다 가신 분들</span>
+          <h2 class="mt2-h2" id="mtNoteTitle">이곳에 남겨진 한마디</h2>
         </div>
-        <div id="mtMsgs" class="mem2-msgs"></div>
+        <div id="mtMsgs" class="mt2-notes"></div>
         <div id="mtMsgEmpty" class="mt2-empty" style="display:none">첫 마음을 남겨주세요.</div>
         <div id="mtMsgLoading" class="mt2-loading">불러오는 중…</div>
-        <div class="mem2-more" id="mtMsgMoreWrap" style="display:none">
-          <button type="button" class="mem2-ghost" id="mtMsgMore">더 보기</button>
+        <div class="mt2-center" id="mtMsgMoreWrap" style="display:none">
+          <button type="button" class="mt2-ghost" id="mtMsgMore">더 보기</button>
         </div>
-      </div>
-    </section>
-
-    <!-- ── 편지 ────────────────────────────────────── -->
-    <section class="mt2-sec">
-      <div class="mt2-wrap">
-        <div class="mt2-sec-head">
-          <span class="mt2-eyebrow">Letters</span>
-          <h2 class="mt2-h2" id="mtLetterTitle">선생님께 쓰는 편지</h2>
-          <p class="mt2-desc">한마디로는 다 담기지 않는 이야기를 편지로 남기실 수 있습니다.</p>
-        </div>
-
-        <div class="mt2-panel" style="margin-bottom:26px">
-          <div class="mem2-field">
-            <label for="mtLtTitle">편지 제목</label>
-            <input type="text" class="mem2-input" id="mtLtTitle" maxlength="150" placeholder="예: 선생님께">
-          </div>
-          <div class="mem2-field">
-            <label for="mtLtBody">편지 내용</label>
-            <textarea class="mem2-textarea" id="mtLtBody" style="min-height:170px" placeholder="천천히 적어주세요."></textarea>
-          </div>
-          <div class="mem2-compose-foot">
-            <label class="mem2-anon"><input type="checkbox" id="mtLtAnon"> 익명으로 보내기</label>
-            <button type="button" class="mem2-submit" id="mtLtSubmit">
-              <span class="siren-icon-wrap" data-icon="pen-tool"></span> 편지 보내기
-            </button>
-          </div>
-          <p class="mem2-hint" id="mtLtHint">편지는 로그인 후 보내실 수 있습니다.</p>
-        </div>
-
-        <div id="mtLetters" class="mt2-letters"></div>
-        <div id="mtLtEmpty" class="mt2-empty" style="display:none">아직 도착한 편지가 없습니다.</div>
-        <div id="mtLtLoading" class="mt2-loading">불러오는 중…</div>
       </div>
     </section>
 
@@ -211,6 +218,20 @@
     </div>
   </div>
 
+  <!-- 편지를 열었을 때 -->
+  <div class="mt2-lightbox mt2-letterbox" id="mtLtBox" role="dialog" aria-modal="true" aria-label="편지 읽기">
+    <button type="button" class="mt2-lb-close" id="mtLtBoxClose" aria-label="닫기">×</button>
+    <div class="mt2-lb-inner mt2-sheet">
+      <div class="mt2-sheet-top">
+        <span class="mt2-sheet-to" id="mtLtBoxTo"></span>
+        <span class="mt2-sheet-when" id="mtLtBoxWhen"></span>
+      </div>
+      <h3 class="mt2-sheet-title" id="mtLtBoxTitle"></h3>
+      <p class="mt2-sheet-body" id="mtLtBoxBody"></p>
+      <div class="mt2-sheet-from" id="mtLtBoxFrom"></div>
+    </div>
+  </div>
+
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
@@ -218,7 +239,7 @@
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260821-dedupe" defer></script>
-  <script src="/js/memorial-sky.js?v=20260828-bg" defer></script>
-  <script src="/js/memorial-teacher.js?v=20260828-v2" defer></script>
+  <script src="/js/memorial-sky.js?v=20260828-fix" defer></script>
+  <script src="/js/memorial-teacher.js?v=20260828-r2" defer></script>
 </body>
 </html>

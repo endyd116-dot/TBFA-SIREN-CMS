@@ -29,6 +29,12 @@ export default async function handler(_req: Request, _ctx: Context) {
     );
     const candles = await safeCount(sql`SELECT COUNT(*)::int AS n FROM memorial_offerings`);
     const messages = await safeCount(sql`SELECT COUNT(*)::int AS n FROM memorial_messages WHERE is_hidden = FALSE`);
+    /* ★ 2026-08-28 — 불빛 수는 '참여 횟수'다.
+       밤에서 한마디를 남기면 헌화도 함께 생기므로, 헌화 수가 곧 밤의 참여 수다.
+       여기에 아침의 응원 글만 더해야 한 번 참여가 하나로 센다(예전엔 둘로 셌다). */
+    const support = await safeCount(
+      sql`SELECT COUNT(*)::int AS n FROM memorial_messages WHERE is_hidden = FALSE AND kind = 'support'`
+    );
 
     /* 히어로 + BGM — 설정 1행 (없으면 기본값) */
     let heroYoutubeId = DEFAULT_HERO_ID;
@@ -55,7 +61,7 @@ export default async function handler(_req: Request, _ctx: Context) {
     return new Response(jsonKST({
       ok: true,
       data: {
-        counters: { people, candles, messages },
+        counters: { people, candles, messages, support },
         hero: { youtubeId: heroYoutubeId, copy: heroCopy },
         bgmTracks,
         hallCopy,

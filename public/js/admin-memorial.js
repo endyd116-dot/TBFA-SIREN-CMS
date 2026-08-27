@@ -330,7 +330,12 @@ function editTeacher(id) {
   document.getElementById('fPhotoBlobId').value = t.photoBlobId || '';
   setPhotoPreview(photoUrlOf(t));
 
-  (Array.isArray(t.timeline) ? t.timeline : []).forEach(function (e) { addTimelineRow(e); });
+  /* ★ 2026-08-28 — 이 선생님 화면에서만 쓰는 문구 */
+  var pc = (t.pageCopy && typeof t.pageCopy === 'object') ? t.pageCopy : {};
+  document.getElementById('fLeadLine').value = pc.leadLine || '';
+  document.getElementById('fPortraitCaption').value = pc.portraitCaption || '';
+  document.getElementById('fPhotoTitle').value = pc.photoTitle || '';
+  document.getElementById('fPhotoDesc').value = pc.photoDesc || '';
 
   document.getElementById('teacherFormTitle').textContent = '선생님 수정';
   /* ★ 2026-08-28: 이 선생님의 생전 사진 관리도 함께 켠다
@@ -346,13 +351,14 @@ function closeTeacherForm() {
   try { tpOpenFor(0); } catch (e) {}
 }
 function clearTeacherForm() {
-  ['fId', 'fName', 'fSchoolRegion', 'fBirthDate', 'fDeathDate', 'fTributeLine', 'fBioHtml', 'fPhotoBlobId'].forEach(function (id) {
-    document.getElementById(id).value = '';
+  ['fId', 'fName', 'fSchoolRegion', 'fBirthDate', 'fDeathDate', 'fTributeLine', 'fBioHtml', 'fPhotoBlobId',
+   'fLeadLine', 'fPortraitCaption', 'fPhotoTitle', 'fPhotoDesc'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
   });
   document.getElementById('fSortOrder').value = 0;
   document.getElementById('fIsPublic').value = 'true';
   document.getElementById('fPhotoFile').value = '';
-  document.getElementById('timelineRows').innerHTML = '';
   setPhotoPreview(null);
 }
 function setPhotoPreview(url) {
@@ -384,29 +390,25 @@ function uploadPhoto() {
     }).catch(function (e) { toast('업로드 실패: ' + e.message, 'error'); });
 }
 
-/* 타임라인 행 */
-function addTimelineRow(data) {
-  data = data || {};
-  var row = document.createElement('div');
-  row.className = 'dyn-row';
-  row.innerHTML =
-    '<input type="text" class="tl-date" placeholder="날짜" value="' + esc(data.date || '') + '">' +
-    '<input type="text" class="tl-title" placeholder="제목" value="' + esc(data.title || '') + '">' +
-    '<input type="text" class="tl-desc" placeholder="설명(선택)" value="' + esc(data.desc || '') + '">' +
-    '<button type="button" class="dyn-del" title="삭제">×</button>';
-  row.querySelector('.dyn-del').addEventListener('click', function () { row.remove(); });
-  document.getElementById('timelineRows').appendChild(row);
-}
-function collectTimeline() {
-  var rows = document.querySelectorAll('#timelineRows .dyn-row');
-  var out = [];
-  Array.prototype.forEach.call(rows, function (r) {
-    var date = r.querySelector('.tl-date').value.trim();
-    var title = r.querySelector('.tl-title').value.trim();
-    var desc = r.querySelector('.tl-desc').value.trim();
-    if (date || title || desc) out.push({ date: date, title: title, desc: desc });
+/* 이 선생님 화면에서만 쓰는 문구를 모은다.
+   기존에 저장돼 있던 다른 문구(사진 구간 제목 등)는 그대로 지킨다. */
+function collectPageCopy() {
+  var t = _editingTeacherId
+    ? (_teachers || []).filter(function (x) { return x.id === _editingTeacherId; })[0]
+    : null;
+  var base = (t && t.pageCopy && typeof t.pageCopy === 'object') ? t.pageCopy : {};
+  var out = {};
+  Object.keys(base).forEach(function (k) { out[k] = base[k]; });
+
+  [['fLeadLine', 'leadLine'],
+   ['fPortraitCaption', 'portraitCaption'],
+   ['fPhotoTitle', 'photoTitle'],
+   ['fPhotoDesc', 'photoDesc']].forEach(function (pair) {
+    var v = ((document.getElementById(pair[0]) || {}).value || '').trim();
+    if (v) out[pair[1]] = v; else delete out[pair[1]];
   });
-  return out;
+
+  return Object.keys(out).length ? out : null;
 }
 
 function saveTeacher() {
@@ -420,7 +422,7 @@ function saveTeacher() {
     deathDate: document.getElementById('fDeathDate').value || null,
     tributeLine: document.getElementById('fTributeLine').value.trim() || null,
     bioHtml: document.getElementById('fBioHtml').value.trim() || null,
-    timeline: collectTimeline(),
+    pageCopy: collectPageCopy(),
     photoBlobId: blobId ? parseInt(blobId, 10) : null,
     sortOrder: parseInt(document.getElementById('fSortOrder').value, 10) || 0,
     isPublic: document.getElementById('fIsPublic').value === 'true'
@@ -531,11 +533,6 @@ function loadSettings() {
     document.getElementById('sHeroCopy').value = s.heroCopy || '';
     /* ★ 2026-08-28 추모관 v2 — 밤·여명·아침 문구 채우기 */
     try { fillHallCopy(s.hallCopy); } catch (e) { /* 아래에서 정의됨 */ }
-    /* 2026-08-04: 선생님 페이지 표시 설정 */
-    var bioEl = document.getElementById('sBioLabel');
-    if (bioEl) bioEl.value = s.bioLabel || '';
-    var tlEl = document.getElementById('sTimelineLabel');
-    if (tlEl) tlEl.value = s.timelineLabel || '';
     var offEl = document.getElementById('sShowTeacherOffering');
     if (offEl) offEl.checked = s.showTeacherOffering !== false;
     var rows = document.getElementById('bgmRows');
@@ -570,9 +567,6 @@ function saveSettings() {
     heroYoutubeId: document.getElementById('sHeroYoutubeId').value.trim() || null,
     heroCopy: document.getElementById('sHeroCopy').value.trim() || null,
     bgmTracks: collectBgm(),
-    /* 2026-08-04: 선생님 페이지 표시 설정 (비우면 서버가 기본 문구를 쓴다) */
-    bioLabel: (document.getElementById('sBioLabel') || {}).value || '',
-    timelineLabel: (document.getElementById('sTimelineLabel') || {}).value || '',
     showTeacherOffering: !!(document.getElementById('sShowTeacherOffering') || {}).checked,
     /* ★ 2026-08-28 추모관 v2 — 밤·여명·아침 구간 문구 */
     hallCopy: collectHallCopy()
@@ -598,7 +592,9 @@ function collectHallCopy() {
   var c = {
     night:   { greet: val('sNightGreet'), title: val('sNightTitle'), sub: val('sNightSub') },
     dawn:    { line:  val('sDawnLine'),   sub:   val('sDawnSub') },
-    morning: { greet: val('sMornGreet'),  title: val('sMornTitle'), sub: val('sMornSub') }
+    morning: { greet: val('sMornGreet'),  title: val('sMornTitle'), sub: val('sMornSub') },
+    /* ★ 2026-08-28 — 선생님 화면 구간 문구 (모든 선생님 공통) */
+    teacher: collectTeacherCopy()
   };
   /* 세 구간 모두 비어 있으면 아예 안 보낸다 — 서버가 기본 문구를 쓴다 */
   var any = false;
@@ -618,6 +614,41 @@ function fillHallCopy(hall) {
   setVal('sMornGreet',  hall.morning && hall.morning.greet);
   setVal('sMornTitle',  hall.morning && hall.morning.title);
   setVal('sMornSub',    hall.morning && hall.morning.sub);
+  fillTeacherCopy(hall.teacher);
+}
+
+/* 선생님 화면 문구 — 화면의 자리 이름과 입력란을 1:1로 짝지어 둔다 */
+var TEACHER_COPY_FIELDS = [
+  ['stLeadLine', 'leadLine'],
+  ['stPortraitCaption', 'portraitCaption'],
+  ['stPhotoTag', 'photoTag'],
+  ['stPhotoTitle', 'photoTitle'],
+  ['stPhotoDesc', 'photoDesc'],
+  ['stLetterTag', 'letterTag'],
+  ['stLetterTitle', 'letterTitle'],
+  ['stLetterDesc', 'letterDesc'],
+  ['stWriteTag', 'writeTag'],
+  ['stWriteTitle', 'writeTitle'],
+  ['stWriteDesc', 'writeDesc'],
+  ['stOfferTag', 'offerTag'],
+  ['stOfferTitle', 'offerTitle'],
+  ['stOfferDesc', 'offerDesc'],
+  ['stNoteTag', 'noteTag'],
+  ['stNoteTitle', 'noteTitle']
+];
+
+function collectTeacherCopy() {
+  var out = {};
+  TEACHER_COPY_FIELDS.forEach(function (pair) {
+    var v = val(pair[0]);
+    if (v) out[pair[1]] = v;
+  });
+  return Object.keys(out).length ? out : null;
+}
+
+function fillTeacherCopy(tc) {
+  if (!tc || typeof tc !== 'object') tc = {};
+  TEACHER_COPY_FIELDS.forEach(function (pair) { setVal(pair[0], tc[pair[1]]); });
 }
 
 /* ─── 유가족 근황 ─── */

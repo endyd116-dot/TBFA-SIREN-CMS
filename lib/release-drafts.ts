@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-28.1";
+export const APP_VERSION = "2026-08-28.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,19 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-28-memorial-teacher",
+    title: "선생님 한 분 한 분의 화면을 새로 지었습니다",
+    items: [
+      { text: "선생님을 누르면 나오는 화면을 새로 지었습니다. 숫자와 약력을 걷어내고, 기억하는 한 문장과 얼굴과 이름만 남겼습니다", link: "/memorial.html" },
+      { text: "화면 위쪽은 어스름한 밤이지만 내려갈수록 아침빛으로 밝아집니다. 추모의 예를 지키되 어둠에 잠기지 않도록 했습니다" },
+      { text: "생전 사진은 손으로 놓아둔 듯한 폴라로이드로 보입니다. 누르면 그날의 이야기가 열립니다" },
+      { text: "도착한 편지는 봉투로 놓이고, 누르면 편지지가 펼쳐집니다" },
+      { text: "[관리자] 이 화면의 모든 문구를 직접 고칠 수 있습니다 — 추모관 관리 > 추모관 설정 > '선생님 화면 문구'", link: "/admin-memorial.html" },
+      { text: "[관리자] 특정 선생님만 다른 문구를 쓰고 싶으면 선생님 관리 > 수정에서 따로 적으면 그쪽이 우선합니다", link: "/admin-memorial.html" },
+      { text: "불빛 수를 세는 방식을 바로잡았습니다. 한 번 참여하면 하나로 셉니다(예전에는 둘로 세어졌습니다)" },
+    ],
+  },
   {
     key: "2026-08-28-memorial-v2",
     title: "추모관을 새로 열었습니다 — 밤에는 기억을, 아침에는 응원을",

@@ -73,6 +73,8 @@ export default async function handler(req: Request, _ctx: Context) {
         tributeLine:  body.tributeLine || undefined,
         bioHtml:      body.bioHtml || undefined,
         timeline:     Array.isArray(body.timeline) ? body.timeline : undefined,
+        /* ★ 2026-08-28 — 이 선생님 화면에서만 쓰는 문구 (맨 윗줄·사진 아래 문구 등) */
+        pageCopy:     body.pageCopy && typeof body.pageCopy === "object" ? body.pageCopy : undefined,
         isPublic:     body.isPublic !== undefined ? !!body.isPublic : undefined,
         sortOrder:    body.sortOrder !== undefined ? Number(body.sortOrder) : undefined,
         createdBy:    admin.uid,
@@ -116,6 +118,9 @@ export default async function handler(req: Request, _ctx: Context) {
       if (body.tributeLine !== undefined)  updates.tributeLine = body.tributeLine || null;
       if (body.bioHtml !== undefined)      updates.bioHtml = body.bioHtml || null;
       if (body.timeline !== undefined)     updates.timeline = Array.isArray(body.timeline) ? body.timeline : [];
+      /* 비우면 null 로 지워 공통 문구로 되돌아간다 */
+      if (body.pageCopy !== undefined)
+        updates.pageCopy = body.pageCopy && typeof body.pageCopy === "object" ? body.pageCopy : null;
       if (body.isPublic !== undefined)     updates.isPublic = !!body.isPublic;
       if (body.sortOrder !== undefined)    updates.sortOrder = Number(body.sortOrder);
 

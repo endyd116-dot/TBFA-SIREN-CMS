@@ -94,6 +94,23 @@ export default async function handler(req: Request, _ctx: Context) {
        (제목을 '약력' 대신 다른 말로 쓰거나, 개별 헌화를 감출 수 있도록) */
     const display = await getMemorialDisplay();
 
+    /* ★ 2026-08-28 — 선생님 화면의 구간 제목·설명은 운영자가 어드민에서 고친다.
+       모든 선생님에게 공통으로 쓰이고, 선생님별 문구가 있으면 그쪽이 우선한다.
+       읽기에 실패해도 화면은 기본 문구로 멀쩡히 뜬다. */
+    let teacherCopy: any = null;
+    try {
+      const r: any = await db.execute(
+        sql`SELECT hall_copy FROM memorial_settings ORDER BY id DESC LIMIT 1`
+      );
+      const row = (r?.rows ?? r ?? [])[0];
+      const hall = row?.hall_copy;
+      const parsed = typeof hall === "string" ? JSON.parse(hall) : hall;
+      if (parsed && typeof parsed === "object" && parsed.teacher) teacherCopy = parsed.teacher;
+    } catch (err) {
+      console.warn("[memorial-teacher] 공통 문구 조회 실패", err);
+    }
+    (display as any).teacherCopy = teacherCopy;
+
     return new Response(jsonKST({ ok: true, data: { teacher, display } }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });
