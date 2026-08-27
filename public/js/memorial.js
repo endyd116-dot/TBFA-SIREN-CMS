@@ -122,7 +122,8 @@
   var COUNTS = { people: 0, candles: 0, messages: 0, support: 0 };
   var CACHE = { tribute: [], support: [] };
   var SKY = null, FIELD = null;
-  var offerType = 'candle';
+  /* 남기는 것은 '별빛' 하나뿐이다. 저장되는 값은 예전과 같게 둔다. */
+  var OFFER_TYPE = 'candle';
 
   /* =========================================================
      1. 밤 ↔ 아침 전환
@@ -192,8 +193,8 @@
     });
   }
 
-  /** 불빛 = 헌화 + 남겨진 한마디 (두 관에 같은 숫자가 나간다) */
-  /* 불빛 하나 = 참여 한 번.
+  /** 별빛 = 참여 횟수 (두 관에 같은 숫자가 나간다) */
+  /* 별빛 하나 = 참여 한 번.
      밤에서 한마디를 남기면 헌화도 함께 생기므로 헌화 수가 곧 밤의 참여 수다.
      여기에 아침의 응원만 더한다(예전엔 한 번 참여가 둘로 세어졌다). */
   function totalHearts() { return (COUNTS.candles || 0) + (COUNTS.support || 0); }
@@ -201,7 +202,7 @@
   function paintCounts() {
     var t = totalHearts();
     /* ★ 숫자는 요약 API로 따로 온다. 하늘을 이미 그린 뒤 도착할 수 있으므로
-       도착할 때마다 다시 그린다(안 그러면 불빛이 몇 개 안 뜬다). */
+       도착할 때마다 다시 그린다(안 그러면 별빛이 몇 개 안 뜬다). */
     refreshSky();
     var a = $('m2NightCount'), b = $('m2MornCount'), same = $('m2SameLine');
     if (a) a.textContent = num(t);
@@ -320,7 +321,7 @@
   /* =========================================================
      5. 하늘 · 들판
      ========================================================= */
-  /** 한마디들을 '마음' 목록으로 바꾸고, 헌화만 한 분들은 이름 없는 불빛으로 채운다 */
+  /** 한마디들을 '마음' 목록으로 바꾸고, 한마디 없이 별빛만 밝힌 분들은 이름 없는 별로 채운다 */
   function buildHearts(kind) {
     var named = (CACHE[kind] || []).map(function (m) {
       return {
@@ -392,7 +393,7 @@
           if (box) { box.innerHTML = '✨ 당신의 ' + esc(word) + '이 잠시 밝아집니다.'; show(box, true); }
         } else if (MINE.offered > 0) {
           if (box) {
-            box.innerHTML = '당신이 밝힌 불빛도 이 안에 함께 있습니다. ' +
+            box.innerHTML = '당신이 밝힌 별빛도 이 안에 함께 있습니다. ' +
               '한마디를 남기시면 다음부터는 바로 찾아드릴 수 있어요.';
             show(box, true);
           }
@@ -437,19 +438,6 @@
   /* =========================================================
      6. 마음 남기기
      ========================================================= */
-  function initOfferTypes() {
-    var wrap = $('m2OfferTypes');
-    if (!wrap) return;
-    wrap.addEventListener('click', function (ev) {
-      var btn = ev.target.closest('.mem2-offer-type');
-      if (!btn) return;
-      offerType = btn.dataset.type || 'candle';
-      Array.prototype.forEach.call(wrap.querySelectorAll('.mem2-offer-type'), function (b) {
-        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
-      });
-    });
-  }
-
   /** 밤 — 헌화(+선택 한마디) */
   function submitNight() {
     var btn = $('m2NightSubmit');
@@ -462,7 +450,7 @@
     /* ① 헌화 — 한마디가 없어도 이것만으로 참여가 된다 */
     api('/api/memorial-offering', {
       method: 'POST',
-      body: { type: offerType, nickname: anon ? null : (nick || null) }
+      body: { type: OFFER_TYPE, nickname: anon ? null : (nick || null) }
     }).then(function (res) {
       if (!res.ok) {
         if (btn) btn.disabled = false;
@@ -472,18 +460,22 @@
       COUNTS.candles += 1;
       MINE.offered = (MINE.offered || 0) + 1;
       saveMine(MINE);
+      /* 별빛은 이미 켜졌다 — 한마디 검토를 기다리지 말고 숫자·하늘을 바로 고친다.
+         (검토가 몇 초 걸리는 동안 아무 일도 안 일어난 것처럼 보이던 문제) */
+      paintCounts();
 
       /* ② 한마디가 있으면 방명록에도 남긴다 */
       if (!text) {
-        finishNight(btn, '불빛을 밝혔습니다. 고맙습니다.');
+        finishNight(btn, '별빛을 밝혔습니다. 고맙습니다.');
         return;
       }
+      toast('별빛을 밝혔습니다. 남기신 한마디를 확인하고 있습니다…');
       api('/api/memorial-messages', {
         method: 'POST',
         body: { authorName: anon ? '익명' : (nick || '익명'), content: text, isAnonymous: anon, kind: 'tribute' }
       }).then(function (r2) {
         if (!r2.ok) {
-          finishNight(btn, '불빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — '
+          finishNight(btn, '별빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — '
             + ((r2.data && r2.data.error) || '잠시 후 다시 시도해 주세요.'));
           return;
         }
@@ -494,7 +486,7 @@
           if (msgEl) msgEl.value = '';
           loadMessages('tribute', false);
         }
-        finishNight(btn, '불빛과 마음을 함께 남겼습니다. 고맙습니다.');
+        finishNight(btn, '별빛과 마음을 함께 남겼습니다. 고맙습니다.');
       });
     });
   }
@@ -506,7 +498,7 @@
     toast(msg);
     var box = $('m2NightMine');
     if (box) {
-      box.innerHTML = '🕯️ 당신의 불빛이 밤하늘에 더해졌습니다. ' +
+      box.innerHTML = '✦ 당신의 별빛이 밤하늘에 더해졌습니다. ' +
         '<button type="button" class="mem2-ghost" id="m2JumpStar">내 별 보러 가기</button>';
       show(box, true);
       var j = $('m2JumpStar');
@@ -609,7 +601,6 @@
      ========================================================= */
   function bind() {
     initSwitch();
-    initOfferTypes();
     var a = $('m2NightSubmit'); if (a) a.addEventListener('click', submitNight);
     var b = $('m2MornSubmit'); if (b) b.addEventListener('click', submitMorning);
     var c = $('m2NightMore'); if (c) c.addEventListener('click', function () { PAGE.tribute++; loadMessages('tribute', true); });

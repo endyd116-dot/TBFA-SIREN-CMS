@@ -288,21 +288,25 @@
   margin: 18px 0 0; word-break: keep-all;
 }
 
-.mt2-offer-row { display: flex; gap: 13px; flex-wrap: wrap; margin-bottom: 24px; }
-.mt2-offer {
-  flex: 1 1 180px; appearance: none; cursor: pointer; font: inherit;
+/* 무엇을 남길지 고르는 두 갈래 — 남는 모습이 서로 다르다는 걸 보여준다 */
+.mt2-ways {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 26px;
+}
+.mt2-way {
+  appearance: none; cursor: pointer; font: inherit; text-align: center;
   border: 1px solid rgba(44, 49, 45, .15); background: none; color: var(--m2-earth);
-  padding: 18px 14px; border-radius: 14px;
-  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 19px 14px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
   transition: border-color .25s ease, background .25s ease, transform .25s ease;
 }
-.mt2-offer .m2-emoji { font-size: 26px; line-height: 1; }
-.mt2-offer b { font-size: 14.5px; font-weight: 500; }
-.mt2-offer small { font-size: 12px; color: var(--m2-earth-mute); word-break: keep-all; }
-.mt2-offer[aria-pressed="true"] {
+.mt2-way .m2-emoji { font-size: 22px; line-height: 1; color: var(--m2-bloom); }
+.mt2-way b { font-size: 15px; font-weight: 600; }
+.mt2-way small { font-size: 12px; line-height: 1.6; color: var(--m2-earth-mute); word-break: keep-all; }
+.mt2-way[aria-selected="true"] {
   border-color: var(--m2-bloom); background: rgba(214, 142, 58, .09); transform: translateY(-2px);
 }
-.mt2-offer[aria-pressed="true"] small { color: var(--m2-bloom); }
+.mt2-way[aria-selected="true"] small { color: var(--m2-bloom); }
+.mt2-area-sm { min-height: 92px; }
 
 /* ══ 7. 남겨진 한마디 ═══════════════════════════════════ */
 .mt2-notes {
@@ -374,6 +378,10 @@
   .mt2-envelopes { grid-template-columns: 1fr; }
   .mt2-notes { grid-template-columns: 1fr; }
   .mt2-paper { padding: 25px 20px; }
+  .mt2-ways { grid-template-columns: 1fr; gap: 10px; }
+  .mt2-way { flex-direction: row; gap: 12px; text-align: left; padding: 15px 16px; }
+  .mt2-way b { flex: none; }
+  .mt2-way small { display: none; }
   .mt2-sheet { padding: 30px 22px 26px; }
 }
 

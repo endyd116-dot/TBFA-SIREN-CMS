@@ -66,7 +66,8 @@
   var PHOTOS = [];
   var MSG_PAGE = 1;
   var MSG_CACHE = [];
-  var offerType = 'candle';
+  /* 남기는 것은 '별빛' 하나뿐이다. 저장되는 값은 예전과 같게 둔다. */
+  var OFFER_TYPE = 'candle';
 
   /* ───────── 1. 선생님 정보 ───────── */
   function loadTeacher() {
@@ -163,9 +164,6 @@
     ['mtLtTag', 'letterTag'],
     ['mtLetterTitle', 'letterTitle'],
     ['mtLtDesc', 'letterDesc'],
-    ['mtWriteTag', 'writeTag'],
-    ['mtWriteTitle', 'writeTitle'],
-    ['mtWriteDesc', 'writeDesc'],
     ['mtOfferTag', 'offerTag'],
     ['mtOfferTitle', 'offerTitle'],
     ['mtOfferDesc', 'offerDesc'],
@@ -286,14 +284,14 @@
 
     api('/api/memorial-offering', {
       method: 'POST',
-      body: { type: offerType, teacherId: TEACHER_ID, nickname: anon ? null : (nick || null) }
+      body: { type: OFFER_TYPE, teacherId: TEACHER_ID, nickname: anon ? null : (nick || null) }
     }).then(function (res) {
       if (!res.ok) {
         if (btn) btn.disabled = false;
         toast((res.data && res.data.error) || '헌화하지 못했습니다. 잠시 후 다시 시도해 주세요.');
         return;
       }
-      if (!text) { if (btn) btn.disabled = false; toast('불빛을 밝혔습니다. 고맙습니다.'); return; }
+      if (!text) { if (btn) btn.disabled = false; toast('별빛을 밝혔습니다. 고맙습니다.'); return; }
 
       api('/api/memorial-messages', {
         method: 'POST',
@@ -305,13 +303,13 @@
       }).then(function (r2) {
         if (btn) btn.disabled = false;
         if (!r2.ok) {
-          toast('불빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — ' +
+          toast('별빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — ' +
             ((r2.data && r2.data.error) || '잠시 후 다시 시도해 주세요.'));
           return;
         }
         if ($('mtMsgText')) $('mtMsgText').value = '';
         loadMessages(false);
-        toast('불빛과 마음을 함께 남겼습니다. 고맙습니다.');
+        toast('별빛과 마음을 함께 남겼습니다. 고맙습니다.');
       });
     });
   }
@@ -400,14 +398,17 @@
 
   /* ───────── 시작 ───────── */
   function bind() {
-    var types = $('mtOfferTypes');
-    if (types) types.addEventListener('click', function (ev) {
-      var b = ev.target.closest && ev.target.closest('.mt2-offer');
+    /* 별빛 한 줄 · 편지 한 통 — 남기는 방법을 고른다 */
+    var ways = $('mtWays');
+    if (ways) ways.addEventListener('click', function (ev) {
+      var b = ev.target.closest && ev.target.closest('.mt2-way');
       if (!b) return;
-      offerType = b.dataset.type || 'candle';
-      Array.prototype.forEach.call(types.querySelectorAll('.mt2-offer'), function (x) {
-        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      var pick = b.dataset.way || 'star';
+      Array.prototype.forEach.call(ways.querySelectorAll('.mt2-way'), function (x) {
+        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
       });
+      show($('mtWayStar'), pick === 'star');
+      show($('mtWayLetter'), pick === 'letter');
     });
 
     var ob = $('mtOfferBtn'); if (ob) ob.addEventListener('click', submitOffer);

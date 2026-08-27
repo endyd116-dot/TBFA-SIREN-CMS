@@ -12,9 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="SIREN" />
 <script src="/js/pwa.js?v=3" defer></script>
 <title>온라인 추모관 | 교사유가족협의회</title>
-<meta name="description" content="굿나잇, 굿모닝 — 먼저 떠나신 선생님들을 기억하는 밤과, 남겨진 유가족의 오늘을 응원하는 아침. 당신이 밝힌 불빛 하나가 밤에는 별이 되고 아침에는 꽃이 됩니다.">
+<meta name="description" content="굿나잇, 굿모닝 — 먼저 떠나신 선생님들을 기억하는 밤과, 남겨진 유가족의 오늘을 응원하는 아침. 당신이 밝힌 별빛 하나가 아침에는 꽃이 되어 다시 핍니다.">
 <meta property="og:title" content="온라인 추모관 | 교사유가족협의회">
-<meta property="og:description" content="당신이 밝힌 불빛 하나가 밤에는 별이 되고, 아침에는 꽃이 됩니다.">
+<meta property="og:description" content="당신이 밝힌 별빛 하나가 아침에는 꽃이 되어 다시 핍니다.">
 <meta property="og:image" content="https://tbfa.co.kr/og-default.png">
 <meta property="og:url" content="https://tbfa.co.kr/memorial.html">
 <meta property="og:type" content="website">
@@ -22,7 +22,7 @@
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="온라인 추모관 | 교사유가족협의회">
-<meta name="twitter:description" content="당신이 밝힌 불빛 하나가 밤에는 별이 되고, 아침에는 꽃이 됩니다.">
+<meta name="twitter:description" content="당신이 밝힌 별빛 하나가 아침에는 꽃이 되어 다시 핍니다.">
 <meta name="twitter:image" content="https://tbfa.co.kr/og-default.png">
 <link rel="canonical" href="https://tbfa.co.kr/memorial.html">
 
@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
-<link rel="stylesheet" href="/css/memorial.css?v=20260828-bg">
+<link rel="stylesheet" href="/css/memorial.css?v=20260828-star">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -111,23 +111,13 @@
       <div class="mem2-block" style="padding-top:0">
         <div class="mem2-wrap">
           <div class="mem2-center">
-            <span class="mem2-eyebrow">Light a candle</span>
-            <h2 class="mem2-h2">불빛 하나를 밝혀주세요</h2>
+                        <h2 class="mem2-h2">별빛 하나를 밝혀주세요</h2>
             <p class="mem2-lead">
-              로그인 없이도 남기실 수 있습니다. 남겨주신 불빛은 밤하늘의 별이 되어 오래 머뭅니다.
+              로그인 없이도 남기실 수 있습니다. 남겨주신 별빛은 밤하늘에 오래 머뭅니다.
             </p>
           </div>
 
           <div class="mem2-compose">
-            <div class="mem2-offer-types" id="m2OfferTypes" role="group" aria-label="헌화 종류">
-              <button type="button" class="mem2-offer-type" data-type="candle" aria-pressed="true">
-                <span class="m2-emoji" aria-hidden="true">🕯️</span>촛불 밝히기
-              </button>
-              <button type="button" class="mem2-offer-type" data-type="flower" aria-pressed="false">
-                <span class="m2-emoji" aria-hidden="true">🤍</span>국화 올리기
-              </button>
-            </div>
-
             <div class="mem2-field">
               <label for="m2NightName">부르실 이름 <span style="opacity:.6">(비워두면 익명)</span></label>
               <input type="text" class="mem2-input" id="m2NightName" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
@@ -139,7 +129,7 @@
             <div class="mem2-compose-foot">
               <label class="mem2-anon"><input type="checkbox" id="m2NightAnon"> 익명으로 남기기</label>
               <button type="button" class="mem2-submit" id="m2NightSubmit">
-                <span class="siren-icon-wrap" data-icon="candle"></span> 불빛 밝히기
+                <span class="siren-icon-wrap" data-icon="star"></span> 별빛 밝히기
               </button>
             </div>
             <p class="mem2-hint">
@@ -153,14 +143,13 @@
       <!-- 밤하늘 -->
       <div class="mem2-block" style="padding-top:0">
         <div class="mem2-wrap mem2-center">
-          <span class="mem2-eyebrow">Our night sky</span>
-          <h2 class="mem2-h2">우리가 밝힌 밤하늘</h2>
+                    <h2 class="mem2-h2">우리가 밝힌 밤하늘</h2>
           <div class="mem2-count">
-            <b id="m2NightCount">0</b><span>개의 불빛이 이 밤을 지키고 있습니다</span>
+            <b id="m2NightCount">0</b><span>개의 별빛이 이 밤을 지키고 있습니다</span>
           </div>
 
           <p class="mem2-lead mem2-center" style="margin-bottom:8px">
-            이 화면을 채우고 있는 별 하나하나가 누군가 밝힌 불빛입니다.
+            이 하늘을 채우고 있는 별 하나하나가 누군가 밝힌 별빛입니다.
           </p>
 
           <div class="mem2-sky-actions">
@@ -383,8 +372,8 @@
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260821-dedupe" defer></script>
-  <script src="/js/memorial-sky.js?v=20260828-bg" defer></script>
-  <script src="/js/memorial.js?v=20260828-fix" defer></script>
+  <script src="/js/memorial-sky.js?v=20260828-star" defer></script>
+  <script src="/js/memorial.js?v=20260828-star" defer></script>
   <script src="/js/memorial-bgm.js?v=3" defer></script>
 </body>
 </html>
