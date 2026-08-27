@@ -1,13 +1,17 @@
 /* =========================================================
    추모관 v2 — 선생님 개별 화면
    ---------------------------------------------------------
-   구성
-     첫 화면 : 사진 · 이름 · 한 줄 · 숫자 세 개
-     소개    : 운영자가 쓴 글
-     순간들  : 생전의 사진 (누르면 그날 이야기)
-     발자취  : 기록
-     마음    : 헌화 + 한마디 (로그인 없이도 됨)
-     편지    : 긴 글 (로그인 필요 — 성격이 다르다)
+   구성 (위는 어스름한 밤, 내려갈수록 아침빛으로 밝아진다)
+     첫 화면   : 기억하는 한 문장 · 얼굴 · 이름 · 두 해
+     소개      : 운영자가 쓴 글
+     자유 구간 : 운영자가 원하는 만큼 직접 만들어 넣는 자리
+     어느 하루 : 생전의 사진 (폴라로이드 — 누르면 그날 이야기)
+     기억의 편지: 도착한 편지 (봉투 — 누르면 편지지가 펼쳐진다)
+     마음 남기기: 별빛 한 줄(즉시·로그인 불필요) / 편지 한 통(로그인 필요)
+     한마디    : 머물다 가신 분들이 남긴 글
+
+   화면 문구는 두 겹이다 — 모든 선생님 공통(추모관 설정) 위에
+   이 선생님만의 문구(선생님 편집)가 덮인다.
    ========================================================= */
 (function () {
   'use strict';
@@ -141,12 +145,14 @@
     }
 
 
-    /* 순간들 */
+    /* 운영자가 직접 늘린 구간 — 소개와 사진 사이에 놓인다 */
+    renderSections(Array.isArray(t.sections) ? t.sections : []);
+
+    /* 순간들 — 사진이 없어도 구간은 보여주고, 빈 자리로 참여를 권한다 */
     PHOTOS = Array.isArray(t.photos) ? t.photos : [];
-    if (PHOTOS.length) {
-      renderPhotos();
-      show($('mtPhotoSec'), true);
-    }
+    renderPhotos();
+    show($('mtPhotoEmpty'), PHOTOS.length === 0);
+    show($('mtPhotoSec'), true);
 
     /* 개별 헌화를 감추도록 설정했으면 그 구간을 숨긴다 */
     if (display.showTeacherOffering === false) show($('mtOfferSec'), false);
@@ -161,6 +167,8 @@
     ['mtPhotoTag', 'photoTag'],
     ['mtPhotoTitle', 'photoTitle'],
     ['mtPhotoDesc', 'photoDesc'],
+    ['mtPhotoEmptyLine', 'photoEmptyLine'],
+    ['mtPhotoEmptySub', 'photoEmptySub'],
     ['mtLtTag', 'letterTag'],
     ['mtLetterTitle', 'letterTitle'],
     ['mtLtDesc', 'letterDesc'],
@@ -235,6 +243,29 @@
       if (b) b.classList.remove('on');
     });
     document.body.style.overflow = '';
+  }
+
+  /* ───────── 2-1. 운영자가 늘린 구간 ─────────
+     정해진 칸으로는 다 담기지 않는 이야기를 운영자가 직접 만들어 넣는 자리다. */
+  function renderSections(list) {
+    var wrap = $('mtSections');
+    if (!wrap) return;
+    if (!list.length) { wrap.innerHTML = ''; return; }
+
+    wrap.innerHTML = list.map(function (x) {
+      var img = x.imageUrl
+        ? '<div class="mt2-free-img"><img src="' + esc(x.imageUrl) + '" alt="' + esc(x.title || '') + '" loading="lazy"></div>'
+        : '';
+      /* 운영자가 쓴 글은 줄바꿈만 살린다 (글자 그대로 보여준다) */
+      var body = x.body
+        ? '<div class="mt2-free-body">' + esc(x.body).replace(/\n/g, '<br>') + '</div>'
+        : '';
+      return '<section class="mt2-sec mt2-sec-free">' +
+        '<div class="mt2-wrap">' +
+        (x.title ? '<h2 class="mt2-h2 mt2-free-title">' + esc(x.title) + '</h2>' : '') +
+        img + body +
+        '</div></section>';
+    }).join('');
   }
 
   /* ───────── 3. 첫 화면 별 ───────── */

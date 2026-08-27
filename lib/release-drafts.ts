@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-28.2";
+export const APP_VERSION = "2026-08-28.3";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-08-28-memorial-free-sections",
+    title: "선생님 화면에 원하는 구간을 직접 만들어 넣을 수 있습니다",
+    items: [
+      { text: "[관리자] 선생님 화면에 구간을 원하는 만큼 직접 추가하실 수 있습니다 — 선생님 관리 > 수정 > '자유 구간'. 제목·글·사진 한 장으로 만들고 순서와 공개 여부를 정합니다", link: "/admin-memorial.html" },
+      { text: "예를 들어 '아이들이 기억하는 선생님' · '남기신 글' · '그날 이후' 같은 구간을 정해진 칸 없이 자유롭게 만드실 수 있습니다" },
+      { text: "사진이 아직 없는 선생님 화면도 빈 채로 두지 않고, 사진을 보내주십사 청하는 안내가 나옵니다. 그 문구도 관리자가 고칠 수 있습니다" },
+      { text: "남기는 것을 '별빛' 하나로 통일했습니다. 촛불·국화를 고르던 단계가 없어져 더 간단해졌습니다", link: "/memorial.html" },
+      { text: "선생님 화면에서 겹쳐 보이던 두 곳을 하나로 합쳤습니다. 이제 '별빛 한 줄'과 '편지 한 통' 중에 골라 남기시면 됩니다" },
+    ],
+  },
   {
     key: "2026-08-28-memorial-teacher",
     title: "선생님 한 분 한 분의 화면을 새로 지었습니다",

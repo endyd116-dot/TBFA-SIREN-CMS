@@ -341,6 +341,7 @@ function editTeacher(id) {
   /* ★ 2026-08-28: 이 선생님의 생전 사진 관리도 함께 켠다
      (사진 기능이 없어도 편집 자체는 되어야 하므로 감싸 둔다) */
   try { tpOpenFor(id); } catch (e) { console.warn('[사진 관리]', e); }
+  try { tsOpenFor(id); } catch (e) { console.warn('[자유 구간]', e); }
   document.getElementById('teacherForm').style.display = '';
   document.getElementById('teacherForm').scrollIntoView({ behavior: 'smooth' });
 }
@@ -349,6 +350,7 @@ function closeTeacherForm() {
   clearTeacherForm();
   _editingTeacherId = null;
   try { tpOpenFor(0); } catch (e) {}
+  try { tsOpenFor(0); } catch (e) {}
 }
 function clearTeacherForm() {
   ['fId', 'fName', 'fSchoolRegion', 'fBirthDate', 'fDeathDate', 'fTributeLine', 'fBioHtml', 'fPhotoBlobId',
@@ -624,6 +626,8 @@ var TEACHER_COPY_FIELDS = [
   ['stPhotoTag', 'photoTag'],
   ['stPhotoTitle', 'photoTitle'],
   ['stPhotoDesc', 'photoDesc'],
+  ['stPhotoEmptyLine', 'photoEmptyLine'],
+  ['stPhotoEmptySub', 'photoEmptySub'],
   ['stLetterTag', 'letterTag'],
   ['stLetterTitle', 'letterTitle'],
   ['stLetterDesc', 'letterDesc'],
@@ -918,4 +922,157 @@ document.addEventListener('DOMContentLoaded', function () {
   if (s) s.addEventListener('click', tpSave);
   var r = document.getElementById('tpReset');
   if (r) r.addEventListener('click', tpReset);
+});
+
+/* =========================================================
+   ★ 2026-08-28 — 선생님 화면 '자유 구간'
+   정해진 칸으로 다 담기지 않는 이야기를, 운영자가 원하는 만큼 만들어 넣는다.
+   ========================================================= */
+var _tsTeacherId = 0;
+var _tsItems = [];
+
+function tsOpenFor(teacherId) {
+  _tsTeacherId = Number(teacherId) || 0;
+  var box = document.getElementById('tsSection');
+  if (!box) return;
+  box.style.display = _tsTeacherId ? '' : 'none';
+  tsResetForm();
+  if (_tsTeacherId) tsLoad();
+}
+
+function tsResetForm() {
+  ['tsId', 'tsTitle', 'tsBody', 'tsBlobId'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var f = document.getElementById('tsFile'); if (f) f.value = '';
+  var sort = document.getElementById('tsSort'); if (sort) sort.value = 0;
+  var pub = document.getElementById('tsPublic'); if (pub) pub.value = 'true';
+  tsPreview(null);
+}
+
+function tsPreview(url) {
+  var wrap = document.getElementById('tsPreviewWrap');
+  if (!wrap) return;
+  wrap.innerHTML = url
+    ? '<img class="photo-preview" style="border-radius:8px" src="' + esc(url) + '" alt="">'
+    : '<div class="photo-preview-empty" style="border-radius:8px"><span class="siren-icon-wrap" data-icon="image"></span></div>';
+  if (window.Icons && window.Icons.hydrate) { try { window.Icons.hydrate(wrap); } catch (_) {} }
+}
+
+function tsUpload() {
+  var input = document.getElementById('tsFile');
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('context', 'memorial_section');
+  fd.append('isPublic', 'true');
+  toast('업로드 중…');
+  fetch('/api/blob-upload', { method: 'POST', credentials: 'include', body: fd })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok && d.ok !== false, data: d }; }); })
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && (res.data.error || res.data.message)) || '업로드 실패', 'error'); return; }
+      var id = (res.data && res.data.data && res.data.data.id) || (res.data && res.data.id) || (res.data && res.data.blobId);
+      if (!id) { toast('업로드 응답에 ID가 없습니다.', 'error'); return; }
+      document.getElementById('tsBlobId').value = id;
+      tsPreview('/api/blob-image?id=' + id);
+      toast('사진이 업로드되었습니다.', 'success');
+    })
+    .catch(function (e) { toast('업로드 실패: ' + e.message, 'error'); });
+}
+
+function tsLoad() {
+  var list = document.getElementById('tsList');
+  if (!list) return;
+  list.innerHTML = '<div class="tbl-empty">불러오는 중…</div>';
+  callApi('GET', '/api/admin-memorial-teacher-sections?teacherId=' + _tsTeacherId).then(function (res) {
+    if (!res.ok) { list.innerHTML = '<div class="tbl-empty">불러오지 못했습니다</div>'; return; }
+    var ready = pick(res, 'ready');
+    _tsItems = pick(res, 'sections') || [];
+    if (ready === false) {
+      list.innerHTML = '<div class="tbl-empty">저장소 준비가 아직 끝나지 않았습니다. ' +
+        '관리자 주소창에 <code>/api/migrate-memorial-sections?run=1</code> 을 한 번 실행해 주세요.</div>';
+      return;
+    }
+    if (!_tsItems.length) {
+      list.innerHTML = '<div class="tbl-empty">아직 만든 구간이 없습니다. 위에서 하나 만들어 보세요.</div>';
+      return;
+    }
+    list.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
+      '<th style="width:60px">사진</th><th>제목</th><th style="width:70px">정렬</th>' +
+      '<th style="width:70px">공개</th><th style="width:130px"></th>' +
+      '</tr></thead><tbody>' +
+      _tsItems.map(function (x) {
+        var img = x.imageUrl
+          ? '<img src="' + esc(x.imageUrl) + '" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:6px">'
+          : '<div class="no-thumb" style="width:44px;height:44px;border-radius:6px"></div>';
+        return '<tr>' +
+          '<td>' + img + '</td>' +
+          '<td><b>' + esc(x.title || '') + '</b></td>' +
+          '<td>' + (x.sortOrder != null ? x.sortOrder : 0) + '</td>' +
+          '<td><span class="status-pill ' + (x.isPublic ? 'on' : 'off') + '">' + (x.isPublic ? '공개' : '숨김') + '</span></td>' +
+          '<td><div class="row-actions">' +
+            '<button class="btn btn-ghost btn-sm" onclick="tsEdit(' + x.id + ')">수정</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="tsDelete(' + x.id + ')">삭제</button>' +
+          '</div></td></tr>';
+      }).join('') +
+      '</tbody></table></div>';
+  });
+}
+
+function tsEdit(id) {
+  var x = _tsItems.filter(function (v) { return v.id === id; })[0];
+  if (!x) return;
+  document.getElementById('tsId').value = x.id;
+  document.getElementById('tsTitle').value = x.title || '';
+  document.getElementById('tsBody').value = x.body || '';
+  document.getElementById('tsBlobId').value = x.imageBlobId || '';
+  document.getElementById('tsSort').value = x.sortOrder != null ? x.sortOrder : 0;
+  document.getElementById('tsPublic').value = x.isPublic ? 'true' : 'false';
+  tsPreview(x.imageUrl);
+  document.getElementById('tsTitle').focus();
+}
+
+function tsSave() {
+  if (!_tsTeacherId) { toast('선생님을 먼저 저장해 주세요.', 'error'); return; }
+  var title = document.getElementById('tsTitle').value.trim();
+  if (!title) { toast('구간 제목을 입력하세요.', 'error'); return; }
+
+  var blobId = document.getElementById('tsBlobId').value;
+  var payload = {
+    teacherId: _tsTeacherId,
+    title: title,
+    body: document.getElementById('tsBody').value.trim() || null,
+    imageBlobId: blobId ? parseInt(blobId, 10) : null,
+    sortOrder: parseInt(document.getElementById('tsSort').value, 10) || 0,
+    isPublic: document.getElementById('tsPublic').value === 'true'
+  };
+  var id = document.getElementById('tsId').value;
+  var method = id ? 'PATCH' : 'POST';
+  var url = '/api/admin-memorial-teacher-sections' + (id ? '?id=' + id : '');
+
+  callApi(method, url, payload).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }
+    toast(id ? '수정되었습니다.' : '구간이 추가되었습니다.', 'success');
+    tsResetForm();
+    tsLoad();
+  });
+}
+
+function tsDelete(id) {
+  if (!confirm('이 구간을 지울까요? 되돌릴 수 없습니다.')) return;
+  callApi('DELETE', '/api/admin-memorial-teacher-sections?id=' + id).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '삭제 실패', 'error'); return; }
+    toast('삭제되었습니다.', 'success');
+    tsResetForm();
+    tsLoad();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var save = document.getElementById('tsSave');
+  if (save) save.addEventListener('click', tsSave);
+  var reset = document.getElementById('tsReset');
+  if (reset) reset.addEventListener('click', tsResetForm);
 });

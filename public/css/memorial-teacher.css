@@ -130,6 +130,33 @@
 .mt2-bio p:last-child { margin-bottom: 0; }
 .mt2-bio img { max-width: 100%; height: auto; border-radius: 12px; }
 
+/* ══ 2-1. 운영자가 직접 늘린 구간 ═══════════════════════ */
+.mt2-sec-free .mt2-wrap { max-width: 700px; }
+.mt2-free-title { text-align: center; margin-bottom: 26px; }
+.mt2-free-img {
+  border-radius: 14px; overflow: hidden; margin-bottom: 24px;
+  border: 1px solid rgba(44, 49, 45, .10);
+  box-shadow: 0 4px 18px rgba(44, 49, 45, .07);
+}
+.mt2-free-img img { width: 100%; height: auto; display: block; }
+.mt2-free-body {
+  font-family: var(--m2-serif);
+  font-size: 15.5px; line-height: 2.15; color: rgba(44, 49, 45, .86);
+  word-break: keep-all; text-align: center;
+}
+
+/* ══ 빈 자리 — 비어 있음을 알리되, 채워달라고 청한다 ════ */
+.mt2-blank { text-align: center; padding: 30px 20px 8px; }
+.mt2-blank-line {
+  font-family: var(--m2-serif); font-size: 16px; font-weight: 700;
+  color: var(--m2-earth); margin: 0 0 12px; word-break: keep-all;
+}
+.mt2-blank-sub {
+  font-size: 13.5px; line-height: 1.95; color: var(--m2-earth-mute);
+  margin: 0; word-break: keep-all; white-space: pre-line;
+}
+.mt2-blank .mt2-ghost { display: inline-block; text-decoration: none; }
+
 /* ══ 3. 선생님의 어느 하루 — 폴라로이드 ═════════════════ */
 .mt2-polas {
   display: grid; gap: 30px 24px;

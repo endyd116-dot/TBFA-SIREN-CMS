@@ -111,6 +111,27 @@ export default async function handler(req: Request, _ctx: Context) {
     }
     (display as any).teacherCopy = teacherCopy;
 
+    /* ★ 2026-08-28 — 운영자가 직접 늘린 자유 구간.
+       저장소가 아직 준비되지 않았으면 조용히 빈 목록으로 둔다. */
+    let sections: any[] = [];
+    try {
+      const r: any = await db.execute(sql`
+        SELECT id, title, body, image_blob_id, sort_order
+          FROM memorial_teacher_sections
+         WHERE teacher_id = ${id} AND is_public = TRUE
+         ORDER BY sort_order ASC, id ASC
+      `);
+      sections = (r?.rows ?? r ?? []).map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        body: s.body,
+        imageUrl: s.image_blob_id ? `/api/blob-image?id=${s.image_blob_id}` : null,
+      }));
+    } catch {
+      /* 표가 아직 없다 — 화면은 이 구간 없이 멀쩡히 뜬다 */
+    }
+    (teacher as any).sections = sections;
+
     return new Response(jsonKST({ ok: true, data: { teacher, display } }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });

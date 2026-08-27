@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
 <link rel="stylesheet" href="/css/memorial.css?v=20260828-star">
-<link rel="stylesheet" href="/css/memorial-teacher.css?v=20260828-star">
+<link rel="stylesheet" href="/css/memorial-teacher.css?v=20260828-free">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -80,6 +80,9 @@
       </div>
     </section>
 
+    <!-- ══ 2-1. 운영자가 직접 늘린 구간 ═════════════════ -->
+    <div id="mtSections"></div>
+
     <!-- ══ 3. 선생님의 어느 하루 — 폴라로이드 ═══════════ -->
     <section class="mt2-sec" id="mtPhotoSec" style="display:none">
       <div class="mt2-wrap">
@@ -91,6 +94,11 @@
           </p>
         </div>
         <div class="mt2-polas" id="mtPhotos"></div>
+        <div class="mt2-blank" id="mtPhotoEmpty" style="display:none">
+          <p class="mt2-blank-line" id="mtPhotoEmptyLine">아직 이곳에 모인 사진이 없습니다.</p>
+          <p class="mt2-blank-sub" id="mtPhotoEmptySub">선생님과 함께 찍은 사진을 가지고 계시다면 협의회로 보내주세요.
+유가족의 동의를 거쳐 이 자리에 조심스럽게 놓아두겠습니다.</p>
+        </div>
       </div>
     </section>
 
@@ -239,6 +247,6 @@
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260821-dedupe" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-star" defer></script>
-  <script src="/js/memorial-teacher.js?v=20260828-star" defer></script>
+  <script src="/js/memorial-teacher.js?v=20260828-free" defer></script>
 </body>
 </html>
