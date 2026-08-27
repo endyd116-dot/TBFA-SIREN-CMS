@@ -196,6 +196,9 @@
 
   function paintCounts() {
     var t = totalHearts();
+    /* ★ 숫자는 요약 API로 따로 온다. 하늘을 이미 그린 뒤 도착할 수 있으므로
+       도착할 때마다 다시 그린다(안 그러면 불빛이 몇 개 안 뜬다). */
+    refreshSky();
     var a = $('m2NightCount'), b = $('m2MornCount'), same = $('m2SameLine');
     if (a) a.textContent = num(t);
     if (b) b.textContent = num(t);
@@ -326,6 +329,17 @@
       named.push({ id: 'o' + kind + i, name: '', text: '', mine: false });
     }
     return { items: named, total: total };
+  }
+
+  var HERO = null;
+  function mountHeroSky() {
+    if (!window.MemorialSky || HERO) return;
+    var c = $('m2HeroSky');
+    if (!c) return;
+    /* 히어로는 장식이다 — 참여와 무관하게 은은한 별만 띄운다 */
+    var deco = [];
+    for (var i = 0; i < 120; i++) deco.push({ id: 'hero' + i });
+    HERO = MemorialSky.mount(c, { mode: 'star', items: deco, total: deco.length });
   }
 
   function mountSky() {
@@ -583,6 +597,7 @@
 
   function start() {
     bind();
+    mountHeroSky();
     /* 서로 기다릴 필요가 없는 조회는 한꺼번에 */
     loadSummary();
     loadTeachers();

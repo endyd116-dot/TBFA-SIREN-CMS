@@ -66,7 +66,6 @@
     this.onPick = (opts && opts.onPick) || null;
 
     this._resize = this._resize.bind(this);
-    this._tick = this._tick.bind(this);
     this._move = this._move.bind(this);
     this._leave = this._leave.bind(this);
     this._click = this._click.bind(this);
