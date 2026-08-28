@@ -20,6 +20,8 @@
 
   var MAX_DRAW = 1400;         /* 실제로 그리는 최대 개수 (도장 방식이라 여유 있다) */
   var MIN_DRAW = 90;           /* 참여가 적어도 하늘이 허전하지 않게 채우는 최소치 */
+  var MIN_CAP = 420;           /* 배경을 채우더라도 이 이상은 그리지 않는다 */
+  var AREA_PER = 26000;        /* 이 넓이마다 하나씩 — 화면이 크면 그만큼 더 채운다 */
   var DPR_CAP = 2;             /* 고해상도 화면에서도 2배까지만 (그 이상은 낭비) */
 
   /* 참여 번호 → 늘 같은 값 (같은 사람은 늘 같은 자리) */
@@ -145,8 +147,13 @@
     /* 참여가 아직 적어도 하늘·들판이 휑하지 않도록 배경을 채운다.
        이 별과 꽃은 누구의 참여도 아니므로 흐리게 두고, 눌러도 잡히지 않는다.
        참여가 늘면 그만큼 배경이 줄어 결국 전부 '누군가의 마음'이 된다. */
-    if (nodes.length < MIN_DRAW) {
-      var need = MIN_DRAW - nodes.length;
+    /* 화면이 넓고 길수록 더 많이 채운다 — 같은 90송이라도 3,000px 배경에서는 휑하다 */
+    var want = MIN_DRAW;
+    if (this.w > 0 && this.h > 0) {
+      want = Math.max(MIN_DRAW, Math.min(MIN_CAP, Math.round((this.w * this.h) / AREA_PER)));
+    }
+    if (nodes.length < want) {
+      var need = want - nodes.length;
       for (var k = 0; k < need; k++) {
         nodes.push(place(this.mode + '-bg-' + k, false, '', '', null, true));
       }
@@ -164,6 +171,9 @@
     this.canvas.width = Math.round(this.w * dpr);
     this.canvas.height = Math.round(this.h * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    /* 넓이가 정해졌으니 배경을 채우는 개수를 다시 잡는다
+       (참여한 것의 자리는 번호에서 계산하므로 흔들리지 않는다) */
+    this._layout();
     this._draw();
   };
 
@@ -187,7 +197,7 @@
     var ctx = this.ctx;
     if (!ctx) return;
     ctx.clearRect(0, 0, this.w, this.h);
-    ctx.globalAlpha = this.asBackdrop ? 0.72 : 1;
+    ctx.globalAlpha = this.asBackdrop ? (this.mode === 'flower' ? 0.92 : 0.72) : 1;
     var now = this.t;
     var focusOn = this.focusIdx >= 0 && (this.still || Date.now() < this.focusUntil);
 
@@ -269,21 +279,24 @@
     }
   };
 
+  /* 아침 들판은 바탕이 밝다(#FBF8F3).
+     예전에는 흰빛·연둣빛을 썼는데 바탕과 거의 같은 색이라 꽃이 보이지 않았다.
+     바탕보다 확실히 진한 색만 남긴다. */
   var PETAL_COLORS = [
-    [246, 213, 220],   /* 연분홍 */
-    [252, 236, 205],   /* 살구빛 */
-    [255, 250, 244],   /* 흰빛 */
-    [226, 234, 219],   /* 연둣빛 */
+    [221, 141, 158],   /* 진분홍 */
+    [226, 156, 78],    /* 살구 */
+    [166, 148, 196],   /* 연보라 */
+    [116, 158, 128],   /* 풀빛 */
   ];
 
   Sky.prototype._flower = function (ctx, n, px, py, now, hot) {
     var sway = this.still ? 0 : Math.sin(now * 0.8 + n.p) * (2.2 * n.s);
-    var size = (n.mine ? 6.2 : 4.0) * n.s * (hot ? 1.5 : 1);
+    var size = (n.mine ? 9.0 : 6.6) * n.s * (hot ? 1.5 : 1);
     var cx = px + sway;
     var cy = py;
 
     /* 줄기 */
-    ctx.strokeStyle = 'rgba(120,146,118,' + (n.mine ? 0.75 : 0.4) + ')';
+    ctx.strokeStyle = 'rgba(108,138,112,' + (n.mine ? 0.8 : 0.5) + ')';
     ctx.lineWidth = Math.max(0.8, size * 0.16);
     ctx.beginPath();
     ctx.moveTo(px, py + size * 3.4);
@@ -292,7 +305,7 @@
 
     /* 꽃잎 5장 */
     var c = n.mine ? [232, 168, 85] : PETAL_COLORS[Math.floor(n.hue * PETAL_COLORS.length) % PETAL_COLORS.length];
-    var a = (n.mine ? 0.95 : 0.72) * (n.deco ? 0.42 : 1);
+    var a = (n.mine ? 0.95 : 0.78) * (n.deco ? 0.6 : 1);
     ctx.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
     for (var k = 0; k < 5; k++) {
       var ang = n.p + k * (Math.PI * 2 / 5);
