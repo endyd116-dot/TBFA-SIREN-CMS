@@ -126,6 +126,10 @@
   font-size: 15.5px; line-height: 2.15; color: rgba(44, 49, 45, .86);
   word-break: keep-all; text-align: center;
 }
+/* 여러 줄로 이어지는 글은 왼쪽에서 읽는 편이 훨씬 편하다.
+   짧은 한두 줄만 가운데에 둔다(JS가 길이를 보고 붙여준다). */
+.mt2-bio.is-long, .mt2-free-body.is-long { text-align: left; }
+.mt2-bio.is-long p { text-indent: 0; }
 .mt2-bio p { margin: 0 0 18px; }
 .mt2-bio p:last-child { margin-bottom: 0; }
 .mt2-bio img { max-width: 100%; height: auto; border-radius: 12px; }

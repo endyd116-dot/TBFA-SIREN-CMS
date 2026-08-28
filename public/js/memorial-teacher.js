@@ -140,7 +140,7 @@
     /* 소개 */
     if (t.bioHtml && String(t.bioHtml).trim()) {
       var b = $('mtBio');
-      if (b) b.innerHTML = t.bioHtml;
+      if (b) { b.innerHTML = t.bioHtml; fitAlign(b); }
       show($('mtBioSec'), true);
     }
 
@@ -182,6 +182,16 @@
   function applyCopy(c) {
     if (!c || typeof c !== 'object') return;
     COPY_MAP.forEach(function (pair) { setText(pair[0], c[pair[1]]); });
+  }
+
+  /* 짧은 글은 가운데가 예쁘지만, 여러 줄로 이어지는 글은 왼쪽이 훨씬 읽기 편하다.
+     글자 수를 보고 정해준다. */
+  var LONG_TEXT = 90;
+  function fitAlign(el) {
+    if (!el) return;
+    var len = String(el.textContent || '').replace(/\s+/g, ' ').trim().length;
+    if (len > LONG_TEXT) el.classList.add('is-long');
+    else el.classList.remove('is-long');
   }
 
   function setText(id, v) {
@@ -252,7 +262,7 @@
     if (!wrap) return;
     if (!list.length) { wrap.innerHTML = ''; return; }
 
-    wrap.innerHTML = list.map(function (x) {
+    var html = list.map(function (x) {
       var img = x.imageUrl
         ? '<div class="mt2-free-img"><img src="' + esc(x.imageUrl) + '" alt="' + esc(x.title || '') + '" loading="lazy"></div>'
         : '';
@@ -266,6 +276,8 @@
         img + body +
         '</div></section>';
     }).join('');
+    wrap.innerHTML = html;
+    Array.prototype.forEach.call(wrap.querySelectorAll('.mt2-free-body'), fitAlign);
   }
 
   /* ───────── 3. 첫 화면 별 ───────── */
