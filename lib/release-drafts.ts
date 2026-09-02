@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-08-28.3";
+export const APP_VERSION = "2026-09-03.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,20 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-03-adgrants-d",
+    title: "상세 화면이 검색엔진에 빈 화면으로 보이던 문제를 고치고, 자료실을 다시 열었습니다",
+    items: [
+      { text: "활동 상세·캠페인 상세·사건 상세·유가족 이야기·게시글·추모 화면이 검색엔진에는 제목만 있고 본문이 빈 화면으로 보였습니다 — 이제 서버가 본문까지 채워서 내보냅니다" },
+      { text: "자료실을 다시 열었습니다 — 협의회 소개·후원 안내·유가족 지원 안내 세 가지 글 자료로 시작합니다. 파일 없이 본문으로 제공되는 자료는 누르면 창으로 열립니다", link: "/resources.html" },
+      { text: "활동보고서 화면에 2026년 주요 활동 보고(1~8월)가 게시됐습니다", link: "/report.html" },
+      { text: "개발 과정에서 시험용으로 넣었던 사건 사례 4건(부산·대구·인천·광주)을 내렸습니다 — 실재 확인이 안 되는 내용이 사실처럼 보이던 문제입니다" },
+      { text: "서이초 사건 페이지에 널리 알려진 사실을 정리한 본문을 채웠습니다", link: "/incidents.html" },
+      { text: "소식 화면의 자주 묻는 질문 구역도 검색엔진에 채워져 보이도록 고쳤습니다", link: "/news.html" },
+      { text: "안내·이용 공지 5건을 새로 게시했습니다 (홈페이지 이용·기부금 영수증·유가족 지원·SIREN 신고센터·정기후원)", link: "/notice.html" },
+      { text: "[관리자] 시드로 넣은 공지·자료·보고서는 통합 CMS에서 언제든 고치거나 내릴 수 있습니다", link: "/cms-tbfa.html" },
+    ],
+  },
   {
     key: "2026-08-28-memorial-free-sections",
     title: "선생님 화면에 원하는 구간을 직접 만들어 넣을 수 있습니다",
