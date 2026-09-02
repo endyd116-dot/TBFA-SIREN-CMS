@@ -117,7 +117,8 @@
         <div id="mtLtEmpty" class="mt2-empty" style="display:none">
           아직 도착한 편지가 없습니다.<br>첫 편지를 남겨주시겠어요?
         </div>
-        <div id="mtLtLoading" class="mt2-loading">불러오는 중…</div>
+        <!-- ★ 2026-09-03: 처음엔 감춤 — 서버 원본에 로딩 문구가 노출되지 않게 (광고그랜트) -->
+        <div id="mtLtLoading" class="mt2-loading" style="display:none">불러오는 중…</div>
         <div class="mt2-center" id="mtLtMoreWrap" style="display:none">
           <button type="button" class="mt2-ghost" id="mtLtMore">편지 더 보기</button>
         </div>
@@ -203,7 +204,8 @@
         </div>
         <div id="mtMsgs" class="mt2-notes"></div>
         <div id="mtMsgEmpty" class="mt2-empty" style="display:none">첫 마음을 남겨주세요.</div>
-        <div id="mtMsgLoading" class="mt2-loading">불러오는 중…</div>
+        <!-- ★ 2026-09-03: 처음엔 감춤 — 목록 조회가 시작되면 화면 쪽(js)이 다시 보여준다 -->
+        <div id="mtMsgLoading" class="mt2-loading" style="display:none">불러오는 중…</div>
         <div class="mt2-center" id="mtMsgMoreWrap" style="display:none">
           <button type="button" class="mt2-ghost" id="mtMsgMore">더 보기</button>
         </div>
