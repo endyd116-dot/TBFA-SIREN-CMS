@@ -13,6 +13,7 @@ import path from "node:path";
 import { getPageMeta, getOrgMeta, getDefaultMeta, getContentMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
 import { loadShellData, applyShell, injectPreload } from "../../lib/shell-render";
+import { loadDetailSeed, applyDetailSeed } from "../../lib/shell-detail";
 
 // P0 fix: Function v2의 config.path에서 ".html" 확장자 경로가 라우팅 미동작 →
 //   /api/page-with-seo 표준 경로로 변경. netlify.toml에서 각 .html → /api/page-with-seo?_p=/xxx.html rewrite.
@@ -67,9 +68,16 @@ export default async (req: Request) => {
     const queryKey = PATH_TO_QUERY[pagePath];
     const keyValue = url.searchParams.get(queryKey);
 
+    /* ★ 2026-09-03: 상세 본문 채움용 항목도 함께(동시에) 읽는다 — 광고그랜트 재심사.
+       지금까지 상세 화면은 제목·검색엔진 정보만 서버가 넣고 본문은 완전히 비어 나가서,
+       사이트맵에 오른 상세 40여 개가 전부 "내용 없는 페이지"로 읽혔다. */
     let pageMeta = null as any;
+    let detailRow: any = null;
     if (table && keyValue) {
-      pageMeta = await getContentMeta(table, keyValue);
+      [pageMeta, detailRow] = await Promise.all([
+        getContentMeta(table, keyValue),
+        loadDetailSeed(pagePath, keyValue).catch(() => null),
+      ]);
     }
     if (!pageMeta) {
       pageMeta = await getPageMeta(pagePath, false);
@@ -94,6 +102,15 @@ export default async (req: Request) => {
       preload = shell.preload;
     } catch (e) {
       console.warn("[page-with-seo] 뼈대 채우기 실패 — 원본 유지", e);
+    }
+
+    /* 상세 본문 채우기 — 실패해도 원본 그대로 (브라우저가 어차피 다시 그린다) */
+    if (detailRow) {
+      try {
+        shellHtml = applyDetailSeed(pagePath, shellHtml, detailRow);
+      } catch (e) {
+        console.warn("[page-with-seo] 상세 본문 채우기 실패 — 원본 유지", e);
+      }
     }
 
     const finalHtml = injectMeta(injectPreload(shellHtml, preload), {

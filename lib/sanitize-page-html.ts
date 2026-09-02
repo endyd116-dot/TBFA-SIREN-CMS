@@ -218,6 +218,10 @@ export function sanitizePageHtml(html: string): string {
 export function htmlToPlainText(html: string, maxLen = 300): string {
   const text = String(html || "")
     .replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)\s*>/gi, "")
+    /* ★ 2026-09-03: 지도 자리표시("지도를 불러오는 중…")가 검색 결과 설명에 그대로
+       나가던 문제 — 조직도 페이지의 검색 설명이 "오시는 길 지도를 불러오는 중…"으로
+       노출됐다(광고그랜트 재심사 진단). 위젯 자리표시 글자는 설명에서 뺀다. */
+    .replace(/<div\b[^>]*\bpw-map-fallback\b[^>]*>[\s\S]*?<\/div>/gi, " ")
     .replace(/<br\s*\/?>/gi, " ")
     .replace(/<\/(?:p|div|h[1-6]|li|tr)>/gi, " ")
     .replace(/<[^>]+>/g, "")

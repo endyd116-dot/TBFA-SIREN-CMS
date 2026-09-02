@@ -47,12 +47,8 @@ const STATIC_PAGES: SitemapUrl[] = [
   { loc: "/memorial.html",          changefreq: "weekly",  priority: 0.7 },
   { loc: "/family-stories.html",    changefreq: "weekly",  priority: 0.7 },
   { loc: "/incidents.html",         changefreq: "weekly",  priority: 0.7 },
-  /* ★ 2026-08-21: 자료실은 공개 자료가 0건이라 검색엔진에 빈 페이지로 노출된다.
-     (구글 광고그랜트 정책 — 빈 페이지·내용 없는 페이지는 거부 사유)
-     정관·결산 등 실제 자료를 올린 뒤 이 줄과 아래 두 곳을 되살릴 것:
-       · public/partials/header.html 의 자료실 메뉴
-       · public/resources.html 의 검색 제외 표시(noindex)
-  { loc: "/resources.html",         changefreq: "monthly", priority: 0.6 }, */
+  /* ★ 2026-09-03: 공개 자료를 채우고 자료실 복원 (헤더 메뉴·noindex 도 함께 되살림) */
+  { loc: "/resources.html",         changefreq: "monthly", priority: 0.6 },
   { loc: "/p/ethics",               changefreq: "yearly",  priority: 0.4 },
   { loc: "/board.html",             changefreq: "daily",   priority: 0.7 },
   /* ★ 2026-08-20: 포인트 랭킹은 상단 메뉴·단체 정보란이 없는 단독 화면이라

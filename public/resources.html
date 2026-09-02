@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<!-- ★ 2026-08-21: 공개 자료가 0건이라 검색 결과에서 임시로 제외한다.
-     정관·결산 등 실제 자료를 올린 뒤 이 두 줄을 지울 것. -->
-<meta name="robots" content="noindex, follow">
 <!-- PWA(앱 설치) -->
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#7a1f2b" />
@@ -165,8 +162,9 @@
            placeholder="제목·설명 검색 (2자 이상)" aria-label="자료 검색">
   </div>
 
+  <!-- ★ 2026-09-03: 자리표시를 p로 — 안쪽에 div가 있으면 서버 채움(replaceById)이 깨진다 -->
   <div class="res-grid" id="resGrid">
-    <div class="res-loading">불러오는 중...</div>
+    <p class="res-loading" style="margin:0">공개 자료를 준비하고 있습니다.</p>
   </div>
 
   <div class="res-pagination" id="resPagination" style="display:none">
@@ -175,6 +173,18 @@
     <button type="button" id="resNextBtn">다음 ›</button>
   </div>
 </main>
+
+<!-- ★ 2026-09-03: 글 자료(첨부 파일 없이 본문만 있는 자료) 열람 창 -->
+<div id="resViewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:10px;max-width:760px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)">
+      <h3 id="resViewTitle" style="margin:0;font-size:17px;line-height:1.4"></h3>
+      <button type="button" id="resViewClose" aria-label="닫기"
+              style="border:none;background:none;font-size:22px;cursor:pointer;color:var(--text-3);line-height:1">&times;</button>
+    </div>
+    <div id="resViewBody" style="padding:20px;overflow-y:auto;font-size:14.5px;line-height:1.7;color:var(--text-1)"></div>
+  </div>
+</div>
 
 <div id="footer-slot"></div>
 <div id="modals-slot"></div>
@@ -194,6 +204,38 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
+
+  /* ★ 2026-09-03: 어드민 작성 리치 HTML 최소 살균 (campaign.html과 같은 방식) */
+  function sanitizeHtml(html) {
+    var s = String(html == null ? '' : html);
+    s = s.replace(/<\s*(script|iframe|object|embed|svg|math|form)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
+    s = s.replace(/<\s*(script|iframe|object|embed|svg|math|form)\b[^>]*>/gi, '');
+    s = s.replace(/[\s/]on\w+\s*=\s*"[^"]*"/gi, ' ');
+    s = s.replace(/[\s/]on\w+\s*=\s*'[^']*'/gi, ' ');
+    s = s.replace(/[\s/]on\w+\s*=\s*[^\s>]+/gi, ' ');
+    s = s.replace(/(href|src|xlink:href)\s*=\s*("|')\s*(javascript|data|vbscript)\s*:[^"']*\2/gi, '$1="#"');
+    return s;
+  }
+
+  /* 글 자료 열람 창 열기·닫기 */
+  function openResView(title, bodyHtml) {
+    var m = document.getElementById('resViewModal');
+    document.getElementById('resViewTitle').textContent = title || '자료';
+    document.getElementById('resViewBody').innerHTML = bodyHtml || '';
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeResView() {
+    var m = document.getElementById('resViewModal');
+    m.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('click', function(e) {
+    if (e.target.id === 'resViewClose' || e.target.id === 'resViewModal') closeResView();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeResView();
+  });
 
   function formatDate(iso) {
     if (!iso) return '';
@@ -325,6 +367,9 @@
         /* Q4-015: 다운로드 카운트 증가는 /api/resources?id=N&download=1 GET 흐름이 담당
            (서버가 count++ 후 R2로 redirect). 옛 POST(/api/resources)는 405라 카운트 누락됐음. */
         window.open(`/api/resources?id=${r.id}&download=1`, '_blank', 'noopener');
+      } else if (r.contentHtml) {
+        /* ★ 2026-09-03: 글 자료 — 첨부 파일 없이 본문으로 제공되는 자료를 창으로 열람 */
+        openResView(r.title, sanitizeHtml(r.contentHtml));
       } else {
         const msg = `【${r.title}】\n\n${r.description || '(설명 없음)'}\n\n첨부된 파일이 없습니다.`;
         alert(msg);
@@ -370,6 +415,11 @@
 
   loadCategories();
   loadResources(1);
+
+  /* ★ 2026-09-03: 주소에 ?id= 가 있으면 해당 자료를 바로 연다
+     (서버가 채워 준 목록의 링크가 /resources.html?id=N 형태) */
+  var initialId = new URLSearchParams(location.search).get('id');
+  if (initialId && Number.isFinite(Number(initialId))) openResource(Number(initialId));
 })();
 </script>
 </body>

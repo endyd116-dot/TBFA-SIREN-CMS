@@ -28,8 +28,9 @@ function fmtDate(v: any): string {
   return `${kst.getUTCFullYear()}.${String(kst.getUTCMonth() + 1).padStart(2, "0")}.${String(kst.getUTCDate()).padStart(2, "0")}`;
 }
 
-/** 숨겨둔 자리를 보이게 한다 (style의 display:none 제거) */
-function showById(html: string, id: string): string {
+/** 숨겨둔 자리를 보이게 한다 (style의 display:none 제거)
+    ★ 2026-09-03 export — 상세 화면 채움(shell-detail)도 같은 도우미를 쓴다 */
+export function showById(html: string, id: string): string {
   const re = new RegExp(`(<\\w+\\b[^>]*\\bid="${id}"[^>]*>)`);
   return html.replace(re, (open: string) =>
     open.replace(/style="([^"]*)"/, (_m, style: string) => {
@@ -40,7 +41,7 @@ function showById(html: string, id: string): string {
 }
 
 /** 안내 자리를 감춘다 (불러오는 중·곧 채워집니다 등) */
-function hideById(html: string, id: string): string {
+export function hideById(html: string, id: string): string {
   const re = new RegExp(`(<\\w+\\b[^>]*\\bid="${id}"[^>]*>)`);
   if (!re.test(html)) return html;
   return html.replace(re, (open: string) => {
@@ -251,6 +252,39 @@ function renderMemorialCards(list: any[]): string {
     .join("");
 }
 
+/* 자주 묻는 질문 — 소식 화면(news.js loadFaqs)이 그리는 모양과 같아야 한다 */
+function renderFaqItems(list: any[]): string {
+  return list
+    .map(
+      (f) =>
+        `<div class="faq-item" data-faq-id="${esc(f.id)}">` +
+        `<div class="faq-q"><span class="q-mark">Q</span>${esc(f.question || "")}<span class="arrow">▼</span></div>` +
+        `<div class="faq-a"><div class="faq-a-inner">${esc(f.answer || "")}</div></div>` +
+        `</div>`
+    )
+    .join("");
+}
+
+/* 활동보고서 — report.html 안쪽 스크립트(renderList)가 그리는 카드와 같은 모양 */
+function renderReportCards(list: any[]): string {
+  return list
+    .map((p) => {
+      const period = p.year ? `${esc(p.year)}년${p.month ? " " + esc(p.month) + "월" : ""}` : "";
+      const pin = p.isPinned ? '<span style="color:#c03;font-size:11px;margin-right:6px">고정</span>' : "";
+      return (
+        `<div class="report-card" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">` +
+        `<div style="font-size:12px;color:var(--brand,#8b2942);font-weight:600">${pin}${period}</div>` +
+        `<div style="font-size:15px;font-weight:700;color:var(--text-1);line-height:1.4;min-height:42px;font-family:'Noto Serif KR',serif">${esc(p.title || "")}</div>` +
+        `<div style="font-size:11.5px;color:var(--text-3);display:flex;gap:10px;flex-wrap:wrap">` +
+        `<span>발행됨</span><span>조회 ${esc(Number(p.views || 0))}</span><span>${esc(fmtDate(p.publishedAt || p.createdAt))}</span></div>` +
+        `<div style="margin-top:4px">` +
+        `<button type="button" data-report-id="${esc(p.id)}" style="width:100%;padding:8px 14px;background:var(--brand,#8b2942);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">보기</button>` +
+        `</div></div>`
+      );
+    })
+    .join("");
+}
+
 function renderStoryCards(list: any[]): string {
   return list
     .map(
@@ -285,6 +319,8 @@ const SEED_PAGES = new Set([
   "/board.html",
   "/memorial.html",
   "/family-stories.html",
+  /* ★ 2026-09-03 광고그랜트 재심사 — 활동보고서 화면도 서버가 채운다 */
+  "/report.html",
 ]);
 
 /** 이 화면이 서버 채우기 대상인지 */
@@ -354,6 +390,55 @@ export async function loadListSeed(pagePath: string): Promise<ListSeed> {
         .where(eq(schema.mediaPosts.isPublished, true))
         .orderBy(desc(schema.mediaPosts.publishedAt))
         .limit(12)
+    );
+  }
+
+  /* ---------- 자주 묻는 질문 (소식 화면 아래쪽) ----------
+     ★ 2026-09-03: 소식 화면의 FAQ 구역이 서버 원본에는 "FAQ를 불러오는 중..."만
+     나가고 있었다 (홈에만 채우고 소식 화면은 빠뜨림 — 광고그랜트 재거부 진단). */
+  if (pagePath === "/news.html") {
+    add("faqContainer", "자주 묻는 질문", () =>
+      db
+        .select({
+          id: schema.faqs.id,
+          question: schema.faqs.question,
+          answer: schema.faqs.answer,
+        })
+        .from(schema.faqs)
+        .where(eq(schema.faqs.isActive, true))
+        .orderBy(asc(schema.faqs.sortOrder), asc(schema.faqs.id))
+        .limit(20)
+    );
+  }
+
+  /* ---------- 활동보고서 (활동보고서 화면) ---------- */
+  if (pagePath === "/report.html") {
+    add("reportList", "활동보고서", () =>
+      db
+        .select({
+          id: schema.activityPosts.id,
+          title: schema.activityPosts.title,
+          year: schema.activityPosts.year,
+          month: schema.activityPosts.month,
+          isPinned: schema.activityPosts.isPinned,
+          views: schema.activityPosts.views,
+          publishedAt: schema.activityPosts.publishedAt,
+          createdAt: schema.activityPosts.createdAt,
+        })
+        .from(schema.activityPosts)
+        .where(
+          and(
+            eq(schema.activityPosts.category, "report"),
+            eq(schema.activityPosts.isPublished, true)
+          )
+        )
+        .orderBy(
+          desc(schema.activityPosts.isPinned),
+          desc(schema.activityPosts.year),
+          desc(schema.activityPosts.month),
+          desc(schema.activityPosts.publishedAt)
+        )
+        .limit(20)
     );
   }
 
@@ -510,6 +595,8 @@ const RENDERERS: Record<string, (rows: any[]) => string> = {
   boardListContainer: renderBoardRows,
   memTeacherGrid: renderMemorialCards,
   storiesGrid: renderStoryCards,
+  faqContainer: renderFaqItems,
+  reportList: renderReportCards,
 };
 
 /* 채운 뒤 감춤·보임을 손봐야 하는 자리 */
