@@ -3,7 +3,7 @@
 :root{
   --bg:#ffffff; --bg-soft:#fafaf9; --bg-mute:#f4f4f2;
   --line:#e8e6e3; --line-soft:#f0eeeb;
-  --ink:#0f0f0f; --text:#1a1a1a; --text-2:#525252; --text-3:#8a8a8a; --text-4:#b5b5b5;
+  --ink:#0f0f0f; --text:#1a1a1a; --text-2:#525252; --text-3:#6e6e6e;  /* ★ 2026-09-04 접근성: 흰 배경 대비 3.45→5.0 (구글 기준 4.5 충족) */ --text-4:#b5b5b5;
   --brand:#7a1f2b; --brand-deep:#5a141d; --brand-soft:#fbf3f4;
   --gold:#b8935a; --gold-soft:#f5efe5;
   --success:#1a8b46; --warn:#c47a00; --danger:#c5293a; --info:#1a5ec4;

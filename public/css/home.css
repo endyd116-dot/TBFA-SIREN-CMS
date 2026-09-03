@@ -151,7 +151,7 @@
   font-family:'Noto Serif KR',serif;font-size:46px;font-weight:700;
   color:var(--gold);margin-bottom:6px;letter-spacing:-.03em;line-height:1;
 }
-.stat-num small{font-size:18px;margin-left:4px;color:#666;font-weight:400}
+.stat-num small{font-size:18px;margin-left:4px;color:#a0a0a0;font-weight:400}  /* ★ 2026-09-04 접근성: 어두운 배경 대비 3.33→7.0 */
 .stat-label{font-size:13px;color:#999;letter-spacing:.05em;font-weight:400}
 
 /* =========================================================
