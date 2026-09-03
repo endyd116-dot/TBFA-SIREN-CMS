@@ -64,10 +64,14 @@ export function renderShortcodes(html: string, opts: ShortcodeOptions = {}): str
       case "map": {
         const [addr, info] = arg.split("|").map((v) => v.trim());
         if (!addr) return unknown(full, opts);
+        /* ★ 2026-09-03: 자리표시 글자("지도를 불러오는 중…")가 서버 응답에 그대로 나가
+           검색엔진·심사기관에 '준비 중 페이지'로 읽혔다 (광고그랜트 4차 반려 진단).
+           지도가 뜨기 전에도 주소가 글자로 보이게 한다 — 뜻이 있는 내용이 된다. */
+        const fallbackText = (info ? String(info).replace(/<br\s*\/?>/gi, " ") + " · " : "") + addr;
         return (
           `<div class="pw-map" data-address="${escapeHtml(addr)}"` +
           (info ? ` data-info="${escapeHtml(info)}"` : "") +
-          `><div class="pw-map-fallback">지도를 불러오는 중…</div></div>`
+          `><p class="pw-map-fallback">${escapeHtml(fallbackText)}</p></div>`
         );
       }
 

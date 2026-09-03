@@ -85,8 +85,9 @@
       console.warn('[page-widgets]', e);
       maps.forEach(function (box) {
         box.setAttribute('data-pw-ready', '1');
+        /* ★ 2026-09-03: 지도를 못 띄워도 주소 글자는 그대로 둔다 (뜻 있는 내용 유지) */
         var fb = box.querySelector('.pw-map-fallback');
-        if (fb) fb.textContent = '지도를 표시할 수 없습니다.';
+        if (fb && !fb.textContent.trim()) fb.textContent = box.getAttribute('data-address') || '';
       });
     });
   }

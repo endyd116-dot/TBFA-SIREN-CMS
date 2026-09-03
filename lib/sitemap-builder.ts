@@ -63,6 +63,9 @@ const STATIC_PAGES: SitemapUrl[] = [
   { loc: "/p/privacy",              changefreq: "yearly",  priority: 0.3 },
 ];
 
+/** 다른 화면에 끼워 넣기만 하는 페이지 — 검색엔진 목록에는 넣지 않는다 */
+const EMBED_ONLY_SLUGS = new Set(["home-intro"]);
+
 function fmtDate(d: Date | string | null | undefined): string | undefined {
   if (!d) return undefined;
   const dt = d instanceof Date ? d : new Date(d);
@@ -106,6 +109,8 @@ async function collectDynamicUrls(): Promise<SitemapUrl[]> {
     }).from(sitePages).where(eq(sitePages.status, "published"));
     for (const r of rows) {
       if (!r.slug) continue;
+      /* ★ 2026-09-03: 홈에 끼워 넣는 조각 페이지는 따로 내보내지 않는다 (같은 글 중복 노출 방지) */
+      if (EMBED_ONLY_SLUGS.has(String(r.slug))) continue;
       urls.push({
         loc: `/p/${encodeURIComponent(r.slug)}`,
         lastmod: r.updatedAt || r.createdAt,

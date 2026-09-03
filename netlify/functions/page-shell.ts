@@ -20,6 +20,8 @@ import {
   loadShellData, applyShell, withTimeout,
 } from "../../lib/shell-render";
 import { applyListSeed, hasListSeed, loadListSeed } from "../../lib/shell-lists";
+import { getPublicPage } from "../../lib/site-pages";
+import { renderShortcodes } from "../../lib/page-shortcodes";
 
 export const config = { path: "/api/page-shell" };
 
@@ -120,6 +122,18 @@ export default async (req: Request) => {
         preload["/api/notices?limit=20"] = { ok: true, data: { list: lists.notices } };
         preload["/api/faqs?limit=20"] = { ok: true, data: { list: lists.faqs } };
       } catch (e) { console.warn("[page-shell] 홈 목록 채우기 실패", e); }
+
+      /* ---------- 2-1. 미션 소개 구역 채우기 (★ 2026-09-03 광고그랜트) ----------
+         구글 정책: "방문자가 조직의 목적과 비영리 상태를 빠르게 이해해야 한다".
+         내용은 어드민 > 페이지 관리 > '홈 소개'(주소 home-intro)에서 고친다.
+         페이지가 없거나 조회 실패면 화면에 박아 둔 기본 한 줄이 그대로 나간다. */
+      try {
+        const intro = await withTimeout(getPublicPage("home-intro", false), 2000, null as any);
+        const introHtml = intro && intro.contentHtml
+          ? renderShortcodes(String(intro.contentHtml), { preview: false })
+          : "";
+        if (introHtml) html = replaceById(html, "homeIntro", introHtml);
+      } catch (e) { console.warn("[page-shell] 미션 소개 채우기 실패", e); }
 
       preload["/api/public/home-content"] = { ok: true, data: home };
       preload["/api/public/stats"] = { ok: true, data: stats };

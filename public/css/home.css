@@ -291,3 +291,36 @@ table.tbl td:nth-child(3){
   .notice-list .tag{font-size:10px;padding:2px 6px}
   .notice-list .notice-title{font-size:12.5px}
 }
+/* ★ 2026-09-03 홈 미션 소개 구역 (광고그랜트 4차 반려 대응)
+   방문자가 "이 단체가 무엇을 하는 곳인지"를 첫 화면에서 바로 읽을 수 있게 한다. */
+.home-intro-sec { background: #fff; }
+.home-intro { max-width: 980px; margin: 0 auto; }
+.home-intro-lead {
+  font-size: 18px; line-height: 1.75; color: var(--text-1);
+  font-weight: 600; margin: 0 0 18px; word-break: keep-all;
+}
+.home-intro h2 {
+  font-size: 20px; line-height: 1.5; margin: 34px 0 12px;
+  color: var(--text-1); font-family: 'Noto Serif KR', serif;
+}
+.home-intro h3 {
+  font-size: 16px; line-height: 1.5; margin: 22px 0 8px; color: var(--brand, #8b2942);
+}
+.home-intro p { font-size: 15px; line-height: 1.85; color: var(--text-2); margin: 0 0 12px; word-break: keep-all; }
+.home-intro ul { margin: 0 0 14px; padding-left: 20px; }
+.home-intro li { font-size: 15px; line-height: 1.85; color: var(--text-2); margin-bottom: 6px; word-break: keep-all; }
+.home-intro a { color: var(--brand, #8b2942); }
+.home-intro .intro-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px; margin: 18px 0 8px;
+}
+.home-intro .intro-card {
+  border: 1px solid var(--line, #e6e3de); border-radius: 10px; padding: 18px 20px; background: #fcfbfa;
+}
+.home-intro .intro-card h3 { margin-top: 0; }
+.home-intro .intro-card p { margin-bottom: 8px; font-size: 14.5px; }
+.home-intro .intro-cta { margin-top: 26px; display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .home-intro-lead { font-size: 16.5px; }
+  .home-intro h2 { font-size: 18px; }
+}

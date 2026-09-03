@@ -44,7 +44,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260811-nowrap">
 <link rel="stylesheet" href="/css/layout.css?v=20260706-login">
 <link rel="stylesheet" href="/css/components.css?v=20260819-crumb">
-<link rel="stylesheet" href="/css/home.css?v=20260804-quick">
+<link rel="stylesheet" href="/css/home.css?v=20260903-intro">
 
 <!-- R42-A: JSON-LD 구조화 데이터 (Organization + WebSite) -->
 <script type="application/ld+json">
@@ -199,6 +199,19 @@
 
       </div>
     </div>
+
+    <!-- ★ 2026-09-03 미션 소개 구역 (광고그랜트 4차 반려 대응)
+         구글 정책: "방문자가 조직의 목적과 비영리 상태를 빠르게 이해해야 한다".
+         지금까지 홈에는 회전 배너의 한 줄뿐이라 미션이 불명확했다.
+         내용은 어드민 > 페이지 관리 > '홈 소개'(주소 home-intro)에서 고친다.
+         서버(page-shell)가 그 페이지의 본문을 아래 자리에 넣어 내보낸다. -->
+    <section class="block home-intro-sec" id="homeIntroSection">
+      <div class="container">
+        <div id="homeIntro" class="home-intro">
+          <p class="home-intro-lead">(사)교사유가족협의회는 학교에서 세상을 떠난 선생님들의 유가족이 모여 만든 비영리 사단법인입니다.</p>
+        </div>
+      </div>
+    </section>
 
     <!-- STATS (Phase B: data-stat-key로 API 연동) -->
     <section class="stats">
