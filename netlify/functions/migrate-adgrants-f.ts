@@ -23,6 +23,18 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/migrate-adgrants-f" };
 
+/** 이 도구가 채운 표시 — 다시 불러도 겹쳐 쓰지 않게 한다 */
+const SEED_MARK = "<!--siren-adgrants-f-->";
+
+/** 태그를 뺀 실제 글자 수 */
+function plainLen(html: string): number {
+  return String(html || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&[a-z#0-9]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim().length;
+}
+
 function json(body: any, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
     status,
@@ -89,14 +101,38 @@ type PageSeed = {
   subtitle?: string;
   seoDescription?: string;
   contentHtml: string;
-  /** 현재 본문이 이 길이보다 짧을 때만 교체 (운영자 수정본 보호) */
+  /** 현재 '글자 수'(태그 제외)가 이보다 적을 때만 손댄다 (운영자 수정본 보호) */
   replaceIfShorterThan: number;
+  /** 사진이 들어 있는 페이지는 통째로 바꾸지 않고 이 내용을 뒤에 덧붙인다 */
+  appendHtml?: string;
 };
 
 const PAGES: PageSeed[] = [
   {
     slug: "greeting",
     replaceIfShorterThan: 1200,
+    appendHtml: `
+<h2>우리는 왜 모였는가</h2>
+<p>2023년 여름, 한 초등학교 교사의 죽음이 우리 사회를 흔들었습니다. 그러나 그것은 처음이 아니었습니다. 그 전에도, 그 후에도 교단에서 여러 선생님이 세상을 떠났고 그때마다 남겨진 가족들은 각자의 자리에서 홀로 싸워야 했습니다.</p>
+<p>사별의 충격이 채 가시기도 전에 유가족 앞에는 낯선 절차가 줄지어 기다립니다. 순직을 인정받으려면 무엇을 어떻게 준비해야 하는지, 학교가 사건을 축소해 보고했다면 어디에 무엇을 요구해야 하는지, 수사가 불송치로 끝났을 때 다음 방법은 무엇인지. 누구도 알려주지 않는 이 길을 유가족들은 저마다 처음부터 다시 헤매야 했습니다.</p>
+<p>우리는 그 헤맴을 반복하지 않기로 했습니다. 먼저 겪은 유가족이 나중에 겪는 유가족의 길잡이가 되고, 흩어진 목소리를 하나로 모아 제도를 바꾸자는 것. 그것이 교사유가족협의회의 시작입니다.</p>
+
+<h2>우리가 지키려는 세 가지</h2>
+<h3>기억</h3>
+<p>먼저 떠난 선생님들은 통계 속 숫자가 아니라 각자의 이름과 삶을 가진 사람이었습니다. 우리는 그 이름을 부르고, 그분들이 교실에서 어떤 선생님이었는지를 기록합니다. 잊히지 않는 것이 유가족에게는 가장 큰 위로이고, 사회에는 가장 확실한 경고입니다.</p>
+<h3>진실</h3>
+<p>왜 그런 일이 일어났는지 밝히는 일은 누군가를 벌하기 위해서가 아닙니다. 원인을 정확히 알아야 다음을 막을 수 있기 때문입니다. 우리는 유가족과 함께 자료를 모으고 절차를 밟으며, 진실이 절차의 벽에 막히지 않도록 끝까지 동행합니다.</p>
+<h3>회복</h3>
+<p>남겨진 가족의 삶은 계속됩니다. 아이들은 학교에 가야 하고, 생계는 이어져야 합니다. 우리는 애도의 시간을 존중하면서도 일상으로 돌아가는 긴 과정을 함께 걷습니다. 심리 상담과 자녀 학업 지원, 생활·행정 동행이 그 구체적인 방법입니다.</p>
+
+<h2>드리는 부탁</h2>
+<p>협의회는 유가족의 힘만으로는 나아갈 수 없습니다. 동료 교사, 학부모, 그리고 이 문제를 함께 아파해 주시는 시민 여러분의 관심과 후원이 우리를 계속 걷게 합니다.</p>
+<p>혹시 지금 이 글을 읽고 계신 분 가운데 같은 아픔을 겪고 계신 분이 있다면, 부디 혼자 견디지 마시고 협의회의 문을 두드려 주십시오. 어떤 이야기든 비밀은 지켜집니다. 자세한 안내는 <a href="/p/survivor-guide">가족을 잃으신 분을 위한 첫 안내</a>에 정리해 두었습니다.</p>
+<p>그리고 학교에서 힘든 시간을 보내고 계신 선생님이 있다면, 그 어려움을 기록으로 남겨 주십시오. 그 기록이 다음 사람을 살립니다.</p>
+<p>먼저 떠난 선생님들과 남겨진 가족들의 이름으로, 고맙습니다.</p>
+<p><strong>사단법인 교사유가족협의회 회장 박두용</strong></p>
+`.trim(),
+
     seoDescription:
       "(사)교사유가족협의회 회장 인사말 — 한 사람의 아픔이 다시는 누구의 아픔도 되지 않도록, 상실을 모두를 위한 안전으로 바꾸어 갑니다.",
     contentHtml: `
@@ -301,6 +337,52 @@ const PAGES: PageSeed[] = [
   {
     slug: "family-support",
     replaceIfShorterThan: 2200,
+    appendHtml: `
+<h2>누가 신청할 수 있나요</h2>
+<ul>
+<li>교육활동 중 세상을 떠난 교사의 유가족 (배우자·부모·형제자매·자녀)</li>
+<li>유가족의 자녀</li>
+<li>순직 인정을 받지 못했거나 아직 신청 전인 경우에도 신청하실 수 있습니다</li>
+<li>사건 발생 시점이 오래되었더라도 신청하실 수 있습니다</li>
+<li>회원이 아니어도 상담을 신청하실 수 있으며, 비용은 받지 않습니다</li>
+</ul>
+
+<h2>지원 내용 자세히 보기</h2>
+
+<h3>1. 초기 상담 · 긴급 심리 지원</h3>
+<p>사건 직후는 판단이 어려운 시기입니다. 무엇부터 해야 할지 정리해 드리고, 필요하다면 즉시 상담 전문가와 연결해 드립니다. 유가족이 지금 결정해야 할 일과 미뤄도 되는 일을 구분해 드리는 것만으로도 부담이 크게 줄어듭니다.</p>
+
+<h3>2. 전담 상담 · 치료기관 연계</h3>
+<p>사별 애도는 짧게 끝나지 않습니다. 협력 상담기관과 연계해 지속적인 심리 상담을 지원하며, 필요한 경우 의료기관 진료로 이어질 수 있도록 돕습니다. 트라우마 반응, 수면 문제, 죄책감 등 사별 후 흔히 겪는 어려움을 전문가와 함께 다룰 수 있습니다.</p>
+
+<h3>3. 자녀 심리 · 학업 · 돌봄 지원</h3>
+<p>아이들은 어른과 다른 방식으로 슬픔을 겪습니다. 아동·청소년 상담을 연계하고, 학업이 흔들리지 않도록 <a href="/p/memorial-scholarship">장학 사업</a>과 학습 멘토링으로 지원합니다. 학교와의 소통이 필요할 때도 함께 나섭니다.</p>
+
+<h3>4. 생활 · 행정 동행</h3>
+<p>사망 후 처리해야 할 행정 절차는 생각보다 많고 복잡합니다. 사망신고, 상속, 명의 변경, 보험 청구 등 각종 신고와 신청, 서류 준비를 안내하고 필요하면 동행합니다. 생계에 급한 문제가 생겼을 때 활용 가능한 공적 지원 제도도 함께 찾아 드립니다.</p>
+
+<h3>5. 순직 인정 절차 지원</h3>
+<p>순직 인정을 위한 복잡한 절차를 처음부터 끝까지 함께 준비합니다. 어떤 자료가 필요한지, 업무와 사망의 연관성을 어떻게 정리해야 하는지, 학교와 교육청에 무엇을 요청해야 하는지를 먼저 겪은 유가족의 경험을 바탕으로 안내합니다. 자세한 절차는 <a href="/p/line-of-duty">순직 인정 절차 안내</a>에 정리해 두었습니다.</p>
+
+<h3>6. 법률 자문 연계</h3>
+<p>수사 결과에 이의를 제기해야 하거나 학교·관리자의 책임을 다투어야 하는 경우, 교육 분야 사건을 다뤄온 변호사와 연결해 드립니다. 협의회는 유가족을 대신해 결정하지 않습니다. 선택지와 예상되는 과정을 충분히 설명드리고, 유가족이 내린 결정을 끝까지 지원합니다.</p>
+
+<h2>신청 방법</h2>
+<ol>
+<li>홈페이지의 <a href="/support.html">지원 신청</a>에서 필요한 지원 유형을 선택합니다</li>
+<li>상황을 적어 주시고, 해당되는 경우 가족관계증명서 등 증빙 서류를 첨부합니다</li>
+<li>영업일 기준 3일 이내에 담당자가 연락드립니다</li>
+<li>상담 후 필요한 지원을 연계해 드립니다</li>
+</ol>
+<p>신청 내용과 첨부 파일은 암호화되어 안전하게 보관되며, 지원 목적 외에는 사용되지 않습니다. 모든 상담은 비밀이 보장됩니다.</p>
+
+<h2>처음이신 분께</h2>
+<p>가족을 잃으신 직후라면 <a href="/p/survivor-guide">가족을 잃으신 분을 위한 첫 안내</a>를 먼저 읽어 보시기를 권합니다. 지금 해야 할 일과 서두르지 않아도 되는 일을 정리해 두었습니다.</p>
+
+<h2>지금 힘드시다면</h2>
+<p>당장 견디기 어려운 상태라면 먼저 도움을 받으세요. 자살예방 상담전화 <strong>109</strong>는 24시간 무료로 연결됩니다. 그 다음에 협의회의 문을 두드려 주셔도 늦지 않습니다.</p>
+`.trim(),
+
     seoDescription:
       "교사유가족협의회 유가족 지원사업 안내 — 순직 인정 여부와 관계없이 사건 발생 그날부터 심리·법률·생활 지원으로 함께합니다.",
     contentHtml: `
@@ -841,7 +923,9 @@ export default async (req: Request) => {
       const cur = rows.map((r: any) => ({
         slug: r.slug,
         status: r.status,
-        본문글자: String(r.body || "").length,
+        글자수: plainLen(String(r.body || "")),
+        사진: (String(r.body || "").match(/<img\b/gi) || []).length,
+        채움표시: String(r.body || "").includes(SEED_MARK),
       }));
       const missing = slugs.filter((s) => !rows.some((r: any) => r.slug === s));
       return json({ ok: true, mode: "진단", 현재: cur, 없는페이지: missing, 실행: "?run=1 (어드민 로그인 필요)" });
@@ -887,7 +971,11 @@ export default async (req: Request) => {
     return json({ ok: false, step: "home_intro", detail: String(e?.message || e).slice(0, 500), stack: String(e?.stack || "").slice(0, 800) }, 500);
   }
 
-  /* ② 기존 페이지 확충 */
+  /* ② 기존 페이지 확충
+     · 길이는 태그를 뺀 '글자 수'로 잰다 (태그 포함 길이로 재면 서식이 많은 페이지를
+       내용이 충분한 것으로 잘못 본다 — 인사말 글자 380자인데 태그 포함 1,427자였다)
+     · 사진이 들어 있는 페이지는 통째로 바꾸지 않고 뒤에 덧붙인다
+       (운영자가 올린 사진이 지워지면 안 된다 — 유가족 지원사업에 사진 15장) */
   try {
     const result: Record<string, string> = {};
     for (const p of PAGES) {
@@ -897,14 +985,28 @@ export default async (req: Request) => {
         .where(eq(schema.sitePages.slug, p.slug))
         .limit(1);
       if (!row) { result[p.slug] = "페이지 없음 — 건너뜀"; continue; }
-      const curLen = String(row.body || "").length;
-      if (curLen >= p.replaceIfShorterThan) { result[p.slug] = `현재 ${curLen}자 — 충분해서 건너뜀`; continue; }
-      const set: Record<string, any> = { contentHtml: p.contentHtml, updatedAt: new Date() };
-      if (p.title) set.title = p.title;
-      if (p.subtitle) set.subtitle = p.subtitle;
+
+      const raw = String(row.body || "");
+      if (raw.includes(SEED_MARK)) { result[p.slug] = "이미 채움 — 건너뜀"; continue; }
+      const textLen = plainLen(raw);
+      if (textLen >= p.replaceIfShorterThan) { result[p.slug] = `글자 ${textLen}자 — 충분해서 건너뜀`; continue; }
+
+      const hasImage = /<img\b/i.test(raw);
+      const set: Record<string, any> = { updatedAt: new Date() };
+      if (hasImage && p.appendHtml) {
+        set.contentHtml = raw + "\n" + SEED_MARK + "\n" + p.appendHtml;
+        result[p.slug] = `사진 보존 + 덧붙임 (글자 ${textLen} → ${plainLen(set.contentHtml)}자)`;
+      } else if (hasImage) {
+        result[p.slug] = "사진이 있는데 덧붙일 내용이 없어 건너뜀";
+        continue;
+      } else {
+        set.contentHtml = SEED_MARK + "\n" + p.contentHtml;
+        if (p.title) set.title = p.title;
+        if (p.subtitle) set.subtitle = p.subtitle;
+        result[p.slug] = `교체 (글자 ${textLen} → ${plainLen(p.contentHtml)}자)`;
+      }
       if (p.seoDescription) set.seoDescription = p.seoDescription;
       await db.update(schema.sitePages).set(set as any).where(eq(schema.sitePages.id, row.id));
-      result[p.slug] = `${curLen}자 → ${p.contentHtml.length}자`;
     }
     done["2_페이지_확충"] = result;
   } catch (e: any) {
