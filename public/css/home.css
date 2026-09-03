@@ -324,3 +324,6 @@ table.tbl td:nth-child(3){
   .home-intro-lead { font-size: 16.5px; }
   .home-intro h2 { font-size: 18px; }
 }
+
+/* 홈 소개 구역의 본문 링크도 밑줄 (색만으로 구분 금지) */
+.home-intro p a, .home-intro li a{ text-decoration:underline; text-underline-offset:2px; }

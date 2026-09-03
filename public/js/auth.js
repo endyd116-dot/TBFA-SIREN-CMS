@@ -411,8 +411,8 @@ document.addEventListener('change', async function (e) {
           /* 이미 사이트 회원 — 가입 차단, 로그인 안내 */
           setStatus(
             '인증 완료. 다만 ' + escapeHtml(matched.name) + '님은 이미 가입하신 회원입니다.<br/>' +
-            '<a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="loginModal" style="color:var(--brand);text-decoration:underline">로그인</a>하거나, ' +
-            '<a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="passwordResetModal" style="color:var(--brand);text-decoration:underline">비밀번호 재설정</a>을 이용해 주세요.',
+            '<button type="button" class="link-btn" data-action="switch-modal" data-from="signupModal" data-to="loginModal">로그인</button>하거나, ' +
+            '<button type="button" class="link-btn" data-action="switch-modal" data-from="signupModal" data-to="passwordResetModal">비밀번호 재설정</button>을 이용해 주세요.',
             'var(--warning, #b8860b)'
           );
           /* 가입 버튼 비활성화 */

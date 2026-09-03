@@ -230,3 +230,13 @@ table.tbl tr:last-child td{border-bottom:none}
   .lightbox-controls { top: 12px; right: 12px; }
   .lightbox-btn { width: 40px; height: 40px; font-size: 16px; }
 }
+
+/* ★ 2026-09-04 (광고그랜트) 주소가 없는 이동은 링크가 아니라 버튼으로 둔다.
+   구글이 href="javascript:void(0)" 를 '크롤할 수 없는 링크'로 지적했다.
+   생김새는 기존 링크와 같게 맞춘다. */
+.link-btn{
+  background:none;border:none;padding:0;margin:0;font:inherit;cursor:pointer;
+  color:var(--brand);font-weight:600;text-decoration:underline;
+}
+.link-btn:hover{opacity:.8}
+.form-link .link-btn{font-size:inherit}

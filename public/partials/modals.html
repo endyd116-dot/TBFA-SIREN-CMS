@@ -20,16 +20,16 @@
         <label class="checkbox-line" style="margin:0">
           <input type="checkbox" name="remember"> 로그인 상태 유지
         </label>
-        <a href="javascript:void(0)" data-action="switch-modal"
+        <button type="button" class="link-btn" data-action="switch-modal"
            data-from="loginModal" data-to="passwordResetModal"
            style="font-size:12.5px;color:var(--text-3);text-decoration:none">
           <span class="siren-icon-wrap" data-icon="key"></span> 비밀번호 찾기
-        </a>
+        </button>
       </div>
       <button type="submit" class="btn btn-primary btn-block">로그인</button>
       <p class="form-link">
         아직 회원이 아니신가요?
-        <a href="javascript:void(0)" data-action="switch-modal" data-from="loginModal" data-to="signupModal">회원가입</a>
+        <button type="button" class="link-btn" data-action="switch-modal" data-from="loginModal" data-to="signupModal">회원가입</button>
       </p>
     </form>
   </div>
@@ -164,7 +164,7 @@
       <button type="submit" class="btn btn-primary btn-block">본인 인증 후 가입</button>
       <p class="form-link">
         이미 회원이신가요?
-        <a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="loginModal">로그인</a>
+        <button type="button" class="link-btn" data-action="switch-modal" data-from="signupModal" data-to="loginModal">로그인</button>
       </p>
     </form>
   </div>
@@ -250,8 +250,8 @@
       <button type="submit" class="btn btn-primary btn-block">재설정 링크 받기</button>
       <p class="form-link">
         비밀번호가 기억나셨나요?
-        <a href="javascript:void(0)" data-action="switch-modal"
-           data-from="passwordResetModal" data-to="loginModal">로그인</a>
+        <button type="button" class="link-btn" data-action="switch-modal"
+           data-from="passwordResetModal" data-to="loginModal">로그인</button>
       </p>
     </form>
   </div>

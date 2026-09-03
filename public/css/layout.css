@@ -18,7 +18,7 @@
 .search input{background:#1a1a1a;border:1px solid #2a2a2a;color:#e0e0e0;padding:7px 36px 7px 14px;border-radius:30px;width:200px;font-size:12px;transition:var(--t)}
 .search input::placeholder{color:#666}
 .search input:focus{outline:none;border-color:#444;background:#222;width:240px}
-.search button{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#888;font-size:13px;background:transparent;border:none;cursor:pointer}
+.search button{position:absolute;right:2px;top:50%;transform:translateY(-50%);color:#888;font-size:13px;background:transparent;border:none;cursor:pointer;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center;padding:0}
 
 /* ============ HEADER ============ */
 header.site-header{

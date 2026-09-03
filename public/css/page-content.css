@@ -317,3 +317,9 @@
   .page-body { font-size: 15px; }
   .pw-map { height: 260px; min-height: 260px; }
 }
+
+
+/* ★ 2026-09-04 (광고그랜트) 본문 링크는 색만으로 구분하면 안 된다 — 밑줄을 함께 준다 */
+.page-body p a,
+.page-body li a,
+.page-body td a{ text-decoration:underline; text-underline-offset:2px; }

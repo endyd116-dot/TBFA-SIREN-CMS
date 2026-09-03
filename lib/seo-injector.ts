@@ -23,6 +23,28 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/* ★ 2026-09-04 (광고그랜트 4차 반려 원인)
+   이 함수는 원본 화면의 제목·설명을 지운 뒤 저장소(DB) 값으로 다시 쓴다.
+   그런데 정적 화면(홈·공지·소식·추모관 등 15개)은 저장소에 SEO 값이 없어서
+   **제목이 전부 "SIREN | 교사유가족협의회"로 같아지고 설명은 아예 사라졌다.**
+   화면 파일에는 각 화면마다 제목·설명이 잘 적혀 있는데도 서버가 지운 것이다.
+   (2026-08-20 서버 렌더링 도입 때 생긴 회귀 — 이후 심사 3회 반려)
+   → 저장소 값이 비어 있으면 원본 화면의 값을 그대로 살려 쓴다. */
+function pickTag(html: string, re: RegExp): string {
+  const m = String(html || "").match(re);
+  return m && m[1] ? String(m[1]).trim() : "";
+}
+
+function readOriginalMeta(html: string) {
+  return {
+    title: pickTag(html, /<title>([\s\S]*?)<\/title>/i),
+    description: pickTag(html, /<meta\s+name=["\']description["\'][^>]*\scontent=["\']([^"\']*)["\']/i),
+    ogTitle: pickTag(html, /<meta\s+property=["\']og:title["\'][^>]*\scontent=["\']([^"\']*)["\']/i),
+    ogDescription: pickTag(html, /<meta\s+property=["\']og:description["\'][^>]*\scontent=["\']([^"\']*)["\']/i),
+    ogImage: pickTag(html, /<meta\s+property=["\']og:image["\'][^>]*\scontent=["\']([^"\']*)["\']/i),
+  };
+}
+
 function abs(siteUrl: string | undefined, urlOrPath: string): string {
   if (!urlOrPath) return "";
   if (/^https?:\/\//i.test(urlOrPath)) return urlOrPath;
@@ -39,19 +61,26 @@ export function injectMeta(html: string, input: InjectInput): string {
   if (!html) return html;
   const { page, org, defaults, siteUrl } = input;
 
+  /* 원본 화면에 적혀 있는 제목·설명 — 저장소 값이 없을 때 쓴다 (2026-09-04) */
+  const orig = readOriginalMeta(html);
+
   const titleSuffix = defaults?.title_suffix || "";
   const finalTitle = page.title
     ? (titleSuffix && !page.title.includes(titleSuffix)
         ? `${page.title}${titleSuffix}`
         : page.title)
-    : (defaults?.site_name || "");
+    : (orig.title || defaults?.site_name || "");
 
-  const description = page.description || "";
-  const ogTitle = page.og_title || page.title || finalTitle;
-  const ogDescription = page.og_description || page.description || "";
+  const description = page.description || orig.description || "";
+  const ogTitle = page.og_title || page.title || orig.ogTitle || finalTitle;
+  const ogDescription =
+    page.og_description || page.description || orig.ogDescription || orig.description || "";
   // R42-fix: og:image fallback 체인 — 콘텐츠 메타 → 어드민 기본값 → 사이트 기본 OG 이미지(/og-default.png).
   //   incidents 등 thumbnail 컬럼 없는 콘텐츠에서 og:image 누락 → 카톡/페북 미리보기 카드 이미지 부재 방지.
-  const ogImage = abs(siteUrl, page.og_image_url || defaults?.default_og_image_url || "/og-default.png");
+  const ogImage = abs(
+    siteUrl,
+    page.og_image_url || orig.ogImage || defaults?.default_og_image_url || "/og-default.png"
+  );
   const canonical = page.canonical
     ? abs(siteUrl, page.canonical)
     : (input.currentPath ? abs(siteUrl, input.currentPath) : "");
