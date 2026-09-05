@@ -16,6 +16,8 @@ import {
   ok, badRequest, notFound, serverError,
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
+/* 2026-09-06 「등불의 기적」: 캠페인별 확장 설정(테마·금액 사다리·후원회원 가입 등)을 함께 내려준다 */
+import { getCampaignExtras, toPublicExtras } from "../../lib/campaign-extras";
 
 const VALID_TYPES = ["fundraising", "memorial", "awareness"];
 
@@ -83,6 +85,7 @@ export default async (req: Request) => {
           startDate: c.startDate,
           endDate: c.endDate,
           views: (c.views || 0) + 1,
+          extras: toPublicExtras(getCampaignExtras(c.slug)),
         },
       });
     }
@@ -124,6 +127,8 @@ export default async (req: Request) => {
           remainingDays: c.endDate
             ? Math.max(0, Math.ceil((new Date(c.endDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
             : null,
+          /* 후원 모달의 캠페인 선택에서 등불 캠페인을 고르면 같은 규칙(가입 먼저·사다리)이 적용되도록 */
+          extras: toPublicExtras(getCampaignExtras(c.slug)),
         };
       });
 

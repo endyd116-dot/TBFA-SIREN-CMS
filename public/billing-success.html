@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
 <link rel="stylesheet" href="/css/pages.css">
+<link rel="stylesheet" href="/css/lantern.css?v=20260906-1">
 
 <style>
   .bs-wrap {
@@ -213,6 +214,9 @@
           매월 자동으로 결제되며, 언제든 마이페이지에서 해지 가능합니다.
         </p>
 
+        <!-- 2026-09-06 「등불의 기적」: 등불 증서·한마디·랜딩 되돌아가기 (lantern=1 일 때만 lantern-complete.js 가 채운다) -->
+        <div id="lanternComplete" hidden></div>
+
         <div class="bs-info-box">
           <div class="bs-info-row" id="bsRowDonationNo">
             <span class="bs-info-label">후원 번호</span>
@@ -255,7 +259,7 @@
 
         <div class="bs-info-side">
           <span class="siren-icon-wrap" data-icon="mail"></span> 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다<br />
-          <span class="siren-icon-wrap" data-icon="file-text"></span> <strong>기부금 영수증</strong>은 마이페이지에서 즉시 발급 가능합니다<br />
+          <span class="siren-icon-wrap" data-icon="file-text"></span> 저희는 사단법인으로, 아직 <strong>기부금영수증(세액공제)</strong> 발급이 되지 않습니다. 지정되는 날, 이 자리에서 바로 알려드리겠습니다<br />
           <span class="siren-icon-wrap" data-icon="octagon-x"></span> <strong>해지</strong>는 마이페이지에서 1클릭으로 가능합니다
         </div>
 
@@ -311,7 +315,8 @@
   <div id="footer-slot"></div>
 
   <script src="/js/common.js?v=20260821-imgfb"></script>
-  <script src="/js/auth.js?v=20260904-linkbtn"></script>
+  <script src="/js/auth.js?v=20260906-lantern"></script>
+  <script src="/js/lantern-complete.js?v=20260906-1" defer></script>
   <script>
   (function () {
     'use strict';

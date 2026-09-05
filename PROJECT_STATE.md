@@ -21,11 +21,24 @@
 
 ---
 
-## 2. 현재 상태 (2026-09-03)
+## 2. 현재 상태 (2026-09-06)
 
 > ⚠️ 아래 R45 이하(2026-05-29)는 **archive**. 2026-06~08 트랙은 본 절 상단 블록들이 최신.
 
-### 🌐 광고그랜트 4차 반려 대응 F·G단계 — **전부 라이브 완료 · 재신청 준비 끝** (2026-09-04·★최신)
+### 🕯️ 「등불의 기적」 후원회원 캠페인 신설·랜딩 연동 — **코드 완료 · 마이그 호출·라이브 검증 진행** (2026-09-06·★최신)
+AutoMarketing 랜딩 「숭고한 등불」(withwork.tbfa.co.kr/lp/tbfa-lantern-v2)이 제주 캠페인으로 넘어오던 것을 새 캠페인으로 연결. **정본 = [`docs/active/2026-09-22-lantern-campaign-handoff.md`](docs/active/2026-09-22-lantern-campaign-handoff.md)**(AM 요청 S1~S12 + 말미 SIREN 회신).
+- **S1** 캠페인 「등불의 기적」 슬러그 `등불의-기적` — 마이그가 생성(본문·대표 사진=랜딩 OG 파일 R2 저장·고정·목표 3,000만). 캠페인 페이지는 슬러그별 확장 설정(`lib/campaign-extras.ts`)으로 어둠·금색 테마 전환. `am_lp·am_anon·gate` 형식 검증 후 세션 보관, `donate=1`이면 후원 창 자동 열림
+- **S2** 정기·일시 두 탭 모두 1만·3만·5만·10만(기본 정기 1만·일시 3만·탭 전환 시 기본 칸 초기화·칸별 영향 문구·「최소 1,000원부터」)
+- **S3** 「즉시 발급·국세청 자동 등재」 문구 전량 교체(후원 창·완료 화면 2·마이페이지·감사 메일 2·약관·윤리·헤더 메뉴 + DB 콘텐츠는 마이그가 치환: 페이지·공지·FAQ·자료·메뉴 라벨). 단일 출처 `RECEIPT_NOTICE`
+- **S4** 등불 페이지 단체 표기 사단법인 교사유가족협의회 · 381-82-00754 (푸터도 이 페이지에서만 덮어씀·사이트 공통 푸터는 118 유지=Swain 결정 대기)
+- **S5** 후원 창 0단계 «후원회원 가입»(이름·연락처·이메일·학교명 선택·회칙 동의·개인정보) → `/api/sponsor-signup`(임시 비밀번호·쿠키 발급·비밀번호 설정 링크 7일 메일). 기존 회원=로그인으로 건너뜀·회칙 미동의 회원은 동의만. 비회원 결제 서버 차단
+- **S6-a** `GET /api/campaign-stats?slug=` → `{ok, members, monthly, recent[{name,school?,note?,at}], bySchool[{school,count}], updatedAt}` 공개·5분 캐시·CORS *
+- **S6-b** 결제 완료 → 완료 화면(등불 증서·한마디) + 「내 등불 보러 가기」= `withwork/lp/<am_lp>?lit=1&am_anon&gate`. 서버 postback `POST withwork/api/lit-return` 3회 재시도·`x-siren-secret`=env **`SIREN_AM_POSTBACK_SECRET`(AM 전달 대기·미설정 시 postback만 건너뜀)**
+- **S7** FAQ 6문 `faqs.category='lantern'`(마이그 시드·어드민 FAQ 관리에서 수정) · **S8** 등불 N번 증서(완료 화면 카드·PNG 저장/공유·메일 블록) · **S10** og:title「등불의 기적 — 교사유가족협의회」·og:image 랜딩 동일 파일 · **S11** 한마디 60자+공개 동의(완료 화면·마이페이지 «내 등불») · **S12** 학교명 저장→bySchool
+- **DB(마이그 `migrate-lantern-campaign` · 어드민 또는 ?secret=)**: members.school_name·bylaws_agreed_at / donations.source_meta·donor_note·public_consent — **schema.ts 미반영(raw SQL만 사용)** → 적용 확인 후 다음 push에 정의 추가
+- **남은 것**: ① 마이그 호출·삭제 ② `SIREN_AM_POSTBACK_SECRET` env(AM 시크릿 수령 후) ③ 회칙(정관) 링크가 임시로 자료실(/resources.html) — 정관 문서 주소 확정 시 `LANTERN_BYLAWS_URL` env 또는 코드 ④ 정기 후원 해지 시 monthly 차감 반영(현재 완료 이력 기준 집계)
+
+### 🌐 광고그랜트 4차 반려 대응 F·G단계 — **전부 라이브 완료 · 재신청 준비 끝** (2026-09-04)
 D·E 반영 후에도 4차 반려. 구글 정책 원문 항목별 대조 + 로컬 Lighthouse 실측으로 원인 2개 확정:
 - **① 콘텐츠 분량 부족** — 소개 계열 7개 CMS 페이지 본문이 글자 106~1,259자(합계 4,600자).
   구글 1순위 거부사유 "충분한 원본 콘텐츠" 정면 저촉. 홈 미션도 회전 배너 안 100자뿐.

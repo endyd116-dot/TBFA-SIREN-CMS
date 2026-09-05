@@ -21,6 +21,8 @@ import { approveTrade, kiccPayMethod } from "../../lib/kicc";
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 import { ensureProspectFromDonation } from "../../lib/prospect-from-donation";
 import { notifyAllOperators } from "../../lib/notify";
+/* 2026-09-06 「등불의 기적」: 등불 번호·withwork postback·랜딩 되돌아가기(S6-b·S8) */
+import { afterLanternCompletion, lanternRedirectParams } from "../../lib/lantern";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -84,9 +86,13 @@ export default async (req: Request) => {
     const [donation] = await db.select().from(donations).where(eq(donations.pgOrderNo, pgOrderNo)).limit(1);
     if (!donation) return failRedirect("주문 정보를 찾을 수 없습니다");
 
-    /* 멱등 — 이미 완료면 그대로 성공 페이지 */
+    /* 멱등 — 이미 완료면 그대로 성공 페이지 (등불 캠페인이면 랜딩 파라미터도 그대로·postback은 중복 전송 안 함) */
     if (donation.status === "completed") {
-      return redirect(`/payment-success.html?donationId=${donation.id}&donationNo=D-${String(donation.id).padStart(7, "0")}`);
+      const dup = await afterLanternCompletion({
+        donationId: donation.id, memberId: donation.memberId ?? null, amount: donation.amount,
+        monthly: false, paidAt: (donation as any).paidAt ? new Date((donation as any).paidAt) : new Date(),
+      });
+      return redirect(`/payment-success.html?donationId=${donation.id}&donationNo=D-${String(donation.id).padStart(7, "0")}${lanternRedirectParams(dup)}`);
     }
 
     /* KICC 승인 — 응답 금액을 서버(pending) 금액과 대조 */
@@ -163,6 +169,11 @@ export default async (req: Request) => {
         receiptNumber: donations.receiptNumber,
       });
 
+    /* 등불 캠페인(S6-b·S8): 등불 번호 계산 + withwork postback(3회 재시도) + 되돌아가기 주소. 실패해도 결제는 성공 */
+    const lantern = await afterLanternCompletion({
+      donationId: updated.id, memberId: updated.memberId ?? null, amount: updated.amount, monthly: false, paidAt: now,
+    });
+
     /* 감사 메일 (실패해도 결제는 성공) */
     let emailSent = false;
     try {
@@ -175,6 +186,12 @@ export default async (req: Request) => {
           donationId: updated.id,
           donationDate: now,
           isMember: !!updated.memberId,
+          lantern: lantern ? {
+            lanternNo: lantern.lanternNo,
+            campaignLabel: lantern.extras.certificate.campaignLabel,
+            tagline: lantern.extras.certificate.tagline,
+            returnUrl: lantern.returnUrl,
+          } : undefined,
         });
         const m = await sendEmail({ to: updated.donorEmail, subject: tpl.subject, html: tpl.html });
         emailSent = !!m.ok;
@@ -241,10 +258,13 @@ export default async (req: Request) => {
 
     await logUserAction(req, updated.memberId, updated.donorName, "donate_kicc_approve_success", {
       target: pgOrderNo,
-      detail: { donationId: updated.id, amount: updated.amount, pgTid: result.pgTid, receiptNumber, emailSent },
+      detail: {
+        donationId: updated.id, amount: updated.amount, pgTid: result.pgTid, receiptNumber, emailSent,
+        lantern: lantern ? { lanternNo: lantern.lanternNo, postback: lantern.postback } : undefined,
+      },
     });
 
-    return redirect(`/payment-success.html?donationId=${updated.id}&donationNo=D-${String(updated.id).padStart(7, "0")}`);
+    return redirect(`/payment-success.html?donationId=${updated.id}&donationNo=D-${String(updated.id).padStart(7, "0")}${lanternRedirectParams(lantern)}`);
   } catch (err) {
     console.error("[donate-kicc-approve]", err);
     return failRedirect("결제 처리 중 오류가 발생했습니다");

@@ -22,6 +22,9 @@ import { approveTrade, chargeWithBillingKey, calculateNextBillingDate } from "..
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
 import { notifyAllSuperAdmins, notifyAllOperators } from "../../lib/notify";
+/* 2026-09-06 「등불의 기적」: 정기 후원도 캠페인 현황 합산 + 등불 번호·withwork postback·랜딩 되돌아가기 */
+import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
+import { afterLanternCompletion, lanternRedirectParams } from "../../lib/lantern";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -31,8 +34,8 @@ function redirect(path: string): Response {
 function failRedirect(reason: string): Response {
   return redirect(`/payment-fail.html?reason=${encodeURIComponent(reason.slice(0, 100))}`);
 }
-function successRedirect(donationId: number): Response {
-  return redirect(`/billing-success.html?donationId=${donationId}&donationNo=D-${String(donationId).padStart(7, "0")}`);
+function successRedirect(donationId: number, extraQuery = ""): Response {
+  return redirect(`/billing-success.html?donationId=${donationId}&donationNo=D-${String(donationId).padStart(7, "0")}${extraQuery}`);
 }
 
 async function parseReturn(req: Request): Promise<Record<string, string>> {
@@ -87,7 +90,14 @@ export default async (req: Request) => {
     /* pending(type=regular) 로드 — 서버 신뢰 기준 */
     const [donation] = await db.select().from(donations).where(eq(donations.pgOrderNo, pgOrderNo)).limit(1);
     if (!donation) return failRedirect("주문 정보를 찾을 수 없습니다");
-    if (donation.status === "completed") return successRedirect(donation.id);
+    if (donation.status === "completed") {
+      /* 중복 복귀 — 등불 캠페인이면 랜딩 파라미터만 다시 붙인다(postback 중복 전송 없음) */
+      const dup = await afterLanternCompletion({
+        donationId: donation.id, memberId: donation.memberId ?? null, amount: donation.amount,
+        monthly: true, paidAt: (donation as any).paidAt ? new Date((donation as any).paidAt) : new Date(),
+      });
+      return successRedirect(donation.id, lanternRedirectParams(dup));
+    }
 
     const memberId: number | null = donation.memberId ?? null;
     const amount = donation.amount;
@@ -275,6 +285,14 @@ export default async (req: Request) => {
       }
     }
 
+    /* 5-b) 캠페인 지정 정기 후원이면 모금현황 즉시 재계산 (그동안 정기 후원은 합산에서 빠져 있었다) */
+    await recalcCampaignStatsSafe((donation as any).campaignId);
+
+    /* 5-c) 등불 캠페인(S6-b·S8): 등불 번호 + withwork postback + 되돌아가기 주소. 실패해도 등록은 성공 */
+    const lantern = await afterLanternCompletion({
+      donationId: updated.id, memberId: updated.memberId ?? null, amount: updated.amount, monthly: true, paidAt: now,
+    });
+
     /* 6) 감사 메일 */
     try {
       const tpl = tplDonationThanks({
@@ -285,6 +303,12 @@ export default async (req: Request) => {
         donationId: updated.id,
         donationDate: now,
         isMember: !!updated.memberId,
+        lantern: lantern ? {
+          lanternNo: lantern.lanternNo,
+          campaignLabel: lantern.extras.certificate.campaignLabel,
+          tagline: lantern.extras.certificate.tagline,
+          returnUrl: lantern.returnUrl,
+        } : undefined,
       });
       await sendEmail({ to: updated.donorEmail || donation.donorEmail || "", subject: tpl.subject, html: tpl.html });
     } catch (e) {
@@ -356,7 +380,7 @@ export default async (req: Request) => {
       }
     }
 
-    return successRedirect(updated.id);
+    return successRedirect(updated.id, lanternRedirectParams(lantern));
   } catch (err) {
     console.error("[billing-approve]", err);
     return failRedirect("정기 후원 등록 중 오류가 발생했습니다");

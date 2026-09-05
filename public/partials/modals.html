@@ -267,9 +267,63 @@
     <p class="modal-sub">여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.</p>
 
 <!-- public/partials/modals.html — donateModal 안의 form 시작 직후 1블록 삽입 -->
+    <!-- STEP 0: «후원회원 가입» — 2026-09-06 「등불의 기적」(S5)
+         회칙(정관)에 따른 가입 절차가 있어야 후원회원 «회비»가 기부금품법 예외로 선다.
+         extras.requireMembership 캠페인에서만 donate.js 가 켠다. 로그인 회원은 회칙 동의만 받고 지나간다. -->
+    <div class="donate-step" data-step="0" id="donateJoinStep">
+      <form data-form="sponsor-join" id="sponsorJoinForm" novalidate>
+        <div class="sj-head">
+          <div class="sj-badge" id="sjBadge">🕯️ 후원회원 가입</div>
+          <p class="sj-intro" id="sjIntro">결제 전에 회칙에 따른 후원회원 가입을 먼저 받습니다. 1분이면 됩니다.</p>
+          <p class="sj-intro sj-mode" id="sjModeNote" hidden>이미 회원이시네요. 회칙 동의만 남았습니다.</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="fg" style="margin-bottom:0">
+            <label>이름</label>
+            <input type="text" name="name" id="sjName" required placeholder="홍길동" maxlength="50" autocomplete="name">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label>연락처</label>
+            <input type="tel" name="phone" id="sjPhone" required placeholder="010-0000-0000" maxlength="20" autocomplete="tel">
+          </div>
+        </div>
+        <div class="fg" style="margin-top:14px">
+          <label>이메일 <span class="hint">(가입 확인·후원 안내 발송)</span></label>
+          <input type="email" name="email" id="sjEmail" required placeholder="example@email.com" maxlength="100" autocomplete="email">
+        </div>
+        <div class="fg">
+          <label>학교명 / 소속 <span class="hint">(선택 — 「○○초 12명」처럼 학교 단위 등불로 함께 표시됩니다)</span></label>
+          <input type="text" name="schoolName" id="sjSchool" placeholder="예: ○○초등학교 / ○○교육청 / 일반" maxlength="150">
+        </div>
+
+        <label class="checkbox-line" style="margin:12px 0 6px">
+          <input type="checkbox" name="agreeBylaws" id="sjBylaws" required>
+          <span>교사유가족협의회 <a href="/resources.html" id="sjBylawsLink" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline">회칙(정관)</a>에 따라 후원회원으로 가입하는 데 동의합니다. <span style="color:#dc2626">*</span></span>
+        </label>
+        <label class="checkbox-line" style="margin:6px 0">
+          <input type="checkbox" name="agreePrivacy" id="sjPrivacy" required>
+          <span><a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline">개인정보 수집·이용</a>에 동의합니다. <span style="color:#dc2626">*</span></span>
+        </label>
+        <label class="checkbox-line" style="margin:6px 0 14px">
+          <input type="checkbox" name="agreeSms" id="sjSms">
+          <span>협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다. <span style="color:var(--text-3)">(선택)</span></span>
+        </label>
+
+        <div class="sj-existing" id="sjExisting" hidden>
+          <div id="sjExistingMsg">이미 가입된 이메일 또는 연락처입니다.</div>
+          <button type="button" class="btn btn-outline" id="sjLoginBtn" style="margin-top:8px;padding:8px 14px;font-size:13px">로그인하고 이어서 후원하기</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="sjSubmit">가입하고 후원 계속하기</button>
+        <p class="sj-foot">이미 후원회원이신가요? <button type="button" class="link-btn" id="sjLoginLink" style="color:var(--brand);text-decoration:underline;background:none;border:0;cursor:pointer;font:inherit;padding:0">로그인</button> 후 바로 후원하실 수 있습니다.</p>
+      </form>
+    </div>
+
     <!-- STEP 1: 입력 -->
     <div class="donate-step active" data-step="1">
       <form data-form="donate">
+        <div class="lt-modal-badge" id="donateLanternBadge" hidden>🕯️ 등불의 기적 · 후원회원 회비</div>
 
         <!-- M-19-2: 캠페인 선택 (활성 캠페인이 있을 때만 JS가 표시) -->
         <div class="fg" id="donateCampaignWrap" style="display:none">
@@ -293,7 +347,7 @@
           </div>
         </div>
         <div class="fg">
-          <label>후원 금액</label>
+          <label>후원 금액 <span class="hint" id="amtLadderHint" hidden></span></label>
           <div class="amt-grid">
             <button type="button" class="amt" data-amt="10000">10,000원</button>
             <button type="button" class="amt on" data-amt="30000">30,000원</button>
@@ -302,7 +356,9 @@
             <button type="button" class="amt" data-amt="300000">300,000원</button>
             <button type="button" class="amt" data-amt="500000">500,000원</button>
           </div>
+          <div class="amt-impact" id="amtImpact" hidden></div>
           <input type="number" name="amount" id="customAmt" placeholder="직접 입력 (원)" value="30000" min="1000" max="100000000" required>
+          <small class="amt-min-note" id="amtMinNote" hidden>최소 1,000원부터 가능합니다</small>
         </div>
 
         <!-- Phase L: 결제 방식 선택 -->
@@ -351,7 +407,7 @@
                 <div style="font-size:12px;color:var(--text-3);line-height:1.6">
                   • 신용·체크카드 또는 간편결제(카카오페이·네이버페이 등) 선택<br />
                   • 즉시 결제 완료 (3분 이내)<br />
-                  • 영수증 PDF 마이페이지에서 즉시 발급
+                  • 후원 내역은 마이페이지에서 확인
                 </div>
               </div>
             </label>
@@ -418,9 +474,10 @@
         </label>
 
         <button type="submit" class="btn btn-primary btn-block" id="donateSubmitBtn">결제하기</button>
-        <p style="margin-top:14px;font-size:12px;color:var(--text-3);text-align:center">
-          기부금 영수증은 마이페이지에서 즉시 발급 가능하며,<br />
-          국세청 연말정산 간소화 서비스에 자동 등재됩니다.
+        <!-- 2026-09-06(S3): 협의회는 아직 공익법인(지정기부금단체) 지정 전 — 「즉시 발급·국세청 자동 등재」 문구 폐기 -->
+        <p style="margin-top:14px;font-size:12px;color:var(--text-3);text-align:center;line-height:1.7" id="donateReceiptNote">
+          저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다.<br />
+          지정되는 날, 이 자리에서 바로 알려드리겠습니다.
         </p>
       </form>
     </div>
@@ -668,6 +725,23 @@
   }
 
   /* 체크박스 정렬 핫픽스 */
+  /* 2026-09-06 「등불의 기적」 — 후원회원 가입 단계·금액 사다리 */
+  #donateModal .sj-head { margin: -6px 0 18px; }
+  #donateModal .sj-badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #8a6420; background: #fbf3e2; border: 1px solid #ecd9ad; padding: 4px 10px; border-radius: 12px; margin-bottom: 8px; }
+  #donateModal .sj-intro { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.7; }
+  #donateModal .sj-mode { color: #1a5e2c; font-weight: 600; }
+  #donateModal .sj-existing { margin: 0 0 14px; padding: 12px 14px; background: #fff8ec; border: 1px solid #f0e3c4; border-radius: 8px; font-size: 13px; color: #8a6a00; line-height: 1.6; }
+  #donateModal .sj-foot { margin: 12px 0 0; font-size: 12px; color: var(--text-3); text-align: center; }
+  #donateModal .lt-modal-badge { display: inline-block; font-size: 12px; font-weight: 700; color: #181206; background: #d9a441; padding: 4px 10px; border-radius: 12px; margin-bottom: 14px; }
+  #donateModal .amt.amt-ladder { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; line-height: 1.35; }
+  #donateModal .amt.amt-ladder small { font-weight: 400; font-size: 11px; color: var(--text-3); white-space: normal; word-break: keep-all; }
+  #donateModal .amt.amt-ladder.on small { color: rgba(255,255,255,.85); }
+  #donateModal .amt-grid.ladder-4 { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 560px) { #donateModal .amt-grid.ladder-4 { grid-template-columns: repeat(4, 1fr); } }
+  #donateModal .amt-impact { margin: 0 0 10px; padding: 9px 12px; background: #fbf3e2; border-left: 3px solid #d9a441; font-size: 12.5px; color: #5c4a1c; line-height: 1.6; }
+  #donateModal .amt-min-note { display: block; margin-top: 6px; font-size: 11.5px; color: var(--text-3); }
+  #donateModal .fg input[readonly].sj-locked { background: var(--bg-soft); color: var(--text-2); }
+
   #donateModal .checkbox-line {
     display: flex !important;
     align-items: flex-start !important;

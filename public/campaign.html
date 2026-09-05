@@ -33,6 +33,8 @@
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/pages.css?v=3">
+<!-- 2026-09-06 「등불의 기적」 테마 (등불 캠페인일 때만 body.lantern-page 로 켜진다) -->
+<link rel="stylesheet" href="/css/lantern.css?v=20260906-1">
 
 <style>
 .cmp-detail-page { max-width: 880px; margin: 0 auto; padding: 30px 20px 80px; }
@@ -75,6 +77,8 @@
 .cmp-cta:hover { background: var(--brand-deep, #5a1620); }
 .cmp-cta:disabled { opacity: 0.6; cursor: wait; }
 
+.cmp-receipt-note { margin: 18px auto 0; max-width: 560px; font-size: 12.5px; color: var(--text-3); line-height: 1.8; text-align: center; padding: 12px 16px; background: var(--bg-soft); border-radius: 8px; }
+
 .breadcrumb { padding: 14px 20px; font-size: 12.5px; color: var(--text-3); max-width: 880px; margin: 0 auto; }
 .breadcrumb a { color: var(--text-3); text-decoration: none; }
 .breadcrumb a:hover { color: var(--brand); }
@@ -108,11 +112,13 @@
   <script src="/js/icons.js?v=20260820-ssr" defer></script>
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
 <script src="/js/common.js?v=20260821-imgfb" defer></script>
-<script src="/js/auth.js?v=20260904-linkbtn" defer></script>
-<script src="/js/donate.js?v=r45" defer></script>
+<script src="/js/auth.js?v=20260906-lantern" defer></script>
+<script src="/js/donate.js?v=20260906-lantern" defer></script>
 <script>
 (function(){
   const TYPE_LABEL = { fundraising: '모금', memorial: '추모', awareness: '인식 개선' };
+  /* S3 — 랜딩과 같은 글자 (서버 extras.receiptNotice 가 있으면 그 값을 쓴다) */
+  const RECEIPT_NOTICE_DEFAULT = '저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다. 지정되는 날, 이 자리에서 바로 알려드리겠습니다.';
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -136,77 +142,252 @@
     return s;
   }
 
-  async function load() {
-    const root = document.getElementById('cmpRoot');
-    const params = new URLSearchParams(location.search);
-    const slug = params.get('slug');
-    const id = params.get('id');
-    if (!slug && !id) {
-      root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">잘못된 URL입니다.</div>';
-      return;
+  /* ─────────────────────────────────────────────────────────
+     2026-09-06 「등불의 기적」 — 랜딩(withwork)에서 넘어온 파라미터 보존 (S6-b)
+     ?slug=…&am_lp=tbfa-lantern-v2&am_anon=…&gate=1|2|3&donate=1
+     형식이 맞는 값만 세션에 보관 → 후원 모달 → 결제 서버 → 완료 후 랜딩으로 되돌아간다.
+     ───────────────────────────────────────────────────────── */
+  const params = new URLSearchParams(location.search);
+  const slugParam = params.get('slug');
+  const idParam = params.get('id');
+  const amMeta = (function () {
+    const lp = String(params.get('am_lp') || '').trim();
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(lp)) return null;
+    const meta = { am_lp: lp };
+    const anon = String(params.get('am_anon') || '').trim();
+    if (anon && /^[a-zA-Z0-9_.:-]{1,120}$/.test(anon)) meta.am_anon = anon;
+    const gate = String(params.get('gate') || '').trim();
+    if (/^[1-3]$/.test(gate)) meta.gate = gate;
+    return meta;
+  })();
+  try {
+    if (amMeta) {
+      sessionStorage.setItem('siren_am_return', JSON.stringify(Object.assign({ slug: slugParam || '', t: Date.now() }, amMeta)));
     }
+  } catch (_) {}
 
+  /* ───────── 기본(기존) 캠페인 화면 ───────── */
+  function renderDefault(root, c) {
+    const thumb = c.thumbnailBlobId
+      ? `background-image:url('/api/blob-image?id=${c.thumbnailBlobId}')`
+      : 'background:linear-gradient(135deg,#7a1f2b,#a64252)';
+    const goal = c.goalAmount || 0;
+    const raised = c.raisedAmount || 0;
+    const pct = c.progressPercent;
+
+    const progressHtml = goal > 0
+      ? `<div class="cmp-progress-large"><div class="cmp-progress-large-fill" style="width:${pct}%"></div></div>
+         <div style="font-size:14px;color:var(--text-2);text-align:right;margin-bottom:14px">${pct}% 달성</div>
+         <div class="cmp-stats-row">
+           <div class="cmp-stats-item"><div class="cmp-stats-label">현재 모금액</div><div class="cmp-stats-value brand">₩${raised.toLocaleString()}</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">목표 금액</div><div class="cmp-stats-value">₩${goal.toLocaleString()}</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">후원자</div><div class="cmp-stats-value">${(c.donorCount || 0).toLocaleString()}명</div></div>
+           ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
+         </div>`
+      : `<div class="cmp-stats-row">
+           <div class="cmp-stats-item"><div class="cmp-stats-label">참여 후원자</div><div class="cmp-stats-value brand">${(c.donorCount || 0).toLocaleString()}명</div></div>
+           ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
+         </div>`;
+
+    const isClosed = c.status === 'closed';
+
+    root.innerHTML = `
+      <div class="cmp-detail-hero" style="${thumb}">
+        <span class="cmp-detail-type-badge">${TYPE_LABEL[c.type] || c.type}</span>
+      </div>
+
+      <h1 class="cmp-detail-title">${escapeHtml(c.title)}</h1>
+
+      ${c.summary ? `<div class="cmp-detail-summary">${escapeHtml(c.summary)}</div>` : ''}
+
+      <div class="cmp-stats-card">
+        ${progressHtml}
+      </div>
+
+      <div class="cmp-detail-content">${sanitizeHtml(c.contentHtml || '')}</div>
+
+      ${isClosed
+        ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. </div>'
+        : `<button class="cmp-cta" data-cmp-donate="${c.id}" data-cmp-slug="${escapeHtml(c.slug)}" data-cmp-title="${escapeHtml(c.title)}">
+            이 캠페인에 후원하기
+          </button>
+          <p class="cmp-receipt-note">${escapeHtml(RECEIPT_NOTICE_DEFAULT)}</p>`
+      }
+    `;
+  }
+
+  /* ───────── 「등불의 기적」 화면 (S1·S2·S3·S4·S7·S12) ───────── */
+  function renderLantern(root, c) {
+    const x = c.extras;
+    document.body.classList.add('lantern-page');
+    const thumb = c.thumbnailBlobId ? `/api/blob-image?id=${c.thumbnailBlobId}` : '';
+    const goal = c.goalAmount || 0;
+    const raised = c.raisedAmount || 0;
+    const pct = goal > 0 ? Math.min(100, Math.round((raised / goal) * 1000) / 10) : null;
+    const isClosed = c.status === 'closed';
+    const notice = x.receiptNotice || RECEIPT_NOTICE_DEFAULT;
+
+    const ctaBtn = (sub) => isClosed
+      ? '<div style="padding:26px;border:1px solid var(--lt-hr);color:var(--lt-dim);text-align:center">이 캠페인은 종료되었습니다. 함께해 주신 모든 분들께 감사드립니다.</div>'
+      : `<button class="lt-cta" data-cmp-donate="${c.id}" data-cmp-slug="${escapeHtml(c.slug)}" data-cmp-title="${escapeHtml(c.title)}">
+           후원회원으로 함께하기
+           <small>${escapeHtml(sub)}</small>
+         </button>`;
+
+    const ladderCol = (label, hint, steps) =>
+      `<div class="lt-ladder-col">
+         <h4>${escapeHtml(label)}<small>${escapeHtml(hint)}</small></h4>
+         ${steps.map(s => `<div class="lt-ladder-row"><b>${Number(s.amount).toLocaleString()}원</b><span>${escapeHtml(s.impact)}</span></div>`).join('')}
+       </div>`;
+
+    root.innerHTML = `
+      <section class="lt-hero" ${thumb ? `style="background-image:url('${thumb}')"` : ''}>
+        <div class="lt-hero-in">
+          <div class="lt-eyebrow">${escapeHtml(x.eyebrow || '교사유가족협의회 후원회원 캠페인')}</div>
+          <h1 class="lt-title"><span class="orn">✦</span>${escapeHtml(c.title)}</h1>
+          <p class="lt-headline">${escapeHtml(x.headline || c.summary || '')}</p>
+          ${x.subtitle ? `<p class="lt-subtitle">${escapeHtml(x.subtitle)}</p>` : ''}
+        </div>
+      </section>
+
+      <div class="lt-in">
+        <section class="lt-stats">
+          <div class="lt-stats-grid">
+            <div class="lt-stat"><b id="ltMembers">${(c.donorCount || 0).toLocaleString()}</b><span>개의 등불이 켜졌습니다</span><small>후원회원 수 · 정기+일시</small></div>
+            <div class="lt-stat"><b id="ltMonthly">–</b><span>정기 후원회원</span><small>매달 함께 지키는 사람</small></div>
+          </div>
+          ${goal > 0 ? `
+          <div class="lt-progress"><i id="ltProgressBar" style="width:0"></i></div>
+          <div class="lt-progress-lab"><span>모인 회비 <b>₩${raised.toLocaleString()}</b></span><span>${pct}% · 목표 ₩${goal.toLocaleString()}</span></div>` : ''}
+          <div class="lt-cta-wrap">
+            ${ctaBtn('월 1만 원부터 · 한 번의 후원도 환영합니다')}
+            <p class="lt-cta-sub">가입 즉시 등불 증서가 발급되고, 정기 후원은 마이페이지에서 언제든 한 번에 해지하실 수 있습니다.</p>
+          </div>
+        </section>
+
+        <article class="lt-content">${sanitizeHtml(c.contentHtml || '')}</article>
+
+        ${x.ladder ? `
+        <section class="lt-ladder">
+          <h3>후원이 하는 일</h3>
+          <div class="lt-ladder-grid">
+            ${ladderCol('정기 후원 (월)', x.ladder.monthlyHint || '', x.ladder.regular || [])}
+            ${ladderCol('일시 후원', '한 번만', x.ladder.onetime || [])}
+          </div>
+          <p class="lt-ladder-note">${escapeHtml(x.ladder.minNote || '최소 1,000원부터 가능합니다')} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
+        </section>` : ''}
+
+        <section class="lt-recent" id="ltRecent" hidden>
+          <h3>최근 켜진 등불</h3>
+          <div class="lt-recent-list" id="ltRecentList"></div>
+          <div class="lt-schools" id="ltSchools" hidden></div>
+        </section>
+
+        <section class="lt-notice">
+          <h3>후원회원 모집 안내</h3>
+          <p><b>${escapeHtml(notice)}</b></p>
+          ${x.feeNotice ? `<p>${escapeHtml(x.feeNotice)}</p>` : ''}
+          ${x.org ? `<div class="lt-org">${escapeHtml(x.org.name)} · 사업자등록번호 ${escapeHtml(x.org.businessNo)} · 대표 ${escapeHtml(x.org.representative)}</div>` : ''}
+        </section>
+
+        <section class="lt-faq" id="ltFaq" hidden>
+          <h3>자주 묻는 질문</h3>
+          <div id="ltFaqList"></div>
+        </section>
+
+        <div class="lt-bottom">
+          <p>“선생님, 이제 여기는 걱정 마세요.<br />이곳은 저희가 지킬게요.”</p>
+          ${ctaBtn('이 한마디를 함께 완성해 주세요')}
+        </div>
+      </div>
+    `;
+
+    /* 진행률 막대는 그린 뒤 채운다 */
+    if (pct !== null) setTimeout(() => { const b = document.getElementById('ltProgressBar'); if (b) b.style.width = pct + '%'; }, 120);
+
+    loadLanternStats(c.slug);
+    if (x.faqCategory) loadLanternFaq(x.faqCategory);
+    if (x.org) applyOrgOverride(x.org);
+  }
+
+  /* S6-a 실값 — 랜딩과 같은 출처(/api/campaign-stats)를 이 화면도 읽는다 */
+  async function loadLanternStats(slug) {
     try {
-      const res = await fetch('/api/campaigns?' + (slug ? 'slug=' + encodeURIComponent(slug) : 'id=' + id));
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error('실패');
-      const c = data.data?.campaign || data.campaign;
+      const res = await fetch('/api/campaign-stats?slug=' + encodeURIComponent(slug));
+      const d = await res.json();
+      if (!res.ok || !d.ok) return;
+      const m = document.getElementById('ltMembers');
+      const mo = document.getElementById('ltMonthly');
+      if (m && typeof d.members === 'number') m.textContent = d.members.toLocaleString();
+      if (mo && typeof d.monthly === 'number') mo.textContent = d.monthly.toLocaleString();
 
-      const thumb = c.thumbnailBlobId
-        ? `background-image:url('/api/blob-image?id=${c.thumbnailBlobId}')`
-        : 'background:linear-gradient(135deg,#7a1f2b,#a64252)';
-      const goal = c.goalAmount || 0;
-      const raised = c.raisedAmount || 0;
-      const pct = c.progressPercent;
+      const wrap = document.getElementById('ltRecent');
+      const list = document.getElementById('ltRecentList');
+      const schools = document.getElementById('ltSchools');
+      const recent = Array.isArray(d.recent) ? d.recent : [];
+      const bySchool = Array.isArray(d.bySchool) ? d.bySchool : [];
+      if (list && recent.length) {
+        list.innerHTML = recent.map(r => `
+          <div class="lt-recent-item"><span class="orb"></span>
+            <div><b>${escapeHtml(r.name || '익명')}</b>${r.school ? `<small>${escapeHtml(r.school)}</small>` : ''}
+              ${r.note ? `<p>${escapeHtml(r.note)}</p>` : ''}</div>
+          </div>`).join('');
+      }
+      if (schools && bySchool.length) {
+        schools.innerHTML = bySchool.slice(0, 12).map(s => `<span>${escapeHtml(s.school)}<b>${Number(s.count).toLocaleString()}명</b></span>`).join('');
+        schools.hidden = false;
+      }
+      if (wrap && (recent.length || bySchool.length)) wrap.hidden = false;
+    } catch (e) { console.warn('[lantern] stats', e); }
+  }
 
-      const progressHtml = goal > 0
-        ? `<div class="cmp-progress-large"><div class="cmp-progress-large-fill" style="width:${pct}%"></div></div>
-           <div style="font-size:14px;color:var(--text-2);text-align:right;margin-bottom:14px">${pct}% 달성</div>
-           <div class="cmp-stats-row">
-             <div class="cmp-stats-item"><div class="cmp-stats-label">현재 모금액</div><div class="cmp-stats-value brand">₩${raised.toLocaleString()}</div></div>
-             <div class="cmp-stats-item"><div class="cmp-stats-label">목표 금액</div><div class="cmp-stats-value">₩${goal.toLocaleString()}</div></div>
-             <div class="cmp-stats-item"><div class="cmp-stats-label">후원자</div><div class="cmp-stats-value">${(c.donorCount || 0).toLocaleString()}명</div></div>
-             ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
-           </div>`
-        : `<div class="cmp-stats-row">
-             <div class="cmp-stats-item"><div class="cmp-stats-label">참여 후원자</div><div class="cmp-stats-value brand">${(c.donorCount || 0).toLocaleString()}명</div></div>
-             ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
-           </div>`;
+  /* S7 — FAQ 6문 (어드민 FAQ 관리 category=lantern) */
+  async function loadLanternFaq(category) {
+    try {
+      const res = await fetch('/api/faqs?category=' + encodeURIComponent(category));
+      const d = await res.json();
+      const list = (d && d.data && d.data.list) || [];
+      const wrap = document.getElementById('ltFaq');
+      const box = document.getElementById('ltFaqList');
+      if (!wrap || !box || !list.length) return;
+      box.innerHTML = list.map(f => `
+        <div class="lt-faq-item">
+          <button type="button" class="lt-faq-q">${escapeHtml(f.question)}</button>
+          <div class="lt-faq-a">${escapeHtml(f.answer).replace(/\n/g, '<br />')}</div>
+        </div>`).join('');
+      box.addEventListener('click', e => {
+        const q = e.target.closest('.lt-faq-q');
+        if (!q) return;
+        q.parentElement.classList.toggle('open');
+      });
+      wrap.hidden = false;
+    } catch (e) { console.warn('[lantern] faq', e); }
+  }
 
-      const isClosed = c.status === 'closed';
-
-      root.innerHTML = `
-        <div class="cmp-detail-hero" style="${thumb}">
-          <span class="cmp-detail-type-badge">${TYPE_LABEL[c.type] || c.type}</span>
-        </div>
-
-        <h1 class="cmp-detail-title">${escapeHtml(c.title)}</h1>
-
-        ${c.summary ? `<div class="cmp-detail-summary">${escapeHtml(c.summary)}</div>` : ''}
-
-        <div class="cmp-stats-card">
-          ${progressHtml}
-        </div>
-
-        <div class="cmp-detail-content">${sanitizeHtml(c.contentHtml || '')}</div>
-
-        ${isClosed
-          ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. </div>'
-          : `<button class="cmp-cta" data-cmp-donate="${c.id}" data-cmp-slug="${escapeHtml(c.slug)}" data-cmp-title="${escapeHtml(c.title)}">
-              이 캠페인에 후원하기
-            </button>`
-        }
-      `;
-    } catch (e) {
-      root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">캠페인을 찾을 수 없습니다.</div>';
+  /* S4 — 이 화면의 단체 표기는 사단법인 번호(381-82-00754)로. 푸터는 공통 DB 값을 그리므로 여기서만 덮어쓴다 */
+  function applyOrgOverride(org) {
+    const apply = () => {
+      document.querySelectorAll('[data-footer="org.name"]').forEach(el => { if (el.textContent !== org.name) el.textContent = org.name; });
+      document.querySelectorAll('[data-footer="org.businessNo"]').forEach(el => { if (el.textContent !== org.businessNo) el.textContent = org.businessNo; });
+      document.querySelectorAll('[data-footer="org.representative"]').forEach(el => { if (org.representative && el.textContent !== org.representative) el.textContent = org.representative; });
+    };
+    apply();
+    const slot = document.getElementById('footer-slot');
+    if (slot && window.MutationObserver) {
+      const mo = new MutationObserver(() => apply());
+      mo.observe(slot, { childList: true, subtree: true, characterData: true });
     }
+    setTimeout(apply, 1500);
+    setTimeout(apply, 4000);
   }
 
   /* v11 묶음 C-7: 후원하기 버튼 → 같은 페이지에서 모달 오픈 (이동 X)
-     - sessionStorage에 캠페인 정보 저장 (donate.js가 자동 prefill)
+     - sessionStorage에 캠페인 정보 저장 (donate.js가 자동 prefill · extras 로 등불 규칙 적용)
      - 표준 [data-action="open-modal"] 가짜 트리거로 common.js의 모달 오픈 메커니즘 활용
      - donateModal이 partials 로드 후에 DOM에 들어오므로, 최대 6초 대기 후 폴백 */
+  let _lastCampaign = null;
   function openDonateModalForCampaign(campaignInfo) {
+    _lastCampaign = campaignInfo;
     sessionStorage.setItem('siren_preselect_campaign', JSON.stringify(campaignInfo));
 
     const tryOpen = () => {
@@ -247,18 +428,41 @@
     e.preventDefault();
 
     /* 시각적 피드백 — 버튼이 "준비 중..." 으로 잠시 변경 */
-    const orig = btn.textContent;
+    const orig = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = '후원 모달 준비 중...';
-    setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 1500);
+    btn.textContent = '후원 창 준비 중...';
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 1500);
 
     const id = Number(btn.dataset.cmpDonate);
     const slug = btn.dataset.cmpSlug;
     const title = btn.dataset.cmpTitle;
-    openDonateModalForCampaign({ id, slug, title });
+    const extras = (_lastCampaign && _lastCampaign.id === id) ? _lastCampaign.extras : (window.__sirenCampaignExtras || null);
+    openDonateModalForCampaign({ id, slug, title, extras });
   });
 
-  load();
+  /* 화면 그리기 — 후원 버튼이 눌리기 전에 extras 를 보관해 둔다 */
+  (async () => {
+    const root = document.getElementById('cmpRoot');
+    if (!slugParam && !idParam) { root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">잘못된 URL입니다.</div>'; return; }
+    try {
+      const res = await fetch('/api/campaigns?' + (slugParam ? 'slug=' + encodeURIComponent(slugParam) : 'id=' + idParam));
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('실패');
+      const c = data.data?.campaign || data.campaign;
+      window.__sirenCampaignExtras = c.extras || null;
+      _lastCampaign = { id: c.id, slug: c.slug, title: c.title, extras: c.extras || null };
+
+      if (c.extras && c.extras.theme === 'lantern') renderLantern(root, c);
+      else renderDefault(root, c);
+
+      /* 랜딩 «후원회원 되기»에서 왔으면(donate=1) 후원 창을 바로 연다 */
+      if (params.get('donate') === '1' && c.status !== 'closed') {
+        setTimeout(() => openDonateModalForCampaign(_lastCampaign), 700);
+      }
+    } catch (e) {
+      root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">캠페인을 찾을 수 없습니다.</div>';
+    }
+  })();
 })();
 </script>
 </body>

@@ -1203,7 +1203,7 @@ document.addEventListener('change', async function (e) {
       if (kpiValues[0]) kpiValues[0].textContent = (stats.totalAmount || 0).toLocaleString() + '원';
       if (kpiValues[1]) kpiValues[1].textContent = (stats.regularCount || 0) + '회';
       if (kpiValues[2]) {
-        kpiValues[2].textContent = stats.totalCount > 0 ? '발급 가능' : '내역 없음';
+        kpiValues[2].textContent = stats.totalCount > 0 ? '확인 가능' : '내역 없음';
         kpiValues[2].style.color = stats.totalCount > 0 ? 'var(--success)' : 'var(--text-3)';
       }
     }

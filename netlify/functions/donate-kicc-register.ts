@@ -19,6 +19,10 @@ import { safeValidate } from "../../lib/validation";
 import { ok, badRequest, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { registerTrade, generateShopOrderNo } from "../../lib/kicc";
+/* 2026-09-06 「등불의 기적」: 랜딩 파라미터(am_lp·am_anon·gate) 보관 + 후원회원 가입 필수 캠페인 */
+import { campaigns } from "../../db/schema";
+import { getCampaignExtras } from "../../lib/campaign-extras";
+import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -31,6 +35,7 @@ const registerSchema = z.object({
   isAnonymous: z.boolean().optional().default(false),
   campaignId: z.number().int().positive().optional(),
   campaignTag: z.string().max(50).optional(),
+  sourceMeta: z.record(z.any()).optional(),
 });
 
 export default async (req: Request) => {
@@ -55,6 +60,18 @@ export default async (req: Request) => {
         .where(eq(members.id, auth.uid))
         .limit(1);
       if (user && user.status !== "withdrawn" && user.status !== "suspended") memberId = user.id;
+    }
+
+    /* 등불 캠페인(S5): 회칙에 따른 후원회원 가입이 먼저 — 비회원 결제는 받지 않는다 */
+    let campaignExtras = null as ReturnType<typeof getCampaignExtras>;
+    if (data.campaignId) {
+      try {
+        const [cRow] = await db.select({ slug: campaigns.slug }).from(campaigns).where(eq(campaigns.id, data.campaignId)).limit(1);
+        campaignExtras = getCampaignExtras(cRow?.slug);
+      } catch { /* 보조 조회 실패는 무시 */ }
+      if (campaignExtras?.requireMembership && !memberId) {
+        return badRequest("후원회원 가입(회칙 동의) 후 결제할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      }
     }
 
     /* shopOrderNo(=pgOrderNo) 생성 (중복 방지) */
@@ -93,6 +110,12 @@ export default async (req: Request) => {
       } as any)
       .returning({ id: donations.id, pgOrderNo: donations.pgOrderNo, amount: donations.amount });
     if (!donation) throw new Error("후원 정보 저장 실패");
+
+    /* 랜딩 파라미터 보관(S6-b) — 등불 캠페인일 때만·형식 검증 통과분만 */
+    if (campaignExtras) {
+      const meta = sanitizeAmMeta(data.sourceMeta);
+      if (meta) await saveDonationSourceMeta(donation.id, meta);
+    }
 
     /* KICC 거래등록 */
     const reg = await registerTrade({

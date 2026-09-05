@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 import { fmtKSTSimple, fmtKSTDate } from "./datetime";
+/* 2026-09-06(S3): 기부금영수증 안내 문구 단일 출처 — 협의회는 아직 공익법인 지정 전 */
+import { RECEIPT_NOTICE } from "./campaign-extras";
 
 /* 환경변수에서만 로드 — 하드코딩 절대 금지 (Netlify Secrets Scanning 차단) */
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -497,8 +499,10 @@ export function tplDonationThanks(opts: {
   donationId: number;          // donations.id (원본 숫자)
   donationDate: Date;
   isMember: boolean;           // memberId 존재 여부
+  /* 2026-09-06 「등불의 기적」(S8): 디지털 후원 증서 — 등불 번호·문구·랜딩 되돌아가기 */
+  lantern?: { lanternNo: number; campaignLabel: string; tagline: string; returnUrl?: string | null };
 }) {
-  const { donorName, amount, donationType, payMethod, donationId, donationDate, isMember } = opts;
+  const { donorName, amount, donationType, payMethod, donationId, donationDate, isMember, lantern } = opts;
 
   /* 한글 라벨 */
   const typeKr = donationType === "regular" ? "정기 후원" : "일시 후원";
@@ -516,42 +520,52 @@ export function tplDonationThanks(opts: {
 
   const donationNo = `D-${String(donationId).padStart(7, "0")}`;
 
-  /* 영수증 영역 — 회원/비회원 분기 (결정 1-A안) */
-  const receiptBlockHtml = isMember
-    ? `
+  /* 영수증 영역 — 2026-09-06(S3): 협의회는 아직 공익법인(지정기부금단체) 지정 전.
+     「즉시 발급·국세청 자동 등재」는 사실과 달라 전부 걷어내고, 랜딩과 같은 글자로 안내한다. */
+  const receiptBlockHtml = `
     <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
                 border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-        기부금 영수증 발급 안내
+        기부금영수증(세액공제) 안내
       </div>
-      <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:14px;">
-        후원해 주신 금액에 대한 <strong>기부금 영수증</strong>은 마이페이지에서 즉시 PDF로 발급받으실 수 있습니다.<br />
-        연말정산 시 소득공제 자료로 활용해 주세요.
+      <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:${isMember ? "14px" : "0"};">
+        ${esc(RECEIPT_NOTICE)}<br />
+        후원 내역은 ${isMember ? "마이페이지에서" : "회원가입 후 마이페이지에서"} 언제든 확인하실 수 있습니다.
       </div>
+      ${isMember ? `
       <a href="${SITE_URL}/mypage.html#donations" target="_blank"
          style="display:inline-block;padding:10px 18px;background:#0f0f0f;color:#ffffff;
                 text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
-        영수증 발급하러 가기 →
-      </a>
-    </div>`
-    : `
-    <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
-                border-radius:8px;">
-      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-        기부금 영수증 발급 안내
-      </div>
-      <div style="font-size:13px;color:#525252;line-height:1.7;">
-        기부금 영수증은 <strong>회원가입 후</strong> 마이페이지에서 발급받으실 수 있습니다.<br />
-        가입 시 본 후원 내역이 자동으로 연결되어 PDF로 즉시 발급됩니다.
-      </div>
-      <div style="margin-top:14px;">
-        <a href="${SITE_URL}/index.html" target="_blank"
-           style="display:inline-block;padding:10px 18px;background:#0f0f0f;color:#ffffff;
-                  text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
-          회원가입 →
-        </a>
-      </div>
+        후원 내역 보기 →
+      </a>` : ""}
     </div>`;
+
+  /* 등불 증서(S8) — 등불 캠페인 후원일 때만 */
+  const lanternBlockHtml = lantern
+    ? `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;">
+      <tr><td style="padding:26px 24px;background:#0e0f12;border:1px solid #8a6420;border-radius:10px;text-align:center;">
+        <div style="font-size:11px;letter-spacing:.32em;color:#8b8880;margin-bottom:12px;">LANTERN No.</div>
+        <div style="font-family:'Noto Serif KR',serif;font-size:40px;font-weight:900;color:#f0cf8e;line-height:1;margin-bottom:12px;">
+          ${lantern.lanternNo}
+        </div>
+        <div style="font-family:'Noto Serif KR',serif;font-size:17px;font-weight:600;color:#ece9e3;margin-bottom:6px;">
+          ${esc(donorName)} 님 · ${esc(lantern.tagline)}
+        </div>
+        <div style="font-size:12.5px;color:#b5b1a9;letter-spacing:.06em;">${esc(lantern.campaignLabel)} · 교사유가족협의회</div>
+        <div style="margin-top:18px;font-size:12.5px;color:#8b8880;line-height:1.7;">
+          이 증서는 마이페이지 &gt; 내 등불에서 언제든 다시 보실 수 있고, 카카오톡 프로필·학교 게시용으로 이미지로 저장하실 수 있습니다.
+        </div>
+        ${lantern.returnUrl ? `
+        <div style="margin-top:16px;">
+          <a href="${lantern.returnUrl}" target="_blank"
+             style="display:inline-block;padding:10px 20px;background:#d9a441;color:#181206;text-decoration:none;border-radius:4px;font-size:13px;font-weight:700;">
+            내 등불 보러 가기 →
+          </a>
+        </div>` : ""}
+      </td></tr>
+    </table>`
+    : "";
 
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
@@ -604,6 +618,8 @@ export function tplDonationThanks(opts: {
         </td>
       </tr>
     </table>
+
+    ${lanternBlockHtml}
 
     ${receiptBlockHtml}
 
@@ -1111,12 +1127,13 @@ export function tplBillingChargeSuccess(opts: {
     <div style="margin:20px 0;padding:16px 20px;background:#fef9f5;
                 border:1px solid #f0e0d4;border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:8px;">
-        기부금 영수증
+        기부금영수증(세액공제) 안내
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;">
+        ${esc(RECEIPT_NOTICE)}<br />
         ${isMember
-          ? "마이페이지에서 영수증을 즉시 발급받으실 수 있습니다."
-          : "회원가입 후 마이페이지에서 후원 내역과 영수증을 확인하실 수 있습니다."}
+          ? "후원 내역은 마이페이지에서 언제든 확인하실 수 있습니다."
+          : "회원가입 후 마이페이지에서 후원 내역을 확인하실 수 있습니다."}
       </div>
     </div>
 

@@ -19,6 +19,10 @@ import { safeValidate } from "../../lib/validation";
 import { ok, badRequest, forbidden, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { registerTrade, generateShopOrderNo } from "../../lib/kicc";
+/* 2026-09-06 「등불의 기적」: 정기 후원도 캠페인에 합산(campaignId) + 랜딩 파라미터 보관 + 후원회원 가입 필수 */
+import { campaigns } from "../../db/schema";
+import { getCampaignExtras } from "../../lib/campaign-extras";
+import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -28,6 +32,8 @@ const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   amount: z.number().int().min(1000).max(100_000_000),
   isAnonymous: z.boolean().optional().default(false),
+  campaignId: z.number().int().positive().nullable().optional(),
+  sourceMeta: z.record(z.any()).optional(),
 });
 
 /** customerKey: 회원 M{id}-{8hex} / 비회원 G-{16hex} */
@@ -75,6 +81,19 @@ export default async (req: Request) => {
       }
     }
 
+    /* 등불 캠페인(S5): 회칙에 따른 후원회원 가입이 먼저 — 비회원 정기 등록은 받지 않는다 */
+    const campaignId = data.campaignId || null;
+    let campaignExtras = null as ReturnType<typeof getCampaignExtras>;
+    if (campaignId) {
+      try {
+        const [cRow] = await db.select({ slug: campaigns.slug }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+        campaignExtras = getCampaignExtras(cRow?.slug);
+      } catch { /* 보조 조회 실패는 무시 */ }
+      if (campaignExtras?.requireMembership && !memberId) {
+        return badRequest("후원회원 가입(회칙 동의) 후 정기 후원을 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      }
+    }
+
     /* customerKey 생성 (중복 방지) */
     let customerKey = "";
     for (let i = 0; i < 3; i++) {
@@ -93,8 +112,9 @@ export default async (req: Request) => {
       if (i === 2) throw new Error("주문번호 생성 실패");
     }
 
-    /* pending(type=regular) 선저장 — 승인 시 금액·기부자 서버 신뢰 기준 */
-    await db.insert(donations).values({
+    /* pending(type=regular) 선저장 — 승인 시 금액·기부자 서버 신뢰 기준
+       2026-09-06: campaignId 동봉 — 그동안 정기 후원은 캠페인 합산에서 빠져 있었다 */
+    const [pendingRow] = await db.insert(donations).values({
       memberId,
       donorName: data.name,
       donorPhone: data.phone,
@@ -105,8 +125,15 @@ export default async (req: Request) => {
       pgProvider: "kicc",
       status: "pending",
       pgOrderNo,
+      campaignId,
       isAnonymous: data.isAnonymous === true,
-    } as any);
+    } as any).returning({ id: donations.id });
+
+    /* 랜딩 파라미터 보관(S6-b) — 등불 캠페인일 때만·형식 검증 통과분만 */
+    if (campaignExtras && pendingRow) {
+      const meta = sanitizeAmMeta(data.sourceMeta);
+      if (meta) await saveDonationSourceMeta(pendingRow.id, meta);
+    }
 
     /* KICC 빌키 등록창 거래등록 */
     const reg = await registerTrade({
