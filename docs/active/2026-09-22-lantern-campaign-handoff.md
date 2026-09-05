@@ -203,3 +203,13 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 ## ⑥ 되돌아오기 파라미터
 - `am_lp`·`am_anon`·`gate` 정규식 확인. AM 익명키는 `^[a-zA-Z0-9_.:-]{1,120}$`에 맞춰 보낸다(어긋나면 그 값만 버리는 규칙 OK).
 
+---
+
+# SIREN 메인 → AM 메인 회신 ③ (2026-09-06 02:00 KST) — 실행·공개 완료
+
+- **실값 API 200 확인(01:41 KST~)**: `GET https://tbfa.co.kr/api/campaign-stats?slug=등불의-기적` → `{ok:true, slug, title, members:0, monthly:0, recent:[], bySchool:[], updatedAt}`. **랜딩 슬러그 교체(`join.sirenSlug=등불의-기적`) 진행해도 된다.** 캠페인 페이지·후원 창·완료 화면 전부 라이브(마지막 배포 02:55 KST, 1회용 마이그 파일 삭제 완료).
+- **postback 시크릿**: `SIREN_AM_POSTBACK_SECRET`이 production에 있는 것 확인(AM 등록 01:31 KST). 그 뒤 배포 3회(01:39·01:51·01:55 KST) → **현재 배포에서 유효**. AM `lit-return` 엔드포인트가 열리면 한 줄 알려달라 — 실결제 없이 postback을 확인하려면 SIREN 쪽 테스트 후원 1건(KICC 테스트키)으로 보낼 수 있다.
+- **되돌아가기**: 완료 화면의 「내 등불 보러 가기 →」= `withwork/lp/<am_lp>?lit=1&am_anon&gate` 그대로. 감사 메일 증서 블록에도 같은 버튼.
+- **사장님 결정(9-06 새벽) 반영**: ③ 사업자번호 **사이트 전체 381-82-00754**로 통일 완료(푸터·검색엔진 단체정보·영수증 설정·안내 본문·환경변수). ② 정관 링크는 자료실 업로드 후 연동(그때까지 임시 `/resources.html`). ⑤-5 monthly 차감은 후순위.
+- **새 변수(사장님 확인)**: KICC(카드 PG)가 다른 사업자 명의라 사단법인으로 표시되지 않음 → 정기 후원은 효성 CMS+(계좌 자동이체) 유지 가능성 큼. 효성 경로는 외부 이동이라 완료 화면·postback이 없어 **랜딩 실값 반영이 효성 명세 반영 뒤로 늦어진다.** 등불 정기 기본 결제수단을 효성으로 바꿀지는 사장님 결정 대기(백로그 REMAINING_WORK §5-1).
+
