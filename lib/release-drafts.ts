@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-06.5";
+export const APP_VERSION = "2026-09-06.6";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,18 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-06-lantern-am-modal",
+    title: "「등불의 기적」 2차 — 후원 랜딩 안에서 가입·결제가 끝나도 회원·후원 내역은 우리 홈페이지에 쌓입니다",
+    items: [
+      { text: "외부 후원 랜딩(숭고한 등불)의 모달에서 가입·금액 선택을 하면, 회원 명부·후원 원장·증서·해지·마이페이지는 전부 우리 홈페이지에 기록됩니다. 랜딩은 화면만 제공합니다" },
+      { text: "가입 첫 화면에 「사단법인 교사유가족협의회 후원회원 가입이며 회원 정보와 후원 내역은 tbfa.co.kr에 보관된다」는 고지가 같은 글자로 들어갑니다(우리 후원 창도 동일)" },
+      { text: "랜딩에서 온 후원자는 아이디·비밀번호 없이 가입되고, 마이페이지가 필요하면 가입 메일의 「비밀번호 설정하기」(7일) 링크로 만듭니다. 이미 회원이면 로그인 없이 바로 금액 단계로 갑니다" },
+      { text: "계좌 직접 입금을 고른 후원은 «입금 대기»로 들어오고, 운영자가 [입금 매칭·통과]에서 통과 처리하는 순간 등불이 켜지고 랜딩에도 통보됩니다. 효성 자동이체는 명세 반영 때 같은 처리", link: "/admin.html#donations" },
+      { text: "[관리자] 카드 결제는 당분간 KICC 그대로이며, 포트원 심사가 끝나 키를 넣으면 배포 없이 자동으로 포트원으로 바뀝니다" },
+      { text: "[관리자] 연동 자가 점검 도구 — 관리자 로그인 후 /api/admin-lantern-selftest?run=1 (시험 회원을 만들었다가 바로 지웁니다)" },
+    ],
+  },
   {
     key: "2026-09-06-lantern-campaign",
     title: "「등불의 기적」 후원회원 캠페인이 열렸습니다 — 후원 랜딩(숭고한 등불)과 연동",

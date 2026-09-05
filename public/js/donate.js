@@ -394,6 +394,8 @@
     const badge = document.getElementById('donateLanternBadge');
     const h2 = modal.querySelector('h2.serif');
     const sub = modal.querySelector('.modal-sub');
+    const noticePay = document.getElementById('donateNoticePay');
+    if (noticePay) noticePay.hidden = !_lantern;
     if (_lantern) {
       if (badge) { badge.textContent = '🕯️ ' + (_lantern.certificate?.campaignLabel || _campaignInfo?.title || '캠페인') + ' · 후원회원 회비'; badge.hidden = false; }
       if (h2) h2.textContent = (_campaignInfo?.title || '등불의 기적') + ' — 후원회원으로 함께하기';
@@ -611,7 +613,7 @@
         }
 
         if (dtype === 'regular' && payChoice === 'hyosung_cms') {
-          await handleHyosungIntent({ name: data.name, phone: data.phone, email, amount, isAnonymous, campaignId });
+          await handleHyosungIntent({ name: data.name, phone: data.phone, email, amount, isAnonymous, campaignId, sourceMeta });
           restoreBtn();
           return;
         }
@@ -694,13 +696,14 @@
   }
 
   async function handleHyosungIntent(opts) {
-    const { name, phone, email, amount, isAnonymous } = opts;
+    const { name, phone, email, amount, isAnonymous, campaignId, sourceMeta } = opts;
 
     const res = await fetch('/api/donate-hyosung-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ name, phone, email, amount, isAnonymous }),
+      /* 2026-09-06: 캠페인 합산 + 랜딩 파라미터 — 효성 명세 반영 때 등불이 켜진다 */
+      body: JSON.stringify({ name, phone, email, amount, isAnonymous, campaignId: campaignId || null, sourceMeta: sourceMeta || undefined }),
     });
     const result = await res.json().catch(() => ({}));
 

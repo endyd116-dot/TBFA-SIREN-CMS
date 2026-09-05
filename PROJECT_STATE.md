@@ -25,7 +25,15 @@
 
 > ⚠️ 아래 R45 이하(2026-05-29)는 **archive**. 2026-06~08 트랙은 본 절 상단 블록들이 최신.
 
-### 🕯️ 「등불의 기적」 후원회원 캠페인 신설·랜딩 연동 — **라이브 완료 · 마이그 적용·검증 통과** (2026-09-06·★최신)
+### 🕯️ 「등불의 기적」 2차 — AM 랜딩 모달 서버 연동(통보문 ⑧) — **코드 완료·배포·자가점검** (2026-09-06 새벽·★최신)
+사장님 결정 「화면은 AM 랜딩 모달, 주인(회원·원장·증서·해지)은 SIREN」. AM이 서버-서버로 부르는 3경로 + KICC 프리필 결제 페이지 + 완료 훅 + 포트원 준비. 정본 회신 ⑤ 참조.
+- `POST /api/lantern-member`(가입·쿠키 0·이메일→휴대폰 기존 판정·동의 증빙 audit_logs) · `POST /api/lantern-payment-intent`(bank→입금 대기 / cms→효성 / card→KICC 프리필 `lantern-pay.html?intent=` / 포트원 env 있으면 provider portone payload) · `POST /api/lantern-member-note` · 인증 `x-am-secret`.
+- 회원 해시 `members.am_member_hash`(DDL 직접 적용·schema 반영) · 결제 의도 id는 `donations.source_meta.intentId`(인덱스) · 되돌아가기·postback에 `intent` 추가.
+- 완료 훅: 관리자 입금 확인(IBK 통과)·효성 명세 반영 → 대기 의도를 완료 행에 이어 붙이고 postback·증서(`absorbLanternIntent`). SIREN 모달 효성 경로도 campaignId·source_meta 저장.
+- 공용 라이브러리 `lib/sponsor-member.ts`(가입 규칙 단일 출처) · `lib/lantern-am.ts`(AM 핵심) · 포트원 웹훅 뼈대 `portone-webhook`(시크릿 없으면 503) · 자가 점검 `admin-lantern-selftest`.
+- **남은 것**: 포트원 env 4개(사장님 심사 후) → 월 청구 cron·취소 반영 다음 라운드 · 협의회 계좌(010-45454-4544·예금주 표기) 실값 확인 · 영수증 PDF→납부 확인서 전환(AM E2E 뒤).
+
+### 🕯️ 「등불의 기적」 후원회원 캠페인 신설·랜딩 연동 — **라이브 완료 · 마이그 적용·검증 통과** (2026-09-06)
 라이브 확인(캠페인 API·실값 API 헤더·서버 렌더 OG·FAQ 6·옛 영수증 문구 0건·컬럼 5개)은 정본 문서 ⑥ 표 참조. **Swain 결정(9-06)**: ① 회칙(정관)은 자료실에 올린 뒤 연동(대기) ② **사업자번호 사이트 전체 381-82-00754**(정적·DB·env 반영) ③ **KICC가 다른 사업자 명의라 사단법인으로 안 나옴 → 정기는 효성 유지 가능성 큼**(등불 정기 기본 결제수단 결정 대기·백로그 §5-1).
 AutoMarketing 랜딩 「숭고한 등불」(withwork.tbfa.co.kr/lp/tbfa-lantern-v2)이 제주 캠페인으로 넘어오던 것을 새 캠페인으로 연결. **정본 = [`docs/active/2026-09-22-lantern-campaign-handoff.md`](docs/active/2026-09-22-lantern-campaign-handoff.md)**(AM 요청 S1~S12 + 말미 SIREN 회신).
 - **S1** 캠페인 「등불의 기적」 슬러그 `등불의-기적` — 마이그가 생성(본문·대표 사진=랜딩 OG 파일 R2 저장·고정·목표 3,000만). 캠페인 페이지는 슬러그별 확장 설정(`lib/campaign-extras.ts`)으로 어둠·금색 테마 전환. `am_lp·am_anon·gate` 형식 검증 후 세션 보관, `donate=1`이면 후원 창 자동 열림

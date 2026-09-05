@@ -18,6 +18,8 @@
   var amLp = String(params.get('am_lp') || '').trim();
   var amAnon = String(params.get('am_anon') || '').trim();
   var gate = String(params.get('gate') || '').trim();
+  var intent = String(params.get('intent') || '').trim();   /* 통보문 ⑧ — AM 모달 결제 의도 id */
+  var NOTICE_DONE = '후원 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다.';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -47,6 +49,7 @@
     var u = base.replace(/\/+$/, '') + '/lp/' + encodeURIComponent(lp) + '?lit=1';
     if (amAnon && /^[a-zA-Z0-9_.:-]{1,120}$/.test(amAnon)) u += '&am_anon=' + encodeURIComponent(amAnon);
     if (/^[1-3]$/.test(gate)) u += '&gate=' + gate;
+    if (/^[a-f0-9]{32}$/.test(intent)) u += '&intent=' + intent;
     return u;
   }
 
@@ -90,7 +93,7 @@
           '<label class="lt-consent"><input type="checkbox" id="ltConsent"' + (d.publicConsent ? ' checked' : '') + '> 이름(마스킹)·한마디를 캠페인 페이지에 보여줘도 됩니다</label>' +
           '<div class="lt-note-actions"><button type="button" class="lt-btn gold" id="ltNoteSave">저장</button><span class="lt-note-msg" id="ltNoteMsg"></span></div>' +
         '</div>' +
-        (d.receiptNotice ? '<p class="lt-receipt-line">' + esc(d.receiptNotice) + '</p>' : '') +
+        '<p class="lt-receipt-line">' + esc(NOTICE_DONE) + (d.receiptNotice ? '<br />' + esc(d.receiptNotice) : '') + '</p>' +
       '</div>';
 
     var mask = document.getElementById('ltMaskToggle');
@@ -224,7 +227,7 @@
     box.innerHTML =
       '<div class="lt-complete">' +
         '<h2>당신의 등불이 켜졌습니다</h2>' +
-        '<p class="lt-complete-sub">등불 증서와 「선생님께 한마디」는 로그인 후 마이페이지 &gt; 후원 내역에서 볼 수 있습니다.</p>' +
+        '<p class="lt-complete-sub">' + esc(NOTICE_DONE) + '<br />등불 증서와 「선생님께 한마디」는 마이페이지 &gt; 후원 내역에서 볼 수 있습니다(비밀번호는 가입 메일의 링크로 설정).</p>' +
         (returnUrl ? '<div class="lt-tools"><a class="lt-btn gold" href="' + esc(returnUrl) + '">내 등불 보러 가기 →</a></div>' : '') +
       '</div>';
     box.hidden = false;

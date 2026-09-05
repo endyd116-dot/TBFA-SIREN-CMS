@@ -329,6 +329,9 @@ export const members = pgTable("members", {
    */
   schoolName: varchar("school_name", { length: 150 }),
   bylawsAgreedAt: timestamp("bylaws_agreed_at"),
+  /* amMemberHash — AutoMarketing과 주고받는 회원 식별 해시(sha256("tbfa-lantern-member:"+id) 앞 24자).
+     서버-서버 호출(회원가입·결제 의도·한마디)에서 이 값으로 회원을 찾는다. DDL 직접 적용 2026-09-06. */
+  amMemberHash: varchar("am_member_hash", { length: 32 }),
 
   // 메타
   memo: text("memo"),

@@ -29,6 +29,8 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { safeReevaluate } from "../../lib/donor-status";
+/* 2026-09-06 「등불의 기적」: 입금 확인·효성 명세로 «완료» 행이 생기면 랜딩 모달의 대기 의도를 이어 붙여 등불을 켠다 */
+import { absorbLanternIntent } from "../../lib/lantern-am";
 import {
   mapContractRowToInsert, mapBillingRowToInsert,
 } from "../../lib/hyosung-mapper";
@@ -469,6 +471,11 @@ export default async (req: Request, _ctx: Context) => {
           contractId: (outcome as any).contractId ?? undefined,
           billingId: (outcome as any).billingId ?? undefined,
         });
+
+        /* 등불 캠페인: 이 회원의 «입금 대기»(계좌 직접 입금) 또는 «효성 대기» 의도가 있으면 완료 행에 이어 붙이고 postback·증서 */
+        if (donationIdValue) {
+          await absorbLanternIntent(outcome.memberId, Number(donationIdValue), p.source === "ibk" ? "bank" : "hyosung");
+        }
       } catch (rowErr: any) {
         results.push({
           id: p.id, ok: false,

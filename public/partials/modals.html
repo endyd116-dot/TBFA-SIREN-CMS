@@ -274,6 +274,8 @@
       <form data-form="sponsor-join" id="sponsorJoinForm" novalidate>
         <div class="sj-head">
           <div class="sj-badge" id="sjBadge">🕯️ 후원회원 가입</div>
+          <!-- [W1] NOTICE_ORG — AM 랜딩 모달과 같은 글자(통보문 ⑧) -->
+          <p class="sj-intro" id="sjNoticeOrg" style="margin-bottom:8px;padding:10px 12px;background:var(--bg-soft);border-radius:6px;color:var(--text-2)">이 가입은 사단법인 교사유가족협의회(381-82-00754)의 후원회원 가입입니다. 함께워크(withwork)는 화면만 제공하고, 회원 정보와 후원 내역은 교사유가족협의회 홈페이지(tbfa.co.kr)에 등록·보관됩니다.</p>
           <p class="sj-intro" id="sjIntro">결제 전에 회칙에 따른 후원회원 가입을 먼저 받습니다. 1분이면 됩니다.</p>
           <p class="sj-intro sj-mode" id="sjModeNote" hidden>이미 회원이시네요. 회칙 동의만 남았습니다.</p>
         </div>
@@ -297,13 +299,14 @@
           <input type="text" name="schoolName" id="sjSchool" placeholder="예: ○○초등학교 / ○○교육청 / 일반" maxlength="150">
         </div>
 
+        <!-- [W1] CONSENT_BYLAWS · CONSENT_PRIVACY · CONSENT_SMS — AM 랜딩 모달과 같은 글자(통보문 ⑧) -->
         <label class="checkbox-line" style="margin:12px 0 6px">
           <input type="checkbox" name="agreeBylaws" id="sjBylaws" required>
-          <span>교사유가족협의회 <a href="/resources.html" id="sjBylawsLink" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline">회칙(정관)</a>에 따라 후원회원으로 가입하는 데 동의합니다. <span style="color:#dc2626">*</span></span>
+          <span>사단법인 교사유가족협의회 회칙(정관)에 따라 후원회원으로 가입하는 데 동의합니다. <span style="color:#dc2626">*</span> <a href="/resources.html" id="sjBylawsLink" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline;font-size:12px">회칙(정관) 보기</a></span>
         </label>
         <label class="checkbox-line" style="margin:6px 0">
           <input type="checkbox" name="agreePrivacy" id="sjPrivacy" required>
-          <span><a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline">개인정보 수집·이용</a>에 동의합니다. <span style="color:#dc2626">*</span></span>
+          <span>개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 후원회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제) <span style="color:#dc2626">*</span> <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline;font-size:12px">처리방침</a></span>
         </label>
         <label class="checkbox-line" style="margin:6px 0 14px">
           <input type="checkbox" name="agreeSms" id="sjSms">
@@ -478,6 +481,10 @@
         <p style="margin-top:14px;font-size:12px;color:var(--text-3);text-align:center;line-height:1.7" id="donateReceiptNote">
           저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다.<br />
           지정되는 날, 이 자리에서 바로 알려드리겠습니다.
+        </p>
+        <!-- [W1] NOTICE_PAY — 등불 캠페인(회비)일 때 donate.js 가 켠다 · AM 랜딩 모달과 같은 글자 -->
+        <p style="margin-top:8px;font-size:12px;color:var(--text-3);text-align:center;line-height:1.7" id="donateNoticePay" hidden>
+          카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다. 회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.
         </p>
       </form>
     </div>

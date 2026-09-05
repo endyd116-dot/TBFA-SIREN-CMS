@@ -52,11 +52,24 @@ export interface CampaignExtras {
   bylawsUrl: string;
   /** 회비 안내 한 줄 */
   feeNotice: string;
+  /** AM 완료 화면 버튼 ①·② (통보문 ⑧ join.campaignUrl·join.memorialUrl) */
+  campaignUrl: string;
+  memorialUrl: string;
 }
 
 /* S3 — 랜딩과 같은 글자 */
 export const RECEIPT_NOTICE =
   "저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다. 지정되는 날, 이 자리에서 바로 알려드리겠습니다.";
+
+/* [W1] 필수 고지 6문장 — AM 통보문 ⑧ 계약과 글자 그대로(AM 모달·SIREN 모달 동일). 바꾸면 AM에 먼저 회신. */
+export const LANTERN_NOTICES = {
+  NOTICE_ORG: "이 가입은 사단법인 교사유가족협의회(381-82-00754)의 후원회원 가입입니다. 함께워크(withwork)는 화면만 제공하고, 회원 정보와 후원 내역은 교사유가족협의회 홈페이지(tbfa.co.kr)에 등록·보관됩니다.",
+  CONSENT_BYLAWS: "사단법인 교사유가족협의회 회칙(정관)에 따라 후원회원으로 가입하는 데 동의합니다.",
+  CONSENT_PRIVACY: "개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 후원회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제)",
+  CONSENT_SMS: "협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다.",
+  NOTICE_PAY: "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다. 회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.",
+  NOTICE_DONE: "후원 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다.",
+} as const;
 
 const WITHWORK_BASE = (process.env.HAMKKE_MARKETING_URL || "https://withwork.tbfa.co.kr").replace(/\/+$/, "");
 
@@ -98,6 +111,8 @@ export const LANTERN: CampaignExtras = {
   certificate: { tagline: "함께 지키는 사람", campaignLabel: "등불의 기적" },
   bylawsUrl: process.env.LANTERN_BYLAWS_URL || "/resources.html",
   feeNotice: "이 캠페인은 후원회원 모집 캠페인입니다. 모인 후원은 회칙에 따른 특별회비로 순직자 예우와 유가족 지원에 쓰입니다.",
+  campaignUrl: `${(process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "")}/campaign.html?slug=${encodeURIComponent(LANTERN_SLUG)}`,
+  memorialUrl: `${(process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "")}/memorial.html`,
 };
 
 const ALL: CampaignExtras[] = [LANTERN];
@@ -135,5 +150,8 @@ export function toPublicExtras(x: CampaignExtras | null) {
     certificate: x.certificate,
     bylawsUrl: x.bylawsUrl,
     feeNotice: x.feeNotice,
+    campaignUrl: x.campaignUrl,
+    memorialUrl: x.memorialUrl,
+    notices: LANTERN_NOTICES,
   };
 }

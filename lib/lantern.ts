@@ -18,6 +18,78 @@ export interface AmMeta {
   am_lp: string;
   am_anon?: string;
   gate?: string;
+  /** 통보문 ⑧ — AM 모달 결제 의도 id(32 hex). 되돌아가기 `&intent=` · postback `intentId` 로 그대로 돌려준다 */
+  intentId?: string;
+}
+
+/* ───────── AM 서버-서버 인증 (x-am-secret = SIREN_AM_POSTBACK_SECRET 같은 값) ───────── */
+export function checkAmSecret(req: Request): boolean {
+  const expected = (process.env.SIREN_AM_POSTBACK_SECRET || "").trim();
+  const given = String(req.headers.get("x-am-secret") || "").trim();
+  if (!expected || !given) return false;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(given);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+/** 결제 의도 id — 무작위 32 hex (URL·postback에 그대로 실린다·추측 불가) */
+export function newIntentId(): string {
+  return crypto.randomBytes(16).toString("hex");
+}
+export function isIntentId(v: any): v is string {
+  return typeof v === "string" && /^[a-f0-9]{32}$/.test(v);
+}
+
+/** 회원 해시 보장 — members.am_member_hash 에 저장(없으면 계산해 채움) */
+export async function ensureMemberHash(memberId: number): Promise<string> {
+  const h = memberHash(memberId, 0);
+  try {
+    await db.execute(sql`UPDATE members SET am_member_hash = ${h} WHERE id = ${memberId} AND (am_member_hash IS NULL OR am_member_hash <> ${h})`);
+  } catch (e) {
+    console.warn("[lantern] ensureMemberHash 저장 실패(컬럼 미적용 가능):", (e as any)?.message);
+  }
+  return h;
+}
+
+/** 회원 해시 → members.id (저장된 해시 우선 · 없으면 전체 id를 계산해 대조 — 회원 수가 작아 비용 무시) */
+export async function resolveMemberHash(hash: string): Promise<number | null> {
+  const h = String(hash || "").trim();
+  if (!/^[a-f0-9]{24}$/.test(h)) return null;
+  try {
+    const res: any = await db.execute(sql`SELECT id FROM members WHERE am_member_hash = ${h} LIMIT 1`);
+    const r = rowsOf(res)[0];
+    if (r?.id) return Number(r.id);
+  } catch { /* 컬럼 미적용이면 아래 대조로 */ }
+  try {
+    const res: any = await db.execute(sql`SELECT id FROM members WHERE status NOT IN ('withdrawn','suspended')`);
+    for (const r of rowsOf(res)) {
+      const id = Number(r.id);
+      if (memberHash(id, 0) === h) {
+        await ensureMemberHash(id);
+        return id;
+      }
+    }
+  } catch (e) {
+    console.warn("[lantern] resolveMemberHash 대조 실패:", (e as any)?.message);
+  }
+  return null;
+}
+
+/** 결제 의도 id → 후원 행 (source_meta.intentId) */
+export async function findDonationByIntent(intentId: string): Promise<DonationLanternRow | null> {
+  if (!isIntentId(intentId)) return null;
+  try {
+    const res: any = await db.execute(sql`
+      SELECT id FROM donations WHERE source_meta->>'intentId' = ${intentId} ORDER BY id DESC LIMIT 1
+    `);
+    const r = rowsOf(res)[0];
+    if (!r?.id) return null;
+    return readDonationLantern(Number(r.id));
+  } catch (e) {
+    console.warn("[lantern] findDonationByIntent 실패:", (e as any)?.message);
+    return null;
+  }
 }
 
 export interface LanternCompletion {
@@ -43,16 +115,19 @@ export function sanitizeAmMeta(input: any): AmMeta | null {
   if (anon && /^[a-zA-Z0-9_.:-]{1,120}$/.test(anon)) out.am_anon = anon;
   const gate = String(input.gate || "").trim();
   if (/^[1-3]$/.test(gate)) out.gate = gate;
+  const intentId = String(input.intentId || input.intent || "").trim();
+  if (/^[a-f0-9]{32}$/.test(intentId)) out.intentId = intentId;
   return out;
 }
 
-/** 랜딩 되돌아가기 주소 — S6-b: lit=1 + am_anon·gate 그대로 */
+/** 랜딩 되돌아가기 주소 — S6-b: lit=1 + am_anon·gate 그대로 (+ 통보문 ⑧ intent) */
 export function buildLandingReturnUrl(extras: CampaignExtras, meta: AmMeta | null): string | null {
   if (!meta) return null;
   const u = new URL(`${extras.landing.base}/lp/${encodeURIComponent(meta.am_lp)}`);
   u.searchParams.set("lit", "1");
   if (meta.am_anon) u.searchParams.set("am_anon", meta.am_anon);
   if (meta.gate) u.searchParams.set("gate", meta.gate);
+  if (meta.intentId) u.searchParams.set("intent", meta.intentId);
   return u.toString();
 }
 
@@ -178,6 +253,7 @@ export interface PostbackPayload {
   monthly: boolean;
   memberId: string;        // 해시
   at: string;              // ISO
+  intentId?: string;       // 통보문 ⑧ — AM 모달 결제 의도 id(additive)
 }
 
 export async function postbackLitReturn(extras: CampaignExtras, payload: PostbackPayload): Promise<{ ok: boolean; attempts: number; status?: number; skipped?: string }> {
@@ -254,6 +330,7 @@ export async function afterLanternCompletion(opts: {
           monthly: opts.monthly,
           memberId: memberHash(opts.memberId, opts.donationId),
           at: opts.paidAt.toISOString(),
+          intentId: meta.intentId,
         });
       }
     }
@@ -280,6 +357,7 @@ export function lanternRedirectParams(c: LanternCompletion | null): string {
     p.set("am_lp", c.meta.am_lp);
     if (c.meta.am_anon) p.set("am_anon", c.meta.am_anon);
     if (c.meta.gate) p.set("gate", c.meta.gate);
+    if (c.meta.intentId) p.set("intent", c.meta.intentId);
   }
   return "&" + p.toString();
 }

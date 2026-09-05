@@ -24,6 +24,8 @@ import {
 import { parseBillingsCsv } from "../../lib/hyosung-parser";
 import { safeReevaluate } from "../../lib/donor-status";
 import { logAudit } from "../../lib/audit";
+/* 2026-09-06 「등불의 기적」: 효성 명세 반영 시 랜딩 모달의 대기 의도를 완료 행에 이어 붙여 등불을 켠다 */
+import { absorbLanternIntent } from "../../lib/lantern-am";
 
 export default async (req: Request, ctx: Context) => {
   const guard = await requireAdmin(req);
@@ -310,6 +312,8 @@ export default async (req: Request, ctx: Context) => {
         report.autoConfirmed++;
         /* D2: 새 donation 생성 → donor_type 잠재 후원자 즉시 반영 */
         await safeReevaluate(linkedMemberId, "hyosung-billings-import");
+        /* 2026-09-06 「등불의 기적」: 랜딩 모달에서 효성 자동이체를 고른 회원이면 명세 반영 시점에 등불을 켠다(postback·증서) */
+        await absorbLanternIntent(linkedMemberId, donationId, "hyosung");
       }
 
       /* 4. Import 로그 */

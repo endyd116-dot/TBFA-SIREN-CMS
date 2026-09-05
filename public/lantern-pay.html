@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>등불의 기적 · 결제 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0e0f12" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/lantern.css?v=20260906-2">
+<style>
+  /* 통보문 ⑧ — AM 랜딩 모달에서 넘어온 «회원·금액이 미리 채워진» KICC 결제 페이지. 로그인·쿠키 0(결제 의도 id가 열쇠). */
+  html, body { margin: 0; background: #0e0f12; color: #ece9e3; font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; font-weight: 300; word-break: keep-all; }
+  .lp-wrap { max-width: 520px; margin: 0 auto; padding: 48px 20px 80px; }
+  .lp-eyebrow { font-size: 12px; letter-spacing: .34em; color: #8b8880; margin-bottom: 18px; text-align: center; }
+  .lp-title { font-family: "Noto Serif KR", serif; font-weight: 900; font-size: 26px; text-align: center; margin: 0 0 8px; color: #f0cf8e; }
+  .lp-sub { text-align: center; color: #b5b1a9; font-size: 14px; margin: 0 0 28px; line-height: 1.8; }
+  .lp-card { border: 1px solid #8a6420; background: linear-gradient(160deg, #141519, #0a0b0d); padding: 22px 22px 18px; }
+  .lp-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1e2126; font-size: 14.5px; }
+  .lp-row:last-child { border-bottom: 0; }
+  .lp-row span { color: #8b8880; }
+  .lp-row b { font-weight: 500; color: #ece9e3; }
+  .lp-row b.amt { font-family: "Noto Serif KR", serif; font-weight: 700; font-size: 20px; color: #f0cf8e; }
+  .lp-btn { display: block; width: 100%; margin: 22px 0 0; padding: 18px; background: #d9a441; color: #181206; border: 0; font-family: "Noto Serif KR", serif; font-weight: 900; font-size: 17px; letter-spacing: .05em; cursor: pointer; }
+  .lp-btn:hover { background: #f0cf8e; }
+  .lp-btn:disabled { opacity: .6; cursor: wait; }
+  .lp-note { margin: 16px 0 0; font-size: 12.5px; color: #8b8880; line-height: 1.8; }
+  .lp-note b { color: #b5b1a9; font-weight: 500; }
+  .lp-state { text-align: center; padding: 40px 0; color: #b5b1a9; }
+  .lp-err { margin-top: 14px; padding: 12px 14px; background: rgba(176,90,69,.12); border: 1px solid #b05a45; color: #f2c9bf; font-size: 13px; line-height: 1.6; }
+  .lp-back { display: inline-block; margin-top: 18px; color: #f0cf8e; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="lp-wrap">
+  <div class="lp-eyebrow">교사유가족협의회 후원회원 캠페인</div>
+  <h1 class="lp-title">등불의 기적</h1>
+  <p class="lp-sub">회비 결제를 진행합니다.<br />카드사의 안전한 결제창으로 이동해 결제하고, 완료되면 등불 증서와 함께 랜딩으로 돌아갑니다.</p>
+
+  <div id="lpLoading" class="lp-state">결제 정보를 불러오는 중...</div>
+
+  <div id="lpMain" class="lp-card" hidden>
+    <div class="lp-row"><span>후원자</span><b id="lpName">—</b></div>
+    <div class="lp-row"><span>구분</span><b id="lpType">—</b></div>
+    <div class="lp-row"><span>금액</span><b class="amt" id="lpAmount">—</b></div>
+    <button type="button" class="lp-btn" id="lpStart">결제창으로 이동</button>
+    <div id="lpErr" class="lp-err" hidden></div>
+    <p class="lp-note" id="lpNoticePay">카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다. 회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.</p>
+    <p class="lp-note">정기 후원은 카드 정보 1회 등록 후 <b>오늘 첫 결제</b>가 되고 매달 같은 날 자동 결제됩니다. 해지는 언제든 마이페이지에서 한 번에 됩니다.</p>
+  </div>
+
+  <div id="lpDone" class="lp-state" hidden>
+    <div style="font-family:'Noto Serif KR',serif;font-size:22px;color:#f0cf8e;margin-bottom:10px">이미 결제가 완료된 건입니다</div>
+    <div id="lpDoneNote" style="font-size:13.5px;line-height:1.8"></div>
+    <a id="lpReturn" class="lp-back" href="#" hidden>내 등불 보러 가기 →</a>
+  </div>
+
+  <div id="lpInvalid" class="lp-state" hidden>
+    <div style="font-family:'Noto Serif KR',serif;font-size:20px;color:#ece9e3;margin-bottom:10px">결제 정보를 찾을 수 없습니다</div>
+    <div style="font-size:13.5px;line-height:1.8">랜딩의 후원 창에서 다시 시작해 주세요.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(location.search);
+  var intent = String(params.get('intent') || '').trim();
+  function $(id) { return document.getElementById(id); }
+  function show(id) { ['lpLoading', 'lpMain', 'lpDone', 'lpInvalid'].forEach(function (k) { var el = $(k); if (el) el.hidden = (k !== id); }); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  if (!/^[a-f0-9]{32}$/.test(intent)) { show('lpInvalid'); return; }
+
+  var _data = null;
+  fetch('/api/lantern-payment-intent?intent=' + intent)
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+    .then(function (res) {
+      var j = res.j || {};
+      if (res.status !== 200 || !j.ok) { show('lpInvalid'); return; }
+      _data = j;
+      if (j.completed) {
+        $('lpDoneNote').textContent = j.notices && j.notices.NOTICE_DONE ? j.notices.NOTICE_DONE : '';
+        if (j.returnUrl) { $('lpReturn').href = j.returnUrl; $('lpReturn').hidden = false; }
+        show('lpDone');
+        return;
+      }
+      if (j.provider !== 'kicc') { show('lpInvalid'); return; }
+      $('lpName').textContent = j.maskedName || '후원회원';
+      $('lpType').textContent = j.monthly ? '정기 후원 (월 자동결제 · 카드)' : '일시 후원 (카드·간편결제)';
+      $('lpAmount').textContent = '₩ ' + Number(j.amount || 0).toLocaleString() + (j.monthly ? ' / 월' : '');
+      if (j.notices && j.notices.NOTICE_PAY) $('lpNoticePay').textContent = j.notices.NOTICE_PAY;
+      show('lpMain');
+    })
+    .catch(function () { show('lpInvalid'); });
+
+  $('lpStart').addEventListener('click', function () {
+    var btn = $('lpStart');
+    var err = $('lpErr');
+    btn.disabled = true; btn.textContent = '결제창 준비 중...'; err.hidden = true;
+    fetch('/api/lantern-pay-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ intentId: intent }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok || !j.authPageUrl) throw new Error((j && j.error) || '결제 준비에 실패했습니다');
+        location.href = j.authPageUrl;
+      })
+      .catch(function (e) {
+        err.textContent = e.message || '결제 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+        err.hidden = false;
+        btn.disabled = false; btn.textContent = '결제창으로 이동';
+      });
+  });
+})();
+</script>
+</body>
+</html>

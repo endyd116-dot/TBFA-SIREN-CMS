@@ -16,6 +16,10 @@ import {
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { notifyAllOperators } from "../../lib/notify";
+/* 2026-09-06 「등불의 기적」: 캠페인 합산(campaignId) + 랜딩 파라미터(source_meta) 보관 → 효성 명세 반영 때 등불 */
+import { campaigns } from "../../db/schema";
+import { getCampaignExtras } from "../../lib/campaign-extras";
+import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
 
 export const config = { path: "/api/donate-hyosung-intent" };
 
@@ -53,6 +57,19 @@ export default async (req: Request) => {
     const guideText = (policy as any)?.hyosungGuideText
       || "효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.";
 
+    /* 캠페인 연결(선택) — 등불 캠페인이면 회원 가입이 먼저 */
+    const campaignId = body.campaignId && Number.isFinite(Number(body.campaignId)) ? Number(body.campaignId) : null;
+    let campaignExtras = null as ReturnType<typeof getCampaignExtras>;
+    if (campaignId) {
+      try {
+        const [cRow] = await db.select({ slug: campaigns.slug }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+        campaignExtras = getCampaignExtras(cRow?.slug);
+      } catch { /* 보조 조회 실패는 무시 */ }
+      if (campaignExtras?.requireMembership && !memberId) {
+        return badRequest("후원회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      }
+    }
+
     /* DB 저장 (pending_hyosung 상태) */
     const transactionId = generateTransactionId();
     const insertData: any = {
@@ -68,9 +85,16 @@ export default async (req: Request) => {
       pgProvider: "hyosung_cms",
       isAnonymous,
       receiptRequested: true,
+      campaignId,
     };
 
     const [record] = await db.insert(donations).values(insertData).returning();
+
+    /* 랜딩 파라미터 보관 — 효성 명세 반영(admin-hyosung-import) 때 등불이 켜진다 */
+    if (campaignExtras) {
+      const meta = sanitizeAmMeta(body.sourceMeta);
+      await saveDonationSourceMeta((record as any).id, meta, { method: "cms", via: "siren_modal", monthly: true });
+    }
 
     /* 감사 로그 */
     await logUserAction(req, memberId, name, "donate_hyosung_intent", {
