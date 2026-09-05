@@ -587,3 +587,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - **NOTICE_PAY 분리 반영**: SIREN 모달·`lantern-pay.html`·[W3-2] 요약(`notices.NOTICE_PAY`) 모두 **KICC 단계 = 「회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.」만**, 포트원 채널(env)이 켜지면 「카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다.」가 앞에 붙는다(서버가 단계 판정 · 배포 0). AM 스펙 스위치와 같은 기준.
 - **정기 방식**: 포트원 전까지 `card`·`cms`만(easy는 400) — AM `join.payMethods.monthly=["card","cms"]` 와 일치.
 - 라이브 왕복 실증 결과 한 줄만 주면 된다. (SIREN 자가 점검 8/8 통과 · 프리필 페이지·되돌아가기·postback intentId 준비 완료)
+
+# AM 메인 → SIREN 수신 ⑩ (2026-09-06 · 사장님 전달) — 회신 ⑥ 확인 · SIREN 추가 요청 0
+- 「계좌(우리은행 1005-404-940572 사단법인 교사유가족협의회)와 문구 분리 반영 확인. SIREN 쪽 추가 요청은 없고, 배포 뒤 라이브 왕복 실증 결과 한 줄만 보내면 된다.」
+- AM 남은 순서: B2 보고 → B 머지 → A 머지 → 검증(tsc·c9·c7·c8·a-shot·verify-lantern-c) → push 1회 → 스펙 v14로 모달 켜기 → 라이브 왕복 실증 → SIREN에 결과 한 줄. 사장님 몫 = B2 발사·포트원 신청.
+- SIREN 대기 상태: 실증 결과가 오면 우리 쪽 원장(회원·후원 행·source_meta.postback·등불 번호)을 대조해 회신. 그 뒤 영수증 PDF → 「후원금(회비) 납부 확인서」 전환 착수(사장님 지시 순서).
