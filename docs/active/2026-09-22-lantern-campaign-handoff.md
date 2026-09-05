@@ -353,6 +353,11 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   ④ 완료: ?lit=1 재진입(기존 lit 카드 자리) 또는 포트원 확인 → 「당신의 등불이 켜졌습니다」 · 「선생님께 한마디」(≤60)+「캠페인 페이지에 보여줘도 됩니다」 → /api/lantern-note · [W7] 등불 표시 3택 + 등불 문구 10자 → /api/lantern-display · NOTICE_DONE · 버튼 ① join.campaignUrl · 버튼 ② join.memorialUrl(있을 때만) — 둘 다 새 창
 //   성능: 첫 화면 추가 0바이트(모달 마크업 인라인 ≤6KB·SDK는 클릭 때) · [V10] c8 기준선 유지
 
+// [W4-보정] 사장님 라이브 시험(2026-09-06 06:xx · 메인 봉합) — ① 탭별 기본 회비 «🕯 등불» 표시 + 미리 선택(정기 30,000 · 일시 50,000 · 스펙 join.amountDefault{monthly,once}로 변경 가능 · 사람이 고르기 전까지만 자동 · 모달 루트 data-amt-def-monthly/once)
+//   ② ×·바깥 클릭·Esc는 바로 닫지 않고 «작성 중인 내용이 사라져요. 정말 나가시겠어요?» [계속하기]/[나가기](data-join-leave · done·manage·pending 화면은 바로 닫힘)
+//   ③ [V6] 3분 요약: «3분 요약으로 보기» 클릭 즉시 첫 정거장(rate)으로 · 버튼 «다음 (n/N) ›» · 마지막 정거장(gate2)에서 «후원회원으로 함께하기»(문 앵커 클릭 → embedded 모달·redirect SIREN) · «✕»로 요약 종료(해시 제거) · 하니스 c7 ⑤·c9 ②④ 갱신
+//   ④ 카톡 공유 «링크 없음»은 코드가 아니라 카카오 개발자 콘솔 플랫폼 Web 도메인 미등록(withwork.tbfa.co.kr)일 가능성 — 사장님 확인(앱 JS키 9c53…의 플랫폼에 https://withwork.tbfa.co.kr 등록)
+
 // [W5] 측정(새 어휘 0) — 문 열림 external_click(siren_join·embedded) → 가입 optin(member:true) → 결제 시작 external_click(siren_pay) → 완료 lit_return(postback) · [V9] pageJourney는 무변경으로 4단을 다 읽는다(gates·optins·litReturns) · «가입만 하고 결제 0» = optin(member:true) − lit_return
 
 // [W6] 전환 절차(사장님 결정 2026-09-06) — ① 양쪽 사전 개발·배포(코드 기본 redirect라 라이브 무변) ② 메인이 스펙 v14로 join.mode="embedded"(KICC는 redirectUrl로 계속) ③ 포트원 심사 완료 → SIREN이 [W3-2]에서 provider "portone"으로 스위치 → AM 배포 0 · «일순간 전환» ④ 되돌리기 = 스펙 v15로 join.mode 제거
@@ -478,6 +483,11 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //      ?intent= 재진입(lit=1과 함께 옴)은 GET /api/lantern-pay?intent= 로 completed를 확인한 뒤 ④(아니면 «확인 중» 화면)
 //   ④ 완료: ?lit=1 재진입(기존 lit 카드 자리) 또는 포트원 확인 → 「당신의 등불이 켜졌습니다」 · 「선생님께 한마디」(≤60)+「캠페인 페이지에 보여줘도 됩니다」 → /api/lantern-note · [W7] 등불 표시 3택 + 등불 문구 10자 → /api/lantern-display · NOTICE_DONE · 버튼 ① join.campaignUrl · 버튼 ② join.memorialUrl(있을 때만) — 둘 다 새 창
 //   성능: 첫 화면 추가 0바이트(모달 마크업 인라인 ≤6KB·SDK는 클릭 때) · [V10] c8 기준선 유지
+
+// [W4-보정] 사장님 라이브 시험(2026-09-06 06:xx · 메인 봉합) — ① 탭별 기본 회비 «🕯 등불» 표시 + 미리 선택(정기 30,000 · 일시 50,000 · 스펙 join.amountDefault{monthly,once}로 변경 가능 · 사람이 고르기 전까지만 자동 · 모달 루트 data-amt-def-monthly/once)
+//   ② ×·바깥 클릭·Esc는 바로 닫지 않고 «작성 중인 내용이 사라져요. 정말 나가시겠어요?» [계속하기]/[나가기](data-join-leave · done·manage·pending 화면은 바로 닫힘)
+//   ③ [V6] 3분 요약: «3분 요약으로 보기» 클릭 즉시 첫 정거장(rate)으로 · 버튼 «다음 (n/N) ›» · 마지막 정거장(gate2)에서 «후원회원으로 함께하기»(문 앵커 클릭 → embedded 모달·redirect SIREN) · «✕»로 요약 종료(해시 제거) · 하니스 c7 ⑤·c9 ②④ 갱신
+//   ④ 카톡 공유 «링크 없음»은 코드가 아니라 카카오 개발자 콘솔 플랫폼 Web 도메인 미등록(withwork.tbfa.co.kr)일 가능성 — 사장님 확인(앱 JS키 9c53…의 플랫폼에 https://withwork.tbfa.co.kr 등록)
 
 // [W5] 측정(새 어휘 0) — 문 열림 external_click(siren_join·embedded) → 가입 optin(member:true) → 결제 시작 external_click(siren_pay) → 완료 lit_return(postback) · [V9] pageJourney는 무변경으로 4단을 다 읽는다(gates·optins·litReturns) · «가입만 하고 결제 0» = optin(member:true) − lit_return
 
