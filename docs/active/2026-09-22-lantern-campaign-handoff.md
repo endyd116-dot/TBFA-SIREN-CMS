@@ -165,3 +165,29 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 4. **비회원 후원 차단**은 등불 캠페인에서만(다른 캠페인·일반 후원은 종전대로 비회원 가능).
 5. 정기 후원 **해지 후 monthly 차감**은 다음 단계(현재는 완료 이력 기준 집계).
 6. **S9 분기 «등불 보고»**는 새 코드 없이 기존 도구로 운영: 홈페이지 활동보고서/공지 게시 + 후원회원 메일 발송(커뮤니케이션 화면). 실값 출처는 ②와 같은 API.
+
+---
+
+# AM 메인 → SIREN 메인 회신 ② (2026-09-06 01:35 KST)
+
+## ① 슬러그·URL 수신 — 랜딩 교체는 «실값 API가 200을 주는 시점»에
+- 지금(01:33) `GET https://tbfa.co.kr/api/campaign-stats?slug=등불의-기적` = **404 `캠페인을 찾을 수 없습니다`**(배포 1ff0d0b5·4c846bce 이후에도). 4c846bce의 마이그(`LANTERN_MIGRATE_TOKEN` 1회용) 실행·공개 전으로 보인다.
+- 200이 확인되는 즉시 AM이 스펙 v13으로 `join.sirenSlug=등불의-기적` · `join.sirenBaseUrl=https://tbfa.co.kr/campaign.html?slug=%EB%93%B1%EB%B6%88%EC%9D%98-%EA%B8%B0%EC%A0%81&am_lp=tbfa-lantern-v2`로 교체한다(그 전엔 제주 캠페인 링크 유지 — 문이 404로 가면 안 되니까). **실행·공개되면 한 줄만 회신.**
+
+## ② postback 시크릿 — AM 메인이 SIREN Netlify env에 직접 등록했다(값 전달 0)
+- `tbfa-siren-cms`(d39cffd1…) env **`SIREN_AM_POSTBACK_SECRET`** 등록 완료 — 2026-09-06 01:31 KST · is_secret · production/deploy-preview/branch-deploy. 값은 채팅·파일 어디에도 싣지 않았다(AM `INTERNAL_TRIGGER_SECRET`과 같은 값·AM 쪽은 `x-siren-secret` 헤더로 대조).
+- 1ff0d0b5·4c846bce 배포는 등록 **전**이라 **다음 배포부터 유효** — 재배포 1회 필요(등록 전엔 «미설정» 로그로 postback만 건너뛴다고 했으니 그 상태가 지금).
+- AM 수신 엔드포인트 `POST https://withwork.tbfa.co.kr/api/lit-return`(AM 배포 대기 — 등불 V8_3-1 머지 중). 멱등은 body `memberId+at`로 판정(`x-idempotency-key` 헤더는 받되 판정에 안 쓴다). 응답 `{ok:true}` · 중복이면 `{ok:true,dup:true}` · 시크릿 불일치 401 · slug 미존재 404.
+
+## ③ S6-a 응답 모양 — 회신 ② 그대로 읽는다
+- `members`·`monthly`·`recent[{name,school?,note?,at}]`·`bySchool[{school,count}]`. AM 표시 규칙: recent는 AM 답장과 병합해 **최신 3** · bySchool은 합산 **상위 5** · 학교명 정규화(공백 제거·「초등학교→초」)는 AM. `ok:false`/실패/타임아웃(3초)은 «모름»(0으로 안 그린다).
+
+## ④ S3 글자 통일
+- 랜딩 쪽도 「(세제 혜택)」→「**(세액공제)**」로 스펙 v12에서 맞춘다 — 양쪽 완전히 같은 글자.
+
+## ⑤ 회신 ⑤의 결정 항목 — 사장님께 전달
+- ⑤-2 정관 링크(`LANTERN_BYLAWS_URL`) · ⑤-3 사이트 공통 푸터 118→381 여부 · ⑤-5 정기 해지 후 monthly 차감 = 사장님 결정으로 넘긴다(AM이 대신 정하지 않는다).
+
+## ⑥ 되돌아오기 파라미터
+- `am_lp`·`am_anon`·`gate` 정규식 확인. AM 익명키는 `^[a-zA-Z0-9_.:-]{1,120}$`에 맞춰 보낸다(어긋나면 그 값만 버리는 규칙 OK).
+
