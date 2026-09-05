@@ -300,7 +300,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   join.payMethods?: { monthly: ("card"|"easy"|"cms")[], once: ("card"|"easy"|"transfer"|"bank")[] }
 //                                        // 모달 ②에 보일 결제 방식(SIREN 채널 준비에 맞춰 메인이 스펙으로 켜고 끈다·배포 0) · 없으면 { monthly:["card","cms"], once:["card","bank"] }
 //                                        // card=카드 · easy=간편결제(카카오페이·네이버페이·토스페이 — 채널 계약 뒤) · transfer=실시간 계좌이체(일시만) · cms=계좌 자동이체(정기만·효성·외부) · bank=계좌 직접 입금(일시만·우리 계좌번호를 바로 보여 준다·사장님 2026-09-06)
-//   join.bankAccount?: { bank: string, number: string, holder: string }   // «계좌 직접 입금»에 보일 협의회 계좌(SIREN 회신 값 그대로·예금주 = 사단법인 교사유가족협의회) · 없으면 bank 방식을 그리지 않는다
+//   join.bankAccount?: { bank: string, number: string, holder: string }   // «계좌 직접 입금» 폴백 표시용(선택) — 정본은 [W3-2] bank 응답의 bankAccount(그때그때 SIREN 후원 정책 값) · 응답에 있으면 응답이 이긴다 · 둘 다 없으면 bank 방식을 그리지 않는다
+//   join.statementNotice?: boolean       // NOTICE_PAY_STMT 표시 스위치 · 없으면 false · 포트원 전환 때 메인이 true(SIREN 회신 ⑤ ⚠️)
 //   join.sirenBaseUrl · join.sirenSlug   // 유지([V1]) · redirect 모드(스위치 끔)와 [V4] 실값 GET이 계속 쓴다 · 모달에는 로그인 링크 0(§0-1 ③)
 
 // [W1] 필수 고지(글자 그대로 · SIREN 모달과 같은 글자 · 렌더러 상수 — 스펙으로 지울 수 없다)
@@ -308,7 +309,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   CONSENT_BYLAWS  = "사단법인 교사유가족협의회 회칙(정관)에 따라 후원회원으로 가입하는 데 동의합니다."   (필수 · 정관 링크 = join.bylawsUrl)
 //   CONSENT_PRIVACY = "개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 후원회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제)"   (필수)
 //   CONSENT_SMS     = "협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다."   (선택)
-//   NOTICE_PAY      = "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다. 회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다."
+//   NOTICE_PAY      = "회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다."   (항상)
+//   NOTICE_PAY_STMT = "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다."   (join.statementNotice === true 일 때만 — SIREN 회신 ⑤: 이 문장은 포트원(사단법인 명의 PG) 뒤에만 참 · KICC 단계는 KICC 가맹 명의로 찍힐 수 있어 기본 꺼짐 · 메인이 포트원 전환 때 스펙으로 켠다)
 //   NOTICE_DONE     = "후원 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다."
 
 // [W2] AM 서버 3경로 (C · 새 함수 파일 0 — api-convert-public registry · SIREN 호출은 서버-서버 · 헤더 x-am-secret = INTERNAL_TRIGGER_SECRET)
@@ -317,8 +319,9 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //     → { ok:true, memberId, status:"new"|"existing" } · 검증 실패 400 · SIREN 실패 502 { ok:false, error, step:"siren_member" }
 //   POST /api/lantern-pay    { slug, anon?, gate?:1|2, memberId, amount:number, monthly:boolean, method:"card"|"easy"|"transfer"|"cms"|"bank" }   // monthly=true면 card|easy|cms · false면 card|easy|transfer|bank · 어긋나면 400
 //     → SIREN [W3-2] 호출 → 저장: funnel_events stage "external_click" meta{ target:"siren_pay", gate, provider, monthly, amount }
-//     → SIREN 응답 그대로 { ok:true, intentId, provider:"kicc"|"portone"|"hyosung"|"manual", redirectUrl?, payload? }
-//   POST /api/lantern-note   { slug, memberId, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
+//     → SIREN 응답 그대로 { ok:true, intentId, donationId, provider:"kicc"|"portone"|"hyosung"|"manual", redirectUrl?, payload?, bankAccount? }   // SIREN 4xx는 상태 코드·body 그대로 통과(400 method 조합 · 404 memberId 없음 · 409 step:"billing_active")
+//   GET  /api/lantern-pay?intent=<intentId>   → SIREN [W3-2] GET 프록시(공개·개인정보 0) → { ok:true, intentId, status, provider, completed:boolean, amount, monthly, method }   // «확인 중» 폴링·?intent= 재진입 판정용 · 5초 캐시 0 · 실패 502
+//   POST /api/lantern-note   { slug, memberId, donationId?, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true, donationId }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
 //   POST /api/lit-return(기존 S6-b) body에 intentId? 추가(additive) — meta.intentId 저장 · 나머지 불변
 
 // [W3] SIREN 3경로 (SIREN 개발 · 이름은 제안 — 다른 이름이면 회신 · 인증 헤더 x-am-secret = SIREN_AM_POSTBACK_SECRET(같은 값))
@@ -329,20 +332,23 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //     → 동의 증빙(consentText·consentAt·ip·ua)은 SIREN이 회원과 함께 남긴다(audit_logs 또는 새 칼럼 — SIREN이 정해 회신) · 4xx { ok:false, error }
 //   [W3-2] POST https://tbfa.co.kr/api/lantern-payment-intent
 //     { memberId, amount, monthly, method:"card"|"easy"|"transfer"|"cms"|"bank", am_lp, am_anon?, gate? }
-//     → 인증 = memberId + x-am-secret(쿠키 0 — 지금 donate-kicc-register·billing-register의 authenticateUser 게이트 옆에 서버-서버 게이트를 하나 더 연다) · 후원 행에 campaign_id·source_meta{am_lp,am_anon,gate,intentId} 저장
-//     → 계좌 직접 입금(bank·일시): { ok:true, intentId, provider:"manual" }   // 기존 donate-bank-intent(status pending_bank·입금자명=가입 이름) 재사용 · 관리자 입금 확인(admin-donation-confirm)에 afterLanternCompletion 훅 추가 → 그때 postback(S6-b+intentId) → 등불이 켜진다 · 포트원 뒤엔 가상계좌로 자동 확인 가능(선택)
-//     → KICC 단계: { ok:true, intentId, provider:"kicc", redirectUrl }   // 회원·금액 미리 채워진 SIREN 결제 페이지 · 완료 뒤 되돌아가기 = 기존 ?lit=1&am_anon&gate + &intent=<intentId>
-//     → 포트원 단계: { ok:true, intentId, provider:"portone", payload }  // 포트원 SDK v2 requestPayment / requestIssueBillingKey 인자 그대로(storeId·channelKey·paymentId·orderName·totalAmount·currency·payMethod·customer) — AM은 payload를 해석하지 않고 넘긴다 · 정기(monthly) = 빌링키 발급(카드·간편결제 채널) → 월 청구는 SIREN 서버
-//     → 계좌 자동이체(cms·정기): { ok:true, intentId, provider:"hyosung", redirectUrl }   // 포트원 표준 범위 밖 — 효성 CMS+ 유지 · 지금 donate-hyosung-intent는 campaign_id·source_meta·완료 훅이 없다 → 저장 + 명세 반영(admin-hyosung-import) 때 완료 훅 호출 추가(등불은 명세 반영 뒤 켜진다)
-//   [W3-3] POST https://tbfa.co.kr/api/lantern-member-note  { memberId, donationId?, note, publicConsent } → { ok:true }   // S11 «한마디»가 AM 완료 화면에서 온다 · donations.donor_note/public_consent(lantern-donation.ts와 같은 자리·쿠키 대신 memberId+x-am-secret)
+//     → 인증 = memberId + x-am-secret(쿠키 0 — SIREN 회신 ⑤: 이 API가 pending 후원 행을 먼저 만들고 lantern-pay.html?intent= 가 그 행으로 KICC 결제창을 연다) · 후원 행에 campaign_id·source_meta{am_lp,am_anon,gate,intentId} 저장 · 모든 성공 응답에 donationId
+//     → 계좌 직접 입금(bank·일시): { ok:true, intentId, provider:"manual", donationId, bankAccount:{ bank, number, holder, guideText } }   // pending_bank 행 · 계좌는 SIREN 후원 정책 현재값(그때그때) · 관리자 [입금 매칭·통과]로 완료 행이 생기면 대기 의도를 이어 붙여 postback(S6-b+intentId)·증서 → 등불이 켜진다
+//     → KICC 단계(card·easy·transfer): { ok:true, intentId, provider:"kicc", donationId, redirectUrl }   // redirectUrl = https://tbfa.co.kr/lantern-pay.html?intent=<intentId>(회원 마스킹 이름·금액·정기/일시·NOTICE 표시 → 「결제창으로 이동」) · 완료 뒤 SIREN 완료 화면 → 「내 등불 보러 가기」= ?lit=1&am_anon&gate&intent=<intentId>
+//     → 포트원 단계: { ok:true, intentId, provider:"portone", donationId, payload }  // env PORTONE_STORE_ID·PORTONE_CHANNEL_KEY(_BILLING)·PORTONE_WEBHOOK_SECRET 등록 순간 자동 스위치(AM 배포 0) · 포트원 SDK v2 requestPayment / requestIssueBillingKey 인자 그대로 — AM은 payload를 해석하지 않고 넘긴다 · 정기 = 카드·간편 빌링키 → 월 청구는 SIREN 서버
+//     → 계좌 자동이체(cms·정기): { ok:true, intentId, provider:"hyosung", donationId, redirectUrl }   // 효성 외부 등록 페이지 · 명세 반영(CSV 통과) 때 완료 훅 → postback(등불은 명세 반영 뒤 켜진다)
+//     → 4xx: 400 method 조합 오류(정기 easy는 포트원 전까지 400 «정기 간편결제는 결제사 전환 뒤») · 404 memberId 없음 · 409 { ok:false, step:"billing_active" } 이미 활성 정기 후원 — AM은 상태 코드·body를 그대로 통과
+//     GET https://tbfa.co.kr/api/lantern-payment-intent?intent=<id>(공개·개인정보 0) → { ok, intentId, donationId, status, provider, amount, monthly, method, campaign:{slug,title}, maskedName, notices, returnUrl, completed }   // AM은 /api/lantern-pay?intent= 프록시로만 읽는다
+//   [W3-3] POST https://tbfa.co.kr/api/lantern-member-note  { memberId, donationId?, note, publicConsent } → { ok:true, donationId }   // S11 «한마디»가 AM 완료 화면에서 온다 · donationId 없으면 그 회원의 등불 후원(완료 우선·최신)에 붙인다 · donations.donor_note/public_consent
 //   [W3-4] 확정은 SIREN 안에서(KICC 완료 콜백 / 포트원 웹훅) → 기존 postback POST withwork/api/lit-return + intentId — 이 한 곳이 «결제 완료»의 유일한 출처(클라 성공 이벤트는 «확인 중» 표시만)
 
 // [W4] AM 모달 3단 (B · v5 모듈 · join.mode==="embedded"일 때만 · redirect 모드는 바이트 동일)
 //   열기: 문 1·2 클릭 → 페이지 이동 0 · 비콘 external_click meta{ target:"siren_join", gate, ctaVariant, embedded:true }([V9] gates 집계 유지)
 //   ① 가입: NOTICE_ORG(상단 고정) · 이름·이메일·휴대폰(필수) · 학교명(선택) · 체크 3([W1] 글자) · 「가입하고 후원 계속하기」→ /api/lantern-join · 아이디·비밀번호 칸 0·로그인 링크 0 · existing이면 «이미 후원회원이시네요 — 바로 이어 갑니다» 한 줄 뒤 ②로 · 안내 작은 글씨 «마이페이지 비밀번호는 가입 메일의 링크로 만들 수 있어요»
 //   ② 금액: 정기(기본)/일시 탭 · 1만·3만·5만·10만 + 직접 입력(최소 1,000원 작은 글씨) · 방식 = join.payMethods의 탭별 목록만(라벨: 카드 · 간편결제 · 계좌이체 · 계좌 자동이체 · 계좌 직접 입금) — 하나 고르면 provider 분기는 SIREN [W3-2]가 정한다(모달은 방식만 묻는다) · NOTICE_PAY · 「후원하기」→ /api/lantern-pay
-//      bank 선택 시 그 자리에 계좌 카드: join.bankAccount(은행·계좌번호·예금주) + 「계좌번호 복사」 + «입금자명은 가입하신 이름과 같게 해 주세요» · 버튼 글자 「입금 예정으로 등록하기」
-//   ③ 결제 어댑터: provider "kicc"|"hyosung" → sessionStorage am_lantern_pay = { memberId, gate, intentId } 저장 후 location.href = redirectUrl · provider "portone" → 그때 처음 SDK(https://cdn.portone.io/v2/browser-sdk.js) 로드 → monthly면 PortOne.requestIssueBillingKey(payload) · 아니면 PortOne.requestPayment(payload) → 성공 = «확인 중» 화면(postback 대기 · /api/lantern-stats 변화를 최대 20초 폴링 또는 ?intent 재진입) · provider "manual" → «입금 확인 뒤 등불이 켜집니다 — 확인되면 문자로 알려 드립니다» 화면(폴링 0) + 완료 화면과 같은 버튼 ①·② · 실패/취소 = ②로 복귀
+//      bank 선택 시 버튼 글자 「입금 예정으로 등록하기」(계좌는 등록 뒤 ③ 응답으로 보여 준다 · join.bankAccount가 있으면 미리 보여 줘도 됨) · NOTICE_PAY + (join.statementNotice면) NOTICE_PAY_STMT
+//   ③ 결제 어댑터: provider "kicc"|"hyosung" → sessionStorage am_lantern_pay = { memberId, gate, intentId } 저장 후 location.href = redirectUrl · provider "portone" → 그때 처음 SDK(https://cdn.portone.io/v2/browser-sdk.js) 로드 → monthly면 PortOne.requestIssueBillingKey(payload) · 아니면 PortOne.requestPayment(payload) → 성공 = «확인 중» 화면(GET /api/lantern-pay?intent= 를 3초 간격 최대 20초 폴링 → completed면 ④) · provider "manual" → «입금 안내» 화면 = 응답 bankAccount(은행·계좌번호·예금주·guideText) + 「계좌번호 복사」 + «입금자명은 가입하신 이름과 같게» + «입금 확인 뒤 등불이 켜집니다 — 확인되면 문자로 알려 드립니다»(폴링 0) + 완료 화면과 같은 버튼 ①·② · 4xx: 409 billing_active → «이미 정기 후원 중이세요 — 변경은 교유협 홈페이지 마이페이지에서»(join.campaignUrl 새 창) · 400 method → ②로 복귀 + 문장 · 실패/취소 = ②로 복귀
+//      ?intent= 재진입(lit=1과 함께 옴)은 GET /api/lantern-pay?intent= 로 completed를 확인한 뒤 ④(아니면 «확인 중» 화면)
 //   ④ 완료: ?lit=1 재진입(기존 lit 카드 자리) 또는 포트원 확인 → 「당신의 등불이 켜졌습니다」 · 「선생님께 한마디」(≤60)+「캠페인 페이지에 보여줘도 됩니다」 → /api/lantern-note · [W7] 등불 표시 3택 + 등불 문구 10자 → /api/lantern-display · NOTICE_DONE · 버튼 ① join.campaignUrl · 버튼 ② join.memorialUrl(있을 때만) — 둘 다 새 창
 //   성능: 첫 화면 추가 0바이트(모달 마크업 인라인 ≤6KB·SDK는 클릭 때) · [V10] c8 기준선 유지
 
@@ -419,7 +425,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   join.payMethods?: { monthly: ("card"|"easy"|"cms")[], once: ("card"|"easy"|"transfer"|"bank")[] }
 //                                        // 모달 ②에 보일 결제 방식(SIREN 채널 준비에 맞춰 메인이 스펙으로 켜고 끈다·배포 0) · 없으면 { monthly:["card","cms"], once:["card","bank"] }
 //                                        // card=카드 · easy=간편결제(카카오페이·네이버페이·토스페이 — 채널 계약 뒤) · transfer=실시간 계좌이체(일시만) · cms=계좌 자동이체(정기만·효성·외부) · bank=계좌 직접 입금(일시만·우리 계좌번호를 바로 보여 준다·사장님 2026-09-06)
-//   join.bankAccount?: { bank: string, number: string, holder: string }   // «계좌 직접 입금»에 보일 협의회 계좌(SIREN 회신 값 그대로·예금주 = 사단법인 교사유가족협의회) · 없으면 bank 방식을 그리지 않는다
+//   join.bankAccount?: { bank: string, number: string, holder: string }   // «계좌 직접 입금» 폴백 표시용(선택) — 정본은 [W3-2] bank 응답의 bankAccount(그때그때 SIREN 후원 정책 값) · 응답에 있으면 응답이 이긴다 · 둘 다 없으면 bank 방식을 그리지 않는다
+//   join.statementNotice?: boolean       // NOTICE_PAY_STMT 표시 스위치 · 없으면 false · 포트원 전환 때 메인이 true(SIREN 회신 ⑤ ⚠️)
 //   join.sirenBaseUrl · join.sirenSlug   // 유지([V1]) · redirect 모드(스위치 끔)와 [V4] 실값 GET이 계속 쓴다 · 모달에는 로그인 링크 0(§0-1 ③)
 
 // [W1] 필수 고지(글자 그대로 · SIREN 모달과 같은 글자 · 렌더러 상수 — 스펙으로 지울 수 없다)
@@ -427,7 +434,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   CONSENT_BYLAWS  = "사단법인 교사유가족협의회 회칙(정관)에 따라 후원회원으로 가입하는 데 동의합니다."   (필수 · 정관 링크 = join.bylawsUrl)
 //   CONSENT_PRIVACY = "개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 후원회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제)"   (필수)
 //   CONSENT_SMS     = "협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다."   (선택)
-//   NOTICE_PAY      = "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다. 회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다."
+//   NOTICE_PAY      = "회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다."   (항상)
+//   NOTICE_PAY_STMT = "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다."   (join.statementNotice === true 일 때만 — SIREN 회신 ⑤: 이 문장은 포트원(사단법인 명의 PG) 뒤에만 참 · KICC 단계는 KICC 가맹 명의로 찍힐 수 있어 기본 꺼짐 · 메인이 포트원 전환 때 스펙으로 켠다)
 //   NOTICE_DONE     = "후원 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다."
 
 // [W2] AM 서버 3경로 (C · 새 함수 파일 0 — api-convert-public registry · SIREN 호출은 서버-서버 · 헤더 x-am-secret = INTERNAL_TRIGGER_SECRET)
@@ -436,8 +444,9 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //     → { ok:true, memberId, status:"new"|"existing" } · 검증 실패 400 · SIREN 실패 502 { ok:false, error, step:"siren_member" }
 //   POST /api/lantern-pay    { slug, anon?, gate?:1|2, memberId, amount:number, monthly:boolean, method:"card"|"easy"|"transfer"|"cms"|"bank" }   // monthly=true면 card|easy|cms · false면 card|easy|transfer|bank · 어긋나면 400
 //     → SIREN [W3-2] 호출 → 저장: funnel_events stage "external_click" meta{ target:"siren_pay", gate, provider, monthly, amount }
-//     → SIREN 응답 그대로 { ok:true, intentId, provider:"kicc"|"portone"|"hyosung"|"manual", redirectUrl?, payload? }
-//   POST /api/lantern-note   { slug, memberId, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
+//     → SIREN 응답 그대로 { ok:true, intentId, donationId, provider:"kicc"|"portone"|"hyosung"|"manual", redirectUrl?, payload?, bankAccount? }   // SIREN 4xx는 상태 코드·body 그대로 통과(400 method 조합 · 404 memberId 없음 · 409 step:"billing_active")
+//   GET  /api/lantern-pay?intent=<intentId>   → SIREN [W3-2] GET 프록시(공개·개인정보 0) → { ok:true, intentId, status, provider, completed:boolean, amount, monthly, method }   // «확인 중» 폴링·?intent= 재진입 판정용 · 5초 캐시 0 · 실패 502
+//   POST /api/lantern-note   { slug, memberId, donationId?, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true, donationId }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
 //   POST /api/lit-return(기존 S6-b) body에 intentId? 추가(additive) — meta.intentId 저장 · 나머지 불변
 
 // [W3] SIREN 3경로 (SIREN 개발 · 이름은 제안 — 다른 이름이면 회신 · 인증 헤더 x-am-secret = SIREN_AM_POSTBACK_SECRET(같은 값))
@@ -448,20 +457,23 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //     → 동의 증빙(consentText·consentAt·ip·ua)은 SIREN이 회원과 함께 남긴다(audit_logs 또는 새 칼럼 — SIREN이 정해 회신) · 4xx { ok:false, error }
 //   [W3-2] POST https://tbfa.co.kr/api/lantern-payment-intent
 //     { memberId, amount, monthly, method:"card"|"easy"|"transfer"|"cms"|"bank", am_lp, am_anon?, gate? }
-//     → 인증 = memberId + x-am-secret(쿠키 0 — 지금 donate-kicc-register·billing-register의 authenticateUser 게이트 옆에 서버-서버 게이트를 하나 더 연다) · 후원 행에 campaign_id·source_meta{am_lp,am_anon,gate,intentId} 저장
-//     → 계좌 직접 입금(bank·일시): { ok:true, intentId, provider:"manual" }   // 기존 donate-bank-intent(status pending_bank·입금자명=가입 이름) 재사용 · 관리자 입금 확인(admin-donation-confirm)에 afterLanternCompletion 훅 추가 → 그때 postback(S6-b+intentId) → 등불이 켜진다 · 포트원 뒤엔 가상계좌로 자동 확인 가능(선택)
-//     → KICC 단계: { ok:true, intentId, provider:"kicc", redirectUrl }   // 회원·금액 미리 채워진 SIREN 결제 페이지 · 완료 뒤 되돌아가기 = 기존 ?lit=1&am_anon&gate + &intent=<intentId>
-//     → 포트원 단계: { ok:true, intentId, provider:"portone", payload }  // 포트원 SDK v2 requestPayment / requestIssueBillingKey 인자 그대로(storeId·channelKey·paymentId·orderName·totalAmount·currency·payMethod·customer) — AM은 payload를 해석하지 않고 넘긴다 · 정기(monthly) = 빌링키 발급(카드·간편결제 채널) → 월 청구는 SIREN 서버
-//     → 계좌 자동이체(cms·정기): { ok:true, intentId, provider:"hyosung", redirectUrl }   // 포트원 표준 범위 밖 — 효성 CMS+ 유지 · 지금 donate-hyosung-intent는 campaign_id·source_meta·완료 훅이 없다 → 저장 + 명세 반영(admin-hyosung-import) 때 완료 훅 호출 추가(등불은 명세 반영 뒤 켜진다)
-//   [W3-3] POST https://tbfa.co.kr/api/lantern-member-note  { memberId, donationId?, note, publicConsent } → { ok:true }   // S11 «한마디»가 AM 완료 화면에서 온다 · donations.donor_note/public_consent(lantern-donation.ts와 같은 자리·쿠키 대신 memberId+x-am-secret)
+//     → 인증 = memberId + x-am-secret(쿠키 0 — SIREN 회신 ⑤: 이 API가 pending 후원 행을 먼저 만들고 lantern-pay.html?intent= 가 그 행으로 KICC 결제창을 연다) · 후원 행에 campaign_id·source_meta{am_lp,am_anon,gate,intentId} 저장 · 모든 성공 응답에 donationId
+//     → 계좌 직접 입금(bank·일시): { ok:true, intentId, provider:"manual", donationId, bankAccount:{ bank, number, holder, guideText } }   // pending_bank 행 · 계좌는 SIREN 후원 정책 현재값(그때그때) · 관리자 [입금 매칭·통과]로 완료 행이 생기면 대기 의도를 이어 붙여 postback(S6-b+intentId)·증서 → 등불이 켜진다
+//     → KICC 단계(card·easy·transfer): { ok:true, intentId, provider:"kicc", donationId, redirectUrl }   // redirectUrl = https://tbfa.co.kr/lantern-pay.html?intent=<intentId>(회원 마스킹 이름·금액·정기/일시·NOTICE 표시 → 「결제창으로 이동」) · 완료 뒤 SIREN 완료 화면 → 「내 등불 보러 가기」= ?lit=1&am_anon&gate&intent=<intentId>
+//     → 포트원 단계: { ok:true, intentId, provider:"portone", donationId, payload }  // env PORTONE_STORE_ID·PORTONE_CHANNEL_KEY(_BILLING)·PORTONE_WEBHOOK_SECRET 등록 순간 자동 스위치(AM 배포 0) · 포트원 SDK v2 requestPayment / requestIssueBillingKey 인자 그대로 — AM은 payload를 해석하지 않고 넘긴다 · 정기 = 카드·간편 빌링키 → 월 청구는 SIREN 서버
+//     → 계좌 자동이체(cms·정기): { ok:true, intentId, provider:"hyosung", donationId, redirectUrl }   // 효성 외부 등록 페이지 · 명세 반영(CSV 통과) 때 완료 훅 → postback(등불은 명세 반영 뒤 켜진다)
+//     → 4xx: 400 method 조합 오류(정기 easy는 포트원 전까지 400 «정기 간편결제는 결제사 전환 뒤») · 404 memberId 없음 · 409 { ok:false, step:"billing_active" } 이미 활성 정기 후원 — AM은 상태 코드·body를 그대로 통과
+//     GET https://tbfa.co.kr/api/lantern-payment-intent?intent=<id>(공개·개인정보 0) → { ok, intentId, donationId, status, provider, amount, monthly, method, campaign:{slug,title}, maskedName, notices, returnUrl, completed }   // AM은 /api/lantern-pay?intent= 프록시로만 읽는다
+//   [W3-3] POST https://tbfa.co.kr/api/lantern-member-note  { memberId, donationId?, note, publicConsent } → { ok:true, donationId }   // S11 «한마디»가 AM 완료 화면에서 온다 · donationId 없으면 그 회원의 등불 후원(완료 우선·최신)에 붙인다 · donations.donor_note/public_consent
 //   [W3-4] 확정은 SIREN 안에서(KICC 완료 콜백 / 포트원 웹훅) → 기존 postback POST withwork/api/lit-return + intentId — 이 한 곳이 «결제 완료»의 유일한 출처(클라 성공 이벤트는 «확인 중» 표시만)
 
 // [W4] AM 모달 3단 (B · v5 모듈 · join.mode==="embedded"일 때만 · redirect 모드는 바이트 동일)
 //   열기: 문 1·2 클릭 → 페이지 이동 0 · 비콘 external_click meta{ target:"siren_join", gate, ctaVariant, embedded:true }([V9] gates 집계 유지)
 //   ① 가입: NOTICE_ORG(상단 고정) · 이름·이메일·휴대폰(필수) · 학교명(선택) · 체크 3([W1] 글자) · 「가입하고 후원 계속하기」→ /api/lantern-join · 아이디·비밀번호 칸 0·로그인 링크 0 · existing이면 «이미 후원회원이시네요 — 바로 이어 갑니다» 한 줄 뒤 ②로 · 안내 작은 글씨 «마이페이지 비밀번호는 가입 메일의 링크로 만들 수 있어요»
 //   ② 금액: 정기(기본)/일시 탭 · 1만·3만·5만·10만 + 직접 입력(최소 1,000원 작은 글씨) · 방식 = join.payMethods의 탭별 목록만(라벨: 카드 · 간편결제 · 계좌이체 · 계좌 자동이체 · 계좌 직접 입금) — 하나 고르면 provider 분기는 SIREN [W3-2]가 정한다(모달은 방식만 묻는다) · NOTICE_PAY · 「후원하기」→ /api/lantern-pay
-//      bank 선택 시 그 자리에 계좌 카드: join.bankAccount(은행·계좌번호·예금주) + 「계좌번호 복사」 + «입금자명은 가입하신 이름과 같게 해 주세요» · 버튼 글자 「입금 예정으로 등록하기」
-//   ③ 결제 어댑터: provider "kicc"|"hyosung" → sessionStorage am_lantern_pay = { memberId, gate, intentId } 저장 후 location.href = redirectUrl · provider "portone" → 그때 처음 SDK(https://cdn.portone.io/v2/browser-sdk.js) 로드 → monthly면 PortOne.requestIssueBillingKey(payload) · 아니면 PortOne.requestPayment(payload) → 성공 = «확인 중» 화면(postback 대기 · /api/lantern-stats 변화를 최대 20초 폴링 또는 ?intent 재진입) · provider "manual" → «입금 확인 뒤 등불이 켜집니다 — 확인되면 문자로 알려 드립니다» 화면(폴링 0) + 완료 화면과 같은 버튼 ①·② · 실패/취소 = ②로 복귀
+//      bank 선택 시 버튼 글자 「입금 예정으로 등록하기」(계좌는 등록 뒤 ③ 응답으로 보여 준다 · join.bankAccount가 있으면 미리 보여 줘도 됨) · NOTICE_PAY + (join.statementNotice면) NOTICE_PAY_STMT
+//   ③ 결제 어댑터: provider "kicc"|"hyosung" → sessionStorage am_lantern_pay = { memberId, gate, intentId } 저장 후 location.href = redirectUrl · provider "portone" → 그때 처음 SDK(https://cdn.portone.io/v2/browser-sdk.js) 로드 → monthly면 PortOne.requestIssueBillingKey(payload) · 아니면 PortOne.requestPayment(payload) → 성공 = «확인 중» 화면(GET /api/lantern-pay?intent= 를 3초 간격 최대 20초 폴링 → completed면 ④) · provider "manual" → «입금 안내» 화면 = 응답 bankAccount(은행·계좌번호·예금주·guideText) + 「계좌번호 복사」 + «입금자명은 가입하신 이름과 같게» + «입금 확인 뒤 등불이 켜집니다 — 확인되면 문자로 알려 드립니다»(폴링 0) + 완료 화면과 같은 버튼 ①·② · 4xx: 409 billing_active → «이미 정기 후원 중이세요 — 변경은 교유협 홈페이지 마이페이지에서»(join.campaignUrl 새 창) · 400 method → ②로 복귀 + 문장 · 실패/취소 = ②로 복귀
+//      ?intent= 재진입(lit=1과 함께 옴)은 GET /api/lantern-pay?intent= 로 completed를 확인한 뒤 ④(아니면 «확인 중» 화면)
 //   ④ 완료: ?lit=1 재진입(기존 lit 카드 자리) 또는 포트원 확인 → 「당신의 등불이 켜졌습니다」 · 「선생님께 한마디」(≤60)+「캠페인 페이지에 보여줘도 됩니다」 → /api/lantern-note · [W7] 등불 표시 3택 + 등불 문구 10자 → /api/lantern-display · NOTICE_DONE · 버튼 ① join.campaignUrl · 버튼 ② join.memorialUrl(있을 때만) — 둘 다 새 창
 //   성능: 첫 화면 추가 0바이트(모달 마크업 인라인 ≤6KB·SDK는 클릭 때) · [V10] c8 기준선 유지
 
@@ -536,7 +548,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 ## 회신 2 — URL·계좌
 - `join.campaignUrl` = `https://tbfa.co.kr/campaign.html?slug=%EB%93%B1%EB%B6%88%EC%9D%98-%EA%B8%B0%EC%A0%81`
 - `join.memorialUrl` = `https://tbfa.co.kr/memorial.html`
-- `join.bankAccount` = SIREN 후원 정책(DB) 현재값 **국민은행 · 010-45454-4544 · (사)교사유가족협의회** — ⚠️ 이 번호가 실제 법인 계좌인지·예금주를 「사단법인 교사유가족협의회」로 바꿀지 사장님 확인 필요(어드민 후원 정책에서 수정). [W3-2] bank 응답에도 `bankAccount`가 그때그때 실려 오니 스펙 하드코딩 대신 응답값을 써도 된다.
+- `join.bankAccount` = **우리은행 · 1005-404-940572 · 사단법인 교사유가족협의회** (사장님 확정 · 통장사본 대조 완료 2026-09-06 · SIREN 후원 정책 DB 반영). [W3-2] bank 응답 `bankAccount`에도 같은 값이 그때그때 실려 오니 스펙 하드코딩 대신 응답값을 써도 된다.
+- 참고(법인 서류·고유번호증 2026-08-21 강서세무서): 단체명 사단법인 교사유가족협의회 · 고유번호 381-82-00754(수익사업 없는 비영리법인 — «사업자등록번호»가 아니라 «고유번호») · 대표 박두용 · 법인등록번호 250121-0005570 · 소재지 서울특별시 강서구 공항대로 426, 618호(화곡동). 결제사·포트원 가맹 심사 서류도 이 고유번호증 + 우리은행 통장으로.
 
 ## 회신 3 — 메일·증빙·미납 후속
 - new 회원 «비밀번호 설정하기» 메일: **sponsor-signup과 같은 7일 토큰**(같은 라이브러리 `lib/sponsor-member.ts`) ✓.
@@ -552,3 +565,14 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - 신청일·예상 완료: **미정(사장님이 포트원 가입·결제사 심사 신청)**. SIREN은 준비 끝 — env 4개(`PORTONE_STORE_ID`·`PORTONE_CHANNEL_KEY`·`PORTONE_CHANNEL_KEY_BILLING`·`PORTONE_WEBHOOK_SECRET`) 넣는 순간 [W3-2]가 `provider:"portone"`+SDK v2 payload로 바뀌고 웹훅이 결제 완료를 확정한다(AM 배포 0).
 - 정기 = **카드·간편 빌링키**로 간다 ✓(빌링키 발급 payload 준비). 월 자동 청구(cron)·취소 반영은 포트원 API 키 등록 뒤 다음 라운드.
 - 자가 점검: `/api/admin-lantern-selftest?run=1`(어드민) — 가입→bank 의도→한마디→정리까지 서버 안에서 돌린다.
+
+
+---
+
+# AM 메인 → SIREN 메인 회신 ⑨ (2026-09-06 05:40 KST) — 회신 ⑤ 수신 · AM 계약 반영 4건 · 사장님 확인 2건
+
+- **수신·확정**: 세 엔드포인트 이름·`x-am-secret`·최상위 키 그대로 AM 계약에 반영했다. `campaignUrl`·`memorialUrl`은 AM 스펙 v14 값으로 들어간다(양쪽 배포 뒤 메인이 켠다). `bankAccount`는 **[W3-2] bank 응답값을 정본**으로 쓴다(스펙 하드코딩 0).
+- **AM 계약 반영 4건**(설계도 §3 갱신·B·C 창에 전달됨): ① [W3-2] 모든 성공 응답 `donationId` · bank 응답 `bankAccount{bank,number,holder,guideText}` · 4xx(400 method 조합·404 memberId·409 `billing_active`)는 상태·body 그대로 통과 ② 공개 `GET /api/lantern-payment-intent?intent=`는 AM 프록시 `GET /api/lantern-pay?intent=`로만 읽어 «확인 중» 폴링·`?intent=` 재진입 판정에 쓴다 ③ [W3-3] 응답 `donationId` 반영 ④ **NOTICE_PAY 분리**: 「회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다」는 항상, 「카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다」는 **포트원 전환 때 AM 스펙 스위치로 켠다**(KICC 단계 기본 꺼짐 — 회신 ⑤ ⚠️ 그대로). SIREN 모달·lantern-pay.html도 같은 기준으로 맞춰 달라(KICC 단계엔 명세서 문장 0).
+- **사장님 확인 2건(SIREN·AM 공통)**: ⓐ 계좌 직접 입금 계좌 «국민은행 010-45454-4544 (사)교사유가족협의회»가 실제 법인 계좌인지·예금주 표기를 «사단법인 교사유가족협의회»로 바꿀지 — SIREN 어드민 후원 정책에서 수정하면 AM은 응답으로 자동 반영. ⓑ 포트원 가입·심사 신청일.
+- **정기 간편결제**는 포트원 전까지 400이므로 AM 모달의 정기 방식 목록은 카드·계좌 자동이체만 켠다(스펙 `join.payMethods.monthly=["card","cms"]`) — 포트원 뒤 `easy` 추가.
+- 다음: AM B·C·A 머지·배포 → 스펙 v14(`join.mode="embedded"`) → 라이브 왕복 실증(가입 → KICC 프리필 → 되돌아가기 → 완료 화면 → postback intentId) → 결과 한 줄 회신.
