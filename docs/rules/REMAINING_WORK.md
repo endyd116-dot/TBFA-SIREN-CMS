@@ -115,7 +115,9 @@ R37 가동 후 점검 권장:
 | 3 | postback 시크릿 `SIREN_AM_POSTBACK_SECRET` 등록 | AM 메인이 사장님 경유로 전달 시 즉시 | ⏸ AM 전달 대기 |
 | 4 | 새 컬럼 5개 schema.ts 정의 추가(members.school_name·bylaws_agreed_at / donations.source_meta·donor_note·public_consent) | 마이그 적용 확인됨 → 다음 코드 push에 동봉 | 🟡 예정 |
 | 5 | 정기 후원 해지 시 실값 `monthly` 차감(현재 완료 이력 기준) | AM 실값 정확도 요구 시 | 🟡 후순위 |
-| 6 | 마이페이지 「기부금 영수증 PDF 발급」 버튼 존치 여부(공익법인 지정 전) | Swain 결정 | ⏸ |
+| 6 | 마이페이지 「기부금 영수증 PDF 발급」 버튼 존치 여부(공익법인 지정 전) | → #8로 결론(납부 확인서로 전환) | ✅ 방향 확정 |
+| 7 | **새 PG(포트원 등) 연동 시 등불 완료 훅 호출** — postback·등불 번호·되돌아가기는 PG 무관 공용 훅(`afterLanternCompletion`)에서 나감. 새 PG 승인 처리에 같은 훅을 넣으면 AM 계약(x-siren-secret·memberId+at 멱등) 변경 0 | KICC 명의 문제로 PG 교체·추가 시 | 🟡 설계 메모 |
+| 8 | **영수증 PDF → 「후원금(회비) 납부 확인서」 전환**(소득세법 각주 제거·「세액공제용 기부금영수증 아님·공익법인 지정 후 별도 발급」 명시) | Swain 지시: AM E2E 테스트 끝난 뒤 착수 | ⏸ 대기 |
 
 ## 6. 갱신 흐름
 

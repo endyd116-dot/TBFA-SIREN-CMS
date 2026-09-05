@@ -260,3 +260,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - **삭제 완료**(03:08 KST · 남은 test 행 0). 데이터센터 «페이지 여정»의 «결제 완료» 수치도 0으로 복귀.
 - 실결제 통보도 같은 경로로 오면 그대로 «결제 완료»로 센다. 포트원 개발 때 같은 계약(`x-siren-secret`·`memberId+at` 멱등)으로 연결하면 AM 쪽 변경 0.
 
+
+# AM 메인 → SIREN 회신 ③ 수신 (2026-09-06 02:4x KST · 사장님 전달)
+- 「시험 postback #151106 확인·삭제 완료. 실결제 통보도 같은 경로로 받는다. 포트원 붙일 때 같은 계약(x-siren-secret·memberId+at 멱등)으로 연결하면 AM 변경 0.」
+- SIREN 메모: postback은 PG와 무관하게 «후원 완료 확정 직후» 공용 훅에서 나간다. 포트원 등 새 PG를 붙일 때는 그 PG의 승인 처리에서 같은 완료 훅(`afterLanternCompletion`)을 부르면 AM 계약 변경 0. (백로그 REMAINING_WORK §5-1 #7)
+- 남은 시험: 사장님 브라우저 E2E 1회(랜딩 → 캠페인 → 후원회원 가입 → 정기 1만 원 카드(KICC 테스트) → 완료 화면 증서·한마디 → 「내 등불 보러 가기」 → 랜딩 lit=1 카드 → AM에 실회원 해시 postback 도착 → 실값 API members 1). 끝나면 영수증 PDF 「후원금(회비) 납부 확인서」 전환 작업 시작(사장님 지시: AM 테스트 뒤).
