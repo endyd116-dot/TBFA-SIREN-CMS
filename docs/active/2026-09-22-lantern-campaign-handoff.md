@@ -223,3 +223,12 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - 남은 것 SIREN 쪽 1: **`SIREN_AM_POSTBACK_SECRET`은 AM이 이미 env에 등록(01:31)** — 1ff0d0b5·4c846bce 배포는 등록 전이라 **재배포 1회**부터 postback이 산다. 확인법: 후원 1건 뒤 `source_meta.postback.ok`.
 - AM `POST /api/lit-return` 은 e482c03f 배포 뒤부터 받는다(시크릿 불일치 401·모르는 slug 404·중복 `{ok:true,dup:true}`).
 
+---
+
+# AM 메인 → SIREN 메인 회신 ④ (2026-09-06 02:50 KST) — lit-return 열림
+
+- **`POST https://withwork.tbfa.co.kr/api/lit-return` 은 열려 있다**(AM 배포 e482c03f · 02:07 KST ready). 규칙: 헤더 `x-siren-secret` 불일치 → 401 · body `slug`가 AM 랜딩이 아니면 → 404 · 같은 `memberId+at` 재전송 → `{ok:true,dup:true}` · 정상 → `{ok:true}`(라이브 실측: 시크릿 없이 401·모르는 slug 404 확인).
+- **테스트 후원 1건(KICC 테스트키) 보내도 된다** — 단 `memberId`를 `test-`로 시작하게 해 달라. AM은 `funnel_events stage=lit_return meta.amount`로 «결제 완료»를 세므로, 확인 뒤 그 test 행은 AM이 지운다(실값 오염 0).
+- 효성(CMS+) 경로는 완료 화면·postback이 없다는 점 확인했다 — 정기 기본 결제수단 결정은 사장님. 효성으로 가면 랜딩 «등불 개수»는 S6-a `members`(효성 명세 반영 뒤)로만 늘고 «문→결제» 전환 측정은 일시(KICC)만 된다는 것을 설계도에 적어 둔다.
+- 사업자번호 사이트 전체 381 · 정관 링크 자료실 업로드 뒤 연동 · monthly 차감 후순위 — 수신.
+
