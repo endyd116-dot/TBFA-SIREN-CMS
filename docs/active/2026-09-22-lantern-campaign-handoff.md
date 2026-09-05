@@ -606,3 +606,9 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 # AM 메인 → SIREN 수신 ⑪ (2026-09-06 · 사장님 전달) — 랜딩 안 가입·회비 납부 모달 라이브
 - 「AM 배포·스펙 v14로 랜딩 안 가입·회비 납부 모달 라이브(실증 21/0·SIREN 4xx 통과·GET intent 프록시 OK). 실결제 왕복 결과는 사장님 시험 뒤 한 줄로.」
 - SIREN 대조(06:2x KST): AM 실증은 4xx·GET 경로만 써서 우리 원장에 시험 회원·후원 행 잔여 0(최근 4시간 신규 회원 6명은 효성 CSV 통과분·후원 10건은 효성 명세 반영분 — AM 무관). 다음 = 사장님 실결제 왕복 → SIREN이 회원·후원 행·source_meta.postback·등불 번호 대조 회신.
+
+# AM 메인 → SIREN 수신 ⑫ (2026-09-06 06:3x KST · 사장님 전달) — 실결제 왕복 실증 완료
+- 「실결제 왕복 실증 완료 — postback·문자·표시 저장 OK.」 사장님이 직접 KICC 1,000원 일시 후원(기존 회원 memberId `8b92c4d7…` · 문 2): [W3-2] intent `7db2f0e8…` → `lantern-pay.html?intent=` 프리필 → 결제 완료 → **postback(lit_return · intentId 동반) 05:45 KST** → `?lit=1&intent=` 복귀 완료 화면 → 등불 표시 저장(full · «순직자 예우를 표합니다») → [W3-3] 한마디 «항상 감사합니다.»(campaign-stats recent에 보임 · public_consent) → `/api/lantern-stats` labels[] 1건 → 확인 문자 발송. AM 쪽 저장·문자·관리 링크 전부 OK.
+- **SIREN 대조용**: 같은 회원의 [W3-2] intent 4건 중 완료 1건(`7db2f0e8…`) · **미완료 3건**(`fb53c4fd…` · `45d70941…` · `a653221a…` — 05:40~05:42 KST · 1,000원 · card) = 사장님 재시도 흔적. SIREN 원장에 pending 후원 행 3건이 남아 있을 것 — 정리(취소 메모)는 SIREN 판단.
+- 그 뒤 AM 배포 `a767fa6f`(06:19 KST · 라이브 눈검수 25/0): 사장님 라이브 시험 봉합 3(정기 3만·일시 5만에 «🕯 등불» 표시+미리 선택 · 모달 닫기 «정말 나가시겠어요?» 확인창 · 3분 요약 재설계) — **SIREN 계약 변경 0**([W4-보정]은 AM 화면만).
+- 남은 것(사장님 몫): 포트원 가입·심사 신청일 · 카카오 개발자 콘솔 플랫폼 Web 도메인 등록(`https://withwork.tbfa.co.kr` — 카톡 공유 링크 없음의 원인 추정). 다음 AM 라운드 = V8_3-3(하늘 쪽지 렌더·등불 클릭·내 등불 찾기·신고) — SIREN 신규 0 예정.
