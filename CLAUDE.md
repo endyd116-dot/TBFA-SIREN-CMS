@@ -12,7 +12,7 @@
 | 항목 | 내용 |
 |---|---|
 | 프로젝트명 | **SIREN (싸이렌)** — 교사유가족협의회 통합 NPO 플랫폼 |
-| 운영 주체 | (사)교사유가족협의회 (사업자번호 1188271215) |
+| 운영 주체 | (사)교사유가족협의회 (사업자번호 3818200754) |
 | 라이브 URL | https://tbfa.co.kr (공식 메인 — Netlify 매핑 완료) / https://tbfa-siren-cms.netlify.app (Netlify 기본) |
 | 호스팅 | Netlify Pro ($20/월) + Functions + Blobs + Scheduled |
 | DB | Neon PostgreSQL + Drizzle ORM + postgres-js (56+ 테이블) |

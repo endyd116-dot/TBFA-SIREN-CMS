@@ -323,6 +323,13 @@ export const members = pgTable("members", {
   taxDependents: integer("tax_dependents").default(1).notNull(),
   taxChildren: integer("tax_children").default(0).notNull(),
 
+  /* ───────── 「등불의 기적」 후원회원 가입 (2026-09-06 · migrate-lantern-campaign 적용 완료) ─────────
+   * schoolName      — 학교명/소속(선택) → 랜딩 학교 단위 등불 집계(S12)
+   * bylawsAgreedAt  — 회칙(정관)에 따른 후원회원 가입 동의 시각(S5 · 기부금품법 예외 요건 증적)
+   */
+  schoolName: varchar("school_name", { length: 150 }),
+  bylawsAgreedAt: timestamp("bylaws_agreed_at"),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -416,6 +423,15 @@ export const donations = pgTable("donations", {
 
   /* M-14 영수증 캐시 */
   receiptBlobId: integer("receipt_blob_id"),
+
+  /* ★ 「등불의 기적」 랜딩 연동 (2026-09-06 · migrate-lantern-campaign 적용 완료)
+   * sourceMeta    — 랜딩 파라미터(am_lp·am_anon·gate) + 등불 번호·postback 결과 (jsonb)
+   * donorNote     — 「선생님께 한마디」 60자(S11)
+   * publicConsent — 이름(마스킹)·한마디를 캠페인 페이지·랜딩 실값(recent)에 보여줘도 되는지(S11 · 기본 false)
+   */
+  sourceMeta: jsonb("source_meta"),
+  donorNote: varchar("donor_note", { length: 60 }),
+  publicConsent: boolean("public_consent").default(false),
 
   memo: text("memo"),
   /* === 라운드3 CMS: 재정 기준일 통일 === */

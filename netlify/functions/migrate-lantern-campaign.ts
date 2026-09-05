@@ -363,6 +363,46 @@ export default async (req: Request) => {
     result.remainingReceiptTexts = await findRemaining();
     result.steps.push("⑤ 기부금영수증 문구 정정");
 
+    /* ⑥ 사업자번호 사이트 전체 381-82-00754 (Swain 결정 2026-09-06 — 118-82-71215 폐기)
+       푸터(site_settings footer org.businessNo)·검색엔진 단체 정보(seo org:registration_no)·영수증 설정·DB 본문 */
+    const orgFix: Record<string, number> = {};
+    const bump = (k: string, res: any) => { const n = rowsOf(res).length; if (n) orgFix[k] = n; };
+    try {
+      bump("footer.org.businessNo", await db.execute(sql`
+        UPDATE site_settings SET value_text = '381-82-00754',
+          draft_value_text = CASE WHEN draft_value_text IN ('118-82-71215','1188271215') THEN '381-82-00754' ELSE draft_value_text END,
+          updated_at = NOW()
+        WHERE scope = 'footer' AND key = 'org.businessNo' AND (value_text IN ('118-82-71215','1188271215') OR value_text IS NULL OR value_text = '')
+        RETURNING id`));
+      bump("footer.org.name", await db.execute(sql`
+        UPDATE site_settings SET value_text = '사단법인 교사유가족협의회', updated_at = NOW()
+        WHERE scope = 'footer' AND key = 'org.name' AND value_text IN ('(사) 교사유가족협의회','(사)교사유가족협의회')
+        RETURNING id`));
+      bump("seo.org:registration_no", await db.execute(sql`
+        UPDATE site_settings SET value_text = '3818200754',
+          draft_value_text = CASE WHEN draft_value_text IN ('118-82-71215','1188271215') THEN '3818200754' ELSE draft_value_text END,
+          updated_at = NOW()
+        WHERE key = 'org:registration_no' AND (value_text IN ('118-82-71215','1188271215') OR value_text IS NULL OR value_text = '')
+        RETURNING id`));
+      bump("receipt_settings.org_registration_no", await db.execute(sql`
+        UPDATE receipt_settings SET org_registration_no = '381-82-00754'
+        WHERE org_registration_no IS NULL OR org_registration_no IN ('118-82-71215','1188271215','000-00-00000','')
+        RETURNING id`));
+      for (const [table, column] of SEARCH_TARGETS) {
+        try {
+          const res: any = await db.execute(sql.raw(
+            `UPDATE ${table} SET ${column} = REPLACE(REPLACE(${column}, '118-82-71215', '381-82-00754'), '1188271215', '3818200754')` +
+            ` WHERE ${column} LIKE '%118-82-71215%' OR ${column} LIKE '%1188271215%' RETURNING id`,
+          ));
+          bump(`${table}.${column}`, res);
+        } catch { /* 표 없음 */ }
+      }
+    } catch (e: any) {
+      orgFix.error = String(e?.message || e);
+    }
+    result.orgNumberFixes = orgFix;
+    result.steps.push("⑥ 사업자번호 381-82-00754 통일");
+
     return json({ ok: true, mode: "run", result });
   } catch (e: any) {
     console.error("[migrate-lantern-campaign]", e);

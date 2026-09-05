@@ -40,7 +40,7 @@
       org: {
         name:            '교사유가족협의회',
         legal_name:      '(사)교사유가족협의회',
-        registration_no: '1188271215',
+        registration_no: '3818200754',
         logo_url:        'https://tbfa.co.kr/og-default.png',
         same_as:         [],
       },
