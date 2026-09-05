@@ -114,7 +114,28 @@ const REPLACEMENTS: Array<[string, string]> = [
   ["후원금 사용 기준, 활동보고서 공개, 기부금 영수증 발급 안내.", "후원금 사용 기준, 활동보고서 공개, 세액공제 관련 안내."],
   ["후원 안내 — 정기·일시 후원과 기부금 영수증", "후원 안내 — 정기·일시 후원과 사용처"],
   ["기부금 영수증 발급 및 연말정산 등재 안내", "기부금 영수증(세액공제) 안내 — 공익법인 지정 전"],
+  /* 진단(2026-09-06 라이브)에서 드러난 나머지 — 약관 페이지(DB)·후원 안내 `>` 변형·연간 일괄 발급 공지·FAQ */
+  ["<li>후원 회원은 <strong>마이페이지 > 증명서 발급</strong>에서 기부금 영수증(PDF)을 직접 발급할 수 있습니다</li>", ""],
+  ["<li>회원의 경우 마이페이지에서 기부금 영수증을 PDF로 즉시 발급받을 수 있으며, 「소득세법」에 따라 연말정산 소득공제 자료로 활용 가능합니다.</li>", `<li>${RECEIPT_NOTICE} 회원은 마이페이지에서 후원 내역을 확인할 수 있습니다.</li>`],
+  ["회원의 경우 마이페이지에서 기부금 영수증을 PDF로 즉시 발급받을 수 있으며, 「소득세법」에 따라 연말정산 소득공제 자료로 활용 가능합니다.", `${RECEIPT_NOTICE} 회원은 마이페이지에서 후원 내역을 확인할 수 있습니다.`],
+  ["마이페이지 > 증명서 발급 메뉴에서 즉시 발급 가능합니다. 국세청 연말정산 간소화 서비스에도 자동 등재됩니다.", RECEIPT_NOTICE],
+  ["매년 1월 국세청 연말정산 간소화 서비스에 자동 등재되며, 마이페이지 > 증명서 발급에서 PDF 형태로 즉시 출력 가능합니다.", `${RECEIPT_NOTICE} 후원 내역은 마이페이지에서 확인하실 수 있습니다.`],
+  ["기부금 영수증은 언제 어떻게 발급되나요?", "기부금 영수증(세액공제)은 발급되나요?"],
 ];
+
+/** 위 목록으로 못 잡은 문장 — 「국세청 연말정산 간소화 서비스」가 든 문장(태그 안 텍스트 노드 범위)을 통째로 안내문으로 바꾼다 */
+async function regexFallback(table: string, column: string): Promise<number> {
+  try {
+    const res: any = await db.execute(sql.raw(
+      `UPDATE ${table} SET ${column} = regexp_replace(${column}, ` +
+      `'[^.<>]*국세청 연말정산 간소화 서비스[^.<>]*\\.?', ${sqlStr(RECEIPT_NOTICE)}, 'g')` +
+      ` WHERE ${column} LIKE '%국세청 연말정산 간소화 서비스%' RETURNING id`,
+    ));
+    return rowsOf(res).length;
+  } catch {
+    return 0;
+  }
+}
 
 /** 표·컬럼별 문구 치환 — 바뀐 행 수 반환 */
 async function replaceIn(table: string, column: string, idCol = "id"): Promise<number> {
@@ -200,10 +221,11 @@ export default async (req: Request) => {
 
   if (!run) return json({ ok: true, mode: "diag", diag });
 
-  /* 인증 — 어드민 세션 또는 ?secret= */
+  /* 인증 — 어드민 세션 또는 ?secret=(INTERNAL_TRIGGER_SECRET 또는 1회용 LANTERN_MIGRATE_TOKEN·호출 후 env 삭제) */
   const secret = url.searchParams.get("secret") || "";
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
-  let authed = expected !== "" && secret === expected;
+  const onceToken = process.env.LANTERN_MIGRATE_TOKEN || "";
+  let authed = (expected !== "" && secret === expected) || (onceToken !== "" && secret === onceToken);
   if (!authed) {
     const guard: any = await requireAdmin(req);
     if (!guard.ok) return guard.res;
@@ -326,6 +348,17 @@ export default async (req: Request) => {
       const n = rowsOf(nav).length;
       if (n) fixes["nav_menu_items.label"] = n;
     } catch { /* noop */ }
+    /* 연간 「기부금 영수증 일괄 발급 기간 안내」 공지는 전제 자체가 틀렸으므로 내린다(삭제 아님 — 운영자가 CMS에서 되살릴 수 있다) */
+    try {
+      const un: any = await db.execute(sql`UPDATE notices SET is_published = FALSE, updated_at = NOW() WHERE title LIKE '기부금 영수증 일괄 발급%' AND is_published = TRUE RETURNING id`);
+      const n = rowsOf(un).length;
+      if (n) fixes["notices.unpublished"] = n;
+    } catch { /* noop */ }
+    /* 마지막 안전망 — 문장 단위 정규식 치환 */
+    for (const [table, column] of SEARCH_TARGETS) {
+      const n = await regexFallback(table, column);
+      if (n) fixes[`${table}.${column}(regex)`] = n;
+    }
     result.receiptTextFixes = fixes;
     result.remainingReceiptTexts = await findRemaining();
     result.steps.push("⑤ 기부금영수증 문구 정정");
