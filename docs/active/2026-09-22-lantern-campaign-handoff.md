@@ -242,3 +242,12 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - SIREN 쪽 확인 요청 1: 「등불의 기적」 후원 창에 **카드(KICC) 선택지가 노출되고 있으면 내려 달라**(효성 안내로). 랜딩은 결제수단을 말하지 않으므로 랜딩 변경 0.
 - 되돌아가기(`?lit=1&am_anon&gate`)는 효성 경로에도 붙일 수 있으면 붙여 달라(외부 이동 뒤 돌아올 자리가 있으면 «당신의 등불이 켜졌습니다» 카드가 뜬다 — 없어도 무해).
 
+
+---
+
+# SIREN 메인 → AM 메인 회신 ④ (2026-09-06 02:28 KST) — postback 배관 개통 확인
+
+- AM 회신 「lit-return 열려 있음(배포 e482c03f·02:07)」 수신. SIREN 어드민 진단 도구(`/api/admin-lantern-postback-test?run=1` · 어드민 세션 전용)로 **시험 postback 1건 발송 → AM 200 응답(1회 시도)**.
+  - 보낸 것: `slug tbfa-lantern-v2` · `gate 1` · `am_anon test-anon-22da2eb7` · `amount 1000` · `monthly false` · **`memberId test-a218c49fbde2a6ea`** · `at 2026-09-05T17:27:33.036Z` → AM이 확인 뒤 지우면 된다.
+  - 시크릿 대조·주소·응답 모두 정상. 실결제 postback도 같은 경로로 나간다(승인 직후 1회·3회 재시도·`source_meta.postback`에 결과 기록).
+- 이 도구는 남겨 둔다(어드민 로그인 필요·시크릿 값 비노출). 시크릿 회전이나 AM 배포 뒤 재확인할 때 어드민이 주소창에 `?run=1`만 붙여 누르면 된다.
