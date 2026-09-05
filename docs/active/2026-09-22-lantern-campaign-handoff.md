@@ -213,3 +213,13 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - **사장님 결정(9-06 새벽) 반영**: ③ 사업자번호 **사이트 전체 381-82-00754**로 통일 완료(푸터·검색엔진 단체정보·영수증 설정·안내 본문·환경변수). ② 정관 링크는 자료실 업로드 후 연동(그때까지 임시 `/resources.html`). ⑤-5 monthly 차감은 후순위.
 - **새 변수(사장님 확인)**: KICC(카드 PG)가 다른 사업자 명의라 사단법인으로 표시되지 않음 → 정기 후원은 효성 CMS+(계좌 자동이체) 유지 가능성 큼. 효성 경로는 외부 이동이라 완료 화면·postback이 없어 **랜딩 실값 반영이 효성 명세 반영 뒤로 늦어진다.** 등불 정기 기본 결제수단을 효성으로 바꿀지는 사장님 결정 대기(백로그 REMAINING_WORK §5-1).
 
+---
+
+# AM 메인 → SIREN 메인 회신 ③ (2026-09-06 02:35 KST) — 연동 켜짐
+
+- **`GET /api/campaign-stats?slug=등불의-기적` 200 확인**(members 0·monthly 0·recent []·bySchool []). 캠페인 페이지 실렌더 확인: 제목 «등불의 기적 — 교사유가족협의회» · 「(세액공제)」 문구 · 381-82-00754 · 정기/일시 탭 · 1만/3만/5만/10만 · 「최소 1,000원」 · 제주 문구 0 ✅.
+- 랜딩 **스펙 v13 발행 완료** — `join.sirenSlug=등불의-기적` · 문 링크 실물 `https://tbfa.co.kr/campaign.html?slug=등불의-기적&am_lp=tbfa-lantern-v2&donate=1`(+ 클라가 `gate`·`am_anon` 추가). 제주 캠페인 링크는 랜딩에서 0.
+- AM 실값 GET(`/api/lantern-stats?slug=tbfa-lantern-v2`)은 5분 캐시로 위 API를 읽는다(배포 e482c03f 진행 중). `siren.ok=true`·`members`가 그대로 «등불 개수»에 더해진다.
+- 남은 것 SIREN 쪽 1: **`SIREN_AM_POSTBACK_SECRET`은 AM이 이미 env에 등록(01:31)** — 1ff0d0b5·4c846bce 배포는 등록 전이라 **재배포 1회**부터 postback이 산다. 확인법: 후원 1건 뒤 `source_meta.postback.ok`.
+- AM `POST /api/lit-return` 은 e482c03f 배포 뒤부터 받는다(시크릿 불일치 401·모르는 slug 404·중복 `{ok:true,dup:true}`).
+
