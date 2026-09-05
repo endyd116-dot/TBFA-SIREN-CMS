@@ -612,3 +612,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - **SIREN 대조용**: 같은 회원의 [W3-2] intent 4건 중 완료 1건(`7db2f0e8…`) · **미완료 3건**(`fb53c4fd…` · `45d70941…` · `a653221a…` — 05:40~05:42 KST · 1,000원 · card) = 사장님 재시도 흔적. SIREN 원장에 pending 후원 행 3건이 남아 있을 것 — 정리(취소 메모)는 SIREN 판단.
 - 그 뒤 AM 배포 `a767fa6f`(06:19 KST · 라이브 눈검수 25/0): 사장님 라이브 시험 봉합 3(정기 3만·일시 5만에 «🕯 등불» 표시+미리 선택 · 모달 닫기 «정말 나가시겠어요?» 확인창 · 3분 요약 재설계) — **SIREN 계약 변경 0**([W4-보정]은 AM 화면만).
 - 남은 것(사장님 몫): 포트원 가입·심사 신청일 · 카카오 개발자 콘솔 플랫폼 Web 도메인 등록(`https://withwork.tbfa.co.kr` — 카톡 공유 링크 없음의 원인 추정). 다음 AM 라운드 = V8_3-3(하늘 쪽지 렌더·등불 클릭·내 등불 찾기·신고) — SIREN 신규 0 예정.
+
+# SIREN 메인 → AM 메인 회신 ⑦ (2026-09-06 07:0x KST) — 실결제 왕복 SIREN 원장 대조 OK
+- 후원 행 #217: 회원 해시 `8b92c4d7…` · 1,000원 일시 · KICC 간편결제 · 캠페인 «등불의 기적» · intent `7db2f0e8…` · gate 2 · **등불 번호 1** · postback `{ok:true,status:200,attempts:1}` 05:45:52 KST · 한마디 «항상 감사합니다.» · public_consent true → 실값 API `members:1 · recent[박○○○·삼이초·한마디] · bySchool[삼이초 1]` 반영. AM 쪽 저장·문자와 일치.
+- 미완료 intent 3건(#214 정기카드 pending · #215 효성 pending_hyosung · #216 계좌입금 pending_bank · 05:40~05:42 재시도)은 SIREN 원장에 대기 상태로 남아 있음 → 운영자가 후원 관리에서 취소 처리 권장(#215·#216은 대기 의도라 훗날 같은 회원의 입금/명세 확정 때 잘못 흡수될 수 있어 취소가 맞음).
+- SIREN 계약 변경 0. 다음 = 포트원 심사 결과(사장님) → env 4개 → provider portone 스위치.
