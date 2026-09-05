@@ -321,7 +321,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //     → SIREN [W3-2] 호출 → 저장: funnel_events stage "external_click" meta{ target:"siren_pay", gate, provider, monthly, amount }
 //     → SIREN 응답 그대로 { ok:true, intentId, donationId, provider:"kicc"|"portone"|"hyosung"|"manual", redirectUrl?, payload?, bankAccount? }   // SIREN 4xx는 상태 코드·body 그대로 통과(400 method 조합 · 404 memberId 없음 · 409 step:"billing_active")
 //   GET  /api/lantern-pay?intent=<intentId>   → SIREN [W3-2] GET 프록시(공개·개인정보 0) → { ok:true, intentId, status, provider, completed:boolean, amount, monthly, method }   // «확인 중» 폴링·?intent= 재진입 판정용 · 5초 캐시 0 · 실패 502
-//   POST /api/lantern-note   { slug, memberId, donationId?, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true, donationId }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
+//   POST /api/lantern-note   { slug, memberId?, intentId?, donationId?, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true, donationId }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
+//     memberId가 없으면(다른 브라우저·인앱 복귀 — sessionStorage 0) intentId로 AM 원장(lit_return/external_click meta{intentId,memberId})에서 memberId를 되찾는다 · 못 찾으면 400 · /api/lantern-display POST도 같은 규칙(memberId | manage | intentId) · pay의 external_click meta에 memberId(해시) 동반 저장
 //   POST /api/lit-return(기존 S6-b) body에 intentId? 추가(additive) — meta.intentId 저장 · 나머지 불변
 
 // [W3] SIREN 3경로 (SIREN 개발 · 이름은 제안 — 다른 이름이면 회신 · 인증 헤더 x-am-secret = SIREN_AM_POSTBACK_SECRET(같은 값))
@@ -446,7 +447,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //     → SIREN [W3-2] 호출 → 저장: funnel_events stage "external_click" meta{ target:"siren_pay", gate, provider, monthly, amount }
 //     → SIREN 응답 그대로 { ok:true, intentId, donationId, provider:"kicc"|"portone"|"hyosung"|"manual", redirectUrl?, payload?, bankAccount? }   // SIREN 4xx는 상태 코드·body 그대로 통과(400 method 조합 · 404 memberId 없음 · 409 step:"billing_active")
 //   GET  /api/lantern-pay?intent=<intentId>   → SIREN [W3-2] GET 프록시(공개·개인정보 0) → { ok:true, intentId, status, provider, completed:boolean, amount, monthly, method }   // «확인 중» 폴링·?intent= 재진입 판정용 · 5초 캐시 0 · 실패 502
-//   POST /api/lantern-note   { slug, memberId, donationId?, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true, donationId }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
+//   POST /api/lantern-note   { slug, memberId?, intentId?, donationId?, note(≤60), publicConsent:boolean } → SIREN [W3-3] → { ok:true, donationId }   // 필드명은 SIREN 실물(donations.public_consent·lantern-donation.ts publicConsent)과 같은 글자
+//     memberId가 없으면(다른 브라우저·인앱 복귀 — sessionStorage 0) intentId로 AM 원장(lit_return/external_click meta{intentId,memberId})에서 memberId를 되찾는다 · 못 찾으면 400 · /api/lantern-display POST도 같은 규칙(memberId | manage | intentId) · pay의 external_click meta에 memberId(해시) 동반 저장
 //   POST /api/lit-return(기존 S6-b) body에 intentId? 추가(additive) — meta.intentId 저장 · 나머지 불변
 
 // [W3] SIREN 3경로 (SIREN 개발 · 이름은 제안 — 다른 이름이면 회신 · 인증 헤더 x-am-secret = SIREN_AM_POSTBACK_SECRET(같은 값))
