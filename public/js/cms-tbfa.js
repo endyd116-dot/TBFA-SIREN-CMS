@@ -1079,27 +1079,47 @@
       input.value = '';
     });
 
-    confirmBtn?.addEventListener('click', () => {
+    /* 2026-09-06: 그동안 이 버튼은 화면에서만 등록된 척하던 시연 코드였다(서버 저장 0 → "일괄 등록이 안 된다").
+       이제 /api/admin-members-bulk 로 실제 저장 — 전화번호가 같은 기존 회원은 새로 만들지 않고 메모만 병합한다. */
+    confirmBtn?.addEventListener('click', async () => {
       if (!importedData) return;
-      const count = importedData.length - 1;
-      /* 실제 등록 시뮬레이션 */
+      const rows = [];
       for (let i = 1; i < importedData.length; i++) {
-        const row = importedData[i];
-        allMembers.unshift({
-          id: allMembers.length + 200 + i,
-          name: row[0] || '이름없음',
-          phone: row[1] || '',
-          email: row[2] || '',
-          type: { '유족':'family','후원':'donor','일반':'regular','봉사':'volunteer' }[row[3]] || 'regular',
-          source: 'excel',
-          tags: row[5] ? [row[5]] : [],
-          createdAt: row[4] || todayKST(),
+        const row = importedData[i] || [];
+        if (!String(row[0] || '').trim() && !String(row[1] || '').trim()) continue;
+        rows.push({
+          name: String(row[0] || '').trim(),
+          phone: String(row[1] || '').trim(),
+          email: String(row[2] || '').trim(),
+          type: String(row[3] || '').trim(),
+          joinedAt: String(row[4] || '').trim(),
+          memo: String(row[5] || '').trim(),
         });
       }
-      toast(`${count}명이 일괄 등록되었습니다 `);
-      importedData = null;
-      document.getElementById('importPreview').style.display = 'none';
-      input.value = '';
+      if (rows.length === 0) return toast('등록할 행이 없습니다');
+      const oldText = confirmBtn.textContent;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = `${rows.length}행 등록 중...`;
+      try {
+        const res = await api('/api/admin-members-bulk', { method: 'POST', body: { rows } });
+        const d = (res.data && (res.data.data || res.data)) || {};
+        if (!res.ok) throw new Error((res.data && res.data.error) || '일괄 등록 실패');
+        const errs = Array.isArray(d.errors) ? d.errors : [];
+        toast((res.data && res.data.message) || `신규 ${d.created || 0}명 등록 · 기존 ${d.merged || 0}명 병합`);
+        if (errs.length) {
+          console.warn('[일괄 등록] 오류 행', errs);
+          toast(`오류 ${errs.length}행 — 첫 오류: ${errs[0].row}행 ${errs[0].error}`);
+        }
+        importedData = null;
+        document.getElementById('importPreview').style.display = 'none';
+        input.value = '';
+        if (typeof renderMembers === 'function') { try { renderMembers(); } catch (_) {} }
+      } catch (err) {
+        toast(err.message || '일괄 등록 중 오류가 발생했습니다');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = oldText;
+      }
     });
   }
 

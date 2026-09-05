@@ -35,6 +35,9 @@ import {
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_ROWS_PER_IMPORT = 5000;
 
+/* 2026-09-06: 효성번호 없는 기존 회원은 전화번호로 연결(임시 계정 중복 생성 방지) */
+import { findMemberIdsByPhones, phoneDigits } from "../../lib/member-match";
+
 type Source = "hyosung_billings" | "hyosung_contracts" | "ibk";
 
 /* =========================================================
@@ -85,6 +88,9 @@ async function importHyosungContractsToPending(
       existing.forEach(m => { if (m.hyosungMemberNo != null) memberMap.set(m.hyosungMemberNo, m.id); });
     } catch (e) { console.warn("[D1 import] members 조회 실패", e); }
   }
+  /* 2026-09-06: 효성번호가 없는 기존 회원(홈페이지 가입·수기·일괄 등록)은 전화번호로 잇는다 —
+     안 그러면 통과 때 같은 사람의 임시 계정이 또 생긴다 */
+  const phoneMap = await findMemberIdsByPhones(r.rows.map(row => row.phone));
 
   let imported = 0, autoMatched = 0;
   const insertErrors: { rowIndex: number; error: string }[] = [];
@@ -92,7 +98,9 @@ async function importHyosungContractsToPending(
   /* pendingDonations 적재 — 행별 INSERT (실패해도 다음 행 계속) */
   for (const [idx, row] of r.rows.entries()) {
     try {
-      const linkedMemberId = memberMap.get(row.memberNo) ?? null;
+      const byNo = memberMap.get(row.memberNo) ?? null;
+      const byPhone = byNo ? null : (phoneMap.get(phoneDigits(row.phone)) ?? null);
+      const linkedMemberId = byNo ?? byPhone;
       const memo = [
         row.contractStatus ? `계약상태: ${row.contractStatus}` : null,
         row.paymentTool ? `결제수단: ${row.paymentTool}` : null,
@@ -114,9 +122,9 @@ async function importHyosungContractsToPending(
         parsedMemo: memo.slice(0, 4000),
         parsedAccountTail4: null,
         matchedMemberId: linkedMemberId,
-        matchScore: linkedMemberId ? "1.00" as any : null,
+        matchScore: linkedMemberId ? (byNo ? "1.00" : "0.95") as any : null,
         matchReason: linkedMemberId
-          ? `효성 회원번호 일치 (#${row.memberNo})`
+          ? (byNo ? `효성 회원번호 일치 (#${row.memberNo})` : `전화번호 일치 — 통과 시 효성번호 #${row.memberNo} 연결`)
           : `신규 — 통과 시 회원 등록 (효성회원번호 #${row.memberNo})`,
         status: linkedMemberId ? "matched" : "pending",
         importedBy: adminMemberId,
@@ -159,13 +167,17 @@ async function importHyosungBillingsToPending(
       existing.forEach(m => { if (m.hyosungMemberNo != null) memberMap.set(m.hyosungMemberNo, m.id); });
     } catch (e) { console.warn("[D2 import] members 조회 실패", e); }
   }
+  /* 2026-09-06: 효성번호 미보유 회원은 전화번호로 잇는다(계약정보보다 수납내역을 먼저 올린 경우 등) */
+  const phoneMap = await findMemberIdsByPhones(r.rows.map(row => row.phone));
 
   let imported = 0, autoMatched = 0;
   const insertErrors: { rowIndex: number; error: string }[] = [];
 
   for (const [idx, row] of r.rows.entries()) {
     try {
-      const linkedMemberId = memberMap.get(row.memberNo) ?? null;
+      const byNo = memberMap.get(row.memberNo) ?? null;
+      const byPhone = byNo ? null : (phoneMap.get(phoneDigits(row.phone)) ?? null);
+      const linkedMemberId = byNo ?? byPhone;
       const memo = [
         row.billingMonth ? `청구월: ${row.billingMonth}` : null,
         row.receiptStatus ? `수납상태: ${row.receiptStatus}` : null,
@@ -190,9 +202,9 @@ async function importHyosungBillingsToPending(
         parsedMemo: memo.slice(0, 4000),
         parsedAccountTail4: null,
         matchedMemberId: linkedMemberId,
-        matchScore: linkedMemberId ? "1.00" as any : null,
+        matchScore: linkedMemberId ? (byNo ? "1.00" : "0.95") as any : null,
         matchReason: linkedMemberId
-          ? `효성 회원번호 일치 (#${row.memberNo})`
+          ? (byNo ? `효성 회원번호 일치 (#${row.memberNo})` : `전화번호 일치 (효성회원번호 #${row.memberNo})`)
           : `신규 — 계약관리 업로드 후 매칭 권장 (효성회원번호 #${row.memberNo})`,
         status: linkedMemberId ? "matched" : "pending",
         importedBy: adminMemberId,

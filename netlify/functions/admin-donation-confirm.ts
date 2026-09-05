@@ -31,6 +31,8 @@ import { logAdminAction } from "../../lib/audit";
 import { safeReevaluate } from "../../lib/donor-status";
 /* 2026-09-06 「등불의 기적」: 입금 확인·효성 명세로 «완료» 행이 생기면 랜딩 모달의 대기 의도를 이어 붙여 등불을 켠다 */
 import { absorbLanternIntent } from "../../lib/lantern-am";
+/* 2026-09-06: 효성번호 없는 기존 회원은 전화번호로 연결 — 통과 때 같은 사람의 임시 계정을 또 만들지 않는다 */
+import { findMemberIdByPhone } from "../../lib/member-match";
 import {
   mapContractRowToInsert, mapBillingRowToInsert,
 } from "../../lib/hyosung-mapper";
@@ -90,7 +92,7 @@ async function confirmHyosungContract(
   const typeEval = evaluateDonorTypeFromContract(row.contractStatus);
   let memberId: number;
 
-  /* 우선순위: 관리자 강제 지정 > 임시 보관함 매칭 > 효성번호 재조회 */
+  /* 우선순위: 관리자 강제 지정 > 임시 보관함 매칭 > 효성번호 재조회 > 전화번호 일치(2026-09-06) */
   let targetMemberId: number | null = memberIdOverride || p.matchedMemberId || null;
   if (!targetMemberId) {
     const found = await db.select({ id: members.id })
@@ -98,6 +100,9 @@ async function confirmHyosungContract(
       .where(eq(members.hyosungMemberNo, row.memberNo))
       .limit(1);
     targetMemberId = found[0]?.id ?? null;
+  }
+  if (!targetMemberId) {
+    targetMemberId = await findMemberIdByPhone(row.phone);
   }
 
   if (targetMemberId) {
@@ -161,7 +166,7 @@ async function confirmHyosungBilling(
     return { ok: false, error: `효성 수납 행 데이터를 복원할 수 없음 — rawData keys: [${keys}]` };
   }
 
-  /* 회원 찾기 — 강제지정 > 매칭 > 효성번호 재조회 */
+  /* 회원 찾기 — 강제지정 > 매칭 > 효성번호 재조회 > 전화번호 일치(2026-09-06) */
   let targetMemberId: number | null = memberIdOverride || p.matchedMemberId || null;
   if (!targetMemberId) {
     const found = await db.select({ id: members.id })
@@ -169,6 +174,15 @@ async function confirmHyosungBilling(
       .where(eq(members.hyosungMemberNo, row.memberNo))
       .limit(1);
     targetMemberId = found[0]?.id ?? null;
+  }
+  if (!targetMemberId) {
+    targetMemberId = await findMemberIdByPhone(row.phone);
+    /* 전화로 찾은 회원에 효성번호가 비어 있으면 이 자리에서 채운다(다음 수납부터 번호로 바로 매칭) */
+    if (targetMemberId) {
+      try {
+        await db.execute(sql`UPDATE members SET hyosung_member_no = ${row.memberNo}, updated_at = NOW() WHERE id = ${targetMemberId} AND hyosung_member_no IS NULL`);
+      } catch { /* noop */ }
+    }
   }
   if (!targetMemberId) {
     return { ok: false, error: `회원이 없음 (효성회원번호 #${row.memberNo}). 효성 계약관리 파일 먼저 통과 처리하세요.` };
@@ -324,8 +338,49 @@ export default async (req: Request, _ctx: Context) => {
     if (ids.length > 200) return badRequest("한 번에 처리 가능한 ids는 200건입니다");
 
     const action: string = body.action || "confirm";
-    if (!["confirm", "ignore", "rematch", "restore", "hold"].includes(action)) {
-      return badRequest("action은 confirm | ignore | rematch | restore | hold 중 하나여야 합니다");
+    if (!["confirm", "ignore", "rematch", "restore", "hold", "automatch"].includes(action)) {
+      return badRequest("action은 confirm | ignore | rematch | restore | hold | automatch 중 하나여야 합니다");
+    }
+
+    /* 2026-09-06 automatch — 미매칭(pending) 효성 행을 지금 시점 기준으로 다시 맞춘다:
+       효성 회원번호 → 전화번호. (계약정보를 나중에 통과했거나 회원이 뒤늦게 생긴 경우) */
+    if (action === "automatch") {
+      const rows: any[] = await db.select().from(pendingDonations).where(inArray(pendingDonations.id, ids));
+      let matched = 0;
+      const details: any[] = [];
+      for (const p of rows) {
+        if (!["pending", "matched"].includes(String(p.status))) continue;
+        if (p.source !== "hyosung_contracts" && p.source !== "hyosung_billings") continue;
+        let raw: any = p.rawData || {};
+        if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { raw = {}; } }
+        const row: any = raw._hyosungContractRow || raw._hyosungBillingRow || {};
+        const memberNo = Number(row.memberNo || 0) || null;
+        let target: number | null = null;
+        let reason = "";
+        if (memberNo) {
+          const found = await db.select({ id: members.id }).from(members).where(eq(members.hyosungMemberNo, memberNo)).limit(1);
+          if (found[0]) { target = found[0].id; reason = `효성 회원번호 일치 (#${memberNo}) — 재매칭`; }
+        }
+        if (!target && row.phone) {
+          target = await findMemberIdByPhone(row.phone);
+          if (target) reason = `전화번호 일치 — 재매칭${memberNo ? ` (효성회원번호 #${memberNo})` : ""}`;
+        }
+        if (target && target !== p.matchedMemberId) {
+          await db.execute(sql`
+            UPDATE pending_donations
+            SET matched_member_id = ${target}, match_score = 1.00, match_reason = ${reason}, status = 'matched', updated_at = now()
+            WHERE id = ${p.id}
+          `);
+          matched++;
+          details.push({ id: p.id, memberId: target, reason });
+        }
+      }
+      try {
+        await logAdminAction(req, admin.uid, admin.name, "donation_pending_automatch", {
+          target: ids.join(","), detail: { requested: ids.length, matched },
+        });
+      } catch {}
+      return ok({ processed: ids.length, succeeded: matched, failed: 0, action: "automatch", details }, `${matched}건 재매칭 (효성번호·전화번호 기준)`);
     }
 
     const memberIdOverride = (action === "confirm" || action === "rematch") && body.memberIdOverride

@@ -1547,6 +1547,9 @@ if (window.self !== window.top) {
             <button type="button" id="csvBatchConfirmBtn" class="cms-btn cms-btn-primary" style="padding:7px 14px;font-size:12.5px" disabled>
               <span class="siren-icon-wrap" data-icon="circle-check"></span> 선택 일괄 통과 (<span id="csvSelectedCount">0</span>)
             </button>
+            <button type="button" id="csvBatchAutomatchBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px" disabled title="효성 회원번호 → 전화번호 순으로 지금 시점 기준 다시 맞춥니다 (계약정보를 나중에 통과했거나 회원이 뒤늦게 생긴 경우)">
+              <span class="siren-icon-wrap" data-icon="refresh-cw"></span> 선택 자동 재매칭
+            </button>
             <button type="button" id="csvBatchIgnoreBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px" disabled>
               <span class="siren-icon-wrap" data-icon="trash"></span> 선택 일괄 무시
             </button>
@@ -2566,12 +2569,12 @@ if (window.self !== window.top) {
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20260813-reenter"></script>
+  <script src="/js/cms-tbfa.js?v=20260906-bulk"></script>
   <script src="/js/admin-session-timer.js?v=20260802-session7d"></script>
   <script src="/js/admin-notif-bell.js?v=20260802-idlepoll"></script>
   <script src="/js/ai-assistant-proactive.js?v=20260802-idlepoll" defer></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
-  <script src="/js/cms-tbfa-import.js?v=20260712-noemoji"></script>
+  <script src="/js/cms-tbfa-import.js?v=20260906-automatch"></script>
   <script src="/js/quick-jump.js?v=20260707-door"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <script src="/js/cms-tbfa-source-kpi.js?v=2026-05-10-q4"></script>

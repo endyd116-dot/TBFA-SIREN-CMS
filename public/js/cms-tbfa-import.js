@@ -434,6 +434,7 @@
     if (cntEl) cntEl.textContent = String(ids.length);
     const cb = document.getElementById('csvBatchConfirmBtn');
     const ib = document.getElementById('csvBatchIgnoreBtn');
+    const ab = document.getElementById('csvBatchAutomatchBtn');
     /* 효성 계약은 매칭 없어도 통과 가능 (신규 회원 자동 생성) */
     const eligible = currentRows.filter(r => {
       if (!ids.includes(r.id)) return false;
@@ -442,6 +443,24 @@
     });
     if (cb) cb.disabled = eligible.length === 0;
     if (ib) ib.disabled = ids.length === 0;
+    /* 2026-09-06: 효성 행(계약·수납)만 재매칭 대상 */
+    if (ab) ab.disabled = !currentRows.some(r => ids.includes(r.id) && (r.source === 'hyosung_contracts' || r.source === 'hyosung_billings'));
+  }
+
+  /* 2026-09-06: 미매칭 효성 행을 지금 시점 기준으로 다시 맞춘다 (효성번호 → 전화번호).
+     계약정보를 나중에 통과했거나(회원이 그때 생김) 홈페이지 가입자를 전화번호로 이어야 할 때. */
+  async function batchAutomatch() {
+    const ids = selectedIds();
+    const targets = currentRows.filter(r => ids.includes(r.id) && (r.source === 'hyosung_contracts' || r.source === 'hyosung_billings')).map(r => r.id);
+    if (targets.length === 0) { toast('재매칭 대상(효성 계약·수납)이 없습니다'); return; }
+    const res = await apiPost('/api/admin-donation-confirm', { ids: targets, action: 'automatch' });
+    if (res && res.ok) {
+      const d = (res.data && res.data.data) || res.data || {};
+      toast(res.data?.message || `${d.succeeded || 0}건 재매칭`);
+      refreshList();
+    } else {
+      toast((res && res.data && res.data.error) || '재매칭 실패');
+    }
   }
 
   async function batchConfirm() {
@@ -524,6 +543,7 @@
     });
     document.getElementById('csvBatchConfirmBtn')?.addEventListener('click', batchConfirm);
     document.getElementById('csvBatchIgnoreBtn')?.addEventListener('click', batchIgnore);
+    document.getElementById('csvBatchAutomatchBtn')?.addEventListener('click', batchAutomatch);
 
     const selAll = document.getElementById('csvSelectAll');
     if (selAll) {
