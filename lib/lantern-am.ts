@@ -13,7 +13,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { members, donations, donationPolicies, billingKeys, campaigns } from "../db/schema";
-import { LANTERN, LANTERN_NOTICES, RECEIPT_NOTICE, getCampaignExtras, type CampaignExtras } from "./campaign-extras";
+import { LANTERN, LANTERN_NOTICES, RECEIPT_NOTICE, getCampaignExtras, noticePay, type CampaignExtras } from "./campaign-extras";
 import {
   findExistingSponsor, createSponsorMember, saveSponsorFields, normalizePhone, isValidEmail,
 } from "./sponsor-member";
@@ -185,8 +185,8 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
   let policy: any = null;
   try { [policy] = await db.select().from(donationPolicies).where(eq(donationPolicies.id, 1)).limit(1); } catch { /* 폴백 */ }
   const bankAccount = {
-    bank: policy?.bankName || "국민은행",
-    number: policy?.bankAccountNo || "(계좌번호 미등록)",
+    bank: policy?.bankName || "우리은행",
+    number: policy?.bankAccountNo || "1005-404-940572",
     holder: policy?.bankAccountHolder || "사단법인 교사유가족협의회",
     guideText: policy?.bankGuideText || "입금 확인까지 1~3일 이내 소요될 수 있습니다.",
   };
@@ -311,7 +311,7 @@ export async function amIntentSummary(intentId: string) {
     method: String(row.sourceMeta?.method || ""),
     campaign: { slug: row.campaignSlug, title: row.campaignTitle },
     maskedName: maskName(row.donorName),
-    notices: { NOTICE_PAY: LANTERN_NOTICES.NOTICE_PAY, NOTICE_DONE: LANTERN_NOTICES.NOTICE_DONE, RECEIPT: RECEIPT_NOTICE },
+    notices: { NOTICE_PAY: noticePay(), NOTICE_DONE: LANTERN_NOTICES.NOTICE_DONE, RECEIPT: RECEIPT_NOTICE },
     returnUrl: buildLandingReturnUrl(extras, meta),
     completed: row.status === "completed",
   };

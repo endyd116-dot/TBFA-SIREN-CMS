@@ -48,9 +48,9 @@ export default async (req: Request) => {
 
     /* 계좌 정책 조회 */
     const [policy] = await db.select().from(donationPolicies).where(eq(donationPolicies.id, 1)).limit(1);
-    const bankName = (policy as any)?.bankName || "국민은행";
-    const bankAccountNo = (policy as any)?.bankAccountNo || "(계좌번호 미등록)";
-    const bankAccountHolder = (policy as any)?.bankAccountHolder || "(사)교사유가족협의회";
+    const bankName = (policy as any)?.bankName || "우리은행";
+    const bankAccountNo = (policy as any)?.bankAccountNo || "1005-404-940572";
+    const bankAccountHolder = (policy as any)?.bankAccountHolder || "사단법인 교사유가족협의회";
     const bankGuideText = (policy as any)?.bankGuideText || "입금 확인까지 1~3일 이내 소요됩니다.";
 
     /* DB 저장 (pending_bank 상태) */

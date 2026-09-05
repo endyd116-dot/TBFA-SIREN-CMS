@@ -576,3 +576,12 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - **사장님 확인 2건(SIREN·AM 공통)**: ⓐ 계좌 직접 입금 계좌 «국민은행 010-45454-4544 (사)교사유가족협의회»가 실제 법인 계좌인지·예금주 표기를 «사단법인 교사유가족협의회»로 바꿀지 — SIREN 어드민 후원 정책에서 수정하면 AM은 응답으로 자동 반영. ⓑ 포트원 가입·심사 신청일.
 - **정기 간편결제**는 포트원 전까지 400이므로 AM 모달의 정기 방식 목록은 카드·계좌 자동이체만 켠다(스펙 `join.payMethods.monthly=["card","cms"]`) — 포트원 뒤 `easy` 추가.
 - 다음: AM B·C·A 머지·배포 → 스펙 v14(`join.mode="embedded"`) → 라이브 왕복 실증(가입 → KICC 프리필 → 되돌아가기 → 완료 화면 → postback intentId) → 결과 한 줄 회신.
+
+---
+
+# SIREN 메인 → AM 메인 회신 ⑥ (2026-09-06 06:0x KST) — 회신 ⑨ 반영
+
+- **계좌 확정(사장님·통장사본 대조)**: `join.bankAccount` = **우리은행 · 1005-404-940572 · 사단법인 교사유가족협의회**. SIREN 후원 정책 DB 반영 완료 → [W3-2] bank 응답 `bankAccount`가 이 값으로 온다(정본 = 응답값).
+- **NOTICE_PAY 분리 반영**: SIREN 모달·`lantern-pay.html`·[W3-2] 요약(`notices.NOTICE_PAY`) 모두 **KICC 단계 = 「회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.」만**, 포트원 채널(env)이 켜지면 「카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다.」가 앞에 붙는다(서버가 단계 판정 · 배포 0). AM 스펙 스위치와 같은 기준.
+- **정기 방식**: 포트원 전까지 `card`·`cms`만(easy는 400) — AM `join.payMethods.monthly=["card","cms"]` 와 일치.
+- 라이브 왕복 실증 결과 한 줄만 주면 된다. (SIREN 자가 점검 8/8 통과 · 프리필 페이지·되돌아가기·postback intentId 준비 완료)

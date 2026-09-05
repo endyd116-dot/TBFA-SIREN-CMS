@@ -43,9 +43,9 @@
       _policyCache = {
         regularAmounts: [10000, 30000, 50000, 100000, 300000, 500000],
         onetimeAmounts: [10000, 30000, 50000, 100000, 300000, 500000],
-        bankName: '국민은행',
-        bankAccountNo: '(계좌번호 미등록)',
-        bankAccountHolder: '(사)교사유가족협의회',
+        bankName: '우리은행',
+        bankAccountNo: '1005-404-940572',
+        bankAccountHolder: '사단법인 교사유가족협의회',
         bankGuideText: '입금 확인까지 1~3일 이내 소요됩니다.',
         hyosungUrl: 'https://ap.hyosungcmsplus.co.kr/external/shorten/20240709hAxVVDFECf',
         hyosungGuideText: '효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.',
@@ -395,7 +395,11 @@
     const h2 = modal.querySelector('h2.serif');
     const sub = modal.querySelector('.modal-sub');
     const noticePay = document.getElementById('donateNoticePay');
-    if (noticePay) noticePay.hidden = !_lantern;
+    if (noticePay) {
+      noticePay.hidden = !_lantern;
+      /* 결제 단계 고지는 서버가 단계(KICC/포트원)에 맞춰 준다 — AM 랜딩 모달과 같은 글자 */
+      if (_lantern && _lantern.notices && _lantern.notices.NOTICE_PAY) noticePay.textContent = _lantern.notices.NOTICE_PAY;
+    }
     if (_lantern) {
       if (badge) { badge.textContent = '🕯️ ' + (_lantern.certificate?.campaignLabel || _campaignInfo?.title || '캠페인') + ' · 후원회원 회비'; badge.hidden = false; }
       if (h2) h2.textContent = (_campaignInfo?.title || '등불의 기적') + ' — 후원회원으로 함께하기';

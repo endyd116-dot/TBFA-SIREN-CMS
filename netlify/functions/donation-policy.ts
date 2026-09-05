@@ -10,9 +10,10 @@ export const config = { path: "/api/donation-policy" };
 const FALLBACK_POLICY = {
   regularAmounts: [10000, 30000, 50000, 100000, 300000, 500000],
   onetimeAmounts: [10000, 30000, 50000, 100000, 300000, 500000],
-  bankName: "국민은행",
-  bankAccountNo: "(계좌번호 미등록)",
-  bankAccountHolder: "(사)교사유가족협의회",
+  /* 2026-09-06: 사단법인 통장(우리은행) — DB 후원 정책이 우선, 이 값은 DB 실패 시 폴백 */
+  bankName: "우리은행",
+  bankAccountNo: "1005-404-940572",
+  bankAccountHolder: "사단법인 교사유가족협의회",
   bankGuideText: "입금 확인까지 1~3일 이내 소요될 수 있습니다. 입금자명을 정확히 입력해 주세요.",
   hyosungUrl: "https://ap.hyosungcmsplus.co.kr/external/shorten/20240709hAxVVDFECf",
   hyosungGuideText: "효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.",

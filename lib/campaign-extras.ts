@@ -67,9 +67,23 @@ export const LANTERN_NOTICES = {
   CONSENT_BYLAWS: "사단법인 교사유가족협의회 회칙(정관)에 따라 후원회원으로 가입하는 데 동의합니다.",
   CONSENT_PRIVACY: "개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 후원회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제)",
   CONSENT_SMS: "협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다.",
-  NOTICE_PAY: "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다. 회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.",
+  /* AM 회신 ⑨(2026-09-06 05:40): 명세서 문장은 포트원(사단법인 명의 PG) 전환 때만 켠다 — KICC 단계엔 0. 회비 문장은 항상 */
+  NOTICE_PAY_STATEMENT: "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다.",
+  NOTICE_PAY_FEE: "회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.",
   NOTICE_DONE: "후원 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다.",
 } as const;
+
+/** 포트원(사단법인 명의) 채널이 켜져 있는가 — env 등록 순간 true */
+export function portoneEnabled(): boolean {
+  return !!((process.env.PORTONE_STORE_ID || "").trim() && (process.env.PORTONE_CHANNEL_KEY || "").trim());
+}
+
+/** 결제 단계 고지(NOTICE_PAY) — KICC 단계: 회비 문장만 · 포트원 단계: 명세서 문장 + 회비 문장 */
+export function noticePay(): string {
+  return portoneEnabled()
+    ? `${LANTERN_NOTICES.NOTICE_PAY_STATEMENT} ${LANTERN_NOTICES.NOTICE_PAY_FEE}`
+    : LANTERN_NOTICES.NOTICE_PAY_FEE;
+}
 
 const WITHWORK_BASE = (process.env.HAMKKE_MARKETING_URL || "https://withwork.tbfa.co.kr").replace(/\/+$/, "");
 
@@ -152,6 +166,6 @@ export function toPublicExtras(x: CampaignExtras | null) {
     feeNotice: x.feeNotice,
     campaignUrl: x.campaignUrl,
     memorialUrl: x.memorialUrl,
-    notices: LANTERN_NOTICES,
+    notices: { ...LANTERN_NOTICES, NOTICE_PAY: noticePay() },
   };
 }
