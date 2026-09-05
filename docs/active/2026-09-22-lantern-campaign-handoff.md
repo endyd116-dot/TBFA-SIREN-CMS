@@ -363,7 +363,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 // [W8] 결제 확인 문자 + 서명 관리 링크(AM SOLAPI · 로그인 0) — «끄기»와 재방문 통로
 //   lit-return(postback) 저장 성공 직후 C가 1회 발송(같은 memberId+at 재시도엔 재발송 0): «[교사유가족협의회] 당신의 등불이 켜졌습니다. 내 등불 보기·표시 바꾸기: {link}» · 수신번호 = /api/lantern-join 때의 phone(memberId로 조회) · 문자 동의(consents.sms)와 무관한 거래 안내 문자(발송 원장 sends 기록·consents 게이트는 kind "transactional"로 통과)
 //   link = {landing}?manage=<token> · token = HMAC(INTERNAL_TRIGGER_SECRET, memberId + "|" + exp) base64url · 만료 90일 · 검증은 C: GET /api/lantern-display?manage=<token> → { ok, level, tag, name, school } / POST /api/lantern-display 에 manage 토큰으로도 인증(memberId 대신)
-//   B: ?manage= 재진입 → 모달 «내 등불 관리» 화면(표시 3택·문구·「표시 끄기」= level anon) · 토큰 만료·위조 = «링크가 만료됐어요 — 교유협 홈페이지 문의» 한 줄
+//   B: ?manage= 재진입 → 모달 «내 등불 관리» 화면(표시 3택·문구·「표시 끄기」= level anon) · 토큰 만료·위조 = «링크가 만료됐어요 — 아래에서 다시 받기» 한 줄
+//   링크 다시 받기(문자를 지웠거나 만료된 사람): 랜딩 맨 아래 «내 등불 관리 링크 다시 받기» 칸(휴대폰 번호 입력) → POST /api/lantern-display { slug, resend:true, phone } → 등록 번호와 일치하면 그 번호로 문자 1회(새 토큰) · 일치 여부와 무관하게 응답은 항상 { ok:true }(번호 존재 여부 노출 0) · 번호당 하루 3회 상한 · 완료 화면·문자 링크·이 칸 세 입구 모두 로그인 0
 // ═══ V832-CONTRACT-END ═══
 ```
 
@@ -474,7 +475,8 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 // [W8] 결제 확인 문자 + 서명 관리 링크(AM SOLAPI · 로그인 0) — «끄기»와 재방문 통로
 //   lit-return(postback) 저장 성공 직후 C가 1회 발송(같은 memberId+at 재시도엔 재발송 0): «[교사유가족협의회] 당신의 등불이 켜졌습니다. 내 등불 보기·표시 바꾸기: {link}» · 수신번호 = /api/lantern-join 때의 phone(memberId로 조회) · 문자 동의(consents.sms)와 무관한 거래 안내 문자(발송 원장 sends 기록·consents 게이트는 kind "transactional"로 통과)
 //   link = {landing}?manage=<token> · token = HMAC(INTERNAL_TRIGGER_SECRET, memberId + "|" + exp) base64url · 만료 90일 · 검증은 C: GET /api/lantern-display?manage=<token> → { ok, level, tag, name, school } / POST /api/lantern-display 에 manage 토큰으로도 인증(memberId 대신)
-//   B: ?manage= 재진입 → 모달 «내 등불 관리» 화면(표시 3택·문구·「표시 끄기」= level anon) · 토큰 만료·위조 = «링크가 만료됐어요 — 교유협 홈페이지 문의» 한 줄
+//   B: ?manage= 재진입 → 모달 «내 등불 관리» 화면(표시 3택·문구·「표시 끄기」= level anon) · 토큰 만료·위조 = «링크가 만료됐어요 — 아래에서 다시 받기» 한 줄
+//   링크 다시 받기(문자를 지웠거나 만료된 사람): 랜딩 맨 아래 «내 등불 관리 링크 다시 받기» 칸(휴대폰 번호 입력) → POST /api/lantern-display { slug, resend:true, phone } → 등록 번호와 일치하면 그 번호로 문자 1회(새 토큰) · 일치 여부와 무관하게 응답은 항상 { ok:true }(번호 존재 여부 노출 0) · 번호당 하루 3회 상한 · 완료 화면·문자 링크·이 칸 세 입구 모두 로그인 0
 // ═══ V832-CONTRACT-END ═══
 ```
 
