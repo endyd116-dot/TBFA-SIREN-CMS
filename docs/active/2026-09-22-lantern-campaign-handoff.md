@@ -365,6 +365,13 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   link = {landing}?manage=<token> · token = HMAC(INTERNAL_TRIGGER_SECRET, memberId + "|" + exp) base64url · 만료 90일 · 검증은 C: GET /api/lantern-display?manage=<token> → { ok, level, tag, name, school } / POST /api/lantern-display 에 manage 토큰으로도 인증(memberId 대신)
 //   B: ?manage= 재진입 → 모달 «내 등불 관리» 화면(표시 3택·문구·「표시 끄기」= level anon) · 토큰 만료·위조 = «링크가 만료됐어요 — 아래에서 다시 받기» 한 줄
 //   링크 다시 받기(문자를 지웠거나 만료된 사람): 랜딩 맨 아래 «내 등불 관리 링크 다시 받기» 칸(휴대폰 번호 입력) → POST /api/lantern-display { slug, resend:true, phone } → 등록 번호와 일치하면 그 번호로 문자 1회(새 토큰) · 일치 여부와 무관하게 응답은 항상 { ok:true }(번호 존재 여부 노출 0) · 번호당 하루 3회 상한 · 완료 화면·문자 링크·이 칸 세 입구 모두 로그인 0
+// [W9] 운영자 UI — AM 관리자 «랜딩 스튜디오»(public/app/landing-overview.js · A) + 관리자 API(C) · 공개 랜딩에 운영자 메뉴 0 · 7호/8호(impact) 랜딩 카드에만(사장님 2026-09-06 «AM 전체 입장에선 7호·8호 두뇌 전용 모듈»)
+//   GET /api/admin-landing-overview 응답 landings[] 에 additive 키(C): lanternDisplay?: { total:number, hidden:number, blocked:number }   // lantern_display 행이 1건 이상인 impact 랜딩만 · 없으면 키 없음(A는 버튼 0)
+//   GET /api/admin-lantern-display?tenant=&slug=&limit=50&cursor=   (C · requireAdmin+tenantAllowed · api-content-admin registry · 새 함수 파일 0)
+//     → { ok:true, rows:[{ id, no?:number, name, school?, tag, tagCustom:boolean, level:"full"|"masked"|"anon", review:"ok"|"blocked", hidden:boolean, reports:number, updatedAt }], nextCursor?:string }   // name은 level대로 마스킹해서 준다(anon="익명"·masked="박○영") — 운영자 화면도 본인이 고른 수준 이상은 안 본다
+//   POST /api/admin-lantern-display { tenant, id, action:"hide"|"restore" } → { ok:true, hidden:boolean }   // audit_logs 기록(action "admin_lantern_display_hide"|"admin_lantern_display_restore")
+//   A: 카드 버튼 「🕯 등불 문구 {total}건 · 숨김 {hidden}건」(lanternDisplay 키가 있을 때만 · 「미리보기 ↗」 옆) → 같은 화면 모달 목록(표시 이름·학교·문구·상태(공개 / 기본 문구로 대체 / 숨김)·신고 수·[숨김]/[복구]) · 클릭 즉시 재조회 · 빈 목록 «아직 문구가 없어요» · 테넌트 전환 시 닫힘 · 하드코딩 색 0(design-system 토큰)
+//   브리핑 카드(자동 숨김 발생)·콕핏 칩·쪽지의 「신고」 버튼은 V8_3-3(쪽지가 하늘에 보일 때 함께) — 이번 라운드 0
 // ═══ V832-CONTRACT-END ═══
 ```
 
@@ -390,7 +397,7 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 4. **결제 의도([W3-2])는 쿠키 없이 `memberId + x-am-secret`으로** — 지금 `donate-kicc-register`·`billing-register`의 `authenticateUser` 게이트 옆에 서버-서버 게이트를 하나 더 연다. `memberId`는 postback과 같은 해시(`sha256("tbfa-lantern-member:"+id)` 앞 24자)로 주고받는다.
 5. **계좌 직접 입금(일시)** = 기존 `donate-bank-intent`(`pending_bank`·입금자명=가입 이름) 재사용 + **관리자 입금 확인(`admin-donation-confirm`)에 `afterLanternCompletion` 훅 추가** → 그때 postback → 등불이 켜진다. **효성(정기 계좌 자동이체)** = `donate-hyosung-intent`에 `campaign_id`·`source_meta` 저장 + **명세 반영(`admin-hyosung-import`) 때 완료 훅** 추가(등불은 명세 반영 뒤 켜진다).
 6. **한마디/공개 동의**는 AM 완료 화면에서 [W3-3]로 온다 — 필드명은 SIREN 실물 그대로 `note`·`publicConsent`(`donations.donor_note`·`public_consent`).
-7. **등불 표시(실명/마스킹/익명·10자 문구·검토·신고·끄기)는 AM이 갖는다 — SIREN 신규 0.** 관리 입구는 AM 완료 화면 + AM이 보내는 결제 확인 문자의 서명 링크(로그인 0). `campaign-stats.recent[]`(김○○·note)는 지금 그대로 둔다.
+7. **등불 표시(실명/마스킹/익명·10자 문구·검토·신고·끄기)는 AM이 갖는다 — SIREN 신규 0.** 후원자 입구는 AM 완료 화면 + AM이 보내는 결제 확인 문자의 서명 링크 + 랜딩 맨 아래 «링크 다시 받기»(전부 로그인 0) · 운영자(협의회 직원) 입구는 AM 관리자 «랜딩 스튜디오» 카드의 등불 문구 목록(숨김/복구). `campaign-stats.recent[]`(김○○·note)는 지금 그대로 둔다. 이 절은 SIREN 작업 0이라 참고만.
 8. **KICC는 포트원 준비(1주 안팎)까지 유지, 포트원이 오면 [W3-2] `provider:"portone"` 스위치로 일순간 전환.** 회신 ⑤의 «카드 내림» 요청은 취소.
 
 ## SIREN이 만들 것(전부 사전 개발 가능)
@@ -477,6 +484,13 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 //   link = {landing}?manage=<token> · token = HMAC(INTERNAL_TRIGGER_SECRET, memberId + "|" + exp) base64url · 만료 90일 · 검증은 C: GET /api/lantern-display?manage=<token> → { ok, level, tag, name, school } / POST /api/lantern-display 에 manage 토큰으로도 인증(memberId 대신)
 //   B: ?manage= 재진입 → 모달 «내 등불 관리» 화면(표시 3택·문구·「표시 끄기」= level anon) · 토큰 만료·위조 = «링크가 만료됐어요 — 아래에서 다시 받기» 한 줄
 //   링크 다시 받기(문자를 지웠거나 만료된 사람): 랜딩 맨 아래 «내 등불 관리 링크 다시 받기» 칸(휴대폰 번호 입력) → POST /api/lantern-display { slug, resend:true, phone } → 등록 번호와 일치하면 그 번호로 문자 1회(새 토큰) · 일치 여부와 무관하게 응답은 항상 { ok:true }(번호 존재 여부 노출 0) · 번호당 하루 3회 상한 · 완료 화면·문자 링크·이 칸 세 입구 모두 로그인 0
+// [W9] 운영자 UI — AM 관리자 «랜딩 스튜디오»(public/app/landing-overview.js · A) + 관리자 API(C) · 공개 랜딩에 운영자 메뉴 0 · 7호/8호(impact) 랜딩 카드에만(사장님 2026-09-06 «AM 전체 입장에선 7호·8호 두뇌 전용 모듈»)
+//   GET /api/admin-landing-overview 응답 landings[] 에 additive 키(C): lanternDisplay?: { total:number, hidden:number, blocked:number }   // lantern_display 행이 1건 이상인 impact 랜딩만 · 없으면 키 없음(A는 버튼 0)
+//   GET /api/admin-lantern-display?tenant=&slug=&limit=50&cursor=   (C · requireAdmin+tenantAllowed · api-content-admin registry · 새 함수 파일 0)
+//     → { ok:true, rows:[{ id, no?:number, name, school?, tag, tagCustom:boolean, level:"full"|"masked"|"anon", review:"ok"|"blocked", hidden:boolean, reports:number, updatedAt }], nextCursor?:string }   // name은 level대로 마스킹해서 준다(anon="익명"·masked="박○영") — 운영자 화면도 본인이 고른 수준 이상은 안 본다
+//   POST /api/admin-lantern-display { tenant, id, action:"hide"|"restore" } → { ok:true, hidden:boolean }   // audit_logs 기록(action "admin_lantern_display_hide"|"admin_lantern_display_restore")
+//   A: 카드 버튼 「🕯 등불 문구 {total}건 · 숨김 {hidden}건」(lanternDisplay 키가 있을 때만 · 「미리보기 ↗」 옆) → 같은 화면 모달 목록(표시 이름·학교·문구·상태(공개 / 기본 문구로 대체 / 숨김)·신고 수·[숨김]/[복구]) · 클릭 즉시 재조회 · 빈 목록 «아직 문구가 없어요» · 테넌트 전환 시 닫힘 · 하드코딩 색 0(design-system 토큰)
+//   브리핑 카드(자동 숨김 발생)·콕핏 칩·쪽지의 「신고」 버튼은 V8_3-3(쪽지가 하늘에 보일 때 함께) — 이번 라운드 0
 // ═══ V832-CONTRACT-END ═══
 ```
 
