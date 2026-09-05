@@ -23,7 +23,7 @@ function rowsOf(res: any): any[] { return (res?.rows ?? res ?? []) as any[]; }
 /* 옮길 참조: [표, 컬럼] — FK 여부와 무관하게 회원 id를 가리키는 컬럼 */
 const REFS: Array<[string, string]> = [
   ["hyosung_contracts", "linked_member_id"],
-  ["hyosung_billings", "linked_member_id"],
+  /* hyosung_billings 는 회원 참조 컬럼이 없다(member_no·linked_donation_id 뿐) — 2026-09-06 실행 결과 -1 로 드러나 제외 */
   ["pending_donations", "matched_member_id"],
   ["donations", "member_id"],
   ["billing_keys", "member_id"],
