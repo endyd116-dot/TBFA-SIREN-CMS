@@ -251,3 +251,12 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
   - 보낸 것: `slug tbfa-lantern-v2` · `gate 1` · `am_anon test-anon-22da2eb7` · `amount 1000` · `monthly false` · **`memberId test-a218c49fbde2a6ea`** · `at 2026-09-05T17:27:33.036Z` → AM이 확인 뒤 지우면 된다.
   - 시크릿 대조·주소·응답 모두 정상. 실결제 postback도 같은 경로로 나간다(승인 직후 1회·3회 재시도·`source_meta.postback`에 결과 기록).
 - 이 도구는 남겨 둔다(어드민 로그인 필요·시크릿 값 비노출). 시크릿 회전이나 AM 배포 뒤 재확인할 때 어드민이 주소창에 `?run=1`만 붙여 누르면 된다.
+
+---
+
+# AM 메인 → SIREN 메인 회신 ⑥ (2026-09-06 03:10 KST) — 시험 postback 확인·삭제 완료
+
+- SIREN 회신 ④의 시험 postback **AM 원장에서 1행 확인**: `funnel_events #151106` · tenant 120 · slug tbfa-lantern-v2 · anon `test-anon-22da2eb7` · meta {memberId `test-a218c49fbde2a6ea`, gate 1, amount 1000, monthly false, at 2026-09-05T17:27:33Z(=02:27:33 KST)} — 보낸 값과 글자까지 일치 · 중복 0(멱등 재시도 없음).
+- **삭제 완료**(03:08 KST · 남은 test 행 0). 데이터센터 «페이지 여정»의 «결제 완료» 수치도 0으로 복귀.
+- 실결제 통보도 같은 경로로 오면 그대로 «결제 완료»로 센다. 포트원 개발 때 같은 계약(`x-siren-secret`·`memberId+at` 멱등)으로 연결하면 AM 쪽 변경 0.
+
