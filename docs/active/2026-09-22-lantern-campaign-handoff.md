@@ -640,3 +640,13 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
   - **한 출처**: 이 API와 SIREN 캠페인 페이지 서버 렌더가 같은 집계 함수(`lib/campaign-stats.ts computeCampaignPublicStats`)를 쓴다 → 랜딩 게이지 = 캠페인 페이지 숫자. 캐시 5분 동일.
 - **깜빡임 제거(SIREN 내부 · AM 변경 0)**: 캠페인 페이지가 밝은 기본 화면을 1초쯤 보이다 등불 화면으로 바뀌던 것 → 서버가 등불 화면(실값·FAQ 포함)을 완성해 내보내고 브라우저는 다시 그리지 않는다. 「후원회원으로 함께하기」 후원 창이 뜬 뒤 금액 칸·단계가 바뀌던 것 → 페이지 로드 때 창을 미리 등불 상태로 만들고 회원 여부를 미리 조회해 두어 클릭 즉시 최종 화면. 주소·파라미터(`am_lp`·`am_anon`·`gate`·`donate=1`)·되돌아가기·postback 처리는 그대로.
 - **AM 액션**: 없음(키만 읽으면 됨). 라이브 확인 한 줄은 배포 뒤 사장님 편으로.
+
+---
+
+# SIREN 회신 ⑨ (2026-09-07 · SIREN 메인) — ⑬ 실값 전환 요청 + 발송 중복 조율 2건 + (제안) 설정 단일 출처
+
+1. **⑬ 키 라이브 → AM 블록 전환 요청**: `GET /api/campaign-stats?slug=등불의-기적` 에 `raisedKrw`·`goalKrw`·`donors[{name,amountKrw,monthly,at}]`·`raisedAsOf` 가 나간다(기존 키 불변·캐시 5분). 랜딩 마지막 블록을 «AM 결제 기준 소계» → SIREN 실값으로 바꿔 달라. `donors.name` 마스킹은 기존 `recent`와 같은 «첫 글자+○»(예: 박○○○) — «박○용» 형식이 꼭 필요하면 회신.
+2. **가입 직후 안내 문자/알림톡은 SIREN이 보낸다(중복 확인 요청)**: AM 모달이 `POST /api/lantern-member`로 **신규** 회원을 만드는 순간 SIREN이 「후원회원 등록 안내」(등록 사실 · 홈페이지에서 같은 휴대폰 번호 인증으로 가입 완료 · 소식/등불 보고 안내 · 버튼 tbfa.co.kr/?signup=1)를 알림톡(카카오 검수 승인 뒤)/문자(승인 전)로 보낸다. **AM 쪽에서 가입 직후 별도 안내 문자를 보내고 있다면 중복이니 끄거나 알려 달라.** 결제 완료 뒤 AM 문자(lit-return 흐름)는 그대로 둔다. 기존 회원(status existing)에게는 SIREN이 보내지 않는다.
+3. **미납 후속(3일·7일 뒤 문자)은 SIREN 너처링에서**: 가입만 하고 첫 회비를 안 낸 회원에게 SIREN이 보낼 예정(운영자가 켜는 순간부터·소식 수신 동의자만·첫 회비 확인 시 자동 종료). AM 랜딩에 같은 대상에게 후속 메시지를 보내는 흐름(gate 재방문 유도 등)이 있으면 알려 달라 — 한쪽만 보낸다.
+4. **(제안·선택) 모달의 사다리·단체 표기·회칙 링크를 SIREN 공개 API에서 읽기**: 이제 등불 문구·사다리(정기/일시 금액·영향 문구·기본 선택 금액)·단체 표기·회칙(정관) 링크를 SIREN 어드민에서 바꾼다. `GET /api/campaigns?slug=등불의-기적` → `data.campaign.extras`(`ladder.regular/onetime/regularDefault/onetimeDefault/minNote/monthlyHint`·`org`·`bylawsUrl`·`notices`(W1 6문장+NOTICE_PAY)·`receiptNotice`·`certificate`)를 읽으면 양쪽이 항상 같다. 당장 필수는 아니며, 최소한 **회칙(정관) 링크가 바뀔 때는 SIREN이 새 주소를 통보**한다.
+5. **AM 액션 요약**: ① 실값 키 전환(마스킹 형식 이견 시 회신) ② 가입 직후 안내 문자 유무 회신 ③ 미납 후속 메시지 유무 회신 ④ (선택) extras 읽기. SIREN 쪽 추가 개발 필요 0.
