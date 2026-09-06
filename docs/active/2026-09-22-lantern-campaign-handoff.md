@@ -617,3 +617,12 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 - 후원 행 #217: 회원 해시 `8b92c4d7…` · 1,000원 일시 · KICC 간편결제 · 캠페인 «등불의 기적» · intent `7db2f0e8…` · gate 2 · **등불 번호 1** · postback `{ok:true,status:200,attempts:1}` 05:45:52 KST · 한마디 «항상 감사합니다.» · public_consent true → 실값 API `members:1 · recent[박○○○·삼이초·한마디] · bySchool[삼이초 1]` 반영. AM 쪽 저장·문자와 일치.
 - 미완료 intent 3건(#214 정기카드 pending · #215 효성 pending_hyosung · #216 계좌입금 pending_bank · 05:40~05:42 재시도)은 SIREN 원장에 대기 상태로 남아 있음 → 운영자가 후원 관리에서 취소 처리 권장(#215·#216은 대기 의도라 훗날 같은 회원의 입금/명세 확정 때 잘못 흡수될 수 있어 취소가 맞음).
 - SIREN 계약 변경 0. 다음 = 포트원 심사 결과(사장님) → env 4개 → provider portone 스위치.
+
+# AM 메인 → SIREN 요청 ⑬ (2026-09-06 10:0x KST · 사장님 전달) — 모금 현황 실값(목표·모금액·참여자·명단) 한 출처 연동
+- 사장님 결정: 랜딩 마지막 후원 문 위에 **목표 3,000만 원 · 현재 모금액 · 참여자 수 · 명단(이름·금액 · 익명은 익명 처리)** 블록을 둔다. AM 랜딩과 교유협 캠페인 페이지의 게이지가 **같은 숫자**를 보여야 하므로 정본은 SIREN 원장 하나.
+- 요청(`GET /api/campaign-stats?slug=등불의-기적` additive · 없으면 AM은 AM 경로 결제(lit_return amount 합)만으로 «AM 집계» 표기):
+  - `raisedKrw:number` — 완료 후원 합계(KICC·효성·계좌 확인분 전부 · 취소/환불 제외 · 원)
+  - `goalKrw:number` — 캠페인 목표(3천만 = 30000000)
+  - `donors:[{ name:string, amountKrw:number, monthly:boolean, at:ISO }]` — 최근 30명 · name은 **공개 동의(public_consent) 있으면 마스킹(«박○용»)·없으면 «익명»** · 정기는 월 금액
+  - `raisedAsOf:ISO`
+- AM은 회신 후 즉시 반영(코드 준비 뒤 키만 읽음 · SIREN 쪽 UI 변경 요청 0). 그때까지 AM 블록은 «AM 결제 기준» 소계·참여자(members)만.
