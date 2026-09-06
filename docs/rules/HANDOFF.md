@@ -4,8 +4,9 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-07-27 / **📝 직원 전자 근로계약 시스템 구축** (그 이전 = 🧾 지출결재·💰 급여·🕐 KST).
-> **▶ 최신 세션 인수인계 = [`docs/active/2026-07-27-session-handoff.md`](../active/2026-07-27-session-handoff.md)(근로계약 전체 + 다음 작업) — 새 메인은 이것부터 정독.** (그 이전: §0-A 지출결재 + 2026-07-13 급여·KST)
+> **마지막 갱신**: 2026-09-06 / **🕯️ 「등불의 기적」 캠페인·AutoMarketing 랜딩 연동·외부 등록 정정** (그 이전 = 📝 근로계약 7/27 · 🧾 지출결재 · 💰 급여 · 🕐 KST).
+> **▶ 최신 세션 인수인계 = [`docs/active/2026-09-06-lantern-session-handoff.md`](../active/2026-09-06-lantern-session-handoff.md) + 트리거 [`docs/active/2026-09-06-RESUME-TRIGGER.md`](../active/2026-09-06-RESUME-TRIGGER.md) — 새 메인은 트리거부터 정독.** 1순위 = 캠페인 페이지·후원 창 깜빡임 근본 FIX(SSR·모달 선준비).
+> (그 이전 최신: [`docs/active/2026-07-27-session-handoff.md`](../active/2026-07-27-session-handoff.md) 근로계약 · §0-A 지출결재 · 2026-07-13 급여·KST)
 > 새 메인 진입 시: §0-A → 7/13 세션 핸드오프 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → (급여/KST 세부 필요 시) `lib/kst.ts`·`lib/payroll-calc.ts` 상단 주석.
 > **현재 지시**: 메인 대기(문제 발견 전까지). 시각/급여/결재 이상 발견 시 그 화면 하나 받아 같은 종류 전체 훑어 수정.
 > ⚠️ 이전 종결분(딥릴리프·알림톡)은 아래 §0에 유지(archive).
