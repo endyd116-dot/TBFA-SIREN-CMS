@@ -5,7 +5,7 @@
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
 > **마지막 갱신**: 2026-09-06 / **🕯️ 「등불의 기적」 캠페인·AutoMarketing 랜딩 연동·외부 등록 정정 · 깜빡임 2건 근본 FIX(배포 2026-09-06.9)** (그 이전 = 📝 근로계약 7/27 · 🧾 지출결재 · 💰 급여 · 🕐 KST).
-> **▶ 최신 세션 인수인계 = [`docs/active/2026-09-06-lantern-session-handoff.md`](../active/2026-09-06-lantern-session-handoff.md)(§6 = 깜빡임 FIX 결과) + 트리거 [`docs/active/2026-09-06-RESUME-TRIGGER.md`](../active/2026-09-06-RESUME-TRIGGER.md) — 새 메인은 트리거부터 정독.** 깜빡임 FIX(배포 .9)·영수증 PDF→「후원금(회비) 납부 확인서」(배포 .10·§7)·등불 가입자 등록 안내 카톡+미납 후속 여정(배포 .11·§8 — **Swain: `/api/migrate-sponsor-welcome?run=1` 1회 호출 → 메인이 파일 삭제**) 완료. 다음 = Swain 몫(효성 수납 16건 재매칭·intent 3건 취소·포트원 심사·정관 업로드) 뒤 포트원 라운드.
+> **▶ 최신 세션 인수인계 = [`docs/active/2026-09-06-lantern-session-handoff.md`](../active/2026-09-06-lantern-session-handoff.md)(§6 = 깜빡임 FIX 결과) + 트리거 [`docs/active/2026-09-06-RESUME-TRIGGER.md`](../active/2026-09-06-RESUME-TRIGGER.md) — 새 메인은 트리거부터 정독.** 깜빡임 FIX(배포 .9)·영수증 PDF→「후원금(회비) 납부 확인서」(배포 .10·§7)·등불 가입자 등록 안내 카톡+미납 후속 여정(배포 .11·§8 · 시드 완료·파일 삭제) · 등불 화면 내용 어드민 관리(배포 .12·§9·시드 완료) 완료. 다음 = Swain 몫(효성 수납 16건 재매칭·intent 3건 취소·포트원 심사·정관 업로드) 뒤 포트원 라운드.
 > (그 이전 최신: [`docs/active/2026-07-27-session-handoff.md`](../active/2026-07-27-session-handoff.md) 근로계약 · §0-A 지출결재 · 2026-07-13 급여·KST)
 > 새 메인 진입 시: §0-A → 7/13 세션 핸드오프 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → (급여/KST 세부 필요 시) `lib/kst.ts`·`lib/payroll-calc.ts` 상단 주석.
 > **현재 지시**: 메인 대기(문제 발견 전까지). 시각/급여/결재 이상 발견 시 그 화면 하나 받아 같은 종류 전체 훑어 수정.

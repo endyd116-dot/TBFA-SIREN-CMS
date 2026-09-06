@@ -112,7 +112,7 @@
   - 문구 = 초안 그대로(등록 사실 · 홈페이지 휴대폰 인증으로 가입 완료 · 소식·등불 보고 · 영수증 안내) + 버튼 「홈페이지에서 가입 완료하기」 → `https://tbfa.co.kr/?signup=1`(홈 화면 인라인 스크립트가 가입 창을 바로 연다·로그인 상태면 안 열림).
   - 가입 시 `phone_verified_at=NOW()`(본인이 적은 휴대폰·일시 후원자와 같은 기준) · `kakao_marketing_consent_at`은 «소식 수신» 체크 때만 → 너처링 sms/kakao 게이트 통과.
 - **미납 후속 여정**: `lib/nurture-engine.ts` 세그먼트 `sponsor_unpaid`(가입경로 lantern_campaign + 완료 후원 0건) · D0 = 가입일(`SEGMENT_D0_EXPR`) · 첫 회비 확인되면 세그먼트에서 빠져 자동 종료(exited/converted). CMS 너처링 화면 «예비 후원자» 탭에 「등불 가입·미납」으로 표시(`admin-nurture.js`).
-- **1회용 시드** `migrate-sponsor-welcome`(어드민 `?run=1`·멱등): ① 알림톡 템플릿 솔라피 등록 + 카카오 검수 신청 + 행 insert ② 여정(기본 OFF)+D+3·D+7 문자 단계+본문 템플릿. **Swain이 `https://tbfa.co.kr/api/migrate-sponsor-welcome?run=1` 호출 → 결과 확인 → 파일 삭제(다음 push 동봉).**
+- **1회용 시드** `migrate-sponsor-welcome`(어드민 `?run=1`·멱등): ① 알림톡 템플릿 솔라피 등록 + 카카오 검수 신청 + 행 insert ② 여정(기본 OFF)+D+3·D+7 문자 단계+본문 템플릿. **2026-09-06 Swain 호출 완료 → 알림톡 템플릿 id 11(솔라피 KA01TP260906100402325fLoyfctFlhi) 검수 중 · 여정 id 5(단계 56·57, 템플릿 107·108) · 파일 삭제.**
 - 짧은 주소(문자용) `netlify.toml`: `/lantern` → 캠페인 · `/lantern/join` → 후원 창 자동 열기.
 - 남은 것: 알림톡 승인 대기(승인 시 `cron-kakao-template-status`가 자동 반영) · 여정 ON은 운영자 결정 · 검수 반려 시 CMS 알림톡 템플릿에서 사유 확인 후 문구 조정(코드 상수 `SPONSOR_WELCOME_TEMPLATE`도 함께).
 
