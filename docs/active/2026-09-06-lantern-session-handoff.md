@@ -106,3 +106,12 @@
 - `netlify/functions/donation-receipt.ts`: 파일명 «납부확인서_번호.pdf» · 오류 문구 · **전환 시각(2026-09-06 03:00Z) 이전에 저장된 PDF 캐시는 옛 서식이므로 무시하고 새로 생성**(번호 동일·R2 새 blob 저장).
 - 문구: 마이페이지(설명·표 머리 «확인서»·연간 카드 「N년 후원금(회비) 납부 확인서」·총 납부금액·시연 버튼 「PDF 발급」→ 후원 내역 탭으로 이동하는 진짜 버튼·해지 안내) · `auth.js` 후원 내역 표(발급 링크 제목·표 머리·환영·해지 안내 5곳, 캐시버스터 `20260906-receipt` 44페이지) · `lib/email.ts`(정기 결제 완료 메일 버튼 「마이페이지에서 후원 내역 보기」·탈퇴 안내·이메일 필요 사유) · `cron-donation-receipt-annual`(연간 안내 = 납부 확인서·세액공제 아님 명시) · 통합 CMS 영수증 설정 제목·자리표시.
 - 남은 것: 연간 합산 확인서(없음·「준비 중」 표기) · 알림톡 템플릿(SOLAPI_TPL_RECEIPT) 본문은 카카오 승인 문구라 코드에서 못 바꿈 — 문구에 «기부금 영수증»이 있으면 Swain이 CMS 알림톡 템플릿에서 새 템플릿 등록.
+
+## 8. 압축 세션 결과 3 — 등불 가입자 «등록 안내» 카톡 자동 발송 + 미납 후속 여정 (2026-09-06 · 배포 2026-09-06.11 · Swain A안·전원·초안 그대로)
+- **가입 직후 1통**: `lib/sponsor-welcome-notice.ts` — `createSponsorMember`(랜딩 AM 모달·SIREN 후원 창 공통) 뒤에 fire-and-forget. 알림톡 템플릿(event_key `SPONSOR_WELCOME`)이 승인돼 있으면 알림톡(+솔라피 SMS 대체발송), 아니면 같은 내용을 문자(LMS)로. 마이페이지 알림함에도 기록. 시험 회원(`@lantern.invalid`)·휴대폰 없음 제외. 가입 사실 통지(정보성)라 소식 수신 동의와 무관.
+  - 문구 = 초안 그대로(등록 사실 · 홈페이지 휴대폰 인증으로 가입 완료 · 소식·등불 보고 · 영수증 안내) + 버튼 「홈페이지에서 가입 완료하기」 → `https://tbfa.co.kr/?signup=1`(홈 화면 인라인 스크립트가 가입 창을 바로 연다·로그인 상태면 안 열림).
+  - 가입 시 `phone_verified_at=NOW()`(본인이 적은 휴대폰·일시 후원자와 같은 기준) · `kakao_marketing_consent_at`은 «소식 수신» 체크 때만 → 너처링 sms/kakao 게이트 통과.
+- **미납 후속 여정**: `lib/nurture-engine.ts` 세그먼트 `sponsor_unpaid`(가입경로 lantern_campaign + 완료 후원 0건) · D0 = 가입일(`SEGMENT_D0_EXPR`) · 첫 회비 확인되면 세그먼트에서 빠져 자동 종료(exited/converted). CMS 너처링 화면 «예비 후원자» 탭에 「등불 가입·미납」으로 표시(`admin-nurture.js`).
+- **1회용 시드** `migrate-sponsor-welcome`(어드민 `?run=1`·멱등): ① 알림톡 템플릿 솔라피 등록 + 카카오 검수 신청 + 행 insert ② 여정(기본 OFF)+D+3·D+7 문자 단계+본문 템플릿. **Swain이 `https://tbfa.co.kr/api/migrate-sponsor-welcome?run=1` 호출 → 결과 확인 → 파일 삭제(다음 push 동봉).**
+- 짧은 주소(문자용) `netlify.toml`: `/lantern` → 캠페인 · `/lantern/join` → 후원 창 자동 열기.
+- 남은 것: 알림톡 승인 대기(승인 시 `cron-kakao-template-status`가 자동 반영) · 여정 ON은 운영자 결정 · 검수 반려 시 CMS 알림톡 템플릿에서 사유 확인 후 문구 조정(코드 상수 `SPONSOR_WELCOME_TEMPLATE`도 함께).

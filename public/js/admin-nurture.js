@@ -5,7 +5,8 @@
   var STATE = null;
   var CHANNELS = [['sms', '문자'], ['kakao', '알림톡(승인필요)'], ['email', '메일'], ['inapp', '앱']];
   var CADENCES = [['monthly', '매월'], ['quarterly', '분기'], ['anniversary', '기념일'], ['yearend', '연말']];
-  var TAB_SEG = { regular: ['regular'], prospect: ['prospect_onetime', 'prospect_cancelled'], potential: ['potential'] };
+  /* 2026-09-06: 등불 가입·미납(sponsor_unpaid) 여정은 예비 후원자 탭에 함께 보인다 */
+  var TAB_SEG = { regular: ['regular'], prospect: ['prospect_onetime', 'prospect_cancelled', 'sponsor_unpaid'], potential: ['potential'] };
   var curTab = 'regular';
 
   function toast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(window._t); window._t = setTimeout(function () { t.classList.remove('show'); }, 2400); }
@@ -210,7 +211,7 @@
   function renderAnalytics() {
     var box = document.getElementById('content');
     box.innerHTML = '<div class="hint">성과 불러오는 중…</div>';
-    var SEGNAME = { regular: '정기', prospect_onetime: '예비-일시', prospect_cancelled: '예비-이탈', potential: '잠재' };
+    var SEGNAME = { regular: '정기', prospect_onetime: '예비-일시', prospect_cancelled: '예비-이탈', potential: '잠재', sponsor_unpaid: '등불 가입·미납' };
     api('POST', { action: 'analytics' }).then(function (r) {
       if (!r.ok) { box.innerHTML = '<div class="hint">성과 불러오기 실패</div>'; return; }
       var d = r.data.data || {}; var fm = {}, sm = {}, ch = {}; var rec = d.recent || {};

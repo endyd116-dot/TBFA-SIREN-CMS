@@ -336,5 +336,11 @@
   <script src="/js/donate.js?v=20260906-lantern3" defer></script>
   <script src="/js/home-campaigns.js?v=2027-05" defer></script>
   <script src="/js/site-popup.js?v=20260517r1" defer></script>
+  <script>/* 2026-09-06: 문자·카톡의 「홈페이지에서 가입 완료하기」 링크(/?signup=1) — 가입 창(휴대폰 인증)을 바로 연다. 이미 로그인돼 있으면 열지 않는다 */
+  (function(){try{if(new URLSearchParams(location.search).get('signup')!=='1')return;}catch(e){return;}
+  var n=0;function t(){var a=window.SIREN_AUTH;if(a&&a.user)return;
+    if(window.SIREN&&window.SIREN.openModal&&document.getElementById('signupModal')){window.SIREN.openModal('signupModal');return;}
+    if(n++<40)setTimeout(t,150);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(t,600);});else setTimeout(t,600);})();</script>
 </body>
 </html>

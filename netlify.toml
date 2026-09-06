@@ -25,6 +25,17 @@
 # Redirects
 # ============================================================
 
+# 2026-09-06 문자·카톡용 짧은 주소 — 「등불의 기적」 캠페인 / 후원 창 자동 열기
+[[redirects]]
+  from = "/lantern"
+  to = "/campaign.html?slug=%EB%93%B1%EB%B6%88%EC%9D%98-%EA%B8%B0%EC%A0%81"
+  status = 302
+
+[[redirects]]
+  from = "/lantern/join"
+  to = "/campaign.html?slug=%EB%93%B1%EB%B6%88%EC%9D%98-%EA%B8%B0%EC%A0%81&donate=1"
+  status = 302
+
 [[redirects]]
   from = "/admin"
   to = "/admin.html"

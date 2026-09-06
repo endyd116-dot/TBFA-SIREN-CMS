@@ -65,6 +65,14 @@ const SEGMENT_MEMBER_WHERE: Record<string, string> = {
   prospect_onetime:   "m.donor_type = 'prospect' AND m.prospect_subtype = 'onetime'",
   prospect_cancelled: "m.donor_type = 'prospect' AND m.prospect_subtype = 'cancelled'",
   potential:          "m.donor_type = 'none' AND m.prospect_entry_path = 'potential_lead'",
+  /* 2026-09-06 등불 가입·미납(Swain A안): 랜딩(숭고한 등불)·SIREN 후원 창에서 후원회원으로 가입했지만
+     아직 완료된 후원(첫 회비)이 없는 회원. 첫 회비가 확인되면 세그먼트에서 빠져 여정이 자동 종료된다. */
+  sponsor_unpaid:     "m.signup_source_id = (SELECT id FROM signup_sources WHERE code = 'lantern_campaign' LIMIT 1) AND NOT EXISTS (SELECT 1 FROM donations d WHERE d.member_id = m.id AND d.status = 'completed')",
+};
+
+/* 세그먼트별 D0(진입 기준일) — 기본은 분류일(donor_evaluated_at). 등불 가입은 가입일 */
+const SEGMENT_D0_EXPR: Record<string, string> = {
+  sponsor_unpaid: "COALESCE(m.created_at, NOW())",
 };
 
 /* 잠재 리드 동기화 — potential_donors(이메일 있음·미연결)를 가벼운 lead 회원으로.
@@ -249,7 +257,7 @@ export async function runNurture(opts?: {
 
     const ins: any = await db.execute(sql.raw(`
       INSERT INTO nurture_enrollments (member_id, journey_id, enrolled_at, status)
-      SELECT m.id, ${Number(j.id)}, COALESCE(m.donor_evaluated_at, NOW()), 'active'
+      SELECT m.id, ${Number(j.id)}, ${SEGMENT_D0_EXPR[String(j.segment)] || "COALESCE(m.donor_evaluated_at, NOW())"}, 'active'
       FROM members m
       WHERE (${segWhere}) AND m.status = 'active' AND m.withdrawn_at IS NULL AND m.blacklisted_at IS NULL ${memFilterEnroll}
       ON CONFLICT (member_id, journey_id) DO NOTHING

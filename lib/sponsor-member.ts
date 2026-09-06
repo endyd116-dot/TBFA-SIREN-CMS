@@ -14,6 +14,7 @@ import { notifyAllOperators } from "./notify";
 import { sendEmail, baseLayout } from "./email";
 import { getSignupSourceId } from "./member-classifier";
 import { RECEIPT_NOTICE } from "./campaign-extras";
+import { sendSponsorWelcomeNotice } from "./sponsor-welcome-notice";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
@@ -182,6 +183,10 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
     agreeMail: false,
     emailVerified: false,
     operatorActive: false,
+    /* 2026-09-06: 가입 직후 안내 카톡/문자·후속 여정(sms 게이트 = 인증된 휴대폰)을 위해 본인이 적은 휴대폰을
+       인증된 번호로 둔다(일시 후원자와 같은 기준). 카톡 광고성 동의 시각은 «소식 수신» 체크 때만 */
+    phoneVerifiedAt: new Date(),
+    kakaoMarketingConsentAt: input.agreeSms === true ? new Date() : null,
     memo: `후원회원 가입 — ${input.campaignTitle}${schoolName ? ` · ${schoolName}` : ""}${input.source === "am_modal" ? " · 랜딩 모달" : ""}`,
   } as any).returning({ id: members.id, email: members.email, name: members.name, phone: members.phone, type: members.type, status: members.status });
 
@@ -200,6 +205,11 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
   } catch (e) { console.warn("[sponsor-member] 운영자 알림 실패:", e); }
 
   try { await sendSponsorWelcomeMail({ id: created.id, email: created.email, name: created.name }, input.campaignTitle); } catch {}
+
+  /* ★ 2026-09-06 가입 직후 «후원회원 등록 안내» 카톡(검수 전엔 문자) 1통 — 시험 회원(@lantern.invalid)은 안에서 제외 */
+  sendSponsorWelcomeNotice({
+    memberId: created.id, name: created.name, phone: created.phone, email: created.email, campaignTitle: input.campaignTitle,
+  }).catch((e) => console.warn("[sponsor-member] 등록 안내 발송 실패:", (e as any)?.message));
 
   return created as any;
 }
