@@ -12,11 +12,11 @@
 ## 1. 1순위 — 깜빡임 2건 근본 FIX (Swain: "신뢰를 깨는 것 같다 · 근본 FIX")
 증상: `https://tbfa.co.kr/campaign.html?slug=등불의-기적` 여는 순간 밝은 기본 화면이 1초쯤 보이다 등불 화면으로 바뀜 · 「후원회원으로 함께하기」 누르면 모달이 떴다가 1초 뒤 내용(금액 칸·단계)이 바뀜.
 
-- [ ] **UX-1 페이지**: 서버가 최종 모양을 내보낸다 — `lib/shell-detail.ts` campaign case에 등불 레이아웃 SSR(+ body `lantern-page` + `#cmpRoot[data-ssr="lantern"]` + FAQ·실값 동봉) · 캠페인 데이터 `<script id="cmpData" type="application/json">` 동봉(`shell-render.injectPreload` 패턴) · `public/campaign.html`은 SSR 있으면 **hydrate만**(innerHTML 교체 0)·없으면 폴백 렌더. 서버·클라 마크업이 같아야 한다(클래스·id 목록 대조).
-- [ ] **UX-2 모달**: 열기 전에 최종 상태 — `public/js/donate.js`: 페이지 로드 때 extras로 모달 선적용(사다리·배지·고지·정기 탭·드롭다운) + `GET /api/sponsor-signup` 선조회 캐시 → 0/1단계 선결정 · 열기 리스너 capture 단계로(common.js보다 먼저) · `setTimeout(150)` 제거 · 상태 미확정 때만 「준비 중」 후 한 번에 노출 · 등불 아닌 후원 창은 종전 유지 · `init` 이중 등록 가드 유지.
-- [ ] 캐시버스터: `donate.js?v=`(11개 페이지 일괄 sed)·`campaign.html` 인라인 · `lantern.css` 바뀌면 4곳.
-- [ ] 검증: (a) `curl` 서버 HTML에 `lantern-page`·hero·FAQ·cmpData 존재 (b) 브라우저 — 첫 그림부터 등불, 이후 변화 0 · 클릭 즉시 최종 모달 (c) 다른 캠페인(제주)·홈 후원 창 회귀 0 (d) `node --check`·`tsc` · 자가 점검 `/api/admin-lantern-selftest?run=1`(어드민) 8/8 유지.
-- [ ] 배포 1회에 묶기: 병합 도구 정리 커밋(85c25e45·미배포)이 함께 나간다. `lib/release-drafts.ts` APP_VERSION 올리고 초안 1건(운영자 언어).
+- [x] **UX-1 페이지**: 서버가 최종 모양을 내보낸다 — `lib/shell-detail.ts` campaign case에 등불 레이아웃 SSR(+ body `lantern-page` + `#cmpRoot[data-ssr="lantern"]` + FAQ·실값 동봉) · 캠페인 데이터 `<script id="cmpData" type="application/json">` 동봉(`shell-render.injectPreload` 패턴) · `public/campaign.html`은 SSR 있으면 **hydrate만**(innerHTML 교체 0)·없으면 폴백 렌더. 서버·클라 마크업이 같아야 한다(클래스·id 목록 대조).
+- [x] **UX-2 모달**: 열기 전에 최종 상태 — `public/js/donate.js`: 페이지 로드 때 extras로 모달 선적용(사다리·배지·고지·정기 탭·드롭다운) + `GET /api/sponsor-signup` 선조회 캐시 → 0/1단계 선결정 · 열기 리스너 capture 단계로(common.js보다 먼저) · `setTimeout(150)` 제거 · 상태 미확정 때만 「준비 중」 후 한 번에 노출 · 등불 아닌 후원 창은 종전 유지 · `init` 이중 등록 가드 유지.
+- [x] 캐시버스터: `donate.js?v=`(11개 페이지 일괄 sed)·`campaign.html` 인라인 · `lantern.css` 바뀌면 4곳.
+- [x] 검증: (a) `curl` 서버 HTML에 `lantern-page`·hero·FAQ·cmpData 존재 (b) 브라우저 — 첫 그림부터 등불, 이후 변화 0 · 클릭 즉시 최종 모달 (c) 다른 캠페인(제주)·홈 후원 창 회귀 0 (d) `node --check`·`tsc` · 자가 점검 `/api/admin-lantern-selftest?run=1`(어드민) 8/8 유지.
+- [x] 배포 1회에 묶기: 병합 도구 정리 커밋(85c25e45·미배포)이 함께 나간다. `lib/release-drafts.ts` APP_VERSION 올리고 초안 1건(운영자 언어).
 
 ## 2. 2순위 — 영수증 PDF → 「후원금(회비) 납부 확인서」 (Swain 승인·AM E2E 끝났으므로 착수)
 - [ ] `lib/pdf-receipt.ts`: 제목 「후원금(회비) 납부 확인서」 · 소득세법 각주 제거 · 「세액공제용 기부금영수증이 아닙니다. 공익법인 지정 후 별도 발급」 명시 · 단체 표기는 receipt_settings(사단법인·381·강서구 공항대로 426, 618호) · 마이페이지 버튼 라벨·`donation-receipt.ts` 파일명·메일 문구(`tplDonationThanks` 「후원 내역 보기」) 정합 · `cron-donation-receipt-annual` 연간 안내 문구 점검.

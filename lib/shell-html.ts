@@ -39,7 +39,7 @@ export function esc(v: any): string {
 }
 
 /* 페이지 안에 <script>로 심을 값 — </script> 조기 종료·주석 깨짐 방지 */
-function safeJson(value: any): string {
+export function safeJson(value: any): string {
   return JSON.stringify(value)
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e");
@@ -213,6 +213,39 @@ export function replaceById(html: string, id: string, inner: string): string {
   return html.replace(re, (_m, open: string, _tag: string, _old: string, close: string) =>
     open + inner + close
   );
+}
+
+/** 지정 id 요소의 여는 태그에 속성 하나를 덧붙인다(이미 있으면 값을 바꾼다). 못 찾으면 원본 그대로. */
+export function setAttrById(html: string, id: string, attr: string, value: string): string {
+  const re = new RegExp("<(\\w+)\\b([^>]*\\bid=\"" + id + "\"[^>]*)>");
+  const m = html.match(re);
+  if (!m || m.index == null) return html;
+  let attrs = m[2];
+  const attrRe = new RegExp("\\s" + attr + "=\"[^\"]*\"");
+  if (attrRe.test(attrs)) attrs = attrs.replace(attrRe, " " + attr + "=\"" + esc(value) + "\"");
+  else attrs = attrs + " " + attr + "=\"" + esc(value) + "\"";
+  return html.slice(0, m.index) + "<" + m[1] + attrs + ">" + html.slice(m.index + m[0].length);
+}
+
+/** <body> 에 class 를 덧붙인다 — 서버가 첫 그림부터 테마를 켜 두려고(등불 캠페인) */
+export function addBodyClass(html: string, cls: string): string {
+  const m = html.match(/<body\b([^>]*)>/);
+  if (!m || m.index == null) return html;
+  let attrs = m[1];
+  const cm = attrs.match(/\sclass="([^"]*)"/);
+  if (cm) {
+    const have = cm[1].split(/\s+/).filter(Boolean);
+    if (!have.includes(cls)) attrs = attrs.replace(cm[0], " class=\"" + [...have, cls].join(" ") + "\"");
+  } else {
+    attrs = attrs + " class=\"" + esc(cls) + "\"";
+  }
+  return html.slice(0, m.index) + "<body" + attrs + ">" + html.slice(m.index + m[0].length);
+}
+
+/** </head> 바로 앞에 태그를 넣는다(대표 사진 미리 받기 등). 없으면 원본 그대로. */
+export function appendToHead(html: string, tag: string): string {
+  if (!tag || !html.includes("</head>")) return html;
+  return html.replace("</head>", tag + "\n</head>");
 }
 
 /** 실시간 활동 지표 — data-stat-key 자리에 실제 숫자를 넣는다 */

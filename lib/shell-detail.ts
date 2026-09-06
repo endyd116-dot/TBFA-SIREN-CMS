@@ -16,9 +16,10 @@
 //    채우는 자리(자리표시)는 반드시 중첩 없는 단순 구조여야 한다.
 //    (board-view.html·news.html·report.html 자리표시를 <p>로 바꿔 둔 이유)
 
-import { esc, replaceById } from "./shell-html";
+import { esc, replaceById, setAttrById, addBodyClass, appendToHead, safeJson, withTimeout } from "./shell-html";
 import { showById } from "./shell-lists";
 import { sanitizePageHtml } from "./sanitize-page-html";
+import { renderCampaignDefault, renderCampaignLantern, type CampaignView } from "./campaign-page";
 
 /* ------------------------------------------------------------------ */
 /* 공통 도우미                                                          */
@@ -105,16 +106,57 @@ export async function loadDetailSeed(pagePath: string, key: string): Promise<any
         return row || null;
       }
       case "/campaign.html": {
+        /* ★ 2026-09-06 깜빡임 근본 FIX: 브라우저 캠페인 API(/api/campaigns?slug=)와 같은 조건·같은 값을 읽어
+           서버가 최종 화면을 완성한다. 등불 캠페인이면 FAQ·실값까지 함께(각각 상한 2.5초·실패해도 빈값). */
+        const { sql, asc } = await import("drizzle-orm");
         const [row] = await db
           .select({
+            id: schema.campaigns.id,
+            slug: schema.campaigns.slug,
+            type: schema.campaigns.type,
             title: schema.campaigns.title,
             summary: schema.campaigns.summary,
             contentHtml: schema.campaigns.contentHtml,
+            thumbnailBlobId: schema.campaigns.thumbnailBlobId,
+            status: schema.campaigns.status,
+            goalAmount: schema.campaigns.goalAmount,
+            raisedAmount: schema.campaigns.raisedAmount,
+            donorCount: schema.campaigns.donorCount,
+            startDate: schema.campaigns.startDate,
+            endDate: schema.campaigns.endDate,
           })
           .from(schema.campaigns)
-          .where(and(eq(schema.campaigns.slug, key), eq(schema.campaigns.isPublished, true)))
+          .where(and(
+            eq(schema.campaigns.slug, key),
+            eq(schema.campaigns.isPublished, true),
+            sql`${schema.campaigns.status} IN ('active', 'closed')`,
+            sql`(${schema.campaigns.startDate} IS NULL OR ${schema.campaigns.startDate} <= NOW())`,
+          ))
           .limit(1);
-        return row || null;
+        if (!row) return null;
+
+        const { getCampaignExtras, toPublicExtras } = await import("./campaign-extras");
+        const extras = getCampaignExtras(row.slug);
+        const seed: any = { kind: "campaign", campaign: row, extras: toPublicExtras(extras), faqs: [], stats: null };
+        if (extras) {
+          const faqP = db
+            .select({ question: schema.faqs.question, answer: schema.faqs.answer })
+            .from(schema.faqs)
+            .where(and(eq(schema.faqs.isActive, true), eq(schema.faqs.category, extras.faqCategory)))
+            .orderBy(asc(schema.faqs.sortOrder), asc(schema.faqs.id))
+            .then((l) => l as any[])
+            .catch((e) => { console.warn("[shell-detail] FAQ 조회 실패", e); return [] as any[]; });
+          const statsP = import("./campaign-stats")
+            .then((m) => m.computeCampaignPublicStats({ id: row.id, goalAmount: row.goalAmount }))
+            .catch((e) => { console.warn("[shell-detail] 실값 집계 실패", e); return null; });
+          const [faqs, stats] = await Promise.all([
+            withTimeout(faqP, 2500, [] as any[]),
+            withTimeout(statsP, 2500, null as any),
+          ]);
+          seed.faqs = faqs;
+          seed.stats = stats;
+        }
+        return seed;
       }
       case "/family-story.html": {
         const id = Number(key);
@@ -172,6 +214,63 @@ export async function loadDetailSeed(pagePath: string, key: string): Promise<any
 }
 
 /* ------------------------------------------------------------------ */
+/* 캠페인 상세 — 서버가 최종 모양을 완성한다 (2026-09-06 깜빡임 근본 FIX)   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 캠페인 화면을 브라우저 API 와 같은 값으로 통째 그리고, 브라우저가 다시 그리지 않도록
+ *  · #cmpRoot 에 data-ssr="lantern|default" 표시
+ *  · 그린 값(본문 제외)을 <script id="cmpData" type="application/json"> 으로 동봉(후원 창도 같은 값을 즉시 씀)
+ *  · 등불 캠페인이면 <body class="lantern-page"> 를 서버에서 켜고 대표 사진을 미리 받게 한다
+ */
+function applyCampaignSeed(html: string, seed: any): string {
+  const c0 = seed && seed.campaign;
+  if (!c0) return html;
+  const goal = Number(c0.goalAmount || 0);
+  const raised = Number(c0.raisedAmount || 0);
+  const view: CampaignView = {
+    id: Number(c0.id),
+    slug: String(c0.slug || ""),
+    type: String(c0.type || "fundraising"),
+    title: String(c0.title || ""),
+    summary: c0.summary || null,
+    contentHtml: safeHtml(c0.contentHtml),
+    thumbnailBlobId: c0.thumbnailBlobId || null,
+    status: String(c0.status || "active"),
+    goalAmount: goal,
+    raisedAmount: raised,
+    donorCount: Number(c0.donorCount || 0),
+    progressPercent: goal > 0 ? Math.min(100, Math.round((raised / goal) * 100 * 10) / 10) : null,
+    remainingDays: c0.endDate
+      ? Math.max(0, Math.ceil((new Date(c0.endDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+      : null,
+    startDate: c0.startDate,
+    endDate: c0.endDate,
+    extras: seed.extras || null,
+  };
+  const isLantern = !!(view.extras && view.extras.theme === "lantern");
+  const body = isLantern
+    ? renderCampaignLantern(view, seed.faqs || [], seed.stats || null)
+    : renderCampaignDefault(view);
+
+  /* 브라우저 쪽 동봉 값 — 본문은 이미 화면에 있으니 뺀다 */
+  const { contentHtml: _omit, ...campaignData } = view;
+  const data = { campaign: campaignData, faqs: seed.faqs || [], stats: seed.stats || null };
+  const dataTag = `<script id="cmpData" type="application/json">${safeJson(data)}</script>`;
+
+  let out = replaceById(html, "cmpRoot", body + dataTag);
+  if (out === html) return html;   /* 자리를 못 찾았으면 아무것도 바꾸지 않는다 */
+  out = setAttrById(out, "cmpRoot", "data-ssr", isLantern ? "lantern" : "default");
+  if (isLantern) {
+    out = addBodyClass(out, "lantern-page");
+    if (view.thumbnailBlobId) {
+      out = appendToHead(out, `<link rel="preload" as="image" href="/api/blob-image?id=${Number(view.thumbnailBlobId)}">`);
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
 /* 채우기                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -204,12 +303,7 @@ export function applyDetailSeed(pagePath: string, html: string, row: any): strin
         return out;
       }
       case "/campaign.html": {
-        /* cmpRoot 통째 — 클라이언트가 전체를 다시 그린다. 축약형(제목·요약·본문)만 */
-        const body =
-          `<h1 class="cmp-detail-title">${esc(row.title || "")}</h1>` +
-          (row.summary ? `<div class="cmp-detail-summary">${esc(row.summary)}</div>` : "") +
-          `<div class="cmp-detail-content">${safeHtml(row.contentHtml)}</div>`;
-        return replaceById(html, "cmpRoot", body);
+        return applyCampaignSeed(html, row);
       }
       case "/family-story.html": {
         let out = replaceById(html, "heroTitle", esc(row.title || ""));

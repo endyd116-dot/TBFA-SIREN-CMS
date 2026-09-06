@@ -113,7 +113,7 @@
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
 <script src="/js/common.js?v=20260821-imgfb" defer></script>
 <script src="/js/auth.js?v=20260906-lantern" defer></script>
-<script src="/js/donate.js?v=20260906-lantern2" defer></script>
+<script src="/js/donate.js?v=20260906-lantern3" defer></script>
 <script>
 (function(){
   const TYPE_LABEL = { fundraising: '모금', memorial: '추모', awareness: '인식 개선' };
@@ -166,7 +166,25 @@
     }
   } catch (_) {}
 
-  /* ───────── 기본(기존) 캠페인 화면 ───────── */
+  /* ─────────────────────────────────────────────────────────
+     ★ 2026-09-06 깜빡임 근본 FIX
+     서버(lib/shell-detail.ts + lib/campaign-page.ts)가 최종 화면을 완성해 보내고 값을 #cmpData 로 동봉한다.
+     #cmpRoot[data-ssr] 가 있으면 이 스크립트는 **다시 그리지 않고** 버튼·FAQ 펼치기만 붙인다.
+     아래 renderDefault/renderLantern 은 서버 렌더가 없을 때(실패·미리보기)의 폴백이며
+     마크업은 lib/campaign-page.ts 와 1:1 이어야 한다.
+     ───────────────────────────────────────────────────────── */
+  function readSeed() {
+    try {
+      const el = document.getElementById('cmpData');
+      if (!el) return null;
+      const seed = JSON.parse(el.textContent || 'null');
+      return seed && seed.campaign && seed.campaign.id ? seed : null;
+    } catch (_) { return null; }
+  }
+  function won(n) { return '₩' + Number(n || 0).toLocaleString('en-US'); }
+  function num(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+  /* ───────── 기본(기존) 캠페인 화면 — 폴백 ───────── */
   function renderDefault(root, c) {
     const thumb = c.thumbnailBlobId
       ? `background-image:url('/api/blob-image?id=${c.thumbnailBlobId}')`
@@ -179,13 +197,13 @@
       ? `<div class="cmp-progress-large"><div class="cmp-progress-large-fill" style="width:${pct}%"></div></div>
          <div style="font-size:14px;color:var(--text-2);text-align:right;margin-bottom:14px">${pct}% 달성</div>
          <div class="cmp-stats-row">
-           <div class="cmp-stats-item"><div class="cmp-stats-label">현재 모금액</div><div class="cmp-stats-value brand">₩${raised.toLocaleString()}</div></div>
-           <div class="cmp-stats-item"><div class="cmp-stats-label">목표 금액</div><div class="cmp-stats-value">₩${goal.toLocaleString()}</div></div>
-           <div class="cmp-stats-item"><div class="cmp-stats-label">후원자</div><div class="cmp-stats-value">${(c.donorCount || 0).toLocaleString()}명</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">현재 모금액</div><div class="cmp-stats-value brand">${won(raised)}</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">목표 금액</div><div class="cmp-stats-value">${won(goal)}</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">후원자</div><div class="cmp-stats-value">${num(c.donorCount)}명</div></div>
            ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
          </div>`
       : `<div class="cmp-stats-row">
-           <div class="cmp-stats-item"><div class="cmp-stats-label">참여 후원자</div><div class="cmp-stats-value brand">${(c.donorCount || 0).toLocaleString()}명</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">참여 후원자</div><div class="cmp-stats-value brand">${num(c.donorCount)}명</div></div>
            ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
          </div>`;
 
@@ -193,7 +211,7 @@
 
     root.innerHTML = `
       <div class="cmp-detail-hero" style="${thumb}">
-        <span class="cmp-detail-type-badge">${TYPE_LABEL[c.type] || c.type}</span>
+        <span class="cmp-detail-type-badge">${escapeHtml(TYPE_LABEL[c.type] || c.type)}</span>
       </div>
 
       <h1 class="cmp-detail-title">${escapeHtml(c.title)}</h1>
@@ -216,7 +234,26 @@
     `;
   }
 
-  /* ───────── 「등불의 기적」 화면 (S1·S2·S3·S4·S7·S12) ───────── */
+  /* ───────── 「등불의 기적」 조각 — 서버(lib/campaign-page.ts)와 같은 마크업 ───────── */
+  function renderRecentLanterns(recent) {
+    return (recent || []).map(r => `
+          <div class="lt-recent-item"><span class="orb"></span>
+            <div><b>${escapeHtml(r.name || '익명')}</b>${r.school ? `<small>${escapeHtml(r.school)}</small>` : ''}
+              ${r.note ? `<p>${escapeHtml(r.note)}</p>` : ''}</div>
+          </div>`).join('');
+  }
+  function renderSchools(bySchool) {
+    return (bySchool || []).slice(0, 12).map(s => `<span>${escapeHtml(s.school)}<b>${num(s.count)}명</b></span>`).join('');
+  }
+  function renderFaqItems(faqs) {
+    return (faqs || []).map(f => `
+        <div class="lt-faq-item">
+          <button type="button" class="lt-faq-q">${escapeHtml(f.question)}</button>
+          <div class="lt-faq-a">${escapeHtml(f.answer).replace(/\n/g, '<br />')}</div>
+        </div>`).join('');
+  }
+
+  /* ───────── 「등불의 기적」 화면 (S1·S2·S3·S4·S7·S12) — 폴백 ───────── */
   function renderLantern(root, c) {
     const x = c.extras;
     document.body.classList.add('lantern-page');
@@ -237,7 +274,7 @@
     const ladderCol = (label, hint, steps) =>
       `<div class="lt-ladder-col">
          <h4>${escapeHtml(label)}<small>${escapeHtml(hint)}</small></h4>
-         ${steps.map(s => `<div class="lt-ladder-row"><b>${Number(s.amount).toLocaleString()}원</b><span>${escapeHtml(s.impact)}</span></div>`).join('')}
+         ${steps.map(s => `<div class="lt-ladder-row"><b>${num(s.amount)}원</b><span>${escapeHtml(s.impact)}</span></div>`).join('')}
        </div>`;
 
     root.innerHTML = `
@@ -253,12 +290,12 @@
       <div class="lt-in">
         <section class="lt-stats">
           <div class="lt-stats-grid">
-            <div class="lt-stat"><b id="ltMembers">${(c.donorCount || 0).toLocaleString()}</b><span>개의 등불이 켜졌습니다</span><small>후원회원 수 · 정기+일시</small></div>
+            <div class="lt-stat"><b id="ltMembers">${num(c.donorCount)}</b><span>개의 등불이 켜졌습니다</span><small>후원회원 수 · 정기+일시</small></div>
             <div class="lt-stat"><b id="ltMonthly">–</b><span>정기 후원회원</span><small>매달 함께 지키는 사람</small></div>
           </div>
           ${goal > 0 ? `
-          <div class="lt-progress"><i id="ltProgressBar" style="width:0"></i></div>
-          <div class="lt-progress-lab"><span>모인 회비 <b>₩${raised.toLocaleString()}</b></span><span>${pct}% · 목표 ₩${goal.toLocaleString()}</span></div>` : ''}
+          <div class="lt-progress"><i id="ltProgressBar" style="width:${pct}%"></i></div>
+          <div class="lt-progress-lab"><span>모인 회비 <b id="ltRaised">${won(raised)}</b></span><span><span id="ltPct">${pct}</span>% · 목표 ${won(goal)}</span></div>` : ''}
           <div class="lt-cta-wrap">
             ${ctaBtn('월 1만 원부터 · 한 번의 후원도 환영합니다')}
             <p class="lt-cta-sub">가입 즉시 등불 증서가 발급되고, 정기 후원은 마이페이지에서 언제든 한 번에 해지하실 수 있습니다.</p>
@@ -302,46 +339,80 @@
       </div>
     `;
 
-    /* 진행률 막대는 그린 뒤 채운다 */
-    if (pct !== null) setTimeout(() => { const b = document.getElementById('ltProgressBar'); if (b) b.style.width = pct + '%'; }, 120);
-
-    loadLanternStats(c.slug);
+    bindFaqAccordion();
+    loadLanternStats(c, null);
     if (x.faqCategory) loadLanternFaq(x.faqCategory);
     if (x.org) applyOrgOverride(x.org);
   }
 
-  /* S6-a 실값 — 랜딩과 같은 출처(/api/campaign-stats)를 이 화면도 읽는다 */
-  async function loadLanternStats(slug) {
-    try {
-      const res = await fetch('/api/campaign-stats?slug=' + encodeURIComponent(slug));
-      const d = await res.json();
-      if (!res.ok || !d.ok) return;
-      const m = document.getElementById('ltMembers');
-      const mo = document.getElementById('ltMonthly');
-      if (m && typeof d.members === 'number') m.textContent = d.members.toLocaleString();
-      if (mo && typeof d.monthly === 'number') mo.textContent = d.monthly.toLocaleString();
-
-      const wrap = document.getElementById('ltRecent');
-      const list = document.getElementById('ltRecentList');
-      const schools = document.getElementById('ltSchools');
-      const recent = Array.isArray(d.recent) ? d.recent : [];
-      const bySchool = Array.isArray(d.bySchool) ? d.bySchool : [];
-      if (list && recent.length) {
-        list.innerHTML = recent.map(r => `
-          <div class="lt-recent-item"><span class="orb"></span>
-            <div><b>${escapeHtml(r.name || '익명')}</b>${r.school ? `<small>${escapeHtml(r.school)}</small>` : ''}
-              ${r.note ? `<p>${escapeHtml(r.note)}</p>` : ''}</div>
-          </div>`).join('');
-      }
-      if (schools && bySchool.length) {
-        schools.innerHTML = bySchool.slice(0, 12).map(s => `<span>${escapeHtml(s.school)}<b>${Number(s.count).toLocaleString()}명</b></span>`).join('');
-        schools.hidden = false;
-      }
-      if (wrap && (recent.length || bySchool.length)) wrap.hidden = false;
-    } catch (e) { console.warn('[lantern] stats', e); }
+  /* ───────── 서버가 그린 등불 화면에 동작만 붙인다 (hydrate) ───────── */
+  function hydrateLantern(c, seed) {
+    document.body.classList.add('lantern-page');
+    bindFaqAccordion();
+    if (c.extras && c.extras.org) applyOrgOverride(c.extras.org);
+    /* 실값은 서버가 이미 채웠다. 5분 캐시 사이에 바뀐 값이 있을 때만 숫자·목록을 조용히 맞춘다 */
+    setTimeout(() => loadLanternStats(c, seed && seed.stats), 1200);
   }
 
-  /* S7 — FAQ 6문 (어드민 FAQ 관리 category=lantern) */
+  function bindFaqAccordion() {
+    const box = document.getElementById('ltFaqList');
+    if (!box || box.dataset.bound) return;
+    box.dataset.bound = '1';
+    box.addEventListener('click', e => {
+      const q = e.target.closest('.lt-faq-q');
+      if (!q) return;
+      q.parentElement.classList.toggle('open');
+    });
+  }
+
+  /* S6-a 실값 — 랜딩과 같은 출처(/api/campaign-stats). prev(서버가 그린 값)와 같으면 화면을 건드리지 않는다 */
+  function statsKey(d) {
+    return JSON.stringify({ m: d.members, mo: d.monthly, r: d.recent || [], s: d.bySchool || [], k: d.raisedKrw });
+  }
+  async function loadLanternStats(c, prev) {
+    try {
+      const res = await fetch('/api/campaign-stats?slug=' + encodeURIComponent(c.slug));
+      const d = await res.json();
+      if (!res.ok || !d.ok) return;
+      if (prev && statsKey(prev) === statsKey(d)) return;
+      applyStats(c, d);
+    } catch (e) { console.warn('[lantern] stats', e); }
+  }
+  function setTextIfChanged(id, text) {
+    const el = document.getElementById(id);
+    if (el && el.textContent !== text) el.textContent = text;
+  }
+  function applyStats(c, d) {
+    if (typeof d.members === 'number') setTextIfChanged('ltMembers', num(d.members));
+    if (typeof d.monthly === 'number') setTextIfChanged('ltMonthly', num(d.monthly));
+    /* ⑬ 모인 회비 — 랜딩 게이지와 같은 숫자 */
+    const goal = Number(c.goalAmount || 0);
+    if (typeof d.raisedKrw === 'number' && goal > 0) {
+      const pct = Math.min(100, Math.round((d.raisedKrw / goal) * 1000) / 10);
+      setTextIfChanged('ltRaised', won(d.raisedKrw));
+      setTextIfChanged('ltPct', String(pct));
+      const bar = document.getElementById('ltProgressBar');
+      if (bar && bar.style.width !== pct + '%') bar.style.width = pct + '%';
+    }
+
+    const wrap = document.getElementById('ltRecent');
+    const list = document.getElementById('ltRecentList');
+    const schools = document.getElementById('ltSchools');
+    const recent = Array.isArray(d.recent) ? d.recent : [];
+    const bySchool = Array.isArray(d.bySchool) ? d.bySchool : [];
+    if (list) {
+      const html = renderRecentLanterns(recent);
+      if (list.innerHTML !== html) list.innerHTML = html;
+    }
+    if (schools) {
+      const html = renderSchools(bySchool);
+      if (schools.innerHTML !== html) schools.innerHTML = html;
+      schools.hidden = !bySchool.length;
+    }
+    if (wrap) wrap.hidden = !(recent.length || bySchool.length);
+  }
+
+  /* S7 — FAQ 6문 (어드민 FAQ 관리 category=lantern) — 폴백 경로에서만(서버 렌더는 이미 포함) */
   async function loadLanternFaq(category) {
     try {
       const res = await fetch('/api/faqs?category=' + encodeURIComponent(category));
@@ -350,21 +421,12 @@
       const wrap = document.getElementById('ltFaq');
       const box = document.getElementById('ltFaqList');
       if (!wrap || !box || !list.length) return;
-      box.innerHTML = list.map(f => `
-        <div class="lt-faq-item">
-          <button type="button" class="lt-faq-q">${escapeHtml(f.question)}</button>
-          <div class="lt-faq-a">${escapeHtml(f.answer).replace(/\n/g, '<br />')}</div>
-        </div>`).join('');
-      box.addEventListener('click', e => {
-        const q = e.target.closest('.lt-faq-q');
-        if (!q) return;
-        q.parentElement.classList.toggle('open');
-      });
+      box.innerHTML = renderFaqItems(list);
       wrap.hidden = false;
     } catch (e) { console.warn('[lantern] faq', e); }
   }
 
-  /* S4 — 이 화면의 단체 표기는 사단법인 번호(381-82-00754)로. 푸터는 공통 DB 값을 그리므로 여기서만 덮어쓴다 */
+  /* S4 — 이 화면의 단체 표기는 사단법인 번호(381-82-00754)로. 푸터는 공통 DB 값을 그리므로 여기서만 덮어쓴다(같으면 손대지 않음) */
   function applyOrgOverride(org) {
     const apply = () => {
       document.querySelectorAll('[data-footer="org.name"]').forEach(el => { if (el.textContent !== org.name) el.textContent = org.name; });
@@ -381,13 +443,19 @@
     setTimeout(apply, 4000);
   }
 
-  /* v11 묶음 C-7: 후원하기 버튼 → 같은 페이지에서 모달 오픈 (이동 X)
-     - sessionStorage에 캠페인 정보 저장 (donate.js가 자동 prefill · extras 로 등불 규칙 적용)
-     - 표준 [data-action="open-modal"] 가짜 트리거로 common.js의 모달 오픈 메커니즘 활용
-     - donateModal이 partials 로드 후에 DOM에 들어오므로, 최대 6초 대기 후 폴백 */
+  /* ───────── 후원 창 열기 ─────────
+     donate.js 가 페이지 로드 때 이미 등불 상태로 창을 준비해 둔다(SIREN_DONATE.open).
+     그 스크립트가 없을 때만 종전 경로(sessionStorage + 가짜 트리거)로 연다. */
   let _lastCampaign = null;
+  function campaignInfoOf(c) {
+    return { id: c.id, slug: c.slug, title: c.title, extras: c.extras || null };
+  }
   function openDonateModalForCampaign(campaignInfo) {
     _lastCampaign = campaignInfo;
+    if (window.SIREN_DONATE && typeof window.SIREN_DONATE.open === 'function') {
+      window.SIREN_DONATE.open(campaignInfo);
+      return;
+    }
     sessionStorage.setItem('siren_preselect_campaign', JSON.stringify(campaignInfo));
 
     const tryOpen = () => {
@@ -405,7 +473,6 @@
       return true;
     };
 
-    /* 즉시 시도 */
     if (tryOpen()) return;
 
     /* partials 아직 로드 안 됨 → 200ms 간격 / 최대 30회 (6초) 대기 */
@@ -422,17 +489,23 @@
     }, 200);
   }
 
+  /* donate.js 준비를 기다린다(자동 열기용) — 최대 6초 */
+  function whenDonateReady() {
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        if (window.SIREN_DONATE && window.SIREN_DONATE.ready) { window.SIREN_DONATE.ready.then(resolve); return; }
+        if (Date.now() - started > 6000) { resolve(); return; }
+        setTimeout(tick, 100);
+      };
+      tick();
+    });
+  }
+
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-cmp-donate]');
     if (!btn) return;
     e.preventDefault();
-
-    /* 시각적 피드백 — 버튼이 "준비 중..." 으로 잠시 변경 */
-    const orig = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = '후원 창 준비 중...';
-    setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 1500);
-
     const id = Number(btn.dataset.cmpDonate);
     const slug = btn.dataset.cmpSlug;
     const title = btn.dataset.cmpTitle;
@@ -440,25 +513,50 @@
     openDonateModalForCampaign({ id, slug, title, extras });
   });
 
+  /* 랜딩 «후원회원 되기»(donate=1)에서 왔으면 후원 창을 바로 연다 */
+  function autoOpenIfRequested(c) {
+    if (params.get('donate') !== '1' || c.status === 'closed') return;
+    whenDonateReady().then(() => openDonateModalForCampaign(_lastCampaign));
+  }
+
+  /* 조회수 — 서버가 그린 화면은 캠페인 API 를 부르지 않으므로 한 번 알려만 준다(결과는 화면에 쓰지 않는다) */
+  function pingView(url) {
+    setTimeout(() => { try { fetch(url, { cache: 'no-store', keepalive: true }).catch(() => {}); } catch (_) {} }, 1500);
+  }
+
   /* 화면 그리기 — 후원 버튼이 눌리기 전에 extras 를 보관해 둔다 */
   (async () => {
     const root = document.getElementById('cmpRoot');
     if (!slugParam && !idParam) { root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">잘못된 URL입니다.</div>'; return; }
+    const apiUrl = '/api/campaigns?' + (slugParam ? 'slug=' + encodeURIComponent(slugParam) : 'id=' + idParam);
+
+    /* 1) 서버가 최종 모양으로 그려 보냈으면 그대로 두고 동봉 값만 읽는다 (다시 그리기 0) */
+    const seed = readSeed();
+    if (root.dataset.ssr && seed) {
+      const c = seed.campaign;
+      window.__sirenCampaignExtras = c.extras || null;
+      _lastCampaign = campaignInfoOf(c);
+      if (window.SIREN_DONATE && typeof window.SIREN_DONATE.setCampaign === 'function') window.SIREN_DONATE.setCampaign(_lastCampaign);
+      if (root.dataset.ssr === 'lantern') hydrateLantern(c, seed);
+      pingView(apiUrl);
+      autoOpenIfRequested(c);
+      return;
+    }
+
+    /* 2) 폴백 — 서버 렌더가 없을 때(실패·미리보기)만 종전처럼 받아서 그린다 */
     try {
-      const res = await fetch('/api/campaigns?' + (slugParam ? 'slug=' + encodeURIComponent(slugParam) : 'id=' + idParam));
+      const res = await fetch(apiUrl);
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error('실패');
       const c = data.data?.campaign || data.campaign;
       window.__sirenCampaignExtras = c.extras || null;
-      _lastCampaign = { id: c.id, slug: c.slug, title: c.title, extras: c.extras || null };
+      _lastCampaign = campaignInfoOf(c);
+      if (window.SIREN_DONATE && typeof window.SIREN_DONATE.setCampaign === 'function') window.SIREN_DONATE.setCampaign(_lastCampaign);
 
       if (c.extras && c.extras.theme === 'lantern') renderLantern(root, c);
       else renderDefault(root, c);
 
-      /* 랜딩 «후원회원 되기»에서 왔으면(donate=1) 후원 창을 바로 연다 */
-      if (params.get('donate') === '1' && c.status !== 'closed') {
-        setTimeout(() => openDonateModalForCampaign(_lastCampaign), 700);
-      }
+      autoOpenIfRequested(c);
     } catch (e) {
       root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">캠페인을 찾을 수 없습니다.</div>';
     }

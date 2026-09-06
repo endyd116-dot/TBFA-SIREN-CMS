@@ -266,6 +266,9 @@
     <h2 class="serif"><span class="siren-icon-wrap" data-icon="ribbon"></span> 후원 동참하기</h2>
     <p class="modal-sub">여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.</p>
 
+    <!-- 2026-09-06 깜빡임 FIX: 회원 상태를 아직 모를 때만 단계 대신 잠깐 보인다(기본 1단계를 먼저 보여 주지 않는다) -->
+    <div class="donate-pending" id="donatePending" hidden>후원 창을 준비하고 있습니다…</div>
+
 <!-- public/partials/modals.html — donateModal 안의 form 시작 직후 1블록 삽입 -->
     <!-- STEP 0: «후원회원 가입» — 2026-09-06 「등불의 기적」(S5)
          회칙(정관)에 따른 가입 절차가 있어야 후원회원 «회비»가 기부금품법 예외로 선다.
@@ -749,6 +752,9 @@
   #donateModal .amt-impact { margin: 0 0 10px; padding: 9px 12px; background: #fbf3e2; border-left: 3px solid #d9a441; font-size: 12.5px; color: #5c4a1c; line-height: 1.6; }
   #donateModal .amt-min-note { display: block; margin-top: 6px; font-size: 11.5px; color: var(--text-3); }
   #donateModal .fg input[readonly].sj-locked { background: var(--bg-soft); color: var(--text-2); }
+  /* 2026-09-06 깜빡임 FIX — 단계 미확정 표시 */
+  #donateModal .donate-pending { padding: 34px 0 26px; text-align: center; font-size: 13px; color: var(--text-3); }
+  #donateModal.donate-steps-pending .donate-step { display: none !important; }
 
   #donateModal .checkbox-line {
     display: flex !important;

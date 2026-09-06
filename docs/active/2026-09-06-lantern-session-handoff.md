@@ -44,14 +44,14 @@
 
 | # | 항목 | 담당 |
 |---|---|---|
-| A | **캠페인 페이지·후원 창 깜빡임 근본 FIX**(§4) | 압축 세션(메인) |
+| A | ~~캠페인 페이지·후원 창 깜빡임 근본 FIX~~(§4) → **완료·배포 2026-09-06.9**(§6) | 완료 |
 | B | 미확정 효성 수납 «신규» 16건 → CMS [선택 자동 재매칭] → [선택 일괄 통과] | Swain(2클릭) |
 | C | 미완료 intent #214·#215·#216 취소(후원 관리) — #215/#216은 두면 훗날 잘못 흡수 | Swain |
 | D | 영수증 PDF → 「후원금(회비) 납부 확인서」 전환(소득세법 각주 제거·세액공제 아님 명시) — AM E2E 끝났으므로 **착수 가능** | 메인 |
 | E | 포트원 가입·심사 신청 → 키 4개 env → 정기 빌링·월 청구 cron·취소 반영 라운드 | Swain → 메인 |
 | F | 회칙(정관) 자료실 업로드 → `LANTERN_BYLAWS_URL` 연동 | Swain → 메인 |
 | G | 「사업자등록번호」 라벨 — 실제는 「고유번호」(비영리·수익사업 없음). 푸터 라벨 정정 여부 | Swain 판단 |
-| H | 병합 도구 정리 커밋(85c25e45)은 **미배포**(문서 push가 [skip netlify]) → 다음 코드 push에 동봉 | 메인 |
+| H | ~~병합 도구 정리 커밋(85c25e45) 미배포~~ → 2026-09-06.9 에 동봉 배포 | 완료 |
 | I | 정기 해지 시 실값 monthly 차감 · 효성 경로 증서 | 후순위 |
 | J | 후원자 너처링 여정 ON(가입만 하고 미납 회원 후속) | Swain 검토 |
 
@@ -81,3 +81,22 @@
 - 운영 화면에 «저장된 척» 시연 코드 잔존(일괄 등록) → 저장 버튼 핸들러가 실제 API를 부르는지 grep.
 - `db.execute` 결과는 `.rows ?? res` · postgres-js `INTERVAL ${x}`는 `${x}::interval`.
 - 배포 8회(빌드 8·문서 push 5 skip) — 소규모 정리 배포가 잦았음. 다음엔 검증 묶음 뒤 1회.
+
+## 6. 압축 세션 결과 — 깜빡임 2건 근본 FIX (2026-09-06 · 배포 2026-09-06.9)
+
+**UX-1 캠페인 페이지 = 서버가 최종 모양을 내보낸다**
+- `lib/campaign-page.ts`(신설·순수 조립): 등불 화면·기본 캠페인 화면을 브라우저(`public/campaign.html`)와 **같은 마크업**으로 서버가 그린다. 두 파일의 클래스·id·문구 목록을 스크립트로 대조해 차이 0 확인.
+- `lib/shell-detail.ts` campaign case: 브라우저 API와 같은 조건(공개·active/closed·시작일 지남)으로 캠페인을 읽고, 등불이면 FAQ(category)·실값(공용 집계 함수)까지 각 2.5초 상한으로 함께 읽는다. `#cmpRoot`에 `data-ssr="lantern|default"` 표시, 값(본문 제외)을 `<script id="cmpData" type="application/json">`로 동봉, 등불이면 `<body class="lantern-page">`를 서버에서 켜고 대표 사진 `<link rel="preload">`.
+- `lib/shell-html.ts`: `setAttrById`·`addBodyClass`·`appendToHead` 헬퍼, `safeJson` 공개.
+- `public/campaign.html`: `data-ssr`가 있으면 **hydrate만**(FAQ 펼치기·푸터 381 덮어쓰기·1.2초 뒤 실값 재조회는 서버 값과 다를 때만 숫자·목록 교체·조회수 ping). 서버 렌더가 없을 때만 종전 fetch→render 폴백.
+- 실값 집계 한 출처: `lib/campaign-stats.ts computeCampaignPublicStats` — `/api/campaign-stats`와 서버 렌더가 같은 함수. **AM 요청 ⑬**(raisedKrw·goalKrw·donors 30·raisedAsOf)도 여기서 additive 로 반영(회신 ⑧).
+
+**UX-2 후원 창 = 열기 전에 최종 상태**
+- `public/js/donate.js`: 페이지 로드 때 `#cmpData`로 캠페인 문맥을 잡고 → 창을 미리 등불 상태(제목·배지·사다리·고지·정기 탭·캠페인 선택 칸 숨김)로 만든 뒤 → 회원 상태 `GET /api/sponsor-signup`를 **미리 조회·5분 캐시**해 0단계(가입/회칙)·1단계를 미리 정한다. 열기 리스너는 **capture 단계**(common.js보다 먼저) · `setTimeout(150)` 제거 · 상태를 아직 모를 때만 「후원 창을 준비하고 있습니다…」 표시 후 한 번에 노출 · 미리 읽은 로그인 상태와 지금 상태가 다르면(그새 로그인) 강제 재조회 · 관리자 전용 로그인은 불일치로 보지 않음.
+- `window.SIREN_DONATE.open(info)/setCampaign(info)/prepare()/ready` 공개 — 캠페인 페이지가 sessionStorage·가짜 트리거 없이 직접 연다(스크립트가 없을 때만 종전 경로 폴백). 로그인 뒤 재열기도 같은 경로. 가입 성공 시 캐시된 회원 상태도 갱신.
+- 등불 아닌 후원 창(홈·공지 등)은 종전 동작(정책값 선반영은 예전부터 프리페치).
+- `public/partials/modals.html`: `#donatePending` + `.donate-steps-pending` 스타일.
+
+**동봉**: 병합 도구 정리 커밋 85c25e45(미배포분) · `APP_VERSION 2026-09-06.9` + 업데이트 소식 초안 1건 · 캐시버스터 `donate.js?v=20260906-lantern3`(11페이지).
+
+**검증**: `tsc` 통과 · `node --check` 2개 통과 · 로컬 조립 검증 스크립트(실제 campaign.html 뼈대에 서버 렌더를 끼워 20항목 확인) 전부 통과 · 서버/브라우저 마크업 대조 차이 0 · 라이브 검증은 배포 뒤(§7).

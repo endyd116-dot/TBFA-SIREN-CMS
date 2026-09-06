@@ -626,3 +626,17 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
   - `donors:[{ name:string, amountKrw:number, monthly:boolean, at:ISO }]` — 최근 30명 · name은 **공개 동의(public_consent) 있으면 마스킹(«박○용»)·없으면 «익명»** · 정기는 월 금액
   - `raisedAsOf:ISO`
 - AM은 회신 후 즉시 반영(코드 준비 뒤 키만 읽음 · SIREN 쪽 UI 변경 요청 0). 그때까지 AM 블록은 «AM 결제 기준» 소계·참여자(members)만.
+
+---
+
+# SIREN 회신 ⑧ (2026-09-06 · SIREN 메인 압축 세션) — 요청 ⑬ 반영 + 캠페인 페이지·후원 창 깜빡임 제거
+
+- **⑬ 반영(additive · 기존 키 불변)**: `GET /api/campaign-stats?slug=등불의-기적` 응답에 4개 키 추가.
+  - `raisedKrw:number` — 완료(`completed`) 후원 합계(원) · KICC·효성·계좌 확인분 전부 · 취소/환불(미완료 상태) 제외
+  - `goalKrw:number` — 캠페인 목표(30000000)
+  - `donors:[{ name, amountKrw, monthly, at }]` — 최근 30명 · `name`은 **공개 동의(public_consent)+익명 아님**이면 마스킹, 아니면 «익명» · 정기는 월 금액 · `at` ISO
+  - `raisedAsOf:ISO` — 집계 시각
+  - 마스킹 형식은 기존 `recent`와 같은 «첫 글자 + ○»(예: 박○○○). «박○용»처럼 가운데만 가리는 형식이 꼭 필요하면 회신.
+  - **한 출처**: 이 API와 SIREN 캠페인 페이지 서버 렌더가 같은 집계 함수(`lib/campaign-stats.ts computeCampaignPublicStats`)를 쓴다 → 랜딩 게이지 = 캠페인 페이지 숫자. 캐시 5분 동일.
+- **깜빡임 제거(SIREN 내부 · AM 변경 0)**: 캠페인 페이지가 밝은 기본 화면을 1초쯤 보이다 등불 화면으로 바뀌던 것 → 서버가 등불 화면(실값·FAQ 포함)을 완성해 내보내고 브라우저는 다시 그리지 않는다. 「후원회원으로 함께하기」 후원 창이 뜬 뒤 금액 칸·단계가 바뀌던 것 → 페이지 로드 때 창을 미리 등불 상태로 만들고 회원 여부를 미리 조회해 두어 클릭 즉시 최종 화면. 주소·파라미터(`am_lp`·`am_anon`·`gate`·`donate=1`)·되돌아가기·postback 처리는 그대로.
+- **AM 액션**: 없음(키만 읽으면 됨). 라이브 확인 한 줄은 배포 뒤 사장님 편으로.

@@ -15,6 +15,15 @@
   let _member = null;         // 후원회원 가입/로그인 확인된 회원 { id, name, phone, email }
   let _loginWatch = null;
 
+  /* ★ 2026-09-06 깜빡임 FIX — 창을 «열기 전에» 완성해 두기 위한 상태
+     (예전엔 창이 먼저 열리고 0.15초 뒤 사다리, 다시 0.5~1초 뒤 단계가 바뀌어 보였다) */
+  let _status = null;         // GET /api/sponsor-signup 결과 { loggedIn, member, needsBylaws } (미리 조회)
+  let _statusAt = 0;
+  let _statusPromise = null;
+  let _prepared = false;      // 현재 문맥(캠페인·정책·회원 상태)으로 창을 만들어 두었는가
+  let _readyResolve = null;
+  const _ready = new Promise((r) => { _readyResolve = r; });
+
   /* 응답 봉투 다중 fallback — { ok, data } 또는 한 단계 더 감싼 경우 모두 흡수 */
   function unwrap(json) {
     if (!json || typeof json !== 'object') return {};
@@ -176,16 +185,43 @@
     if (modal) modal.scrollTop = 0;
   }
 
-  /* 등불 캠페인이면 회원 상태에 따라 0단계(가입/회칙 동의) 또는 1단계로 */
-  async function routeSteps() {
-    if (!_lantern || !_lantern.requireMembership) { showStep(1); return; }
-    let st = null;
-    try {
-      const res = await fetch('/api/sponsor-signup', { credentials: 'include' });
-      const json = await res.json().catch(() => ({}));
-      st = unwrap(json);
-    } catch (_) { st = null; }
+  /* 회원 상태(후원회원 가입·회칙 동의 여부) — 페이지 로드 때 미리 읽어 두고 5분간 재사용한다 */
+  function getMemberStatus(force) {
+    if (!force && _status && Date.now() - _statusAt < 5 * 60 * 1000) return Promise.resolve(_status);
+    if (_statusPromise && !force) return _statusPromise;
+    const p = fetch('/api/sponsor-signup', { credentials: 'include', cache: 'no-store' })
+      .then((res) => res.json().catch(() => ({})))
+      .then((json) => { _status = unwrap(json); _statusAt = Date.now(); return _status; })
+      .catch(() => { _status = null; return null; })
+      .finally(() => { if (_statusPromise === p) _statusPromise = null; });
+    _statusPromise = p;
+    return p;
+  }
 
+  /* 단계 미확정 표시 — 회원 상태를 아직 모를 때 기본 1단계를 먼저 보여 주지 않는다 */
+  function setPending(on) {
+    const modal = document.getElementById('donateModal');
+    if (!modal) return;
+    modal.classList.toggle('donate-steps-pending', !!on);
+    const el = document.getElementById('donatePending');
+    if (el) el.hidden = !on;
+  }
+
+  /* 등불 캠페인이면 회원 상태에 따라 0단계(가입/회칙 동의) 또는 1단계로 */
+  async function routeSteps(force) {
+    if (!_lantern || !_lantern.requireMembership) { setPending(false); showStep(1); return; }
+    let st = _status;
+    const fresh = !!st && Date.now() - _statusAt < 5 * 60 * 1000;
+    if (force || !fresh) {
+      setPending(true);
+      st = await getMemberStatus(!!force);
+      if (!_lantern || !_lantern.requireMembership) { setPending(false); showStep(1); return; }
+    }
+    applyRoute(st);
+  }
+
+  function applyRoute(st) {
+    setPending(false);
     if (!st || !st.loggedIn) {
       _member = null;
       prepareJoinForm('new', null);
@@ -325,6 +361,9 @@
 
         const d = unwrap(json);
         _member = d.member || d.user || null;
+        /* 미리 읽어 둔 회원 상태도 갱신 — 다음에 열 때 가입 단계가 다시 나오지 않도록 */
+        _status = { loggedIn: true, member: _member, needsBylaws: false };
+        _statusAt = Date.now();
         try {
           if (window.SIREN_AUTH && typeof window.SIREN_AUTH.fetchMe === 'function') await window.SIREN_AUTH.fetchMe();
           if (typeof window.refreshHeaderAuthUI === 'function') window.refreshHeaderAuthUI();
@@ -361,17 +400,9 @@
       if (auth && auth.isLoggedIn()) {
         clearInterval(_loginWatch); _loginWatch = null;
         try { window.SIREN.closeModal('loginModal'); } catch (_) {}
-        if (_campaignInfo) sessionStorage.setItem('siren_preselect_campaign', JSON.stringify(_campaignInfo));
-        setTimeout(() => {
-          const trigger = document.createElement('a');
-          trigger.setAttribute('href', 'javascript:void(0)');
-          trigger.setAttribute('data-action', 'open-modal');
-          trigger.setAttribute('data-target', 'donateModal');
-          trigger.style.display = 'none';
-          document.body.appendChild(trigger);
-          trigger.click();
-          setTimeout(() => trigger.remove(), 100);
-        }, 250);
+        /* 로그인됐으니 회원 상태를 새로 읽고(강제) 같은 캠페인 문맥으로 다시 연다 */
+        _status = null;
+        setTimeout(() => openDonate(null), 250);
       } else if (Date.now() - started > 5 * 60 * 1000) {
         clearInterval(_loginWatch); _loginWatch = null;
       }
@@ -395,6 +426,7 @@
     const h2 = modal.querySelector('h2.serif');
     const sub = modal.querySelector('.modal-sub');
     const noticePay = document.getElementById('donateNoticePay');
+    const campaignWrap = document.getElementById('donateCampaignWrap');
     if (noticePay) {
       noticePay.hidden = !_lantern;
       /* 결제 단계 고지는 서버가 단계(KICC/포트원)에 맞춰 준다 — AM 랜딩 모달과 같은 글자 */
@@ -407,6 +439,8 @@
       /* 정기(월 자동결제)가 첫 번째·기본 */
       const reg = modal.querySelector('input[name="dtype"][value="regular"]');
       if (reg) reg.checked = true;
+      /* 캠페인이 정해져 있으니 캠페인 선택 칸은 숨긴다(열린 뒤 뒤늦게 나타나 흔들리지 않게) */
+      if (campaignWrap) campaignWrap.style.display = 'none';
     } else {
       if (badge) badge.hidden = true;
       if (h2 && _policyCache && _policyCache.modalTitle) h2.textContent = _policyCache.modalTitle;
@@ -416,55 +450,126 @@
     updatePayMethodVisibility();
   }
 
-  function setupAutoFill() {
-    document.addEventListener('click', async (e) => {
+  /* 로그인 회원이면 이름·연락처·이메일을 채워 둔다 (창이 열리기 전에) */
+  function fillIdentityFromAuth() {
+    const modal = document.getElementById('donateModal');
+    if (!modal) return;
+    const auth = window.SIREN_AUTH;
+    const nameInput = modal.querySelector('form[data-form="donate"] input[name="name"]');
+    const phoneInput = modal.querySelector('form[data-form="donate"] input[name="phone"]');
+    const emailInput = modal.querySelector('#donateEmail');
+    if (auth && auth.isLoggedIn()) {
+      if (nameInput && !nameInput.value) nameInput.value = auth.user.name || '';
+      if (phoneInput && !phoneInput.value) phoneInput.value = auth.user.phone || '';
+      if (emailInput && !emailInput.value) emailInput.value = auth.user.email || '';
+      if (emailInput) {
+        emailInput.readOnly = true;
+        emailInput.style.background = 'var(--bg-soft)';
+      }
+    } else if (emailInput && !_member) {
+      emailInput.readOnly = false;
+      emailInput.style.background = '';
+    }
+  }
+
+  /* 일반 회원으로 로그인돼 있는가(관리자 전용 로그인은 후원회원 상태 조회와 무관) */
+  function userLoggedIn() {
+    const auth = window.SIREN_AUTH;
+    return !!(auth && auth.isLoggedIn() && !(auth.user && auth.user.isAdmin));
+  }
+
+  /* ───────── 캠페인 문맥 ─────────
+     캠페인 페이지는 서버가 그린 값을 #cmpData 로 동봉한다 → 페이지 로드 때 바로 등불 문맥이 잡힌다.
+     화면 스크립트가 직접 알려 줄 수도 있다(SIREN_DONATE.setCampaign / open). */
+  function readSeedCampaign() {
+    try {
+      const el = document.getElementById('cmpData');
+      if (!el) return null;
+      const seed = JSON.parse(el.textContent || 'null');
+      const c = seed && seed.campaign;
+      if (!c || !c.id) return null;
+      return { id: c.id, slug: c.slug, title: c.title, extras: c.extras || null };
+    } catch (_) { return null; }
+  }
+
+  function setCampaign(info) {
+    _campaignInfo = info && info.id ? info : null;
+    _lantern = _campaignInfo && _campaignInfo.extras && _campaignInfo.extras.theme === 'lantern' ? _campaignInfo.extras : null;
+    _prepared = false;
+    if (_lantern && _lantern.requireMembership) {
+      /* 회원 상태를 미리 읽어 두고, 도착하면 (창이 닫혀 있는 동안) 단계를 미리 정해 둔다 */
+      getMemberStatus(false).then((st) => {
+        const modal = document.getElementById('donateModal');
+        if (_lantern && _lantern.requireMembership && modal && !modal.classList.contains('show')) applyRoute(st);
+      }).catch(() => {});
+    }
+    prepareModal();
+  }
+
+  /* 창을 «열기 전에» 최종 상태로 만든다 — 열려 있는 동안엔 손대지 않는다 */
+  function prepareModal() {
+    const modal = document.getElementById('donateModal');
+    if (!modal) return false;
+    if (modal.classList.contains('show')) return true;
+    applyLanternUi();
+    fillIdentityFromAuth();
+    if (_lantern && _lantern.requireMembership) {
+      const fresh = !!_status && Date.now() - _statusAt < 5 * 60 * 1000;
+      if (fresh) {
+        applyRoute(_status);
+      } else {
+        setPending(true);
+        getMemberStatus(false).then((st) => {
+          const m = document.getElementById('donateModal');
+          if (_lantern && _lantern.requireMembership && m && !m.classList.contains('show')) applyRoute(st);
+        }).catch(() => {});
+      }
+    } else {
+      setPending(false);
+      /* 완료 화면(2단계)이 남아 있지 않으면 1단계 */
+      const step2 = modal.querySelector('.donate-step[data-step="2"]');
+      if (!(step2 && step2.classList.contains('active'))) showStep(1);
+    }
+    _prepared = true;
+    if (_readyResolve) { _readyResolve(); _readyResolve = null; }
+    return true;
+  }
+
+  /* 열기 직전 — 문맥 확정·창 완성. capture 단계 클릭(common.js 가 창을 열기 전)과 openDonate 양쪽에서 부른다 */
+  function beforeOpen() {
+    /* 다른 페이지에서 넘어온 사전 선택(sessionStorage) */
+    const pre = readPreselect();
+    if (pre && (!_campaignInfo || Number(pre.id) !== Number(_campaignInfo.id))) setCampaign(pre);
+    if (!_prepared) prepareModal();
+    else fillIdentityFromAuth();
+
+    if (_lantern && _lantern.requireMembership) {
+      /* 미리 읽은 상태와 지금 로그인 상태가 다르면(그새 로그인·로그아웃) 새로 읽는다 */
+      const mismatch = !!_status && (!!_status.loggedIn !== userLoggedIn());
+      if (mismatch) routeSteps(true);
+      else if (!_status) routeSteps(false);
+      /* 등불 캠페인은 캠페인이 정해져 있다 — 선택 칸 없음 */
+      try { sessionStorage.removeItem('siren_preselect_campaign'); } catch (_) {}
+    } else {
+      loadCampaignsForDonate();
+    }
+  }
+
+  function setupOpenHook() {
+    /* capture 단계: common.js(버블 단계)가 창을 열기 «전에» 실행된다 → 열리는 순간 이미 최종 화면 */
+    document.addEventListener('click', (e) => {
       const trigger = e.target.closest('[data-action="open-modal"][data-target="donateModal"]');
       if (!trigger) return;
+      beforeOpen();
+    }, true);
+  }
 
-      try { await loadPolicy(); } catch (_) {}
-
-      setTimeout(async () => {
-        const auth = window.SIREN_AUTH;
-        const modal = document.getElementById('donateModal');
-        if (!modal) return;
-
-        /* 캠페인 페이지에서 온 선택(등불 규칙 포함) */
-        const pre = readPreselect();
-        _campaignInfo = pre;
-        _lantern = pre && pre.extras && pre.extras.theme === 'lantern' ? pre.extras : null;
-
-        if (_policyCache) {
-          const h2 = modal.querySelector('h2.serif');
-          const sub = modal.querySelector('.modal-sub');
-          if (h2 && _policyCache.modalTitle) h2.textContent = _policyCache.modalTitle;
-          if (sub && _policyCache.modalSubtitle) sub.textContent = _policyCache.modalSubtitle;
-        }
-        applyLanternUi();
-
-        const nameInput = modal.querySelector('form[data-form="donate"] input[name="name"]');
-        const phoneInput = modal.querySelector('form[data-form="donate"] input[name="phone"]');
-        const emailInput = modal.querySelector('#donateEmail');
-
-        if (auth && auth.isLoggedIn()) {
-          if (nameInput && !nameInput.value) nameInput.value = auth.user.name || '';
-          if (phoneInput && !phoneInput.value) phoneInput.value = auth.user.phone || '';
-          if (emailInput && !emailInput.value) emailInput.value = auth.user.email || '';
-          if (emailInput) {
-            emailInput.readOnly = true;
-            emailInput.style.background = 'var(--bg-soft)';
-          }
-        } else {
-          if (emailInput) {
-            emailInput.readOnly = false;
-            emailInput.style.background = '';
-          }
-        }
-
-        loadCampaignsForDonate();
-        updatePayMethodVisibility();
-        await routeSteps();
-      }, 150);
-    });
+  /* 화면 스크립트(캠페인 페이지 등)가 직접 연다 — 문맥을 넘기면 그 캠페인 규칙으로 */
+  function openDonate(info) {
+    if (info) setCampaign(info);
+    beforeOpen();
+    if (window.SIREN && typeof window.SIREN.openModal === 'function') window.SIREN.openModal('donateModal');
+    else openModalById('donateModal');
   }
 
   function updatePayMethodVisibility() {
@@ -943,7 +1048,14 @@
     if (!anyOpen) document.body.style.overflow = '';
   }
 
-  window.SIREN_DONATE = { showSuccess: showDonateSuccess };
+  window.SIREN_DONATE = {
+    showSuccess: showDonateSuccess,
+    /* 2026-09-06: 화면 스크립트용 — 문맥 지정·즉시 열기·준비 완료 신호 */
+    open: openDonate,
+    setCampaign: setCampaign,
+    prepare: prepareModal,
+    ready: _ready,
+  };
 
   async function loadCampaignsForDonate() {
     const wrap = document.getElementById('donateCampaignWrap');
@@ -955,7 +1067,7 @@
       const data = await res.json();
       if (!res.ok || !data.ok) { wrap.style.display = 'none'; return; }
       const list = data.data?.list || [];
-      const pre = readPreselect();
+      const pre = _campaignInfo || readPreselect();
       /* 선택된 캠페인이 홈 노출 5건에 없으면(오래된 캠페인 등) 목록 맨 위에 붙인다 */
       if (pre && !list.some(c => Number(c.id) === Number(pre.id))) {
         list.unshift({ id: pre.id, slug: pre.slug, title: pre.title, type: 'fundraising', progressPercent: null, extras: pre.extras || null });
@@ -987,15 +1099,21 @@
   function init() {
     /* common.js(SIREN_PAGE_INIT)와 DOMContentLoaded 양쪽에서 불려도 리스너는 한 번만 단다
        (두 번 달리면 제출 한 번에 결제 준비가 두 번 나간다) */
-    if (window.__sirenDonateInited) return;
-    window.__sirenDonateInited = true;
-    setupAmountButtons();
-    setupAutoFill();
-    setupTypeToggle();
-    setupDonateForm();
-    setupJoinForm();
-    // ★ 후원 모달 프리페치 — 모달 처음 열릴 때 어드민 설정값 즉시 적용 (3초 딜레이 제거)
-    loadPolicy().catch(() => {});
+    if (!window.__sirenDonateInited) {
+      window.__sirenDonateInited = true;
+      setupAmountButtons();
+      setupOpenHook();
+      setupTypeToggle();
+      setupDonateForm();
+      setupJoinForm();
+      /* 캠페인 페이지가 동봉한 값(#cmpData)으로 문맥을 먼저 잡는다 — 서버가 그린 화면과 같은 값 */
+      const seed = readSeedCampaign();
+      if (seed) setCampaign(seed);
+      /* 정책(어드민 설정값)은 미리 받아 두고, 오면 열리기 전에 창에 반영한다 */
+      loadPolicy().then(() => { _prepared = false; prepareModal(); }).catch(() => {});
+    }
+    /* 창 DOM 은 서버 렌더 페이지면 처음부터, 아니면 partials 로드 뒤에 생긴다 — 있을 때마다 완성해 둔다 */
+    if (!_prepared) prepareModal();
   }
 
   const prevInit = window.SIREN_PAGE_INIT;
@@ -1003,6 +1121,7 @@
     if (typeof prevInit === 'function') prevInit();
     init();
   };
+  document.addEventListener('partials:loaded', () => { if (!_prepared) prepareModal(); });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
