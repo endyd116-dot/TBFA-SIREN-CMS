@@ -18,7 +18,7 @@ import { logUserAction } from "../../lib/audit";
 import { notifyAllOperators } from "../../lib/notify";
 /* 2026-09-06 「등불의 기적」: 캠페인 합산(campaignId) + 랜딩 파라미터(source_meta) 보관 → 효성 명세 반영 때 등불 */
 import { campaigns } from "../../db/schema";
-import { getCampaignExtras } from "../../lib/campaign-extras";
+import { resolveCampaignExtras, type CampaignExtras } from "../../lib/campaign-extras";
 import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
 
 export const config = { path: "/api/donate-hyosung-intent" };
@@ -59,11 +59,11 @@ export default async (req: Request) => {
 
     /* 캠페인 연결(선택) — 등불 캠페인이면 회원 가입이 먼저 */
     const campaignId = body.campaignId && Number.isFinite(Number(body.campaignId)) ? Number(body.campaignId) : null;
-    let campaignExtras = null as ReturnType<typeof getCampaignExtras>;
+    let campaignExtras: CampaignExtras | null = null;
     if (campaignId) {
       try {
         const [cRow] = await db.select({ slug: campaigns.slug }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
-        campaignExtras = getCampaignExtras(cRow?.slug);
+        campaignExtras = await resolveCampaignExtras({ id: campaignId, slug: cRow?.slug });
       } catch { /* 보조 조회 실패는 무시 */ }
       if (campaignExtras?.requireMembership && !memberId) {
         return badRequest("후원회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });

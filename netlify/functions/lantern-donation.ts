@@ -15,7 +15,7 @@ import { db } from "../../db";
 import { members } from "../../db/schema";
 import { authenticateUser } from "../../lib/auth";
 import { logUserAction } from "../../lib/audit";
-import { getCampaignExtras } from "../../lib/campaign-extras";
+import { resolveCampaignExtras } from "../../lib/campaign-extras";
 import {
   readDonationLantern, computeLanternNo, maskName, sanitizeAmMeta, buildLandingReturnUrl,
 } from "../../lib/lantern";
@@ -46,7 +46,7 @@ async function buildCard(donationId: number, memberId: number) {
   const row = await readDonationLantern(donationId);
   if (!row) return { error: notFound("후원 내역을 찾을 수 없습니다") };
   if (row.memberId !== memberId) return { error: forbidden("본인의 후원만 볼 수 있습니다") };
-  const extras = getCampaignExtras(row.campaignSlug);
+  const extras = await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug });
   if (!extras || !row.campaignId) return { error: badRequest("등불 캠페인 후원이 아닙니다") };
   if (row.status !== "completed") return { error: badRequest("아직 결제가 완료되지 않은 후원입니다") };
 
@@ -89,15 +89,22 @@ export default async (req: Request) => {
           const res: any = await db.execute(sql`
             SELECT d.id, d.amount, d.type::text AS type, COALESCE(d.paid_at, d.created_at) AS at,
                    d.donor_note AS note, COALESCE(d.public_consent, FALSE) AS "publicConsent",
-                   d.source_meta AS "sourceMeta", c.slug AS "campaignSlug", c.title AS "campaignTitle"
+                   d.source_meta AS "sourceMeta", c.slug AS "campaignSlug", c.title AS "campaignTitle", c.id AS "campaignId"
             FROM donations d
             JOIN campaigns c ON c.id = d.campaign_id
             WHERE d.member_id = ${me.id} AND d.status = 'completed'
             ORDER BY COALESCE(d.paid_at, d.created_at) DESC
             LIMIT 20
           `);
-          list = rowsOf(res)
-            .filter((r: any) => !!getCampaignExtras(r.campaignSlug))
+          /* 등불 테마 캠페인(저장값 기준)만 — 캠페인별로 한 번씩 판정 */
+          const rows = rowsOf(res);
+          const lanternIds = new Set<number>();
+          for (const cid of Array.from(new Set(rows.map((r: any) => Number(r.campaignId)).filter(Boolean)))) {
+            const slug = (rows.find((r: any) => Number(r.campaignId) === cid) || {}).campaignSlug;
+            if (await resolveCampaignExtras({ id: cid, slug })) lanternIds.add(cid);
+          }
+          list = rows
+            .filter((r: any) => lanternIds.has(Number(r.campaignId)))
             .map((r: any) => ({
               donationId: Number(r.id),
               amount: Number(r.amount || 0),
@@ -131,7 +138,7 @@ export default async (req: Request) => {
     const row = await readDonationLantern(donationId);
     if (!row) return notFound("후원 내역을 찾을 수 없습니다");
     if (row.memberId !== me.id) return forbidden("본인의 후원만 수정할 수 있습니다");
-    if (!getCampaignExtras(row.campaignSlug)) return badRequest("등불 캠페인 후원이 아닙니다");
+    if (!(await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug }))) return badRequest("등불 캠페인 후원이 아닙니다");
     if (row.status !== "completed") return badRequest("아직 결제가 완료되지 않은 후원입니다");
 
     const note = body.note === undefined ? undefined

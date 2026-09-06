@@ -17,7 +17,7 @@ import { db } from "../../db";
 import { members } from "../../db/schema";
 import { authenticateUser, signUserToken, buildCookie } from "../../lib/auth";
 import { logUserAction } from "../../lib/audit";
-import { getCampaignExtras, LANTERN_NOTICES } from "../../lib/campaign-extras";
+import { resolveCampaignExtras, LANTERN_NOTICES } from "../../lib/campaign-extras";
 import {
   findExistingSponsor, createSponsorMember, saveSponsorFields, readSponsorFields, normalizePhone, isValidEmail,
 } from "../../lib/sponsor-member";
@@ -71,7 +71,7 @@ export default async (req: Request) => {
     const agreePrivacy = body.agreePrivacy === true;
     const schoolName = String(body.schoolName || "").trim().slice(0, 150) || null;
     const campaignSlug = String(body.campaignSlug || "").trim();
-    const extras = getCampaignExtras(campaignSlug);
+    const extras = await resolveCampaignExtras({ slug: campaignSlug });
     const campaignTitle = extras ? extras.certificate.campaignLabel : "후원";
 
     if (!agreeBylaws) return badRequest("회칙(정관)에 동의해 주세요");

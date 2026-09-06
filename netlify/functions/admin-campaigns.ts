@@ -22,6 +22,37 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { canAccess } from "../../lib/role-permission-check";
+/* 2026-09-06: 등불 테마·확장 설정(문구·사다리·단체 표기)을 어드민에서 — campaigns.extras(jsonb) */
+import { sanitizeExtrasInput, defaultExtrasFor, toPublicExtras, invalidateExtrasCache, LANTERN_SLUG } from "../../lib/campaign-extras";
+
+/** campaigns.extras 읽기 — 컬럼이 아직 없으면(마이그 전) ready=false */
+async function readExtrasColumn(id: number): Promise<{ extras: any; ready: boolean }> {
+  try {
+    const r: any = await db.execute(sql`SELECT extras FROM campaigns WHERE id = ${id} LIMIT 1`);
+    let extras = (r?.rows ?? r ?? [])[0]?.extras ?? null;
+    if (typeof extras === "string") { try { extras = JSON.parse(extras); } catch { extras = null; } }
+    return { extras, ready: true };
+  } catch {
+    return { extras: null, ready: false };
+  }
+}
+
+/** 확장 설정 저장 — body.extras 없으면 건드리지 않음. 실패 사유를 문자열로 돌려준다 */
+async function saveExtrasColumn(id: number, body: any): Promise<string | null> {
+  if (body.extras === undefined) return null;
+  const stored = sanitizeExtrasInput(body.extras);
+  try {
+    const json = stored ? JSON.stringify(stored) : null;
+    await db.execute(sql`UPDATE campaigns SET extras = ${json}::jsonb, updated_at = NOW() WHERE id = ${id}`);
+    invalidateExtrasCache();
+    return null;
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    return /extras/i.test(msg)
+      ? "확장 설정 칸이 아직 없습니다 — 관리자 로그인 후 /api/migrate-sponsor-welcome?run=1 을 한 번 열어 주세요"
+      : msg.slice(0, 200);
+  }
+}
 
 const VALID_TYPES = ["fundraising", "memorial", "awareness"];
 const VALID_STATUSES = ["draft", "active", "closed", "archived"];
@@ -167,7 +198,15 @@ export default async (req: Request) => {
           creator = c || null;
         }
 
-        return ok({ campaign: row, creator });
+        /* 등불 테마·확장 설정 — 저장값 + 편집 창 자리표시용 기본값 */
+        const ex = await readExtrasColumn(id);
+        return ok({
+          campaign: { ...(row as any), extras: ex.extras },
+          creator,
+          extrasReady: ex.ready,
+          extrasDefaults: toPublicExtras(defaultExtrasFor(String((row as any).slug || ""))),
+          lanternSlug: LANTERN_SLUG,
+        });
       }
 
       /* ── 목록 ── */
@@ -268,15 +307,16 @@ export default async (req: Request) => {
       };
 
       const [created] = await db.insert(campaigns).values(insertData).returning();
+      const extrasWarning = await saveExtrasColumn(created.id, body);
 
       try {
         await logAdminAction(req, admin.uid, admin.name, "campaign_create", {
           target: `C-${created.id}`,
-          detail: { slug: created.slug, title: created.title, type: created.type },
+          detail: { slug: created.slug, title: created.title, type: created.type, extras: body.extras !== undefined },
         });
       } catch (_) {}
 
-      return ok({ campaign: created }, "캠페인이 생성되었습니다");
+      return ok({ campaign: created, extrasWarning }, extrasWarning ? `캠페인이 생성되었습니다 (확장 설정은 저장되지 않음: ${extrasWarning})` : "캠페인이 생성되었습니다");
     }
 
     /* ===== PATCH: 수정 ===== */
@@ -318,15 +358,16 @@ export default async (req: Request) => {
         .set(updateData)
         .where(eq(campaigns.id, id))
         .returning();
+      const extrasWarning = await saveExtrasColumn(id, body);
 
       try {
         await logAdminAction(req, admin.uid, admin.name, "campaign_update", {
           target: `C-${id}`,
-          detail: { changedFields: Object.keys(v.data) },
+          detail: { changedFields: Object.keys(v.data).concat(body.extras !== undefined ? ["extras"] : []) },
         });
       } catch (_) {}
 
-      return ok({ campaign: updated }, "캠페인이 수정되었습니다");
+      return ok({ campaign: updated, extrasWarning }, extrasWarning ? `캠페인이 수정되었습니다 (확장 설정은 저장되지 않음: ${extrasWarning})` : "캠페인이 수정되었습니다");
     }
 
     /* ===== DELETE ===== */

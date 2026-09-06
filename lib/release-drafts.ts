@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-06.11";
+export const APP_VERSION = "2026-09-06.12";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-06-campaign-extras-admin",
+    title: "「등불의 기적」 화면 문구·금액 사다리·단체 표기를 캠페인 관리에서 직접 고칩니다 (하드코딩 제거)",
+    items: [
+      { text: "싸이렌 어드민 › 캠페인 관리 › 「등불의 기적」 편집 창에 «🕯️ 등불 테마·확장 설정» 칸이 생겼습니다 — 제목 위 라벨·대표 한 줄·부제, 정기/일시 금액 사다리(금액·영향 문구 4칸씩·기본 선택 금액), 정기 힌트·최소 금액 문구, 회비 안내 문장, 단체명·번호·대표자, FAQ 분류, 증서 이름·문구, 회칙 링크, 공유(OG) 제목·사진을 저장하면 캠페인 페이지·후원 창·증서에 그대로 반영됩니다(최대 5분)", link: "/admin.html#campaigns" },
+      { text: "제목·요약·본문·대표 사진·목표액·기간·상태는 지금처럼 같은 편집 창에서, 자주 묻는 질문 6개는 FAQ 관리(분류 lantern)에서 고칩니다. 빈칸은 기본값이 쓰입니다" },
+      { text: "다른 캠페인도 «화면 테마»를 «등불 테마»로 고르면 같은 특별 화면(어둠·금색·실값·FAQ·후원회원 가입 먼저)을 쓸 수 있습니다" },
+      { text: "[관리자] 처음 한 번 관리자 로그인 후 /api/migrate-sponsor-welcome?run=1 을 열어야 저장 칸이 생기고 현재 문구가 시드됩니다(등록 안내 알림톡·미납 후속 여정 시드와 같은 주소). 랜딩(숭고한 등불) 되돌아가기·postback 주소와 [W1] 고지 문구는 함께워크와의 계약이라 코드·환경변수에서만 바뀝니다" },
+    ],
+  },
   {
     key: "2026-09-06-sponsor-welcome-notice",
     title: "「등불의 기적」으로 후원회원이 되면 등록 안내 카톡(검수 전엔 문자)이 자동으로 나갑니다 + 미납 후속 여정",

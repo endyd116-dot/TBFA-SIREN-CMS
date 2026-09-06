@@ -12,7 +12,7 @@
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
-import { getCampaignExtras, type CampaignExtras } from "./campaign-extras";
+import { resolveCampaignExtras, type CampaignExtras } from "./campaign-extras";
 
 export interface AmMeta {
   am_lp: string;
@@ -308,7 +308,7 @@ export async function afterLanternCompletion(opts: {
   try {
     const row = await readDonationLantern(opts.donationId);
     if (!row || !row.campaignId) return null;
-    const extras = getCampaignExtras(row.campaignSlug);
+    const extras = await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug });
     if (!extras) return null;
 
     const meta = sanitizeAmMeta(row.sourceMeta);

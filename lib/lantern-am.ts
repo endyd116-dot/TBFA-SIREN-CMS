@@ -13,7 +13,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { members, donations, donationPolicies, billingKeys, campaigns } from "../db/schema";
-import { LANTERN, LANTERN_NOTICES, RECEIPT_NOTICE, getCampaignExtras, noticePay, type CampaignExtras } from "./campaign-extras";
+import { LANTERN, LANTERN_NOTICES, RECEIPT_NOTICE, resolveCampaignExtras, noticePay, type CampaignExtras } from "./campaign-extras";
 import {
   findExistingSponsor, createSponsorMember, saveSponsorFields, normalizePhone, isValidEmail,
 } from "./sponsor-member";
@@ -79,7 +79,7 @@ export interface AmMemberInput {
 }
 
 export async function amUpsertMember(body: AmMemberInput): Promise<{ memberId: string; status: "new" | "existing"; id: number }> {
-  const extras = getCampaignExtras(body.campaignSlug || LANTERN.slug) || LANTERN;
+  const extras = (await resolveCampaignExtras({ slug: body.campaignSlug || LANTERN.slug })) || LANTERN;
   const name = String(body.name || "").trim().slice(0, 50);
   const email = String(body.email || "").trim().toLowerCase();
   const phone = normalizePhone(String(body.phone || ""));
@@ -293,7 +293,7 @@ export async function amIntentSummary(intentId: string) {
   if (!isIntentId(intentId)) throw new AmError(400, "intent 형식이 올바르지 않습니다");
   const row = await findDonationByIntent(intentId);
   if (!row) throw new AmError(404, "결제 정보를 찾을 수 없습니다", "intent");
-  const extras = getCampaignExtras(row.campaignSlug) || LANTERN;
+  const extras = (await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug })) || LANTERN;
   const meta = sanitizeAmMeta(row.sourceMeta);
   const provider = String((row as any).sourceMeta?.method === "cms" ? "hyosung" : (row as any).sourceMeta?.method === "bank" ? "manual" : "kicc");
   let pgProvider = "";

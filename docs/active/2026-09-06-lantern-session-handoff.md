@@ -115,3 +115,11 @@
 - **1회용 시드** `migrate-sponsor-welcome`(어드민 `?run=1`·멱등): ① 알림톡 템플릿 솔라피 등록 + 카카오 검수 신청 + 행 insert ② 여정(기본 OFF)+D+3·D+7 문자 단계+본문 템플릿. **Swain이 `https://tbfa.co.kr/api/migrate-sponsor-welcome?run=1` 호출 → 결과 확인 → 파일 삭제(다음 push 동봉).**
 - 짧은 주소(문자용) `netlify.toml`: `/lantern` → 캠페인 · `/lantern/join` → 후원 창 자동 열기.
 - 남은 것: 알림톡 승인 대기(승인 시 `cron-kakao-template-status`가 자동 반영) · 여정 ON은 운영자 결정 · 검수 반려 시 CMS 알림톡 템플릿에서 사유 확인 후 문구 조정(코드 상수 `SPONSOR_WELCOME_TEMPLATE`도 함께).
+
+## 9. 압축 세션 결과 4 — 등불 화면 «내용»을 어드민으로 (하드코딩 제거 · 배포 2026-09-06.12)
+Swain: "숭고한 등불 캠페인 왜 어드민에서 관리를 못하지? 하드코딩 말고 제주 캠페인처럼 관리할 수 있어야지." → §6.18 위반 정정.
+- **저장소**: `campaigns.extras`(jsonb · 1회용 `migrate-sponsor-welcome` ③이 컬럼 추가 + 등불 캠페인에 현재 코드 기본값 시드). schema.ts 미반영(raw SQL만) — 컬럼 없으면 코드 기본값으로 조용히 폴백.
+- **단일 출처 재정의** `lib/campaign-extras.ts`: `LANTERN` = 등불 슬러그 기본값·편집 창 시드·연동 주소(landing/postback/notices/receiptNotice = env·코드 고정). **저장값 읽기 = `resolveCampaignExtras({id|slug})`(비동기·60초 캐시)** → 화면 API(`campaigns` 단건·홈 노출)·서버 렌더(`shell-detail`)·SEO(`seo-meta`)·완료 훅(`lantern.ts`)·AM 가입/의도(`lantern-am`)·결제 게이트 3곳(`billing-register`·`donate-kicc-register`·`donate-hyosung-intent`)·`sponsor-signup`·`lantern-donation` 전부 교체. `getCampaignExtras`(동기)는 코드 기본값 전용.
+- **어드민**: `admin-campaigns.ts` 단건 GET에 `extras`·`extrasDefaults`·`extrasReady`·`lanternSlug` 동봉, POST/PATCH `body.extras`를 `sanitizeExtrasInput`(길이·범위 검증·빈칸=기본값)으로 저장(컬럼 없으면 저장 안 됨 경고). `admin.html` 캠페인 편집 창 «🕯️ 등불 테마·확장 설정» `<details>`(테마 선택·가입 먼저·라벨/대표 한 줄/부제·사다리 4×2+기본 금액·힌트·회비 안내·단체 3칸·FAQ 분류·증서·회칙 링크·OG) + `admin-campaigns.js` `cmpxFill/cmpxCollect`(캐시버스터 `20260906-extras`).
+- **다른 캠페인도 등불 테마 가능**(`theme:"lantern"` 저장 시 `defaultExtrasFor(slug)` 뼈대). 등불 캠페인에 `theme:"default"` 저장 시 기본 캠페인 화면.
+- 반영 지연: 캠페인 페이지 CDN 5분(본문 수정과 동일) · API 캐시 60초.

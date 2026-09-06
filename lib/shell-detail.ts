@@ -135,8 +135,8 @@ export async function loadDetailSeed(pagePath: string, key: string): Promise<any
           .limit(1);
         if (!row) return null;
 
-        const { getCampaignExtras, toPublicExtras } = await import("./campaign-extras");
-        const extras = getCampaignExtras(row.slug);
+        const { resolveCampaignExtras, toPublicExtras } = await import("./campaign-extras");
+        const extras = await resolveCampaignExtras({ id: row.id, slug: row.slug });
         const seed: any = { kind: "campaign", campaign: row, extras: toPublicExtras(extras), faqs: [], stats: null };
         if (extras) {
           const faqP = db

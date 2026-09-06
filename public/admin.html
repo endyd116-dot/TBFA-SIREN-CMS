@@ -5705,6 +5705,71 @@
             <textarea id="cmpContentHtml" rows="10" maxlength="100000" placeholder="<p>캠페인 상세 내용...</p>"></textarea>
           </div>
 
+          <!-- 2026-09-06: 등불 테마·확장 설정 — 코드 하드코딩 대신 어드민에서 관리(§6.18). 저장 = campaigns.extras -->
+          <details id="cmpxBox" style="margin:0 0 14px;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:#fffdf8">
+            <summary style="cursor:pointer;font-weight:700;font-size:13px">🕯️ 등불 테마·확장 설정 <span class="hint" style="font-weight:400">(「등불의 기적」 같은 특별 화면 — 문구·금액 사다리·단체 표기·증서)</span></summary>
+            <style>
+              #cmpxBox .cmpx-ladder { width:100%; border-collapse:collapse; font-size:12px; }
+              #cmpxBox .cmpx-ladder th { text-align:left; font-weight:600; color:var(--text-3); padding:2px 4px; }
+              #cmpxBox .cmpx-ladder td { padding:2px 4px; }
+              #cmpxBox .cmpx-ladder input { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:5px; font-size:12.5px; box-sizing:border-box; }
+              #cmpxBox .fg { margin-bottom:10px; }
+            </style>
+            <div style="margin-top:10px">
+              <div class="grid-2">
+                <div class="fg">
+                  <label>화면 테마</label>
+                  <select id="cmpxTheme">
+                    <option value="default">기본 캠페인 화면</option>
+                    <option value="lantern">등불 테마 (어둠·금색 · 실값·FAQ · 후원회원 가입 먼저)</option>
+                  </select>
+                </div>
+                <div class="fg" style="display:flex;align-items:flex-end">
+                  <label style="display:flex;gap:6px;align-items:center;margin:0 0 8px;font-weight:500"><input type="checkbox" id="cmpxRequireMembership" checked> 결제 전 후원회원 가입(회칙 동의) 먼저 받기</label>
+                </div>
+              </div>
+              <div id="cmpxFields">
+                <div class="fg"><label>제목 위 작은 라벨 <span class="hint">(비우면 기본값)</span></label><input type="text" id="cmpxEyebrow" maxlength="200"></div>
+                <div class="fg"><label>대표 한 줄 <span class="hint">(사진 위 큰 글 — 비우면 요약)</span></label><input type="text" id="cmpxHeadline" maxlength="200"></div>
+                <div class="fg"><label>부제</label><input type="text" id="cmpxSubtitle" maxlength="300"></div>
+                <div class="grid-2">
+                  <div class="fg">
+                    <label>정기 후원 사다리 <span class="hint">(금액 · 이 금액이면 무엇이 되는지)</span></label>
+                    <table class="cmpx-ladder" id="cmpxLadderReg"></table>
+                    <label style="font-size:12px;margin-top:6px;display:block">기본 선택 금액 <input type="number" id="cmpxRegDef" step="1000" min="1000" style="width:130px;padding:5px 8px"></label>
+                  </div>
+                  <div class="fg">
+                    <label>일시 후원 사다리</label>
+                    <table class="cmpx-ladder" id="cmpxLadderOne"></table>
+                    <label style="font-size:12px;margin-top:6px;display:block">기본 선택 금액 <input type="number" id="cmpxOneDef" step="1000" min="1000" style="width:130px;padding:5px 8px"></label>
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="fg"><label>정기 힌트 <span class="hint">(예: 월 1만 원 = 하루 330원)</span></label><input type="text" id="cmpxMonthlyHint" maxlength="100"></div>
+                  <div class="fg"><label>최소 금액 문구</label><input type="text" id="cmpxMinNote" maxlength="100"></div>
+                </div>
+                <div class="fg"><label>회비 안내 문장 <span class="hint">(모집 안내 칸)</span></label><input type="text" id="cmpxFeeNotice" maxlength="300"></div>
+                <div class="grid-3">
+                  <div class="fg"><label>단체명</label><input type="text" id="cmpxOrgName" maxlength="100"></div>
+                  <div class="fg"><label>사업자(고유)번호</label><input type="text" id="cmpxOrgNo" maxlength="20"></div>
+                  <div class="fg"><label>대표자</label><input type="text" id="cmpxOrgRep" maxlength="50"></div>
+                </div>
+                <div class="grid-3">
+                  <div class="fg"><label>FAQ 분류 <span class="hint">(FAQ 관리의 category)</span></label><input type="text" id="cmpxFaqCategory" maxlength="40"></div>
+                  <div class="fg"><label>증서 이름 <span class="hint">(등불 N번 증서)</span></label><input type="text" id="cmpxCertLabel" maxlength="60"></div>
+                  <div class="fg"><label>증서 문구</label><input type="text" id="cmpxCertTagline" maxlength="60"></div>
+                </div>
+                <div class="grid-3">
+                  <div class="fg"><label>회칙(정관) 링크</label><input type="text" id="cmpxBylawsUrl" maxlength="300" placeholder="/resources.html"></div>
+                  <div class="fg"><label>공유(OG) 제목</label><input type="text" id="cmpxOgTitle" maxlength="120"></div>
+                  <div class="fg"><label>공유(OG) 사진 주소 <span class="hint">(대표 사진 없을 때)</span></label><input type="text" id="cmpxOgImage" maxlength="500"></div>
+                </div>
+                <div style="font-size:11.5px;color:var(--text-3);line-height:1.6">빈칸은 기본값이 쓰입니다. 랜딩(숭고한 등불) 되돌아가기·postback 주소와 [W1] 고지 문구는 함께워크와의 계약이라 코드·환경변수에서만 바뀝니다. 저장 뒤 캠페인 페이지는 최대 5분 안에 반영됩니다.</div>
+                <div id="cmpxNotReady" style="display:none;margin-top:8px;padding:8px 10px;background:#fff3f3;border:1px solid #f5c2c2;border-radius:6px;font-size:12px;color:#a33">확장 설정 저장 칸이 아직 없습니다 — 관리자 로그인 후 <code>/api/migrate-sponsor-welcome?run=1</code>을 한 번 열어 주세요.</div>
+              </div>
+            </div>
+          </details>
+
           <div class="fg">
             <label>썸네일</label>
             <div class="cnt-thumb-row">
@@ -5814,7 +5879,7 @@
   <script src="/js/admin-signup-sources.js?v=20260712-noemoji"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <!-- public/admin.html — 스크립트 영역에 1줄 추가 -->
-<script src="/js/admin-campaigns.js?v=20260712-noemoji"></script>
+<script src="/js/admin-campaigns.js?v=20260906-extras"></script>
 <script src="/js/admin-activity-report.js?v=20260712-noemoji"></script>
 <script src="/js/admin-activity-report-list.js?v=20260712-noemoji"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->

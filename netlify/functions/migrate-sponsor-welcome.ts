@@ -15,6 +15,7 @@ import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { solapiListChannels, solapiCreateTemplate, solapiRequestInspection } from "../../lib/solapi-client";
 import { SPONSOR_WELCOME_EVENT_KEY, SPONSOR_WELCOME_TEMPLATE } from "../../lib/sponsor-welcome-notice";
+import { LANTERN, LANTERN_SLUG, toPublicExtras, sanitizeExtrasInput, invalidateExtrasCache } from "../../lib/campaign-extras";
 
 export const config = { path: "/api/migrate-sponsor-welcome" };
 
@@ -55,7 +56,8 @@ async function diagnose() {
   const tpl = rowsOf(await db.execute(sql`SELECT id, status, solapi_template_id AS tid, is_active FROM kakao_alimtalk_templates WHERE event_key = ${SPONSOR_WELCOME_EVENT_KEY} ORDER BY id DESC LIMIT 1`))[0] || null;
   const journey = rowsOf(await db.execute(sql`SELECT id, is_active FROM nurture_journeys WHERE segment = ${JOURNEY.segment} LIMIT 1`))[0] || null;
   const steps = journey ? Number(rowsOf(await db.execute(sql`SELECT COUNT(*)::int AS n FROM nurture_steps WHERE journey_id = ${Number(journey.id)}`))[0]?.n || 0) : 0;
-  return { template: tpl, journey, steps };
+  const extrasCol = rowsOf(await db.execute(sql`SELECT 1 AS ok FROM information_schema.columns WHERE table_name = 'campaigns' AND column_name = 'extras'`)).length > 0;
+  return { template: tpl, journey, steps, campaignsExtrasColumn: extrasCol };
 }
 
 export default async (req: Request) => {
@@ -166,8 +168,23 @@ export default async (req: Request) => {
     out.journey = { error: String(e?.message || e).slice(0, 400) };
   }
 
+  /* ── ③ 캠페인 확장 설정 칸(campaigns.extras jsonb) + 등불 캠페인 시드 (2026-09-06 어드민 관리 전환) ── */
+  try {
+    await db.execute(sql`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS extras jsonb`);
+    /* 등불 캠페인에 저장값이 없으면 지금 화면에 나가는 코드 기본값을 그대로 저장 → 편집 창에서 바로 고칠 수 있다 */
+    const seed = sanitizeExtrasInput(toPublicExtras(LANTERN));
+    const r = rowsOf(await db.execute(sql`
+      UPDATE campaigns SET extras = ${JSON.stringify(seed)}::jsonb, updated_at = NOW()
+      WHERE slug = ${LANTERN_SLUG} AND extras IS NULL RETURNING id`));
+    invalidateExtrasCache();
+    out.campaignExtras = { column: true, seededCampaignIds: r.map((x: any) => Number(x.id)) };
+  } catch (e: any) {
+    out.ok = false;
+    out.campaignExtras = { error: String(e?.message || e).slice(0, 400) };
+  }
+
   out.next = out.ok
-    ? "완료 — ① 알림톡은 카카오 검수(1~3영업일) 뒤 자동 승인 반영, 그 전엔 문자. ② 후속 여정은 CMS 💌 후원자 너처링 › 예비 후원자 탭에서 문구 확인 후 ON. 이 파일은 삭제됩니다."
+    ? "완료 — ① 알림톡은 카카오 검수(1~3영업일) 뒤 자동 승인 반영, 그 전엔 문자. ② 후속 여정은 CMS 💌 후원자 너처링 › 예비 후원자 탭에서 문구 확인 후 ON. ③ 캠페인 관리 › 등불의 기적 편집 창의 «등불 테마·확장 설정»에서 문구·사다리를 고칠 수 있습니다. 이 파일은 삭제됩니다."
     : "일부 실패 — 위 error 확인 후 다시 호출(멱등)";
   return json(out, out.ok ? 200 : 500);
 };

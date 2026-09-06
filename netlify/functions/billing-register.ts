@@ -21,7 +21,7 @@ import { logUserAction } from "../../lib/audit";
 import { registerTrade, generateShopOrderNo } from "../../lib/kicc";
 /* 2026-09-06 「등불의 기적」: 정기 후원도 캠페인에 합산(campaignId) + 랜딩 파라미터 보관 + 후원회원 가입 필수 */
 import { campaigns } from "../../db/schema";
-import { getCampaignExtras } from "../../lib/campaign-extras";
+import { resolveCampaignExtras, type CampaignExtras } from "../../lib/campaign-extras";
 import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
@@ -83,11 +83,11 @@ export default async (req: Request) => {
 
     /* 등불 캠페인(S5): 회칙에 따른 후원회원 가입이 먼저 — 비회원 정기 등록은 받지 않는다 */
     const campaignId = data.campaignId || null;
-    let campaignExtras = null as ReturnType<typeof getCampaignExtras>;
+    let campaignExtras: CampaignExtras | null = null;
     if (campaignId) {
       try {
         const [cRow] = await db.select({ slug: campaigns.slug }).from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
-        campaignExtras = getCampaignExtras(cRow?.slug);
+        campaignExtras = await resolveCampaignExtras({ id: campaignId, slug: cRow?.slug });
       } catch { /* 보조 조회 실패는 무시 */ }
       if (campaignExtras?.requireMembership && !memberId) {
         return badRequest("후원회원 가입(회칙 동의) 후 정기 후원을 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });

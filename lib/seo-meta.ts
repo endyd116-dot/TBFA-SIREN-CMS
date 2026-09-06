@@ -13,7 +13,7 @@
 
 import { and, eq, like, sql } from "drizzle-orm";
 import { db } from "../db";
-import { getCampaignExtras } from "./campaign-extras";
+import { resolveCampaignExtras } from "./campaign-extras";
 import {
   siteSettings,
   campaigns,
@@ -248,7 +248,7 @@ export async function getContentMeta(table: string, key: string): Promise<PageMe
         if (row.thumbnailBlobId) meta.og_image_url = blobUrl(row.thumbnailBlobId);
         meta.canonical = `/campaign.html?slug=${encodeURIComponent(key)}`;
         /* 2026-09-06 「등불의 기적」(S10): og:title은 랜딩과 같은 세계로, og:image는 대표 사진이 없으면 랜딩과 같은 파일 */
-        const extras = getCampaignExtras(row.slug);
+        const extras = await resolveCampaignExtras({ id: (row as any).id, slug: row.slug });
         if (extras) {
           meta.title = extras.ogTitle;
           meta.og_title = extras.ogTitle;

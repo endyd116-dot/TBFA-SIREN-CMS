@@ -160,6 +160,7 @@
     document.getElementById('cmpThumbId').value = '';
     document.getElementById('cmpThumbPreview').style.backgroundImage = '';
     document.getElementById('cmpSlugPreview').textContent = '—';
+    cmpxFill(null, null, '', '', true);
 
     if (!id) {
       titleEl.textContent = '새 캠페인';
@@ -197,6 +198,117 @@
       document.getElementById('cmpThumbId').value = String(c.thumbnailBlobId);
       document.getElementById('cmpThumbPreview').style.backgroundImage = `url('/api/blob-image?id=${c.thumbnailBlobId}')`;
     }
+    /* 등불 테마·확장 설정 — 저장값(없으면 등불 캠페인은 코드 기본값을 그대로 보여 준다) */
+    const d = res.data.data;
+    cmpxFill(c.extras || null, d.extrasDefaults || null, c.slug || '', d.lanternSlug || '', d.extrasReady !== false);
+  }
+
+  /* ====== 등불 테마·확장 설정 (2026-09-06 — 하드코딩 대신 어드민에서) ====== */
+  function cmpxVal(id) { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; }
+  function cmpxSet(id, v) { const el = document.getElementById(id); if (el) el.value = v == null ? '' : String(v); }
+  function cmpxRenderLadder(tableId, prefix, steps) {
+    const t = document.getElementById(tableId);
+    if (!t) return;
+    let h = '<tr><th style="width:120px">금액(원)</th><th>영향 문구</th></tr>';
+    for (let i = 0; i < 4; i++) {
+      const s = (steps && steps[i]) || {};
+      h += `<tr><td><input type="number" id="${prefix}Amt${i}" step="1000" min="1000" value="${s.amount ? Number(s.amount) : ''}"></td>` +
+           `<td><input type="text" id="${prefix}Txt${i}" maxlength="80" value="${escapeHtml(s.impact || '')}"></td></tr>`;
+    }
+    t.innerHTML = h;
+  }
+  function cmpxToggleFields() {
+    const on = cmpxVal('cmpxTheme') === 'lantern';
+    const box = document.getElementById('cmpxFields');
+    if (box) box.style.display = on ? '' : 'none';
+    const details = document.getElementById('cmpxBox');
+    if (details && on) details.open = true;
+  }
+  /* stored: 저장값(null=없음) · defaults: 코드 기본값(공개 모양) · lanternSlug: 저장값 없이도 등불 테마가 켜지는 슬러그 */
+  function cmpxFill(stored, defaults, slug, lanternSlug, ready) {
+    const d = defaults || {};
+    const isLantern = stored ? stored.theme === 'lantern' : (!!lanternSlug && slug === lanternSlug);
+    const s = (stored && stored.theme === 'lantern') ? stored : {};
+    /* 등불 슬러그인데 저장값이 없으면 기본값을 «값»으로 보여 준다(지금 화면에 나가는 문구) */
+    const showDefault = isLantern && !stored;
+    const pick = (v, dv) => (v != null && String(v).trim() !== '') ? v : (showDefault ? (dv == null ? '' : dv) : '');
+    const L = s.ladder || {}, dL = d.ladder || {};
+    const O = s.org || {}, dO = d.org || {};
+    const C = s.certificate || {}, dC = d.certificate || {};
+
+    cmpxSet('cmpxTheme', isLantern ? 'lantern' : 'default');
+    const rm = document.getElementById('cmpxRequireMembership');
+    if (rm) rm.checked = stored ? stored.requireMembership !== false : true;
+    cmpxSet('cmpxEyebrow', pick(s.eyebrow, d.eyebrow));
+    cmpxSet('cmpxHeadline', pick(s.headline, d.headline));
+    cmpxSet('cmpxSubtitle', pick(s.subtitle, d.subtitle));
+    cmpxRenderLadder('cmpxLadderReg', 'cmpxReg', (L.regular && L.regular.length) ? L.regular : (showDefault ? dL.regular : []));
+    cmpxRenderLadder('cmpxLadderOne', 'cmpxOne', (L.onetime && L.onetime.length) ? L.onetime : (showDefault ? dL.onetime : []));
+    cmpxSet('cmpxRegDef', pick(L.regularDefault, dL.regularDefault));
+    cmpxSet('cmpxOneDef', pick(L.onetimeDefault, dL.onetimeDefault));
+    cmpxSet('cmpxMonthlyHint', pick(L.monthlyHint, dL.monthlyHint));
+    cmpxSet('cmpxMinNote', pick(L.minNote, dL.minNote));
+    cmpxSet('cmpxFeeNotice', pick(s.feeNotice, d.feeNotice));
+    cmpxSet('cmpxOrgName', pick(O.name, dO.name));
+    cmpxSet('cmpxOrgNo', pick(O.businessNo, dO.businessNo));
+    cmpxSet('cmpxOrgRep', pick(O.representative, dO.representative));
+    cmpxSet('cmpxFaqCategory', pick(s.faqCategory, d.faqCategory));
+    cmpxSet('cmpxCertLabel', pick(C.campaignLabel, dC.campaignLabel));
+    cmpxSet('cmpxCertTagline', pick(C.tagline, dC.tagline));
+    cmpxSet('cmpxBylawsUrl', pick(s.bylawsUrl, d.bylawsUrl));
+    cmpxSet('cmpxOgTitle', pick(s.ogTitle, ''));
+    cmpxSet('cmpxOgImage', pick(s.ogImageUrl, ''));
+
+    /* 자리표시 = 기본값 (빈칸이면 이 값이 쓰인다) */
+    const ph = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = String(v); };
+    ph('cmpxEyebrow', d.eyebrow); ph('cmpxHeadline', d.headline); ph('cmpxSubtitle', d.subtitle);
+    ph('cmpxMonthlyHint', dL.monthlyHint); ph('cmpxMinNote', dL.minNote); ph('cmpxFeeNotice', d.feeNotice);
+    ph('cmpxOrgName', dO.name); ph('cmpxOrgNo', dO.businessNo); ph('cmpxOrgRep', dO.representative);
+    ph('cmpxFaqCategory', d.faqCategory); ph('cmpxCertLabel', dC.campaignLabel); ph('cmpxCertTagline', dC.tagline);
+    ph('cmpxRegDef', dL.regularDefault); ph('cmpxOneDef', dL.onetimeDefault);
+
+    const nr = document.getElementById('cmpxNotReady');
+    if (nr) nr.style.display = ready ? 'none' : '';
+    const details = document.getElementById('cmpxBox');
+    if (details) details.open = isLantern;
+    cmpxToggleFields();
+  }
+  function cmpxCollectLadder(prefix) {
+    const rows = [];
+    for (let i = 0; i < 4; i++) {
+      const amount = Number(cmpxVal(prefix + 'Amt' + i));
+      const impact = cmpxVal(prefix + 'Txt' + i);
+      if (amount >= 1000) rows.push({ amount, impact });
+    }
+    return rows;
+  }
+  /* 저장 모양 — 빈칸은 보내지 않는다(서버가 기본값 사용) */
+  function cmpxCollect() {
+    if (cmpxVal('cmpxTheme') !== 'lantern') return { theme: 'default' };
+    const rm = document.getElementById('cmpxRequireMembership');
+    const out = { theme: 'lantern', requireMembership: !!(rm && rm.checked) };
+    const put = (k, v) => { if (v !== '' && v != null) out[k] = v; };
+    put('eyebrow', cmpxVal('cmpxEyebrow')); put('headline', cmpxVal('cmpxHeadline')); put('subtitle', cmpxVal('cmpxSubtitle'));
+    put('feeNotice', cmpxVal('cmpxFeeNotice')); put('faqCategory', cmpxVal('cmpxFaqCategory')); put('bylawsUrl', cmpxVal('cmpxBylawsUrl'));
+    put('ogTitle', cmpxVal('cmpxOgTitle')); put('ogImageUrl', cmpxVal('cmpxOgImage'));
+    const ladder = {};
+    const reg = cmpxCollectLadder('cmpxReg'); if (reg.length) ladder.regular = reg;
+    const one = cmpxCollectLadder('cmpxOne'); if (one.length) ladder.onetime = one;
+    if (Number(cmpxVal('cmpxRegDef')) >= 1000) ladder.regularDefault = Number(cmpxVal('cmpxRegDef'));
+    if (Number(cmpxVal('cmpxOneDef')) >= 1000) ladder.onetimeDefault = Number(cmpxVal('cmpxOneDef'));
+    if (cmpxVal('cmpxMinNote')) ladder.minNote = cmpxVal('cmpxMinNote');
+    if (cmpxVal('cmpxMonthlyHint')) ladder.monthlyHint = cmpxVal('cmpxMonthlyHint');
+    if (Object.keys(ladder).length) out.ladder = ladder;
+    const org = {};
+    if (cmpxVal('cmpxOrgName')) org.name = cmpxVal('cmpxOrgName');
+    if (cmpxVal('cmpxOrgNo')) org.businessNo = cmpxVal('cmpxOrgNo');
+    if (cmpxVal('cmpxOrgRep')) org.representative = cmpxVal('cmpxOrgRep');
+    if (Object.keys(org).length) out.org = org;
+    const cert = {};
+    if (cmpxVal('cmpxCertLabel')) cert.campaignLabel = cmpxVal('cmpxCertLabel');
+    if (cmpxVal('cmpxCertTagline')) cert.tagline = cmpxVal('cmpxCertTagline');
+    if (Object.keys(cert).length) out.certificate = cert;
+    return out;
   }
 
   /* ====== 폼 제출 ====== */
@@ -219,6 +331,8 @@
       isPublished: document.getElementById('cmpPublished').checked,
       isPinned: document.getElementById('cmpPinned').checked,
       thumbnailBlobId: Number(document.getElementById('cmpThumbId').value) || null,
+      /* 등불 테마·확장 설정 */
+      extras: cmpxCollect(),
     };
 
     if (!body.title) return toast('제목을 입력해주세요');
@@ -234,7 +348,8 @@
 
       if (res.ok) {
         toast(res.data?.message || '저장되었습니다');
-        document.getElementById('campaignEditModal')?.classList.remove('show');
+        /* 확장 설정 저장 칸이 없으면(마이그 전) 창을 닫지 않고 안내를 남긴다 */
+        if (!(res.data?.data?.extrasWarning)) document.getElementById('campaignEditModal')?.classList.remove('show');
         loadCampaigns();
       } else {
         toast(res.data?.error || '저장 실패');
