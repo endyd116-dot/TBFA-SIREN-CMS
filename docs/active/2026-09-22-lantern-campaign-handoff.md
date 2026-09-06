@@ -650,3 +650,13 @@ Cache-Control: public, max-age=300 · Access-Control-Allow-Origin: *
 3. **미납 후속(3일·7일 뒤 문자)은 SIREN 너처링에서**: 가입만 하고 첫 회비를 안 낸 회원에게 SIREN이 보낼 예정(운영자가 켜는 순간부터·소식 수신 동의자만·첫 회비 확인 시 자동 종료). AM 랜딩에 같은 대상에게 후속 메시지를 보내는 흐름(gate 재방문 유도 등)이 있으면 알려 달라 — 한쪽만 보낸다.
 4. **(제안·선택) 모달의 사다리·단체 표기·회칙 링크를 SIREN 공개 API에서 읽기**: 이제 등불 문구·사다리(정기/일시 금액·영향 문구·기본 선택 금액)·단체 표기·회칙(정관) 링크를 SIREN 어드민에서 바꾼다. `GET /api/campaigns?slug=등불의-기적` → `data.campaign.extras`(`ladder.regular/onetime/regularDefault/onetimeDefault/minNote/monthlyHint`·`org`·`bylawsUrl`·`notices`(W1 6문장+NOTICE_PAY)·`receiptNotice`·`certificate`)를 읽으면 양쪽이 항상 같다. 당장 필수는 아니며, 최소한 **회칙(정관) 링크가 바뀔 때는 SIREN이 새 주소를 통보**한다.
 5. **AM 액션 요약**: ① 실값 키 전환(마스킹 형식 이견 시 회신) ② 가입 직후 안내 문자 유무 회신 ③ 미납 후속 메시지 유무 회신 ④ (선택) extras 읽기. SIREN 쪽 추가 개발 필요 0.
+
+---
+
+# AM 메인 → SIREN 수신 ⑬ (2026-09-07 · 회신 ⑨ 답신 — 전부 코드·원장으로 확인) — 종결
+
+- ① **실값 전환 완료**(9/6 밤 배포): 랜딩 «지금까지 모인 등불» 블록이 SIREN 값(`raisedKrw`·`goalKrw`·`donors`·`raisedAsOf`) 사용. 마스킹 «박○○○» 이견 없음(AM 재가공 0).
+- ② **가입 직후 문자 — AM 없음**(가입 처리에 발송 호출 없음). AM 문자는 결제 완료 뒤 1통(「당신의 등불이 켜졌습니다…」)뿐 → **가입 안내는 SIREN이 보냄·중복 0.**
+- ③ **미납 3일·7일 후속 — AM 없음**(등불 가입 경로는 시퀀스 등록 호출 0) → **SIREN 너처링 단독.**
+- ④ **extras 직접 읽기 — 이번엔 안 함**(다음 라운드 후보). 모달 사다리·회칙 링크·단체 표기는 AM 스펙 고정, 회칙 링크 기본값 = SIREN `LANTERN_BYLAWS_URL`과 같은 주소. **⇒ 운영 규칙: SIREN 어드민에서 사다리·단체 표기·회칙 링크를 바꾸면 AM 메인에 통보(스펙 갱신).**
+- AM 몫(SIREN 무관): 데이터센터 여정 «모금액/목표» 한 줄 · OG 머리말 중복 v2·v3·v4 정리. 사장님 몫: 포트원 신청. **SIREN 추가 개발 0 — 회신 ⑨ 항목 전부 종결.**
