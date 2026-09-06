@@ -1,5 +1,5 @@
 /**
- * SIREN — PDF 「후원금(회비) 납부 확인서」 생성 (M-14: 직인 이미지 삽입 추가)
+ * SIREN — PDF 「후원회원 회비 납부 확인서」 생성 (M-14: 직인 이미지 삽입 추가)
  *
  * ★ 2026-09-06 전환(Swain 승인): 협의회는 아직 공익법인(지정기부금단체) 지정 전이라
  *   「기부금 영수증(소득세법 서식)」은 사실과 다르다 → 제목·서식 각주·증명 문구를 «납부 확인서»로 바꾸고
@@ -62,10 +62,10 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
   const envOrgAddr = process.env.ORG_ADDRESS || "(샘플) 서울특별시 ○○구 ○○로 ○○";
   const envOrgPhone = process.env.ORG_PHONE || "(샘플) 02-0000-0000";
 
-  /* 새 기본값 — 「후원금(회비) 납부 확인서」 */
-  const defaultTitle = "후원금(회비) 납부 확인서";
+  /* 새 기본값 — 「후원회원 회비 납부 확인서」 (2026-09-07 Swain: «후원금» 표기는 기부금품법 오해 소지 → «후원회원 회비») */
+  const defaultTitle = "후원회원 회비 납부 확인서";
   const defaultSubtitle = "(사단법인 교사유가족협의회 후원회원 회비 납부 내역)";
-  const defaultProofText = "위와 같이 후원금(회비)을 납부하였음을 확인합니다.";
+  const defaultProofText = "위와 같이 후원회원 회비를 납부하였음을 확인합니다.";
   const defaultDonationLabel = "특별회비(후원회원)";
   const defaultFooter: string[] = [
     "• 본 확인서는 세액공제용 기부금영수증이 아닙니다. 협의회가 공익법인(지정기부금단체)으로 지정되면 별도로 발급해 드립니다.",
@@ -174,6 +174,16 @@ function drawTextRun(page: any, str: string, opts: { x: number; y: number; size:
     if (ch.trim()) page.drawText(ch, { x: cx, y: opts.y, size: opts.size, font: opts.font, color: opts.color });
     cx += w;
   }
+}
+
+/* 연락처 표기 — 숫자만 저장된 번호(01091351817)도 010-9135-1817 로 */
+function formatPhone(v: any): string {
+  const s = String(v == null ? "" : v).trim();
+  if (!s) return "-";
+  const d = s.replace(/[^0-9]/g, "");
+  if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return d.startsWith("02") ? `${d.slice(0, 2)}-${d.slice(2, 6)}-${d.slice(6)}` : `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return s;
 }
 
 /* ============ 영수증 데이터 인터페이스 ============ */
@@ -311,7 +321,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   drawTextRun(page, "① 납부자 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   drawLabelValue("성명", data.donorName, 50, y, 70, 210);
-  drawLabelValue("연락처", data.donorPhone || "-", 330, y, 70, 165);
+  drawLabelValue("연락처", formatPhone(data.donorPhone), 330, y, 70, 165);
   y -= 25;
   drawLabelValue("이메일", data.donorEmail || "-", 50, y, 70, 445);
 
@@ -332,7 +342,10 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   y -= 40;
   drawTextRun(page, "③ 납부 내역", { x: 50, y, size: 12, font, color: black });
   y -= 8;
-  const donDateStr = `${data.donationDate.getFullYear()}년 ${data.donationDate.getMonth() + 1}월 ${data.donationDate.getDate()}일`;
+  /* 납부일은 한국 날짜로(서버는 UTC). 값이 깨져 있으면 발급일로 대신한다 — 「NaN년」 방지 */
+  const rawDate = data.donationDate instanceof Date && !isNaN(data.donationDate.getTime()) ? data.donationDate : issueDate;
+  const kstDate = data.donationDate instanceof Date && !isNaN(data.donationDate.getTime()) ? new Date(rawDate.getTime() + 9 * 60 * 60 * 1000) : issueDate;
+  const donDateStr = `${kstDate.getUTCFullYear()}년 ${kstDate.getUTCMonth() + 1}월 ${kstDate.getUTCDate()}일`;
   drawLabelValue("납부일자", donDateStr, 50, y, 70, 210);
   drawLabelValue("후원유형", data.donationType === "regular" ? "정기후원" : "일시후원", 330, y, 70, 165);
   y -= 25;

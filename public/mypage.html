@@ -15,7 +15,7 @@
 <script src="/js/pwa.js?v=3" defer></script>
 <title>마이페이지 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="나의 후원 내역과 후원금(회비) 납부 확인서를 관리하세요.">
+<meta name="description" content="나의 후원 내역과 후원회원 회비 납부 확인서를 관리하세요.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -900,7 +900,7 @@
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                   <div style="font-size:48px"><span class="siren-icon-wrap" data-icon="file-text"></span></div>
                   <div style="flex:1;min-width:200px">
-                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 후원금(회비) 납부 확인서</div>
+                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 후원회원 회비 납부 확인서</div>
                     <div style="font-size:13px;color:var(--text-2)">총 납부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
                   </div>
                   <button type="button" class="btn btn-primary" onclick="var li=document.querySelector('#mpMenu li[data-mp=donations]'); if (li) li.click();">후원 내역에서 건별 발급</button>
@@ -1455,7 +1455,7 @@
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         set('receiptAmount', (stats.totalAmount || 0).toLocaleString() + '원');
         set('receiptCount', stats.totalCount || 0);
-        set('receiptYear', `${new Date().getFullYear() - 1}년 후원금(회비) 납부 확인서`);
+        set('receiptYear', `${new Date().getFullYear() - 1}년 후원회원 회비 납부 확인서`);
         return true;
       };
       let rTries = 0;

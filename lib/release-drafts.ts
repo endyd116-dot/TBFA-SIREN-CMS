@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-07.1";
+export const APP_VERSION = "2026-09-07.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-07-receipt-title-date",
+    title: "확인서 이름이 「후원회원 회비 납부 확인서」로 바뀌고, 납부일자 오류를 고쳤습니다",
+    items: [
+      { text: "「후원금(회비) 납부 확인서」 → 「후원회원 회비 납부 확인서」. «후원금» 표기가 기부금품법과 혼동될 수 있어 후원회원 회비임을 분명히 했습니다(제목·확인 문구·마이페이지·연간 안내 알림)" },
+      { text: "효성 자동이체로 들어온 후원의 확인서에서 납부일자가 「NaN년 NaN월 NaN일」로 찍히던 문제를 고쳤습니다(효성 자료의 결제일이 날짜 형식이라 서버가 잘못 읽던 것). 연락처도 010-0000-0000 형태로 표기됩니다. 이미 발급된 확인서는 다시 열면 새로 만들어집니다" },
+    ],
+  },
   {
     key: "2026-09-07-cancel-pending-states",
     title: "«입금 대기»·«효성 확인중» 후원도 결제 내역에서 취소할 수 있습니다",

@@ -1,5 +1,5 @@
 /**
- * GET /api/donation-receipt?id=N         — PDF 「후원금(회비) 납부 확인서」 (인라인)
+ * GET /api/donation-receipt?id=N         — PDF 「후원회원 회비 납부 확인서」 (인라인)
  * GET /api/donation-receipt?id=N&dl=1    — 다운로드
  *
  * M-14:
@@ -11,7 +11,7 @@
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { blobUploads } from "../../db/schema";
 import { authenticateUser, authenticateAdmin } from "../../lib/auth";
@@ -21,9 +21,25 @@ import { uploadToR2, downloadFromR2 } from "../../lib/r2-server";
 
 export const config = { path: "/api/donation-receipt" };
 
+/** 납부일 — 효성 자료의 결제일(date 원문) → paid_at → created_at 순으로 첫 유효값. 날짜만 있는 값은 UTC 자정으로 만들어 KST 표기 때 그 날짜가 유지된다 */
+async function resolveDonationDate(donationId: number, d: any): Promise<Date> {
+  try {
+    const r: any = await db.execute(sql`SELECT hyosung_paid_date::text AS hpd FROM donations WHERE id = ${donationId} LIMIT 1`);
+    const hpd = String((r?.rows ?? r ?? [])[0]?.hpd || "").slice(0, 10);
+    const m = hpd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 3, 0, 0));
+  } catch { /* 폴백 */ }
+  for (const v of [d.paidAt, d.createdAt]) {
+    if (!v) continue;
+    const dt = v instanceof Date ? v : new Date(v);
+    if (!isNaN(dt.getTime())) return dt;
+  }
+  return new Date();
+}
+
 /* 납부 확인서 서식으로 바뀐 시각 — 이보다 먼저 저장된 PDF 캐시는 옛 「기부금 영수증」 서식 */
-/* 2026-09-06 19:00 KST: 직인 교체·글자 간격 수정 이전에 만든 PDF도 다시 만든다 */
-const RECEIPT_FORMAT_SINCE = new Date("2026-09-06T10:00:00Z");
+/* 2026-09-07 01:20 KST: 제목(후원회원 회비)·납부일자 fix 이전에 만든 PDF도 다시 만든다 */
+const RECEIPT_FORMAT_SINCE = new Date("2026-09-06T16:20:00Z");
 
 export default async (req: Request, _ctx: Context) => {
   try {
@@ -147,8 +163,11 @@ export default async (req: Request, _ctx: Context) => {
         donorEmail: (d as any).donorEmail,
         donorPhone: (d as any).donorPhone,
         amount: (d as any).amount,
-        /* Q12: 영수증의 후원일은 실제 결제일 (효성은 자료의 결제일, 그 외는 createdAt) */
-        donationDate: new Date((d as any).hyosungPaidDate ?? (d as any).createdAt),
+        /* Q12: 확인서의 납부일은 실제 결제일 (효성은 자료의 결제일 → 결제 시각 → 생성 시각 순).
+           ★ 2026-09-07 fix: hyosung_paid_date 는 DB에서 date 타입인데 schema 는 timestamp 로 선언돼 있어
+             드라이버가 돌려준 Date 객체를 다시 파싱하다 «Invalid Date»가 됐고 확인서에 「NaN년 NaN월」이 찍혔다(Swain 신고).
+             → 원문(YYYY-MM-DD)을 따로 읽어 날짜로 쓰고, 못 읽으면 결제 시각·생성 시각으로 폴백 */
+        donationDate: await resolveDonationDate(donationId, d as any),
         payMethod: (d as any).payMethod,
         donationType: (d as any).type,
       });

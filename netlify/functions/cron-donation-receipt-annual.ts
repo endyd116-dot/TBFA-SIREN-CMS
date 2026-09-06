@@ -47,9 +47,9 @@ export default async (_req: Request) => {
           annualAmount: Number(r.total) || 0,
           issuePeriod,
           /* 2026-09-06: 공익법인 지정 전 — 세액공제 영수증이 아니라 «납부 확인서» 안내 */
-          receiptType: "후원금(회비) 납부 확인서",
-          title: "연간 후원금 납부 확인서 안내",
-          message: `${prevYear}년 후원금(회비) 납부 확인서를 마이페이지에서 발급받으실 수 있습니다. (세액공제용 기부금영수증은 공익법인 지정 후 별도 안내)`,
+          receiptType: "후원회원 회비 납부 확인서",
+          title: "연간 후원회원 회비 납부 확인서 안내",
+          message: `${prevYear}년 후원회원 회비 납부 확인서를 마이페이지에서 발급받으실 수 있습니다. (세액공제용 기부금영수증은 공익법인 지정 후 별도 안내)`,
           link: "/mypage.html",
           category: "donation",
           severity: "info",
