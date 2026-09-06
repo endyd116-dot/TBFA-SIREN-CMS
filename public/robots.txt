@@ -22,6 +22,8 @@ Disallow: /email-reject
 Disallow: /password-reset
 Disallow: /manual-admin
 Disallow: /form.html
+# 페이지 뼈대 파일 자체(내용 없음) — 실제 공개 페이지는 /p/{주소}라 영향 없음
+Disallow: /page.html
 Disallow: /1.html
 Disallow: /2.html
 Disallow: /test-attachment

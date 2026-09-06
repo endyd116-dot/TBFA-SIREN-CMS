@@ -113,7 +113,16 @@ export default async (req: Request) => {
       }
     }
 
-    const finalHtml = injectMeta(injectPreload(shellHtml, preload), {
+    /* ★ 2026-09-07: 슬러그·번호 없이 들어온 «껍데기» 주소는 검색에서 뺀다.
+       /campaign.html · /board-view.html 처럼 내용 키가 없으면 화면에는 안내 문구만 남는데,
+       구글이 이런 빈 주소를 찾아 「색인 생성되지 않음」으로 쌓아 둔다(2026-09-07 서치 콘솔 알림).
+       키가 아예 없을 때만 적용한다 — 조회 실패(일시적)로 멀쩡한 페이지를 빼지 않기 위해. */
+    let seoHtml = shellHtml;
+    if (table && !keyValue) {
+      seoHtml = seoHtml.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n<meta name="robots" content="noindex,follow">`);
+    }
+
+    const finalHtml = injectMeta(injectPreload(seoHtml, preload), {
       page: pageMeta,
       org,
       defaults,

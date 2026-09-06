@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-07.2";
+export const APP_VERSION = "2026-09-07.3";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-07-search-index-cleanup",
+    title: "구글 검색 색인 정리 — 빈 주소·중복 링크 제거",
+    items: [
+      { text: "구글이 「색인이 생성되지 않은 페이지 110개」로 알려온 내용을 점검했습니다. 검색에 올린 52개 주소는 전부 정상이었고, 나머지는 검색에 올릴 필요가 없거나 대기 중인 주소였습니다" },
+      { text: "이용약관·개인정보처리방침·윤리경영 링크가 옛 주소를 거쳐 새 주소로 넘어가고 있었습니다(푸터·후원 창·신고 화면 11곳). 이제 새 주소로 바로 연결됩니다" },
+      { text: "글쓰기·오프라인 안내·포인트 랭킹 화면과 내용이 없는 껍데기 주소(캠페인·게시글 주소에 글 번호가 없을 때)는 검색에 나오지 않도록 표시했습니다" },
+    ],
+  },
   {
     key: "2026-09-07-receipt-title-date",
     title: "확인서 이름이 「후원회원 회비 납부 확인서」로 바뀌고, 납부일자 오류를 고쳤습니다",
