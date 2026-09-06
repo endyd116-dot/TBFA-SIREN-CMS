@@ -46,9 +46,10 @@ export default async (_req: Request) => {
           year: String(prevYear),
           annualAmount: Number(r.total) || 0,
           issuePeriod,
-          receiptType: "기부금 세액공제 영수증",
-          title: "연간 기부금 영수증 발급 안내",
-          message: `${prevYear}년 기부금 영수증을 마이페이지에서 발급받으실 수 있습니다.`,
+          /* 2026-09-06: 공익법인 지정 전 — 세액공제 영수증이 아니라 «납부 확인서» 안내 */
+          receiptType: "후원금(회비) 납부 확인서",
+          title: "연간 후원금 납부 확인서 안내",
+          message: `${prevYear}년 후원금(회비) 납부 확인서를 마이페이지에서 발급받으실 수 있습니다. (세액공제용 기부금영수증은 공익법인 지정 후 별도 안내)`,
           link: "/mypage.html",
           category: "donation",
           severity: "info",

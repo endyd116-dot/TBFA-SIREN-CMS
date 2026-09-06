@@ -1,11 +1,13 @@
 /**
- * GET /api/donation-receipt?id=N         — PDF 영수증 (인라인)
+ * GET /api/donation-receipt?id=N         — PDF 「후원금(회비) 납부 확인서」 (인라인)
  * GET /api/donation-receipt?id=N&dl=1    — 다운로드
  *
  * M-14:
  * - 첫 발급 시 R2에 PDF 저장 + donations.receipt_blob_id 기록
- * - 재발급 시 R2에서 캐시된 PDF 반환 (동일 영수증 일관성 보장)
+ * - 재발급 시 R2에서 캐시된 PDF 반환 (동일 확인서 일관성 보장)
  * - regenerate=1 쿼리로 강제 재생성 가능 (관리자만)
+ * ★ 2026-09-06 서식 전환(기부금 영수증 → 납부 확인서): 전환 전에 만들어 둔 PDF 캐시는 옛 서식이므로
+ *   그 시각(RECEIPT_FORMAT_SINCE) 이전 캐시는 무시하고 새로 만든다(번호는 그대로).
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
@@ -18,6 +20,9 @@ import { generateReceiptPDF } from "../../lib/pdf-receipt";
 import { uploadToR2, downloadFromR2 } from "../../lib/r2-server";
 
 export const config = { path: "/api/donation-receipt" };
+
+/* 납부 확인서 서식으로 바뀐 시각 — 이보다 먼저 저장된 PDF 캐시는 옛 「기부금 영수증」 서식 */
+const RECEIPT_FORMAT_SINCE = new Date("2026-09-06T03:00:00Z");
 
 export default async (req: Request, _ctx: Context) => {
   try {
@@ -78,7 +83,7 @@ export default async (req: Request, _ctx: Context) => {
       return new Response(
         jsonKST({
           ok: false,
-          error: "결제 완료된 후원만 영수증 발급이 가능합니다",
+          error: "결제 완료된 후원만 납부 확인서 발급이 가능합니다",
           currentStatus: (d as any).status,
         }),
         { status: 400, headers: { "content-type": "application/json" } }
@@ -111,12 +116,16 @@ export default async (req: Request, _ctx: Context) => {
     if (useCache) {
       try {
         const [cached] = await db
-          .select({ blobKey: blobUploads.blobKey, mimeType: blobUploads.mimeType })
+          .select({ blobKey: blobUploads.blobKey, mimeType: blobUploads.mimeType, createdAt: blobUploads.createdAt })
           .from(blobUploads)
           .where(eq(blobUploads.id, existingBlobId))
           .limit(1);
 
-        if (cached && (cached as any).blobKey) {
+        const cachedAt = cached && (cached as any).createdAt ? new Date((cached as any).createdAt) : null;
+        const legacyFormat = !cachedAt || cachedAt.getTime() < RECEIPT_FORMAT_SINCE.getTime();
+        if (legacyFormat) {
+          console.log(`[donation-receipt] 옛 서식 캐시 무시 → 새로 생성: blobId=${existingBlobId}`);
+        } else if (cached && (cached as any).blobKey) {
           const downloaded = await downloadFromR2((cached as any).blobKey);
           if (downloaded && downloaded.length > 100) {
             pdfBytes = downloaded;
@@ -145,7 +154,7 @@ export default async (req: Request, _ctx: Context) => {
 
       /* R2 저장 + DB 기록 */
       try {
-        const fileName = `기부금영수증_${receiptNumber}.pdf`;
+        const fileName = `납부확인서_${receiptNumber}.pdf`;
         const uploadResult = await uploadToR2({
           buffer: pdfBytes,
           originalName: fileName,
@@ -175,7 +184,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     /* 7) 응답 헤더 */
-    const fileName = `기부금영수증_${receiptNumber}.pdf`;
+    const fileName = `납부확인서_${receiptNumber}.pdf`;
     const encoded = encodeURIComponent(fileName);
     const headers: Record<string, string> = {
       "content-type": "application/pdf",

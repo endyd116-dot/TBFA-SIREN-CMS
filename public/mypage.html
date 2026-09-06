@@ -15,7 +15,7 @@
 <script src="/js/pwa.js?v=3" defer></script>
 <title>마이페이지 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="나의 후원 내역과 기부금 영수증을 관리하세요.">
+<meta name="description" content="나의 후원 내역과 후원금(회비) 납부 확인서를 관리하세요.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -880,7 +880,7 @@
               </div>
 
               <table class="tbl" style="margin-top:14px">
-                <thead><tr><th>일자</th><th>구분</th><th>금액</th><th>결제수단</th><th>상태</th><th>영수증</th></tr></thead>
+                <thead><tr><th>일자</th><th>구분</th><th>금액</th><th>결제수단</th><th>상태</th><th>확인서</th></tr></thead>
                 <tbody>
                   <tr>
                     <td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">
@@ -900,16 +900,16 @@
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                   <div style="font-size:48px"><span class="siren-icon-wrap" data-icon="file-text"></span></div>
                   <div style="flex:1;min-width:200px">
-                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 귀속 기부금 영수증</div>
-                    <div style="font-size:13px;color:var(--text-2)">총 기부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
+                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 후원금(회비) 납부 확인서</div>
+                    <div style="font-size:13px;color:var(--text-2)">총 납부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
                   </div>
-                  <button class="btn btn-primary" data-demo-action="receipt-yearly" data-demo-message="연간 기부금 영수증 PDF를 발급합니다">PDF 발급</button>
+                  <button type="button" class="btn btn-primary" onclick="var li=document.querySelector('#mpMenu li[data-mp=donations]'); if (li) li.click();">후원 내역에서 건별 발급</button>
                 </div>
               </div>
 
               <p style="font-size:12.5px;color:var(--text-3);line-height:1.85;padding:14px 18px;background:var(--bg-soft);border-radius:8px">
                 <span class="siren-icon-wrap" data-icon="lightbulb"></span> 협의회가 공익법인(지정기부금단체)으로 지정되면 그때부터 세액공제용 기부금영수증을 발급하고, 국세청 연말정산 간소화 서비스 등재도 안내해 드리겠습니다.<br />
-                위 PDF는 후원 내역 확인용 서류이며, 현재는 세액공제 자료로 쓰이지 않습니다.
+                납부 확인서 PDF는 후원 내역 확인용 서류이며(후원 내역 표의 «발급»), 현재는 세액공제 자료로 쓰이지 않습니다. 연간 합산 확인서는 준비 중입니다.
               </p>
             </div>
 
@@ -1215,7 +1215,7 @@
         <span class="siren-icon-wrap" data-icon="alert-triangle"></span> <strong>해지 처리 안내</strong><br />
         • 다음 결제일부터 자동 청구가 즉시 중단됩니다<br />
         • 이미 처리된 결제분은 영향을 받지 않습니다<br />
-        • 영수증 발급은 이후에도 마이페이지에서 가능합니다<br />
+        • 납부 확인서 발급은 이후에도 마이페이지에서 가능합니다<br />
         • 다시 시작하려면 <strong>새로 카드 등록</strong>이 필요합니다
       </div>
 
@@ -1280,7 +1280,7 @@
   </div>
 
   <script src="/js/common.js?v=20260821-imgfb"></script>
-  <script src="/js/auth.js?v=20260906-lantern"></script>
+  <script src="/js/auth.js?v=20260906-receipt"></script>
   <script src="/js/support.js?v=5"></script>
   <script src="/js/donate.js?v=20260906-lantern3"></script>
   <script src="/js/mypage-lantern.js?v=20260906-1" defer></script>
@@ -1455,7 +1455,7 @@
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         set('receiptAmount', (stats.totalAmount || 0).toLocaleString() + '원');
         set('receiptCount', stats.totalCount || 0);
-        set('receiptYear', `${new Date().getFullYear() - 1}년 귀속 기부금 영수증`);
+        set('receiptYear', `${new Date().getFullYear() - 1}년 후원금(회비) 납부 확인서`);
         return true;
       };
       let rTries = 0;

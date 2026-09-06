@@ -1,5 +1,10 @@
 /**
- * SIREN — PDF 기부금 영수증 생성 (M-14: 직인 이미지 삽입 추가)
+ * SIREN — PDF 「후원금(회비) 납부 확인서」 생성 (M-14: 직인 이미지 삽입 추가)
+ *
+ * ★ 2026-09-06 전환(Swain 승인): 협의회는 아직 공익법인(지정기부금단체) 지정 전이라
+ *   「기부금 영수증(소득세법 서식)」은 사실과 다르다 → 제목·서식 각주·증명 문구를 «납부 확인서»로 바꾸고
+ *   「세액공제용 기부금영수증이 아니다·지정 후 별도 발급」을 명시한다.
+ *   공익법인으로 지정되면 LEGACY_* 상수와 새 기본값(DEFAULT_*)을 맞바꾸고 receipt_settings 값을 손보면 된다(되돌릴 자리).
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
  * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset: false)
@@ -57,15 +62,23 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
   const envOrgAddr = process.env.ORG_ADDRESS || "(샘플) 서울특별시 ○○구 ○○로 ○○";
   const envOrgPhone = process.env.ORG_PHONE || "(샘플) 02-0000-0000";
 
-  const defaultTitle = "기 부 금  영 수 증";
-  const defaultSubtitle = "(소득세법 시행규칙 별지 제45호의2 서식)";
-  const defaultProofText = "위와 같이 기부금을 기부하였음을 증명합니다.";
-  const defaultDonationLabel = "지정기부금";
+  /* 새 기본값 — 「후원금(회비) 납부 확인서」 */
+  const defaultTitle = "후원금(회비) 납부 확인서";
+  const defaultSubtitle = "(사단법인 교사유가족협의회 후원회원 회비 납부 내역)";
+  const defaultProofText = "위와 같이 후원금(회비)을 납부하였음을 확인합니다.";
+  const defaultDonationLabel = "특별회비(후원회원)";
   const defaultFooter: string[] = [
-    "• 본 영수증은 「소득세법」 제34조 및 「법인세법」 제24조에 따른 기부금 영수증입니다.",
-    "• 본 영수증은 발급기관에서 전자 발급되었으며, 영수증 번호로 진위를 확인할 수 있습니다.",
-    `• 문의: ${envOrgPhone} / ${envOrgName}`,
+    "• 본 확인서는 세액공제용 기부금영수증이 아닙니다. 협의회가 공익법인(지정기부금단체)으로 지정되면 별도로 발급해 드립니다.",
+    "• 본 확인서는 발급기관에서 전자 발급되었으며, 확인서 번호로 진위를 확인할 수 있습니다.",
   ];
+
+  /* 옛 기본값(기부금 영수증 시절) — 저장소에 이 값이 그대로 들어 있으면 «설정 안 함»으로 보고 새 기본값을 쓴다.
+     운영자가 어드민(영수증 설정)에서 직접 바꾼 값은 그대로 존중한다. 공익법인 지정 시 되돌릴 자리. */
+  const LEGACY_TITLE = "기 부 금  영 수 증";
+  const LEGACY_SUBTITLE = "(소득세법 시행규칙 별지 제45호의2 서식)";
+  const LEGACY_PROOF = "위와 같이 기부금을 기부하였음을 증명합니다.";
+  const LEGACY_LABEL = "지정기부금";
+  const isLegacyFooter = (notes: string[]) => notes.some((s) => /소득세법|기부금 영수증입니다/.test(s));
 
   try {
     const [row] = await db
@@ -76,15 +89,22 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
 
     if (row) {
       const r = row as any;
-      let footerNotes: string[] = defaultFooter;
+      const phone = r.orgPhone || envOrgPhone;
+      const name = r.orgName || envOrgName;
+      let footerNotes: string[] = [...defaultFooter, `• 문의: ${phone} / ${name}`];
       if (r.footerNotes) {
         try {
           const parsed = JSON.parse(r.footerNotes);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            footerNotes = parsed.map((s: any) => String(s));
+            const notes = parsed.map((s: any) => String(s));
+            if (!isLegacyFooter(notes)) footerNotes = notes;
           }
         } catch {}
       }
+      const pick = (v: any, legacy: string, def: string) => {
+        const s = String(v || "").trim();
+        return s && s !== legacy ? s : def;
+      };
 
       /* M-14: 직인 BLOB 키 조회 */
       let stampBlobKey: string | null = null;
@@ -112,10 +132,10 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
         orgRepresentative: r.orgRepresentative || envOrgRep,
         orgAddress: r.orgAddress || envOrgAddr,
         orgPhone: r.orgPhone || envOrgPhone,
-        title: r.title || defaultTitle,
-        subtitle: r.subtitle || defaultSubtitle,
-        proofText: r.proofText || defaultProofText,
-        donationTypeLabel: r.donationTypeLabel || defaultDonationLabel,
+        title: pick(r.title, LEGACY_TITLE, defaultTitle),
+        subtitle: pick(r.subtitle, LEGACY_SUBTITLE, defaultSubtitle),
+        proofText: pick(r.proofText, LEGACY_PROOF, defaultProofText),
+        donationTypeLabel: pick(r.donationTypeLabel, LEGACY_LABEL, defaultDonationLabel),
         footerNotes,
         stampBlobId,
         stampBlobKey,
@@ -136,7 +156,7 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
     subtitle: defaultSubtitle,
     proofText: defaultProofText,
     donationTypeLabel: defaultDonationLabel,
-    footerNotes: defaultFooter,
+    footerNotes: [...defaultFooter, `• 문의: ${envOrgPhone} / ${envOrgName}`],
     stampBlobId: null,
     stampBlobKey: null,
     stampMimeType: null,
@@ -227,12 +247,12 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     color: gray,
   });
 
-  /* ───────── 영수증 번호 / 발급일 ───────── */
-  page.drawText(`영수증 번호: ${data.receiptNumber}`, {
+  /* ───────── 확인서 번호 / 발급일 ───────── */
+  page.drawText(`확인서 번호: ${data.receiptNumber}`, {
     x: 50, y: height - 140, size: 11, font, color: black,
   });
 
-  /* 기부금 영수증의 발급일은 한국 날짜 — UTC로 찍으면 새벽 발급분이 '어제' 날짜로 나온다(세무 서류) */
+  /* 확인서의 발급일은 한국 날짜 — UTC로 찍으면 새벽 발급분이 '어제' 날짜로 나온다 */
   const issueDate = nowKST();
   const issueDateStr = `발급일: ${issueDate.getUTCFullYear()}년 ${issueDate.getUTCMonth() + 1}월 ${issueDate.getUTCDate()}일`;
   const issueDateWidth = font.widthOfTextAtSize(issueDateStr, 11);
@@ -262,18 +282,18 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     page.drawText(displayValue, { x: x + labelW + 8, y: yPos - 17, size: 10, font, color: black });
   }
 
-  /* ① 기부자 정보 */
+  /* ① 납부자 정보 */
   y -= 25;
-  page.drawText("① 기부자 정보", { x: 50, y, size: 12, font, color: black });
+  page.drawText("① 납부자 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   drawLabelValue("성명", data.donorName, 50, y, 70, 210);
   drawLabelValue("연락처", data.donorPhone || "-", 330, y, 70, 165);
   y -= 25;
   drawLabelValue("이메일", data.donorEmail || "-", 50, y, 70, 445);
 
-  /* ② 기부단체 정보 */
+  /* ② 단체 정보 */
   y -= 40;
-  page.drawText("② 기부단체 정보", { x: 50, y, size: 12, font, color: black });
+  page.drawText("② 단체 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   drawLabelValue("단체명", settings.orgName, 50, y, 70, 425);
   y -= 25;
@@ -284,20 +304,20 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   y -= 25;
   drawLabelValue("연락처", settings.orgPhone, 50, y, 70, 425);
 
-  /* ③ 기부 내역 */
+  /* ③ 납부 내역 */
   y -= 40;
-  page.drawText("③ 기부 내역", { x: 50, y, size: 12, font, color: black });
+  page.drawText("③ 납부 내역", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   const donDateStr = `${data.donationDate.getFullYear()}년 ${data.donationDate.getMonth() + 1}월 ${data.donationDate.getDate()}일`;
-  drawLabelValue("기부일자", donDateStr, 50, y, 70, 210);
-  drawLabelValue("기부유형", data.donationType === "regular" ? "정기후원" : "일시후원", 330, y, 70, 165);
+  drawLabelValue("납부일자", donDateStr, 50, y, 70, 210);
+  drawLabelValue("후원유형", data.donationType === "regular" ? "정기후원" : "일시후원", 330, y, 70, 165);
   y -= 25;
   const amountStr = `₩ ${data.amount.toLocaleString()} (금 ${numberToKorean(data.amount)} 원정)`;
-  drawLabelValue("기부금액", amountStr, 50, y, 70, 425);
+  drawLabelValue("납부금액", amountStr, 50, y, 70, 425);
   y -= 25;
   const payMap: Record<string, string> = { card: "신용카드", bank: "계좌이체", cms: "자동이체(CMS)" };
   drawLabelValue("결제방법", payMap[data.payMethod] || data.payMethod, 50, y, 70, 210);
-  drawLabelValue("기부금구분", settings.donationTypeLabel, 330, y, 70, 165);
+  drawLabelValue("구분", settings.donationTypeLabel, 330, y, 70, 165);
 
   /* 증명 문구 */
   y -= 60;

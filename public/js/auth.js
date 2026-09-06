@@ -423,7 +423,7 @@ document.addEventListener('change', async function (e) {
           setStatus(
             '' + escapeHtml(matched.name) + '님, 환영합니다!<br/>' +
             '이미 ' + sourceLabel + ' 후원해 주시는 분이시군요 (' + matched.donationCount + '회). ' +
-            '이메일·비밀번호를 추가하시면 마이페이지에서 후원 이력·영수증을 직접 관리하실 수 있어요.',
+            '이메일·비밀번호를 추가하시면 마이페이지에서 후원 이력·납부 확인서를 직접 관리하실 수 있어요.',
             'var(--success)'
           );
           /* 이름 필드 자동 채움 (read-only는 아님 — 사용자 확인 후 수정 가능) */
@@ -824,7 +824,7 @@ document.addEventListener('change', async function (e) {
         '이 정기 후원을 해지하시겠습니까?\n\n' +
         '• 다음 결제부터 자동 청구가 중단됩니다\n' +
         '• 이미 처리된 결제분은 영향을 받지 않습니다\n' +
-        '• 영수증 발급은 그대로 가능합니다\n\n' +
+        '• 납부 확인서 발급은 그대로 가능합니다\n\n' +
         '해지 후 복구는 새로 가입하셔야 합니다.'
       );
       if (!confirmed) return;
@@ -1068,7 +1068,7 @@ document.addEventListener('change', async function (e) {
 
     const rowsHtml = list.map(c => {
       const receiptBtn = c.status === 'completed'
-        ? `<a class="btn-link" href="/api/donation-receipt?id=${c.id}" target="_blank" rel="noopener" title="영수증 발급" style="text-decoration:none;color:var(--brand);font-weight:600"></a>`
+        ? `<a class="btn-link" href="/api/donation-receipt?id=${c.id}" target="_blank" rel="noopener" title="납부 확인서 발급" style="text-decoration:none;color:var(--brand);font-weight:600"></a>`
         : '<span style="color:var(--text-3);font-size:12px">—</span>';
       return `
         <tr>
@@ -1085,7 +1085,7 @@ document.addEventListener('change', async function (e) {
         <h4 style="font-size:14px;font-weight:700;margin:0 0 10px;color:var(--ink)">최근 정기 결제 이력</h4>
         <table class="tbl" style="font-size:13px">
           <thead>
-            <tr><th>결제일</th><th>금액</th><th>상태</th><th style="width:60px">영수증</th></tr>
+            <tr><th>결제일</th><th>금액</th><th>상태</th><th style="width:60px">확인서</th></tr>
           </thead>
           <tbody>${rowsHtml}</tbody>
         </table>
@@ -1232,7 +1232,7 @@ document.addEventListener('change', async function (e) {
           /* ★ Bug-9 패치: 삼항 → if/else로 풀고 pending_hyosung 분기 추가 */
           let receiptCell;
           if (d.status === 'completed') {
-            receiptCell = `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">발급</a>`;
+            receiptCell = `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '확인서 번호: ' + escapeHtml(d.receiptNumber) : 'PDF 납부 확인서 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">발급</a>`;
           } else if (d.status === 'pending_hyosung') {
             receiptCell = '<span style="color:#8a6a00;font-size:11.5px;line-height:1.4;display:inline-block">입금 확인중<br /><small style="color:var(--text-3);font-size:10.5px">(1~3 영업일 소요)</small></span>';
           } else if (canCancelInline) {

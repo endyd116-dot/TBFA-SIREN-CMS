@@ -19,8 +19,8 @@
 - [x] 배포 1회에 묶기: 병합 도구 정리 커밋(85c25e45·미배포)이 함께 나간다. `lib/release-drafts.ts` APP_VERSION 올리고 초안 1건(운영자 언어).
 
 ## 2. 2순위 — 영수증 PDF → 「후원금(회비) 납부 확인서」 (Swain 승인·AM E2E 끝났으므로 착수)
-- [ ] `lib/pdf-receipt.ts`: 제목 「후원금(회비) 납부 확인서」 · 소득세법 각주 제거 · 「세액공제용 기부금영수증이 아닙니다. 공익법인 지정 후 별도 발급」 명시 · 단체 표기는 receipt_settings(사단법인·381·강서구 공항대로 426, 618호) · 마이페이지 버튼 라벨·`donation-receipt.ts` 파일명·메일 문구(`tplDonationThanks` 「후원 내역 보기」) 정합 · `cron-donation-receipt-annual` 연간 안내 문구 점검.
-- [ ] 공익법인 지정 시 되돌릴 자리 주석 1줄.
+- [x] `lib/pdf-receipt.ts`: 제목 「후원금(회비) 납부 확인서」 · 소득세법 각주 제거 · 「세액공제용 기부금영수증이 아닙니다. 공익법인 지정 후 별도 발급」 명시 · 단체 표기는 receipt_settings(사단법인·381·강서구 공항대로 426, 618호) · 마이페이지 버튼 라벨·`donation-receipt.ts` 파일명·메일 문구(`tplDonationThanks` 「후원 내역 보기」) 정합 · `cron-donation-receipt-annual` 연간 안내 문구 점검.
+- [x] 공익법인 지정 시 되돌릴 자리 주석 1줄.
 
 ## 3. Swain에게 안내할 것(세션 시작 때 한 번)
 - 미확정 효성 수납 «신규» 16건: CMS 외부 등록 › 자료 업로드·통과 › 전부 선택 → [선택 자동 재매칭] → [선택 일괄 통과].

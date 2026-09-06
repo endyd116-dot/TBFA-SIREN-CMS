@@ -911,7 +911,7 @@ export function tplEmailVerify(opts: {
       <div style="font-size:13px;color:#525252;line-height:1.7;">
         • 본인 명의의 이메일 주소를 확인하기 위해 필요합니다<br />
         • 비밀번호 분실 시 안전한 재설정을 위해 필요합니다<br />
-        • 후원 영수증·지원 답변 등 중요 안내를 받기 위해 필요합니다
+        • 후원 납부 확인서·지원 답변 등 중요 안내를 받기 위해 필요합니다
       </div>
     </div>
 
@@ -1013,7 +1013,7 @@ export function tplWithdrawConfirm(opts: {
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 회원 정보는 즉시 비활성화되며, 더 이상 로그인하실 수 없습니다<br />
-        • 후원 내역은 <strong>관련 법령(국세청 기부금 영수증 보관)</strong>에 따라<br />
+        • 후원 내역은 <strong>관련 법령(후원금 납부 기록 보관)</strong>에 따라<br />
           &nbsp;&nbsp;5년간 보관 후 자동 삭제됩니다<br />
         • 그 외 개인정보는 <strong>30일 이내 완전 삭제</strong>됩니다<br />
         • 채팅 기록 및 지원 신청 내역은 익명 처리되어 보존됩니다
@@ -1158,7 +1158,7 @@ export function tplBillingChargeSuccess(opts: {
     html: baseLayout({
       title: "정기 후원 결제 완료",
       bodyHtml,
-      ctaText: isMember ? "마이페이지에서 영수증 발급" : "협회 홈페이지로",
+      ctaText: isMember ? "마이페이지에서 후원 내역 보기" : "협회 홈페이지로",
       ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
     }),
   };
