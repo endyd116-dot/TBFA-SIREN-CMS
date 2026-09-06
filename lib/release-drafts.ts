@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-06.14";
+export const APP_VERSION = "2026-09-07.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-07-cancel-pending-states",
+    title: "«입금 대기»·«효성 확인중» 후원도 결제 내역에서 취소할 수 있습니다",
+    items: [
+      { text: "후원 결제 내역에서 결제 전 미완료 상태(결제 대기·입금 대기·효성 확인중) 세 가지 모두 [취소] 버튼이 보이고 취소됩니다. 그동안 «입금 대기»·«효성 확인중»은 취소할 길이 없어 시험 후원 행이 남아 있었습니다. 취소는 시스템 상태만 바꾸며 실제 결제나 효성 등록에는 영향이 없습니다", link: "/cms-tbfa.html#donations" },
+      { text: "[관리자] 캠페인 관리 › 등불 테마·확장 설정 칸에 안내가 추가됐습니다 — 사다리 금액·영향 문구·단체 표기·회칙 링크를 바꾸면 함께워크 랜딩 모달은 자동으로 따라오지 않으니 AM 메인에 통보해 스펙을 맞춰야 합니다" },
+    ],
+  },
   {
     key: "2026-09-06-hyosung-safe-confirm",
     title: "효성 옛 파일 잔재를 통과해도 되돌아가지 않습니다 + 납부 확인서 글자 간격 + 결제 내역 관리 버튼 정리",

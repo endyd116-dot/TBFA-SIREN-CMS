@@ -338,7 +338,8 @@
       const campaignMark = d.campaignTag ? '<span class="dm-campaign-tag">' + escapeHtml(d.campaignTag) + '</span>' : '';
 
       const canRefund = d.status === 'completed';
-      const canCancel = d.status === 'pending' || d.status === 'completed';
+      /* 2026-09-07: 결제 전 미완료 3종(결제 대기·입금 대기·효성 확인중)은 모두 취소 가능 */
+      const canCancel = d.status === 'pending' || d.status === 'pending_bank' || d.status === 'pending_hyosung' || d.status === 'completed';
       const canReceipt = d.status === 'completed';
       const actions = '<div class="dm-row-actions">' +
         '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">상세</button>' +

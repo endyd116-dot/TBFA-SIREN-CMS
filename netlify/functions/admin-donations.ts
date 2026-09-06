@@ -274,8 +274,10 @@ export default async (req: Request) => {
 
       /* ───── 분기 3: K-8 단건 취소 ───── */
       if (body.cancelOne === true) {
-        /* 취소 가능 상태: pending 또는 completed (관리자 강제 취소) */
-        if (existing.status !== "pending" && existing.status !== "completed") {
+        /* 취소 가능 상태: pending·pending_bank(입금 대기)·pending_hyosung(효성 확인중) = 결제 전 미완료 3종, 또는 completed(관리자 강제 취소)
+           2026-09-07: 랜딩 모달 시험 때 생긴 «입금 대기»·«효성 확인중» 행을 취소할 길이 없었다(Swain) → 미완료 상태는 PG 무관하게 상태만 취소 */
+        const CANCELABLE = ["pending", "pending_bank", "pending_hyosung", "completed"];
+        if (!CANCELABLE.includes(String(existing.status))) {
           return badRequest(
             existing.status === "cancelled"
               ? "이미 취소된 후원입니다"
