@@ -22,7 +22,8 @@ import { uploadToR2, downloadFromR2 } from "../../lib/r2-server";
 export const config = { path: "/api/donation-receipt" };
 
 /* 납부 확인서 서식으로 바뀐 시각 — 이보다 먼저 저장된 PDF 캐시는 옛 「기부금 영수증」 서식 */
-const RECEIPT_FORMAT_SINCE = new Date("2026-09-06T03:00:00Z");
+/* 2026-09-06 19:00 KST: 직인 교체·글자 간격 수정 이전에 만든 PDF도 다시 만든다 */
+const RECEIPT_FORMAT_SINCE = new Date("2026-09-06T10:00:00Z");
 
 export default async (req: Request, _ctx: Context) => {
   try {

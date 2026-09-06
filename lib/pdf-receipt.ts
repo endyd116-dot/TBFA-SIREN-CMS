@@ -200,29 +200,40 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   /* 영수증 설정 (DB 우선) */
   const settings = await getReceiptSettings();
 
-  /* M-14: 직인 이미지 임베딩 (있으면) */
+  /* M-14: 직인 이미지 임베딩 — ① 영수증 설정(어드민 업로드) ② 없거나 못 읽으면 저장소 도장(assets/seals/seal-park-duyong.png · 근로계약과 같은 도장)
+     ★ 2026-09-06: 설정에 5월 시험용 카카오톡 사진이 걸려 있어 확인서에 엉뚱한 이미지가 찍혔다(Swain 지적) → 설정을 진짜 도장으로 바꾸고, 코드도 저장소 도장을 기본값으로 둔다 */
   let stampImage: any = null;
+  let stampBytes: Uint8Array | null = null;
+  let stampMime = "";
   if (settings.stampBlobKey) {
     try {
       const imgBytes = await downloadFromR2(settings.stampBlobKey);
-      if (imgBytes && imgBytes.length > 0) {
-        const mime = (settings.stampMimeType || "").toLowerCase();
-        if (mime.includes("png")) {
-          stampImage = await pdfDoc.embedPng(imgBytes);
-        } else if (mime.includes("jpeg") || mime.includes("jpg")) {
-          stampImage = await pdfDoc.embedJpg(imgBytes);
-        } else {
-          /* MIME 모를 때 PNG 우선 시도 → JPG 폴백 */
-          try {
-            stampImage = await pdfDoc.embedPng(imgBytes);
-          } catch {
-            try { stampImage = await pdfDoc.embedJpg(imgBytes); }
-            catch (e2) { console.warn("[pdf-receipt] 직인 이미지 형식 인식 실패"); }
-          }
-        }
+      if (imgBytes && imgBytes.length > 0) { stampBytes = imgBytes; stampMime = (settings.stampMimeType || "").toLowerCase(); }
+    } catch (e) {
+      console.warn("[pdf-receipt] 설정 직인 다운로드 실패 — 저장소 도장으로:", (e as any)?.message);
+    }
+  }
+  if (!stampBytes) {
+    try {
+      stampBytes = new Uint8Array(readFileSync(join(process.cwd(), "assets", "seals", "seal-park-duyong.png")));
+      stampMime = "image/png";
+    } catch (e) {
+      console.warn("[pdf-receipt] 저장소 도장 파일 없음:", (e as any)?.message);
+    }
+  }
+  if (stampBytes) {
+    try {
+      if (stampMime.includes("png")) {
+        stampImage = await pdfDoc.embedPng(stampBytes);
+      } else if (stampMime.includes("jpeg") || stampMime.includes("jpg")) {
+        stampImage = await pdfDoc.embedJpg(stampBytes);
+      } else {
+        /* MIME 모를 때 PNG 우선 시도 → JPG 폴백 */
+        try { stampImage = await pdfDoc.embedPng(stampBytes); }
+        catch { stampImage = await pdfDoc.embedJpg(stampBytes); }
       }
     } catch (e) {
-      console.warn("[pdf-receipt] 직인 이미지 임베딩 실패:", e);
+      console.warn("[pdf-receipt] 직인 이미지 형식 인식 실패:", (e as any)?.message);
     }
   }
 

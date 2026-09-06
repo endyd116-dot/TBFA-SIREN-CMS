@@ -463,7 +463,7 @@
 
 # ★ 폰트 필요한 5개 함수만 NotoSansKR 포함 (PDF 한글 렌더링용)
 [functions."donation-receipt"]
-  included_files = ["assets/fonts/**"]
+  included_files = ["assets/fonts/**", "assets/seals/**"]   # 2026-09-06: 저장소 도장(설정 직인 없을 때 기본)
 [functions."admin-receipt-preview"]
   included_files = ["assets/fonts/**"]
 [functions."admin-activity-report-ai"]
