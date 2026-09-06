@@ -474,10 +474,10 @@
     });
     const skipped = ids.length - eligible.length;
     if (eligible.length === 0) {
-      toast('통과 가능한 항목이 없습니다 (수납내역·기업은행은 매칭 필요)');
+      toast('매칭 회원이 없는 행은 통과할 수 없습니다 — 먼저 [선택 자동 재매칭]을 누른 뒤 다시 통과하세요');
       return;
     }
-    if (!confirm(`${eligible.length}건을 일괄 통과 처리합니다.${skipped > 0 ? ` (매칭 미완료 ${skipped}건은 제외)` : ''}\n효성 계약은 회원·계약 정식 반영, 효성 수납·기업은행은 후원 내역이 생성됩니다.\n진행하시겠습니까?`)) return;
+    if (!confirm(`${eligible.length}건을 일괄 통과 처리합니다.${skipped > 0 ? ` (매칭 회원 없는 ${skipped}건은 제외 — [선택 자동 재매칭] 먼저)` : ''}\n효성 계약은 회원·계약 정식 반영, 효성 수납·기업은행은 후원 내역이 생성됩니다.\n이미 «완납»으로 반영된 달의 옛 행(수납대기·청구목록)은 통과해도 되돌리지 않습니다.\n진행하시겠습니까?`)) return;
 
     const res = await apiPost('/api/admin-donation-confirm', {
       ids: eligible.map(r => r.id),

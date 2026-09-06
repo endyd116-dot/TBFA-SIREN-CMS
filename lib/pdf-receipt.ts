@@ -163,6 +163,19 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
   };
 }
 
+
+/* ★ 2026-09-06 글자 사이가 벌어지는 문제 — 한글 글꼴을 통째로 심으면 숫자·공백·영문의 폭 정보(/DW)가 실리지 않아
+   보는 프로그램이 전각(1em)으로 벌려 그린다(급여 PDF와 같은 뿌리·lib/payroll-pdf.ts 상단 경고). 글자마다 폭을 재어
+   직접 자리를 잡으면 정상. 모든 글자 출력은 이 함수를 거친다. */
+function drawTextRun(page: any, str: string, opts: { x: number; y: number; size: number; font: any; color: any }) {
+  let cx = opts.x;
+  for (const ch of Array.from(String(str ?? ""))) {
+    const w = opts.font.widthOfTextAtSize(ch, opts.size);
+    if (ch.trim()) page.drawText(ch, { x: cx, y: opts.y, size: opts.size, font: opts.font, color: opts.color });
+    cx += w;
+  }
+}
+
 /* ============ 영수증 데이터 인터페이스 ============ */
 export interface ReceiptData {
   receiptNumber: string;
@@ -228,7 +241,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const title = settings.title;
   const titleSize = 22;
   const titleWidth = font.widthOfTextAtSize(title, titleSize);
-  page.drawText(title, {
+  drawTextRun(page, title, {
     x: (width - titleWidth) / 2,
     y: height - 80,
     size: titleSize,
@@ -239,7 +252,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const subtitle = settings.subtitle;
   const subSize = 10;
   const subWidth = font.widthOfTextAtSize(subtitle, subSize);
-  page.drawText(subtitle, {
+  drawTextRun(page, subtitle, {
     x: (width - subWidth) / 2,
     y: height - 105,
     size: subSize,
@@ -248,7 +261,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   });
 
   /* ───────── 확인서 번호 / 발급일 ───────── */
-  page.drawText(`확인서 번호: ${data.receiptNumber}`, {
+  drawTextRun(page, `확인서 번호: ${data.receiptNumber}`, {
     x: 50, y: height - 140, size: 11, font, color: black,
   });
 
@@ -256,7 +269,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const issueDate = nowKST();
   const issueDateStr = `발급일: ${issueDate.getUTCFullYear()}년 ${issueDate.getUTCMonth() + 1}월 ${issueDate.getUTCDate()}일`;
   const issueDateWidth = font.widthOfTextAtSize(issueDateStr, 11);
-  page.drawText(issueDateStr, {
+  drawTextRun(page, issueDateStr, {
     x: width - 50 - issueDateWidth, y: height - 140, size: 11, font, color: black,
   });
 
@@ -276,15 +289,15 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
       x: x + labelW, y: yPos - 25, width: valueW, height: 25,
       borderColor: lineColor, borderWidth: 0.8,
     });
-    page.drawText(label, { x: x + 8, y: yPos - 17, size: 10, font, color: black });
+    drawTextRun(page, label, { x: x + 8, y: yPos - 17, size: 10, font, color: black });
     const maxValueLen = Math.floor(valueW / 6);
     const displayValue = value.length > maxValueLen ? value.slice(0, maxValueLen - 2) + ".." : value;
-    page.drawText(displayValue, { x: x + labelW + 8, y: yPos - 17, size: 10, font, color: black });
+    drawTextRun(page, displayValue, { x: x + labelW + 8, y: yPos - 17, size: 10, font, color: black });
   }
 
   /* ① 납부자 정보 */
   y -= 25;
-  page.drawText("① 납부자 정보", { x: 50, y, size: 12, font, color: black });
+  drawTextRun(page, "① 납부자 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   drawLabelValue("성명", data.donorName, 50, y, 70, 210);
   drawLabelValue("연락처", data.donorPhone || "-", 330, y, 70, 165);
@@ -293,7 +306,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
 
   /* ② 단체 정보 */
   y -= 40;
-  page.drawText("② 단체 정보", { x: 50, y, size: 12, font, color: black });
+  drawTextRun(page, "② 단체 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   drawLabelValue("단체명", settings.orgName, 50, y, 70, 425);
   y -= 25;
@@ -306,7 +319,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
 
   /* ③ 납부 내역 */
   y -= 40;
-  page.drawText("③ 납부 내역", { x: 50, y, size: 12, font, color: black });
+  drawTextRun(page, "③ 납부 내역", { x: 50, y, size: 12, font, color: black });
   y -= 8;
   const donDateStr = `${data.donationDate.getFullYear()}년 ${data.donationDate.getMonth() + 1}월 ${data.donationDate.getDate()}일`;
   drawLabelValue("납부일자", donDateStr, 50, y, 70, 210);
@@ -323,7 +336,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   y -= 60;
   const proofText = settings.proofText;
   const proofWidth = font.widthOfTextAtSize(proofText, 12);
-  page.drawText(proofText, { x: (width - proofWidth) / 2, y, size: 12, font, color: black });
+  drawTextRun(page, proofText, { x: (width - proofWidth) / 2, y, size: 12, font, color: black });
 
   /* 발급 단체명 + 직인 */
   y -= 50;
@@ -331,7 +344,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const orgLineSize = 14;
   const orgWidth = font.widthOfTextAtSize(orgLine, orgLineSize);
   const orgX = (width - orgWidth) / 2 - 25;
-  page.drawText(orgLine, { x: orgX, y, size: orgLineSize, font, color: black });
+  drawTextRun(page, orgLine, { x: orgX, y, size: orgLineSize, font, color: black });
 
   /* M-14: 직인 이미지가 있으면 삽입, 없으면 빨간 원형 표식 */
   const stampCenterX = orgX + orgWidth + 35;
@@ -366,7 +379,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     const stampText = "직인";
     const stampTextSize = 9;
     const stampTextWidth = font.widthOfTextAtSize(stampText, stampTextSize);
-    page.drawText(stampText, {
+    drawTextRun(page, stampText, {
       x: stampCenterX - stampTextWidth / 2,
       y: stampCenterY - 3,
       size: stampTextSize,
@@ -383,7 +396,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
 
   let noteY = 100;
   for (const note of settings.footerNotes) {
-    page.drawText(note, { x: 50, y: noteY, size: 8.5, font, color: gray });
+    drawTextRun(page, note, { x: 50, y: noteY, size: 8.5, font, color: gray });
     noteY -= 14;
     if (noteY < 30) break;
   }

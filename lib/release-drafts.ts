@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-06.12";
+export const APP_VERSION = "2026-09-06.13";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-06-hyosung-safe-confirm",
+    title: "효성 옛 파일 잔재를 통과해도 되돌아가지 않습니다 + 납부 확인서 글자 간격 + 결제 내역 관리 버튼 정리",
+    items: [
+      { text: "외부 등록 › 자료 업로드·통과: 출금 전에 올린 «수납대기» 행이나 청구목록 파일 행을 나중에 통과해도 이미 «완납»으로 반영된 달을 되돌리지 않습니다. 남아 있는 미확정 행은 전체 선택 → [선택 자동 재매칭] → [선택 일괄 통과]로 정리하면 됩니다(매칭 회원이 없는 행은 재매칭을 먼저 눌러야 통과 대상이 됩니다 — 안내 문구도 그렇게 바뀜)", link: "/cms-tbfa.html#external-register" },
+      { text: "후원금(회비) 납부 확인서 PDF의 글자 사이가 벌어지던 문제(숫자·이메일·공백)를 고쳤습니다. 이미 발급된 확인서도 다시 열면 새로 만들어집니다" },
+      { text: "통합 CMS 후원 결제 내역의 관리 열에서 «상세·확인서·환불·취소» 버튼이 글자로만 붙어 보이던 것을 버튼 모양·간격으로 정리했고, 상태 «pending_bank»는 «입금 대기», 수단 «simplepay»는 «간편결제»로 표시합니다", link: "/cms-tbfa.html#donations" },
+      { text: "[관리자] 확인서 직인 자리에 들어가는 이미지는 싸이렌 어드민 › 영수증 설정 › 직인 이미지에서 바꿉니다. 지금 등록된 파일은 5월에 올린 카카오톡 사진이라 법인 직인 스캔본으로 교체가 필요합니다" },
+    ],
+  },
   {
     key: "2026-09-06-campaign-extras-admin",
     title: "「등불의 기적」 화면 문구·금액 사다리·단체 표기를 캠페인 관리에서 직접 고칩니다 (하드코딩 제거)",

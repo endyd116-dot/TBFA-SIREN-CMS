@@ -191,7 +191,7 @@ async function confirmHyosungBilling(
   /* hyosungBillings UPSERT (memberNo + billingMonth) */
   const billingPayload = mapBillingRowToInsert(row, targetMemberId);
   let billingId: number | null = null;
-  const existingBilling = await db.select({ id: hyosungBillings.id })
+  const existingBilling = await db.select({ id: hyosungBillings.id, receiptStatus: hyosungBillings.receiptStatus, receivedAmount: hyosungBillings.receivedAmount })
     .from(hyosungBillings)
     .where(and(
       eq(hyosungBillings.memberNo, row.memberNo),
@@ -199,10 +199,19 @@ async function confirmHyosungBilling(
     ))
     .limit(1);
   if (existingBilling.length > 0) {
-    await db.update(hyosungBillings)
-      .set({ ...billingPayload, updatedAt: new Date() } as any)
-      .where(eq(hyosungBillings.id, existingBilling[0].id));
-    billingId = existingBilling[0].id;
+    const ex: any = existingBilling[0];
+    const incomingPaid = Number(row.receivedAmount || 0) > 0;
+    const existingPaid = Number(ex.receivedAmount || 0) > 0 || String(ex.receiptStatus || "") === "완납";
+    if (!incomingPaid && existingPaid) {
+      /* ★ 2026-09-06 안전장치: 출금 전에 올린 옛 파일(«수납대기»)이나 청구목록 파일의 행을 나중에 통과해도
+         이미 반영된 «완납»을 «수납대기»·0원으로 되돌리지 않는다 → 잔재 행을 그냥 일괄 통과해도 안전하다. */
+      billingId = ex.id;
+    } else {
+      await db.update(hyosungBillings)
+        .set({ ...billingPayload, updatedAt: new Date() } as any)
+        .where(eq(hyosungBillings.id, ex.id));
+      billingId = ex.id;
+    }
   } else {
     const ins = await db.insert(hyosungBillings)
       .values(billingPayload as any)

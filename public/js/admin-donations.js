@@ -27,6 +27,26 @@
   }
 
   /* ── 포맷·이스케이프 헬퍼 ── */
+
+  /* 2026-09-06: 관리 열 버튼 스타일 — 싸이렌 어드민(admin.html)에만 있던 스타일을 통합 CMS에서도 쓰도록 스크립트가 직접 심는다
+     (CMS에서는 «상세영수증환불취소»가 글자로만 붙어 보였음 — Swain 지적) */
+  function ensureRowActionStyle() {
+    if (document.getElementById("dmRowActionStyle")) return;
+    var st = document.createElement("style");
+    st.id = "dmRowActionStyle";
+    st.textContent =
+      ".dm-row-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}" +
+      ".dm-row-actions button{padding:4px 10px;font-size:11.5px;border:1px solid var(--line,#e5e7eb);background:#fff;border-radius:4px;cursor:pointer;white-space:nowrap;line-height:1.5;font-family:inherit}" +
+      ".dm-row-actions button.detail{color:var(--brand,#7a1f2b);border-color:#f0e0e3}" +
+      ".dm-row-actions button.detail:hover{background:var(--brand-soft,#fef9f5)}" +
+      ".dm-row-actions button.refund{color:#c47a00;border-color:#f0e3c4;background:#fff8ec}" +
+      ".dm-row-actions button.refund:hover{background:#fdf3d8}" +
+      ".dm-row-actions button.cancel{color:var(--danger,#dc2626);border-color:#f5b5bb}" +
+      ".dm-row-actions button.cancel:hover{background:#fdecec}" +
+      ".dm-row-actions button:disabled{opacity:.4;cursor:not-allowed}";
+    document.head.appendChild(st);
+  }
+
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
@@ -98,7 +118,7 @@
         <div class="kpi"><div class="kpi-label">금일 결제</div><div class="kpi-value">₩ 0.0M</div></div>
         <div class="kpi"><div class="kpi-label">금월 결제</div><div class="kpi-value">₩ 0.0M</div></div>
         <div class="kpi"><div class="kpi-label">실패 건</div><div class="kpi-value">0 건</div></div>
-        <div class="kpi"><div class="kpi-label">영수증 대기</div><div class="kpi-value">0 건</div></div>
+        <div class="kpi"><div class="kpi-label">확인서 대기</div><div class="kpi-value">0 건</div></div>
         <div class="kpi" style="border-left:3px solid #c47a00"><div class="kpi-label" style="color:#c47a00">환불</div><div class="kpi-value" id="dmKpiRefunded" style="color:#c47a00">0 건</div></div>
         <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)">취소</div><div class="kpi-value" id="dmKpiCancelled" style="color:var(--danger)">0 건</div></div>
       </div>
@@ -108,7 +128,7 @@
           <div class="p-title">결제 내역</div>
           <div class="p-actions">
             <button class="btn-sm btn-sm-ghost" id="dmBtnExportDonations" type="button">수납내역 엑셀 내보내기</button>
-            <button class="btn-sm btn-sm-primary" data-dm-action="bulk-receipt" type="button">영수증 일괄 발행</button>
+            <button class="btn-sm btn-sm-primary" data-dm-action="bulk-receipt" type="button">확인서 일괄 발행</button>
           </div>
         </div>
 
@@ -132,7 +152,7 @@
 
         <div style="overflow-x:auto">
           <table class="tbl" style="min-width:1100px">
-            <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th><th style="width:160px">관리</th></tr></thead>
+            <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th><th style="width:230px">관리</th></tr></thead>
             <tbody><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
           </table>
         </div>
@@ -299,11 +319,13 @@
       return;
     }
 
+    ensureRowActionStyle();
     const typeMap = { regular: '정기후원', onetime: '일시후원' };
-    const payMap = { cms: 'CMS', card: '카드', bank: '계좌이체' };
+    const payMap = { cms: 'CMS', hyosung_cms: 'CMS', card: '카드', bank: '계좌이체', bank_transfer: '계좌이체', simplepay: '간편결제', virtual_account: '가상계좌' };
     const statusMap = {
       completed: '<span class="badge b-success">승인</span>',
-      pending: '<span class="badge b-warn">대기</span>',
+      pending: '<span class="badge b-warn">결제 대기</span>',
+      pending_bank: '<span class="badge b-warn">입금 대기</span>',
       pending_hyosung: '<span class="badge b-warn">효성 확인중</span>',
       failed: '<span class="badge b-danger">실패</span>',
       cancelled: '<span class="badge b-mute">취소</span>',
@@ -320,7 +342,7 @@
       const canReceipt = d.status === 'completed';
       const actions = '<div class="dm-row-actions">' +
         '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">상세</button>' +
-        (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">영수증</button>' : '') +
+        (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">확인서</button>' : '') +
         (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-pg="' + escapeHtml(d.pgProvider || '') + '">환불</button>' : '') +
         (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">취소</button>' : '') +
         '</div>';
