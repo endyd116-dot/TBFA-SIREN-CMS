@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-10.3";
+export const APP_VERSION = "2026-09-10.4";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-10-payroll-preview-tax",
+    title: "명세서에 상여를 넣을 때 화면 실수령액이 저장 결과와 달라지던 문제",
+    items: [
+      { text: "소득세는 국세청 간이세액표에서 찾는 값이라 화면에서 요율 곱셈으로 흉내낼 수 없었습니다. 그래서 조정 라인에 성과 상여를 넣어도 화면의 소득세는 이전 금액 그대로였고, 저장하고 나서야 제대로 계산돼 실수령액이 크게 달라졌습니다(상여 250만원 기준 약 38만원 차이)", link: "/cms-tbfa.html#payroll" },
+      { text: "이제 금액을 고치면 저장할 때와 똑같은 계산을 서버에 물어봐 화면에 바로 반영합니다. 화면에 보이는 실수령액이 곧 저장될 금액입니다" },
+    ],
+  },
   {
     key: "2026-09-10-pension-cap",
     title: "상여를 준 달에 국민연금이 더 떼이던 문제 — 상한액 반영",

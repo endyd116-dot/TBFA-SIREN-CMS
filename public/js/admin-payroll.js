@@ -505,6 +505,26 @@
   /* 실시간 미리보기 (백엔드 공식과 동일)
      공제 자동 계산이 켜져 있으면 '과세 대상액'(세전 − 비과세 지급액) 기준으로 4대보험을 다시 계산해
      화면에 그대로 보여준다 → 저장 결과와 미리보기가 어긋나지 않는다. */
+  /* 간이세액표 소득세 — 서버에 물어본 결과 캐시 { base, incomeTax } */
+  var _taxPreview = null;
+  var _taxPreviewTimer = null;
+  var _taxPreviewAsked = null;
+  function requestTaxPreview(taxableBase) {
+    const base = Math.round(taxableBase);
+    if (_taxPreview && _taxPreview.base === base) return;   // 이미 받아둔 금액
+    if (_taxPreviewAsked === base) return;                  // 같은 금액을 또 묻지 않는다
+    clearTimeout(_taxPreviewTimer);
+    _taxPreviewTimer = setTimeout(async () => {
+      _taxPreviewAsked = base;
+      const uid = _curSlip ? _curSlip.memberUid : '';
+      const res = await api('/api/admin-payroll-deduction-preview?taxableBase=' + base + '&memberUid=' + encodeURIComponent(uid));
+      if (!res.ok) return;
+      const d = res.data?.data || res.data || {};
+      _taxPreview = { base: base, incomeTax: Number(d.incomeTax || 0) };
+      recomputePreview();   // 받은 값으로 다시 그린다
+    }, 250);
+  }
+
   function recomputePreview() {
     const base = fieldVal('baseSalaryMonth');
     const perf = fieldVal('performanceBonus');
@@ -530,7 +550,13 @@
       const longterm = health * Number(s.longtermRate || 0);
       const employment = taxableBase * Number(s.employmentRate || 0);
       const incomeRate = Number(s.incomeTaxRate || 0);
-      const income = incomeRate > 0 ? taxableBase * incomeRate : fieldVal('incomeTax');
+      /* 소득세는 간이세액표에서 찾는 값이라 화면에서 곱셈으로 흉내낼 수 없다.
+         과세 대상액이 바뀌면 서버에 물어보고(_taxPreview), 답이 오기 전에는 직전 값을 쓴다.
+         이렇게 해야 조정 라인(상여 등)을 넣었을 때 화면 실수령과 저장 결과가 어긋나지 않는다. */
+      const income = incomeRate > 0 ? taxableBase * incomeRate
+        : (_taxPreview && _taxPreview.base === Math.round(taxableBase)
+            ? _taxPreview.incomeTax
+            : fieldVal('incomeTax'));
       const local = income * 0.1;
       const other = fieldVal('otherDeduction');
       totalDeduction = pension + health + longterm + employment + income + local + other;
@@ -545,7 +571,12 @@
       put('longTermCare', longterm);
       put('employmentInsurance', employment);
       if (incomeRate > 0) { put('incomeTax', income); put('localTax', local); }
-      else put('localTax', local);
+      else {
+        if (_taxPreview && _taxPreview.base === Math.round(taxableBase)) put('incomeTax', income);
+        put('localTax', local);
+      }
+      /* 아직 서버 답이 없으면 지금 화면 값은 임시 — 물어보고 다시 그린다 */
+      if (incomeRate <= 0) requestTaxPreview(taxableBase);
     } else {
       totalDeduction = DED_FIELDS.reduce((acc, d) => acc + fieldVal(d.f), 0);
     }
@@ -572,6 +603,7 @@
   }
 
   async function openDetail(id) {
+    _taxPreview = null; _taxPreviewAsked = null;   // 앞서 본 명세서의 세액이 남지 않게
     const res = await api('/api/admin-payroll?id=' + id);
     if (!res.ok) { toast('상세 조회 실패', 'err'); return; }
     const d = res.data?.data || res.data;
