@@ -356,7 +356,7 @@ export interface GoldenJson {
 }
 export interface GenResult<T> { contentJson: T; ragSources: RagSourceRef[]; modelUsed: string; }
 
-const MODEL_PRO = () => process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
+const MODEL_PRO = () => process.env.GEMINI_MODEL_PRO || "gemini-3.8-flash";
 function asArr(v: any): any[] { return Array.isArray(v) ? v : []; }
 function s(v: any, max = 500): string { return String(v ?? "").slice(0, max); }
 function ragToRefs(hits: RagHit[]): RagSourceRef[] {

@@ -49,10 +49,14 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 /* 2026-06-01: 의도별 모델 체인 — 변경(고성능)은 gemini-3.5-flash 1순위(Swain 요청),
    단순 조회는 lite 1순위(저렴·빠름). 비스트리밍(admin-ai-agent.ts)과 정책 일치.
    스트리밍은 지연 민감 → 체인 길이 2~3으로 짧게(폴백 누적 시간 억제). */
-const HIGH_MODEL_CHAIN = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite"];
-/* LOW 1순위는 gemini-2.5-flash — 도구 호출 안정(lite는 7k 프롬프트+도구 declarations에
-   빈 응답 빈발 → 평소 "처음엔 실패" 원인). lite는 저렴한 폴백으로 보존. 비스트리밍과 일치. */
-const LOW_MODEL_CHAIN  = ["gemini-2.5-flash", "gemini-3.1-flash-lite"];
+const HIGH_MODEL_CHAIN = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+/* LOW 1순위는 **lite 가 아니라 flash** — 도구 호출 안정(lite는 7k 프롬프트+도구 declarations에
+   빈 응답 빈발 → 평소 "처음엔 실패" 원인). lite는 저렴한 폴백으로 보존. 비스트리밍과 일치.
+   🔴 2026-09-11 — 그 «이유»는 그대로 두고 **세대만** 올렸다(2.5 → 3.5).
+     헤드를 3.8 로 올리지 않은 것은 의도다: LOW 는 단순 조회 경로라 호출이 잦고,
+     3.8 은 3.5 의 **20배**($1.50 vs $0.075)다. 이 체인이 지키려던 것은 «도구를 부를 수 있는
+     가장 싼 모델»이고 그게 3.5-flash 다. 품질이 필요한 의도는 위 HIGH 로 간다(그쪽이 3.8 헤드). */
+const LOW_MODEL_CHAIN  = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
 const HIGH_INTENT_RE = /(추가|등록|생성|만들|넣어|수정|변경|바꿔|고쳐|업데이트|삭제|지워|제거|없애|차단|해제|정지|발송|보내|환불|복구|롤백)/;
 const MAX_STEPS = 4;
 const MAX_TOOLS_PER_CONV = 20;

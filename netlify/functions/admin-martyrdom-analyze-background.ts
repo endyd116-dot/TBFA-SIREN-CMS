@@ -122,7 +122,7 @@ export default async (req: Request, _ctx: Context) => {
       VALUES
         (${caseId}, 'extraction', ${nextVersion},
          '${safeJson}'::jsonb,
-         '${(process.env.GEMINI_MODEL_PRO || "gemini-3-flash").replace(/'/g, "''")}',
+         '${(process.env.GEMINI_MODEL_PRO || "gemini-3.8-flash").replace(/'/g, "''")}',
          'draft', NOW())
       RETURNING id
     `));

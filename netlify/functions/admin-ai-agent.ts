@@ -76,19 +76,24 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
  *
  * NONE (인사·확인 8자↓) — 도구 없이 lite로 즉시 (selectRelevantTools에서 처리)
  */
+/* 🔴 2026-09-11 — 세대 갱신(사장님 「MIS 도 3.8」). 사다리 «모양»은 그대로 두고 판만 올린다.
+   ⚠️ «0.1씩 내린다»를 규칙으로 만들지 마라 — 실재는 3.8·3.7·3.6·3.5·3.1·3 뿐이고 3.4·3.3·3.2 는 없다. */
 const HIGH_MODEL_CHAIN: string[] = Array.from(new Set([
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
   "gemini-3.5-flash",
-  "gemini-3-flash-preview",
   "gemini-3.1-flash-lite",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
+  "gemini-3.5-flash-lite",
 ].filter(Boolean)));
 const LOW_MODEL_CHAIN: string[] = Array.from(new Set([
   /* 2026-05-14: lite가 7,411 토큰 시스템 프롬프트 + 84개 도구 declarations를
-     소화 못 해 도구 호출을 거의 안 함 → flash로 승격. lite는 폴백으로 보존. */
-  "gemini-2.5-flash",
+     소화 못 해 도구 호출을 거의 안 함 → flash로 승격. lite는 폴백으로 보존.
+     🔴 2026-09-11 — 그 «이유»는 그대로 두고 세대만 올렸다(2.5 → 3.5). 헤드를 3.8 로 안 올린 것은 의도다:
+       이 체인이 지키려던 것은 «도구를 부를 수 있는 가장 싼 모델»이고 3.8 은 3.5 의 20배다.
+       품질이 필요한 의도는 HIGH 로 간다(스트리밍판과 같은 정책). */
+  "gemini-3.5-flash",
   "gemini-3.1-flash-lite",
-  "gemini-2.5-flash-lite",
+  "gemini-3.5-flash-lite",
 ].filter(Boolean)));
 
 /* 변경 의도 키워드 — 매칭 시 HIGH 체인 사용 */

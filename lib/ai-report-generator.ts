@@ -193,7 +193,10 @@ function buildFullHtml(parts: Omit<GeneratedReport, "fullHtml" | "generatedAt" |
 /* ───────── 메인 함수 ───────── */
 export async function generateActivityReport(data: ReportData): Promise<GeneratedReport> {
   const prompt = buildReportPrompt(data);
-  const aiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  /* 🔴 2026-09-11 — 여기 기본값이 «gemini-2.0-flash» 였다. 계정 env `GEMINI_MODEL`(=3.6)이 덮고 있어서
+     아무도 몰랐고, 그 env 를 지우는 순간 활동 보고서만 **네 세대 뒤로** 떨어질 자리였다.
+     env 를 지우기 «전에» 이 줄을 올린 이유가 그것이다(순서를 뒤집으면 그 창이 생긴다). */
+  const aiModel = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
   const r = await callGemini(prompt, {
     temperature: 0.7,

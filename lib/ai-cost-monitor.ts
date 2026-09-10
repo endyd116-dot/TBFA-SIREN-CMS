@@ -31,6 +31,15 @@ interface ModelPricing {
 }
 
 const PRICING: Record<string, ModelPricing> = {
+  /* 🔴 2026-09-11 — 3.5~3.8 이 **하나도 없었다.** 그런데 계정 env 헤드는 이미 3.6 이었다
+     ⇒ 그동안 MIS 는 AI 비용을 __default($0.075)로 적고 있었고 실제는 $1.50 — **1/20 로 기록**했다.
+     ⚠️ 규율: **헤드를 올리는 커밋에서 단가도 같이 넣는다.** 빠뜨리면 조용히 거짓 비용이 쌓인다.
+     (AM 이 같은 날 같은 사고를 낼 뻔했고 verify-ai-models 의 «선언한 모델이 전부 단가표에 있다» 축이 잡았다.) */
+  "gemini-3.8-flash":              { inputPerMTok: 1.50,  outputPerMTok: 7.50,  cachedInputPerMTok: 0.375 },
+  "gemini-3.7-flash":              { inputPerMTok: 1.50,  outputPerMTok: 7.50,  cachedInputPerMTok: 0.375 },
+  "gemini-3.6-flash":              { inputPerMTok: 1.50,  outputPerMTok: 7.50,  cachedInputPerMTok: 0.375 },
+  "gemini-3.5-flash":              { inputPerMTok: 0.075, outputPerMTok: 0.30,  cachedInputPerMTok: 0.01875 },
+  "gemini-3.5-flash-lite":         { inputPerMTok: 0.30,  outputPerMTok: 2.50,  cachedInputPerMTok: 0.075 },
   "gemini-3.1-flash-lite":         { inputPerMTok: 0.025, outputPerMTok: 0.10,  cachedInputPerMTok: 0.00625 },
   "gemini-3.1-flash-lite-preview": { inputPerMTok: 0.025, outputPerMTok: 0.10,  cachedInputPerMTok: 0.00625 },
   "gemini-3-flash":                { inputPerMTok: 0.075, outputPerMTok: 0.30,  cachedInputPerMTok: 0.01875 },

@@ -68,7 +68,7 @@ export default async (req: Request, _ctx: Context) => {
     /* ── lib 호출 (type별) ── */
     let contentJson: any;
     let ragSources: any[] = [];
-    let modelUsed = process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
+    let modelUsed = process.env.GEMINI_MODEL_PRO || "gemini-3.8-flash";
 
     if (type === "strategy") {
       const caseKindRes: any = await db.execute(sql.raw(`SELECT case_kind AS "k" FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1`));

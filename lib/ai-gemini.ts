@@ -22,8 +22,8 @@ import { checkFeatureBeforeCall, recordFeatureUsage, isKnownFeature } from "./ai
 import { ensurePromptCache } from "./ai-prompt-cache";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const PRO_MODEL = process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
-const FLASH_MODEL = process.env.GEMINI_MODEL_FLASH || "gemini-3-flash";
+const PRO_MODEL = process.env.GEMINI_MODEL_PRO || "gemini-3.8-flash";
+const FLASH_MODEL = process.env.GEMINI_MODEL_FLASH || "gemini-3.8-flash";
 
 const LEGACY_MODEL = process.env.GEMINI_MODEL;
 const EFFECTIVE_FLASH = LEGACY_MODEL && LEGACY_MODEL.includes("flash") ? LEGACY_MODEL : FLASH_MODEL;
@@ -38,10 +38,28 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
  *   = 비용 폭발 방지를 위해 가장 비싼 모델(2.5-flash)은 cron 깊은 분석에만,
  *     나머지(작업 요약·트리거 평가·AI 추출)는 모두 lite 사용.
  *   env로 override 가능. */
-// 체인 기본값(Swain 확정·2026-06-10). env GEMINI_CHAIN_HIGH/LOW(콤마)로 전 사이트 일괄 override.
-//   HIGH(pro·복잡): preview→3.1-lite→2.5-flash→3.5-flash / LOW(flash·간단): 2.5-lite→3.1-lite.
-const DEFAULT_CHAIN_HIGH = "gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-2.5-flash,gemini-3.5-flash";
-const DEFAULT_CHAIN_LOW = "gemini-2.5-flash-lite,gemini-3.1-flash-lite";
+/* 체인 기본값 — 🔴 **여기가 정본이다**(사장님 확정 2026-09-11 「MIS 도 3.8」).
+ *
+ *   ⚠️ 2026-06-10 에 「env GEMINI_CHAIN_HIGH/LOW 로 전 사이트 일괄 override」로 설계했고,
+ *      그 env 가 계정 공유로 살아 있었다. 그래서 **AM 이 2026-09-11 에 3.8 로 올렸는데 라이브가 안 바뀌었다**
+ *      — 코드는 `env || 기본값` 이라 env 가 이긴다. 그날 AM 전략브리프가 `modelServed: gemini-3.5-flash`
+ *      로 찍혀서야 알았다.
+ *   ⇒ **그 env 를 지웠다.** 이제 두 리포 다 「코드가 유일한 답」이다 — 모델을 올릴 때 커밋 한 번으로 끝난다.
+ *      env 로 덮는 «기능»은 그대로 남는다(급할 때 넣으면 즉시 이긴다). 문은 두고 낡은 쪽지만 뗀 것이다.
+ *
+ *   🔴 **헤드를 올리면 단가표(ai-cost-monitor)도 «같은 커밋»에서 올려라.**
+ *      3.8 은 3-flash 의 **20배**($1.50 vs $0.075)다. 단가가 없으면 __default($0.075)로 떨어져
+ *      실제의 1/20 로 기록된다(AM 이 2026-09-11 에 그 사고를 낼 뻔했다).
+ *
+ *   🔴 **«0.1씩 내린다»를 규칙으로 만들지 마라** — 실재하는 판은 3.8·3.7·3.6·3.5·3.1·3 뿐이고
+ *      3.4·3.3·3.2 는 **없다**. 실측 목록을 내림차순으로 적는다.
+ *
+ *   HIGH(pro·복잡 — 일일 브리핑·주간 보고서·심층 추론): 3.8 헤드.
+ *   LOW(flash·간단·대량): 🔴 **헤드를 lite 로 두는 것이 이 체인의 «목적»이다.** 최신이라고 헤드를 올리면
+ *      대량 경로 비용이 통째로 바뀐다(월 $100 목표). 꼬리만 최신 — 앞이 다 죽었을 때는 품질로 마감한다.
+ *      AM 정본(lib/ai-models.ts CHAIN_LOW)과 같은 문법이다. */
+const DEFAULT_CHAIN_HIGH = "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.1-flash-lite";
+const DEFAULT_CHAIN_LOW = "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.8-flash";
 function buildFallbackChain(mode: "pro" | "flash"): string[] {
   const raw = mode === "pro"
     ? (process.env.GEMINI_CHAIN_HIGH || DEFAULT_CHAIN_HIGH)
