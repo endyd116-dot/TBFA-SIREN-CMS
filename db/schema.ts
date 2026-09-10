@@ -4013,6 +4013,9 @@ export const payrollSettings = pgTable("payroll_settings", {
   longtermRate:        numeric("longterm_rate", { precision: 6, scale: 5 }).default("0.1295").notNull(),
   employmentRate:      numeric("employment_rate", { precision: 6, scale: 5 }).default("0.009").notNull(),
   incomeTaxRate:       numeric("income_tax_rate", { precision: 6, scale: 5 }).default("0").notNull(),
+  /* 국민연금 기준소득월액 상한 — 초과분에는 연금보험료를 매기지 않는다(2026-09-10 적용).
+     매년 7월 공단이 조정하므로 급여 계산 기준 화면에서 운영자가 직접 고친다. 0이면 상한 없음. */
+  pensionCap:          numeric("pension_cap").default("6370000"),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
   updatedBy:           varchar("updated_by", { length: 36 }),
 });
