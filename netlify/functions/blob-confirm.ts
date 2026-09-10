@@ -22,8 +22,11 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
+  /* 2026-09-10 fix: 관리자 자격을 '사용자 로그인이 없을 때만' 확인하던 탓에,
+     사이트 회원 로그인도 함께 되어 있는 운영자는 관리자로 인정받지 못했다.
+     (지출 결재 증빙을 첨부하면 마지막 확정 단계에서 '권한 없음'으로 막히던 실제 사고) */
   const user = authenticateUser(req);
-  const admin = !user ? authenticateAdmin(req) : null;
+  const admin = authenticateAdmin(req);
 
   const body = await parseJson<any>(req);
   if (!body || !Number.isFinite(Number(body.id))) return badRequest("id 필수");

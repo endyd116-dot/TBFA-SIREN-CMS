@@ -325,20 +325,24 @@ export async function calculatePayrollForMonth(
           SELECT
             ar.status, ar.working_mins, ar.overtime_mins,
             /* 출근으로 기록된 날 */
-            (ar.status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')) AS attended,
+            (COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')) AS attended,
             /* 근무일이 아닌 날 (주말 · 공휴일) */
             (EXTRACT(DOW FROM ar.date) IN (0, 6) OR hol.id IS NOT NULL) AS is_off_day,
-            /* 재택보고서 미제출 → 근무 불인정 */
-            (ar.work_mode = 'REMOTE'
+            /* 재택보고서 미제출 → 근무 불인정.
+               2026-09-10 fix: 근무형태(work_mode)가 비어 있는 날이 있다(옛 기록·관리자 수동 추가).
+               COALESCE 없이 비교하면 판정이 '참도 거짓도 아닌 값'이 되고, 그 값이 아래 NOT 안으로
+               번져 그 날 전체가 '지급일수로 셀 수 없음'이 돼 조용히 하루가 사라졌다
+               (실측: 2026-08 근무형태 없는 이틀이 지급에서 누락 — 빠진 날 목록에는 뜨지도 않음). */
+            (COALESCE(ar.work_mode, '') = 'REMOTE'
               AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
-              AND ar.status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+              AND COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
               AND rep.id IS NULL) AS unrecognized,
             /* 급여 지급일수로 셀 수 있는 날 */
-            (ar.status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+            (COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
               AND EXTRACT(DOW FROM ar.date) NOT IN (0, 6)
               AND hol.id IS NULL
               AND ar.working_mins IS NOT NULL
-              AND NOT (ar.work_mode = 'REMOTE'
+              AND NOT (COALESCE(ar.work_mode, '') = 'REMOTE'
                        AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
                        AND rep.id IS NULL)
             ) AS counts_for_pay
@@ -483,6 +487,19 @@ export async function calculatePayrollForMonth(
         dependents: Number(m.tax_dependents ?? 1),
         children: Number(m.tax_children ?? 0),
       };
+      /* 명세서에 적는 두 숫자가 서로 맞는지 그 자리에서 검산한다.
+         '영업일 − 지급 대상일'과 '빠진 날 목록의 합계'는 반드시 같아야 하는데,
+         집계 쿼리와 사유 목록이 서로 다른 경로로 만들어지다 보니 어긋나면 조용히 묻혔다.
+         (2026-09-10: 근무형태가 빈 날 때문에 이틀이 사유 없이 사라진 실제 사고)
+         차이가 남으면 스냅샷에 남겨 화면이 "사유 미확인 N일"로 드러내게 한다. */
+      const unpaidListed = Math.round(unpaidDetail.reduce((sum, d) => sum + d.lost, 0) * 100) / 100;
+      const unpaidGap = Math.round((monthBusinessDays - (workingDays + paidLeaveDays) - unpaidListed) * 100) / 100;
+      if (Math.abs(unpaidGap) >= 0.01) {
+        console.warn(`[payroll-calc] ${year}-${month} ${m.name}(uid=${memberUid}) 미산입 불일치: ` +
+          `영업일 ${monthBusinessDays} − 지급 ${workingDays + paidLeaveDays} = ${Math.round((monthBusinessDays - workingDays - paidLeaveDays)*100)/100}일 ` +
+          `vs 사유 목록 합계 ${unpaidListed}일 (차이 ${unpaidGap}일)`);
+      }
+
       const ded = computeDeductions(grossPay, settings, taxProfile);
       const totalDeduction =
         ded.nationalPension + ded.healthInsurance + ded.longTermCare +
@@ -504,6 +521,8 @@ export async function calculatePayrollForMonth(
           shortDays,         // 소정근로 미달 (0.25~0.75일치로 계산된 날)
           dailyHours,        // 소정근로시간 (지급일수 환산 기준)
           unpaidDetail,      // 지급에서 빠진 날 + 사유 (명세서 최상단 표시용)
+          unpaidListed,      // 위 목록의 합계
+          unpaidUnexplained: unpaidGap,  // 목록으로 설명되지 않는 일수 (0이어야 정상)
         },
         leave: { paidLeaveDays, unpaidLeaveDays, partialLeaveDays },
         /* 소득세 산출 근거 (근로소득 간이세액표) — 명세서에 "공제대상가족 N명 기준"으로 표기 */

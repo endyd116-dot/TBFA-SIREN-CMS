@@ -381,10 +381,13 @@
     var dv = snap.derived || {};
     var rows = (snap.att && Array.isArray(snap.att.unpaidDetail)) ? snap.att.unpaidDetail : [];
     var listed = rows.filter(function (r) { return r && r.date && Number(r.lost) > 0; });
-    var total = listed.length
-      ? Math.round(listed.reduce(function (s, r) { return s + Number(r.lost); }, 0) * 100) / 100
-      : Math.max(0, Math.round(((Number(dv.monthBusinessDays) || 0) - (Number(dv.paidDays) || 0)) * 100) / 100);
-    if (total <= 0) return '';
+    var listedSum = Math.round(listed.reduce(function (s, r) { return s + Number(r.lost); }, 0) * 100) / 100;
+    var diff = Math.max(0, Math.round(((Number(dv.monthBusinessDays) || 0) - (Number(dv.paidDays) || 0)) * 100) / 100);
+    var total = listed.length ? listedSum : diff;
+    /* 사유 목록으로 설명되지 않는 일수 — 0이어야 정상. 남아 있으면 숨기지 않고 드러낸다
+       (집계와 사유 목록이 어긋난 채 조용히 지나가면 급여가 사유 없이 깎인다). */
+    var unexplained = listed.length ? Math.round((diff - listedSum) * 100) / 100 : 0;
+    if (total <= 0 && unexplained <= 0) return '';
 
     var list = listed.map(function (r) {
       return '<li style="display:flex;gap:8px;align-items:baseline;padding:5px 0;border-top:1px solid #fde68a">' +
@@ -400,6 +403,10 @@
         ? '<ul style="list-style:none;margin:0;padding:0;font-size:12.5px">' + list + '</ul>'
         : '<div style="font-size:12.5px;color:#7c2d12">' +
           '날짜별 사유가 저장되기 전에 만들어진 명세서입니다 — [재집계]를 누르면 채워집니다.</div>') +
+      (unexplained > 0
+        ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #fca5a5;color:#b91c1c;font-size:12.5px;font-weight:600">' +
+          '⚠ 사유가 확인되지 않은 미산입 ' + unexplained + '일 — 근태 기록을 확인한 뒤 [재집계]를 눌러 주세요.</div>'
+        : '') +
       '</div>';
   }
 

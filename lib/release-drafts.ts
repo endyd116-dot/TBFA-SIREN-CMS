@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-07.3";
+export const APP_VERSION = "2026-09-10.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-10-payroll-blank-workmode",
+    title: "급여에서 하루가 사유 없이 빠지던 문제 + 결재 증빙 첨부 시 «권한 없음» 해결",
+    items: [
+      { text: "근무형태(사무실·재택·외근)가 비어 있는 출근 기록이 지급 대상일에서 통째로 빠지고 있었습니다. 8월 명세서에서 사무국장 2일·정책국장 1일이 이렇게 사라졌고, 「지급에서 빠진 날」 목록에는 사유조차 뜨지 않았습니다. 이제 근무형태가 비어 있어도 정상 근무일로 셉니다 — 급여관리에서 [재집계]를 누르면 8월분이 바로잡힙니다", link: "/cms-tbfa.html#payroll" },
+      { text: "명세서를 만들 때 «영업일 − 지급 대상일»과 «빠진 날 목록의 합계»가 맞는지 스스로 검산합니다. 어긋나면 명세서 맨 위에 «사유가 확인되지 않은 미산입 N일» 경고가 뜨므로, 같은 종류의 누락이 조용히 지나가지 않습니다" },
+      { text: "지출 결재에 증빙 파일을 붙여 올릴 때 «권한 없음»으로 막히던 문제를 고쳤습니다. 사이트 회원 로그인과 관리자 로그인이 한 브라우저에 함께 있으면 파일 확정 단계에서 관리자로 인정받지 못하던 것이 원인이었습니다(9월 9일 정책국장 실패 건). 다시 첨부해 올리면 정상 등록됩니다", link: "/cms-tbfa.html#approval" },
+    ],
+  },
   {
     key: "2026-09-07-search-index-cleanup",
     title: "구글 검색 색인 정리 — 빈 주소·중복 링크 제거",
