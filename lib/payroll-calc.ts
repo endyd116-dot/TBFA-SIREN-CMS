@@ -113,6 +113,8 @@ export interface UnpaidDay {
   lost: number;
   /** 직원이 그대로 읽는 사유 문장 */
   reason: string;
+  /** 공휴일이라 빠진 날 — 내규상 만근 판정에서는 빼고 본다 (2026-09-10 Swain 확정) */
+  holiday?: boolean;
 }
 
 /** 분 단위 → "6시간 40분" */
@@ -149,13 +151,16 @@ function buildUnpaidDetail(
     const leavePaid = r.leave_paid === true;
     const leaveName = String(r.leave_name ?? "휴가");
     const periodText = PERIOD_TEXT[String(r.half_day_period ?? "")] || "";
-    const push = (lost: number, reason: string) => { if (lost > 0) out.push({ date, lost, reason }); };
+    const push = (lost: number, reason: string, holiday = false) => {
+      if (lost > 0) out.push(holiday ? { date, lost, reason, holiday: true } : { date, lost, reason });
+    };
 
-    // 공휴일 — 영업일(분모)에는 들어 있지만 근무일이 아니라 지급되지 않는다 (5인 미만 사업장)
+    // 공휴일 — 영업일(분모)에는 들어 있지만 근무일이 아니라 지급되지 않는다 (5인 미만 사업장).
+    // 지급은 안 되지만 '쉬는 날'이므로 만근은 그대로 인정한다(내규) → holiday 표시를 남긴다.
     if (r.is_holiday) {
       push(1, attended
         ? "공휴일 출근 — 지급일수에서 제외 (휴일근무 보상은 별도)"
-        : "공휴일 — 근무일이 아니어서 미지급");
+        : "공휴일 — 근무일이 아니어서 미지급", true);
       continue;
     }
 
@@ -320,7 +325,9 @@ export async function calculatePayrollForMonth(
           COUNT(*) FILTER (WHERE t.unrecognized)::int AS unreported_remote_days,
           COUNT(*) FILTER (WHERE t.attended AND t.is_off_day)::int AS off_day_work_days,
           COUNT(*) FILTER (WHERE t.attended AND NOT t.is_off_day AND t.working_mins IS NULL)::int AS no_checkout_days,
-          COUNT(*) FILTER (WHERE t.counts_for_pay AND t.working_mins < ${stdMins})::int AS short_days
+          -- 2026-09-10 fix: 지급 계산과 같은 유예(10분)를 적용한다. 예전엔 유예 없이 소정시간과 비교해
+          -- 7분 모자란 날(473분)이 지급은 하루 온전히 나갔는데 '소정근로 미달'로만 잡혀 만근이 깨졌다.
+          COUNT(*) FILTER (WHERE t.counts_for_pay AND t.working_mins < ${T100})::int AS short_days
         FROM (
           SELECT
             ar.status, ar.working_mins, ar.overtime_mins,
@@ -446,10 +453,18 @@ export async function calculatePayrollForMonth(
         continue;
       }
 
-      // 만근 — 근무일 1일 이상 + 지각·결근·무급휴가·소정근로 미달·재택 미제출·퇴근 미기록 전부 0
+      /* 만근 — 근무일 1일 이상 + 지각·결근·소정근로 미달·재택 미제출·퇴근 미기록 전부 0,
+         그리고 '공휴일을 뺀' 빠진 날이 하나도 없을 것.
+         내규(2026-09-10 Swain 확정): 공휴일은 지급되지 않더라도 쉬는 날이므로 만근으로 인정한다.
+         공휴일에 무급휴가를 낸 경우까지 포함하려면 무급휴가 일수만 세면 안 되고 날짜별로 봐야 하므로,
+         빠진 날 목록에서 공휴일을 걷어낸 손실로 판정한다. 목록을 못 만든 경우에만 옛 방식으로 본다. */
+      const lostExceptHoliday = unpaidDetail.length
+        ? Math.round(unpaidDetail.filter(d => !d.holiday).reduce((sum, d) => sum + d.lost, 0) * 100) / 100
+        : null;
       const perfectAttendance =
-        workingDays > 0 && lateCount === 0 && absentCount === 0 && unpaidLeaveDays === 0
-        && unreportedRemoteDays === 0 && shortDays === 0 && noCheckoutDays === 0;
+        workingDays > 0 && lateCount === 0 && absentCount === 0
+        && unreportedRemoteDays === 0 && shortDays === 0 && noCheckoutDays === 0
+        && (lostExceptHoliday != null ? lostExceptHoliday < 0.01 : unpaidLeaveDays === 0);
 
       // 2-3. quarterly_settlements 집계 (해당 월이 속한 분기·PAID·members.id 기준)
       const qsRows = await db.execute(sql`

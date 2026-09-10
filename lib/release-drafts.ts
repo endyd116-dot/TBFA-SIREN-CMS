@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-10.1";
+export const APP_VERSION = "2026-09-10.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-10-payroll-perfect-attendance",
+    title: "만근 판정 기준 정리 — 공휴일은 만근 그대로, 10분 유예도 지급과 똑같이 적용",
+    items: [
+      { text: "공휴일은 지급되지 않더라도 만근으로 인정합니다(내규). 명세서의 만근 여부는 공휴일을 빼고 판단하며, 공휴일에 무급휴가를 낸 경우도 만근이 유지됩니다", link: "/cms-tbfa.html#payroll" },
+      { text: "출퇴근 10분 유예가 지급에는 적용되는데 만근 판정에는 빠져 있었습니다. 8시간에서 7분 모자란 날이 급여는 하루치를 다 받으면서 「소정근로 미달」로 잡혀 만근이 깨지던 문제입니다(8월 사무국장 사례). 이제 두 기준이 같습니다 — [재집계]를 누르면 다시 판정됩니다" },
+      { text: "근태 정정 요청을 승인해 만든 출퇴근 기록에 근무형태(사무실·재택·외근)가 함께 저장됩니다. 비어 있던 근무형태가 급여에서 하루를 통째로 빼던 원인이었습니다" },
+    ],
+  },
   {
     key: "2026-09-10-payroll-blank-workmode",
     title: "급여에서 하루가 사유 없이 빠지던 문제 + 결재 증빙 첨부 시 «권한 없음» 해결",

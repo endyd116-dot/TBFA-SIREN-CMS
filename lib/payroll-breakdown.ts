@@ -136,7 +136,7 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
   if (shortDays > 0) {
     attendance.push({
       label: "소정근로 미달", value: `${shortDays}일`,
-      hint: `${stdHours}시간을 못 채운 날 — 일한 시간만큼 0.25일 단위로 지급 (반차 0.5 · 반반차 0.75)`,
+      hint: `${stdHours}시간에서 10분 유예를 넘겨 모자란 날 — 일한 시간만큼 0.25일 단위로 지급 (반차 0.5 · 반반차 0.75)`,
       warn: true,
     });
   }
