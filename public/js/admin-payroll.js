@@ -523,7 +523,9 @@
     const s = _settings || {};
     let totalDeduction;
     if (auto && s.pensionRate != null) {
-      const pension = taxableBase * Number(s.pensionRate || 0);
+      /* 국민연금은 기준소득월액 상한까지만 부과 — 서버 공식과 같은 기준이어야 화면과 저장값이 맞는다 */
+      const cap = Number(s.pensionCap || 0);
+      const pension = (cap > 0 ? Math.min(taxableBase, cap) : taxableBase) * Number(s.pensionRate || 0);
       const health = taxableBase * Number(s.healthRate || 0);
       const longterm = health * Number(s.longtermRate || 0);
       const employment = taxableBase * Number(s.employmentRate || 0);
@@ -877,12 +879,14 @@
     ['longtermRate',       'setLongtermRate'],
     ['employmentRate',     'setEmploymentRate'],
     ['incomeTaxRate',      'setIncomeTaxRate'],
+    ['pensionCap',         'setPensionCap'],
   ];
   // settings 행은 snake_case 컬럼 그대로 반환됨
   const SETTING_SNAKE = {
     monthlyWorkDays: 'monthly_work_days', pensionRate: 'pension_rate',
     healthRate: 'health_rate', longtermRate: 'longterm_rate',
     employmentRate: 'employment_rate', incomeTaxRate: 'income_tax_rate',
+    pensionCap: 'pension_cap',
   };
 
   async function loadSettings() {
@@ -907,6 +911,7 @@
       longtermRate:   Number(s.longterm_rate   ?? s.longtermRate   ?? 0),
       employmentRate: Number(s.employment_rate ?? s.employmentRate ?? 0),
       incomeTaxRate:  Number(s.income_tax_rate ?? s.incomeTaxRate  ?? 0),
+      pensionCap:     Number(s.pension_cap      ?? s.pensionCap     ?? 0),
     };
   }
 

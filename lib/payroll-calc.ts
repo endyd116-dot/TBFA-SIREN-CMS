@@ -23,11 +23,17 @@ export interface PayrollSettings {
   overtimeMultiplier: number; annualHours: number; monthlyWorkDays: number;
   pensionRate: number; healthRate: number; longtermRate: number;
   employmentRate: number; incomeTaxRate: number;
+  /** 국민연금 기준소득월액 상한 — 이 금액을 넘는 부분엔 연금보험료를 매기지 않는다.
+   *  매년 7월 국민연금공단이 조정하므로 급여 기준 설정에서 운영자가 고친다. 0이면 상한 없음. */
+  pensionCap: number;
 }
+/** 2025-07 ~ 2026-06 국민연금 기준소득월액 상한 (공단 고시) */
+const DEFAULT_PENSION_CAP = 6370000;
 const DEFAULT_PAYROLL_SETTINGS: PayrollSettings = {
   overtimeMultiplier: 1.5, annualHours: 2080, monthlyWorkDays: 22,
   pensionRate: 0.045, healthRate: 0.03545, longtermRate: 0.1295,
   employmentRate: 0.009, incomeTaxRate: 0,
+  pensionCap: DEFAULT_PENSION_CAP,
 };
 
 /** payroll_settings(id=1) 로드 — 행 없으면 기본값. */
@@ -45,6 +51,8 @@ export async function loadPayrollSettings(): Promise<PayrollSettings> {
       longtermRate:       Number(row.longterm_rate ?? 0.1295),
       employmentRate:     Number(row.employment_rate ?? 0.009),
       incomeTaxRate:      Number(row.income_tax_rate ?? 0),
+      /* 상한 컬럼이 아직 없는 DB에서도 안전하게 기본값으로 동작한다 (SELECT * 라 오류 없음) */
+      pensionCap:         Number(row.pension_cap ?? DEFAULT_PENSION_CAP),
     };
   } catch { return { ...DEFAULT_PAYROLL_SETTINGS }; }
 }
@@ -68,7 +76,11 @@ export interface TaxProfile {
  * 지방소득세: 소득세의 10%.
  */
 export function computeDeductions(taxableBase: number, s: PayrollSettings, tax: TaxProfile = {}) {
-  const nationalPension = taxableBase * s.pensionRate;
+  /* 국민연금만 상한이 있다 — 기준소득월액 상한을 넘는 금액에는 보험료를 매기지 않는다.
+     2026-09-10 Swain 결정: 상여를 얹어 상한을 넘는 달에 연금이 과다 공제되던 것을 막는다.
+     (건강보험·고용보험은 상한이 사실상 없어 그대로 정률) */
+  const pensionBase = s.pensionCap > 0 ? Math.min(taxableBase, s.pensionCap) : taxableBase;
+  const nationalPension = pensionBase * s.pensionRate;
   const healthInsurance = taxableBase * s.healthRate;
   const longTermCare = healthInsurance * s.longtermRate;
   const employmentInsurance = taxableBase * s.employmentRate;

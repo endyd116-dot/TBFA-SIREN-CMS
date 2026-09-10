@@ -47,6 +47,7 @@ export default async function handler(req: Request, _ctx: Context) {
       longterm_rate:       body.longtermRate,
       employment_rate:     body.employmentRate,
       income_tax_rate:     body.incomeTaxRate,
+      pension_cap:         body.pensionCap,   // 국민연금 기준소득월액 상한 (매년 7월 조정)
     };
 
     let upd = sql`UPDATE payroll_settings SET updated_at = NOW(), updated_by = ${String(admin.id)}`;

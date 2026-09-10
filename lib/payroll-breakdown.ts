@@ -241,7 +241,13 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
   const deductions: BreakdownRow[] = [
     {
       label: "국민연금", kind: "DEDUCT",
-      method: settings.pensionRate != null ? `${baseLabel} × ${pct(settings.pensionRate)}` : `${baseLabel} 기준 요율`,
+      /* 국민연금은 기준소득월액 상한이 있어, 상여 등으로 상한을 넘은 달은 상한액까지만 보험료를 매긴다.
+         명세서에 "왜 세전 총액 × 4.5%가 아닌지"가 드러나야 하므로 문구를 나눠 적는다. */
+      method: settings.pensionRate == null
+        ? `${baseLabel} 기준 요율`
+        : (num(settings.pensionCap) > 0 && taxableBase > num(settings.pensionCap)
+            ? `기준소득월액 상한 ${won(settings.pensionCap)} × ${pct(settings.pensionRate)}  (상한 초과분은 부과 제외)`
+            : `${baseLabel} × ${pct(settings.pensionRate)}`),
       amount: num(slip.nationalPension ?? slip.national_pension),
     },
     {

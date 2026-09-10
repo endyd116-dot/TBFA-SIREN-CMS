@@ -269,6 +269,7 @@
         <div class="field"><label>장기요양 요율</label><input type="number" step="0.0001" id="setLongtermRate"><div class="hint">건강보험액 기준 (예: 0.1295)</div></div>
         <div class="field"><label>고용보험 요율</label><input type="number" step="0.0001" id="setEmploymentRate"><div class="hint">예: 0.009</div></div>
         <div class="field"><label>소득세 정률</label><input type="number" step="0.0001" id="setIncomeTaxRate"><div class="hint">0이면 명세서별 직접 입력</div></div>
+        <div class="field"><label>국민연금 상한액(월)</label><input type="number" step="10000" id="setPensionCap"><div class="hint">기준소득월액 상한 — 이 금액을 넘는 부분엔 연금보험료를 매기지 않습니다(상여 지급 달). 매년 7월 공단이 조정 · 현재 6,370,000원 · 0이면 상한 없음</div></div>
       </div>
       <div style="margin-top:16px;display:flex;gap:8px;align-items:center">
         <button class="btn btn-primary" id="btnSaveSettings">설정 저장</button>
@@ -484,6 +485,6 @@
   <!-- SheetJS — 국세청 간이지급명세서 양식(.xls)을 브라우저에서 직접 채워 내려받는다.
        주민등록번호가 들어가는 파일이라 서버를 거치지 않게 한다(로그·에러리포트에 남을 위험 제거). -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="/js/admin-payroll.js?v=20260910-unpaid-check"></script>
+  <script src="/js/admin-payroll.js?v=20260910-pension-cap"></script>
 </body>
 </html>
