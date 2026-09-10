@@ -4,7 +4,7 @@ import { attCorrections, attRecords, members } from "../../db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
-import { determineStatus, getDefaultPolicy, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
+import { determineStatus, getDefaultPolicy, getFlexRangeMins, flexStartFloor, getScheduledWorkMode } from "../../lib/att-utils";
 import { rebuildSingleSession, recomputeSummary } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
@@ -189,12 +189,23 @@ export default async function handler(req: Request) {
         //   기존 raw SQL의 Date 바인딩이 조용히 실패해 '승인해도 반영 안됨'이었음.
         const ciDate = newCheckIn  ? new Date(newCheckIn  as any) : null;
         const coDate = newCheckOut ? new Date(newCheckOut as any) : null;
+        /* 근무형태(사무실·재택·외근)를 그날의 근무 일정에서 가져와 함께 남긴다.
+           2026-09-10: 정정 승인으로 새로 만든 기록에만 근무형태가 비어 있었고,
+           그 빈 값 때문에 급여 집계가 그 날을 지급 대상일에서 통째로 빼버렸다
+           (2026-08 사무국장 2일·정책국장 1일 실측). 일정을 못 읽으면 사무실 근무로 본다.
+           이미 있는 기록을 고치는 경우엔 원래 근무형태를 그대로 둔다(아래 set에 없음). */
+        let schedMode = "OFFICE";
+        try {
+          const sched = await getScheduledWorkMode(correction.memberUid, String(correction.targetDate));
+          if (sched?.mode) schedMode = sched.mode;
+        } catch (e) { console.warn("[att-correction-review] 근무형태 조회 실패 — 사무실로 기록:", e); }
         await db.insert(attRecords).values({
           memberUid: correction.memberUid,
           date: String(correction.targetDate),
           checkInTime: ciDate,
           checkOutTime: coDate,
           status: newStatus,
+          workMode: schedMode,
           isManuallyAdjusted: true,
           sessions: ns as any,
           workingMins,
