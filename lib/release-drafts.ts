@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-09-10.4";
+export const APP_VERSION = "2026-09-28.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-09-28-att-correction-evidence",
+    title: "근태 정정 결재 화면에서 직원이 첨부한 증빙 서류가 안 보이던 문제",
+    items: [
+      { text: "근태 현황 › 대기 중인 수정 요청에서, 직원이 정정 요청에 붙인 증빙 서류가 결재자 화면에 나타나지 않았습니다. 7월 첨부 기능을 도입할 때 결재 목록에만 첨부 정보가 빠져 있던 것이 원인이며, 서류 자체는 정상적으로 저장돼 있었습니다", link: "/cms-tbfa.html#att-ops" },
+      { text: "이제 사유 밑에 첨부 파일이 표시됩니다. 누르면 이미지·PDF는 새 탭에서 바로 보이고, 한글·워드 등 그 밖의 서류는 내려받아집니다. 결재자가 서류를 연 기록은 감사 로그에 남습니다" },
+    ],
+  },
   {
     key: "2026-09-10-payroll-preview-tax",
     title: "명세서에 상여를 넣을 때 화면 실수령액이 저장 결과와 달라지던 문제",

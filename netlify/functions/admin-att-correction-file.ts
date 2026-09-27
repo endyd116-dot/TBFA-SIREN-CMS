@@ -8,7 +8,8 @@
  *   내려받을 수 있게 좁혀 놓는다 — 요청에 적힌 첨부 목록에 없는 파일 번호는 거절한다.
  *
  * 권한: 관리자 (requireAdmin)
- * 응답: { url, name }  — 5분 유효한 내려받기 주소
+ * 응답: { url, name }  — 5분 유효한 주소. 이미지·PDF는 새 탭에서 바로 보이고,
+ *       그 밖의 서류(한글·워드 등)는 내려받아진다.
  */
 import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
@@ -61,7 +62,8 @@ export default async function handler(req: Request) {
     const attached = evidenceListOf(row).find((f) => f.fileId === fileId);
     if (!attached) return jsonBadRequest("이 요청에 첨부된 파일이 아닙니다");
 
-    const signed = await evidenceDownloadUrl(fileId);
+    /* 결재자는 서류를 '확인'하려는 것 — 이미지·PDF는 내려받지 않고 바로 보이게 */
+    const signed = await evidenceDownloadUrl(fileId, { inline: true });
     if (!signed) return jsonBadRequest("파일을 찾을 수 없습니다 (삭제되었을 수 있습니다)");
 
     /* 남의 서류를 열어본 기록은 남긴다 */

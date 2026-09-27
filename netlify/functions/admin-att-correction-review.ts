@@ -7,6 +7,7 @@ import { canAccess } from "../../lib/role-permission-check";
 import { determineStatus, getDefaultPolicy, getFlexRangeMins, flexStartFloor, getScheduledWorkMode } from "../../lib/att-utils";
 import { rebuildSingleSession, recomputeSummary } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { evidenceListOf } from "../../lib/att-evidence";
 
 export const config = { path: "/api/admin-att-correction-review" };
 
@@ -75,6 +76,9 @@ export default async function handler(req: Request) {
           requestedCheckIn: r.requestedCheckIn,
           requestedCheckOut: r.requestedCheckOut,
           reason: r.reason,
+          /* 직원이 붙인 증빙 서류 — 결재 화면이 사유 밑에 첨부 칩으로 그린다.
+             2026-07-12 첨부 기능 도입 때 이 목록에만 빠져 있어 결재자가 첨부를 볼 수 없었다(2026-09-28 fix). */
+          evidenceFiles: evidenceListOf(r),
           status: r.status,
           submittedAt: r.createdAt,
         };

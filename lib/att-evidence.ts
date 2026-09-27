@@ -105,20 +105,46 @@ export function evidenceListOf(correction: any): EvidenceFile[] {
     }));
 }
 
-/** 내려받기 주소 발급 (5분 유효) — 호출부가 이미 권한을 확인한 파일에만 쓴다 */
-export async function evidenceDownloadUrl(fileId: number): Promise<{ url: string; name: string } | null> {
-  const [f] = await db.select({ r2Key: workspaceFiles.r2Key, name: workspaceFiles.name })
+/* 브라우저가 새 탭에서 바로 보여줄 수 있는 형식 — 이미지·PDF.
+   그 밖의 서류(한글·워드 등)는 어차피 브라우저가 못 보여주니 내려받기로 둔다.
+   SVG는 안에 스크립트를 품을 수 있어 뺀다. */
+const VIEWABLE_MIME = /^(image\/(png|jpe?g|gif|webp|bmp)|application\/pdf)$/;
+const VIEWABLE_EXT: Record<string, string> = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif",
+  webp: "image/webp", bmp: "image/bmp", pdf: "application/pdf",
+};
+/** 바로 보기 가능한 파일이면 그 형식, 아니면 null — 올릴 때 형식이 비어 저장된 파일은 확장자로 판단 */
+function viewableMimeOf(mimeType: string | null, ext: string | null): string | null {
+  const m = String(mimeType || "").toLowerCase();
+  if (VIEWABLE_MIME.test(m)) return m;
+  return VIEWABLE_EXT[String(ext || "").toLowerCase()] ?? null;
+}
+
+/** 내려받기 주소 발급 (5분 유효) — 호출부가 이미 권한을 확인한 파일에만 쓴다
+ *  inline: 이미지·PDF는 내려받지 않고 새 탭에서 바로 보이게 한다 (결재자 열람용) */
+export async function evidenceDownloadUrl(
+  fileId: number,
+  opts: { inline?: boolean } = {},
+): Promise<{ url: string; name: string } | null> {
+  const [f] = await db.select({
+    r2Key: workspaceFiles.r2Key, name: workspaceFiles.name,
+    mimeType: workspaceFiles.mimeType, ext: workspaceFiles.ext,
+  })
     .from(workspaceFiles)
     .where(and(eq(workspaceFiles.id, fileId), isNull(workspaceFiles.deletedAt)))
     .limit(1);
   if (!f) return null;
 
+  const viewMime = opts.inline ? viewableMimeOf(f.mimeType, f.ext) : null;
+  const fileName = `filename*=UTF-8''${encodeURIComponent(f.name)}`;
   const url = await getSignedUrl(
     getR2Client(),
     new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: f.r2Key,
-      ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(f.name)}`,
+      ResponseContentDisposition: viewMime ? `inline; ${fileName}` : `attachment; ${fileName}`,
+      /* 저장소에 형식이 비어 있어도 브라우저가 그림·PDF로 알아보게 형식을 붙여 준다 */
+      ...(viewMime ? { ResponseContentType: viewMime } : {}),
     }),
     { expiresIn: 300 },
   );

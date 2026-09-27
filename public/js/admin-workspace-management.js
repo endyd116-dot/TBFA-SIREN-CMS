@@ -198,7 +198,7 @@
             `<a href="#" onclick="awmOpenEvidence(${r.id},${Number(f.fileId)});return false"
                 style="display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:#2563eb;
                        border:1px solid #bfdbfe;background:#eff6ff;border-radius:6px;padding:2px 7px;text-decoration:none"
-                title="${escHtml(f.name || '')} — 내려받기"><span class="siren-icon-wrap" data-icon="paperclip" style="width:12px;height:12px"></span>${escHtml(String(f.name || '첨부').slice(0, 20))}</a>`
+                title="${escHtml(f.name || '')} — 열기 (이미지·PDF는 새 탭에서 바로 보기)"><span class="siren-icon-wrap" data-icon="paperclip" style="width:12px;height:12px"></span>${escHtml(String(f.name || '첨부').slice(0, 20))}</a>`
           ).join('') + '</div>'
         : '';
       return `
