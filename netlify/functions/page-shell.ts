@@ -13,6 +13,7 @@
 // 함수 번들에 정적 HTML·조각 파일을 동봉해야 한다(netlify.toml [functions."page-shell"]).
 
 import { getPublishedSettings } from "../../lib/site-settings";
+import { buildHomeContent, buildPublicStats } from "../../lib/home-content";
 import { getPageMeta, getOrgMeta, getDefaultMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
 import {
@@ -98,15 +99,21 @@ export default async (req: Request) => {
 
     /* ---------- 2. 홈 화면 내용 채우기 ---------- */
     if (isHome) {
-      const [homeSettings, statsSettings] = await Promise.all([
-        withTimeout(getPublishedSettings("home"), 2500, {} as any),
+      /* ★ 2026-10-07: 페이지에 미리 심는 값은 **공개 API와 같은 함수**로 만든다.
+         예전엔 저장소 평면 모양({ "home.hero.slides": … })을 그대로 심었고, 화면 스크립트는
+         중첩 모양({ hero:{slides} })만 알아들어 메인 편집(히어로·퀵메뉴·지표)이 라이브에
+         한 번도 반영되지 않았다(심어 둔 값을 먼저 쓰고 API는 다시 안 부른다). */
+      const [homeTree, statsSettings] = await Promise.all([
+        withTimeout(buildHomeContent(false), 2500, null as any),
         withTimeout(getPublishedSettings("stats"), 2500, {} as any),
       ]);
-      const home = (homeSettings && (homeSettings as any).home) || {};
-      const stats = (statsSettings && (statsSettings as any).stats) || {};
+      const home = homeTree || {};
+      const statsData = buildPublicStats(
+        (statsSettings && (statsSettings as any).stats) || {}, false,
+      );
 
       try {
-        html = applyStatValues(html, flattenStats(stats));
+        html = applyStatValues(html, flattenStats(statsData));
       } catch (e) { console.warn("[page-shell] 활동 지표 채우기 실패", e); }
 
       try {
@@ -135,8 +142,9 @@ export default async (req: Request) => {
         if (introHtml) html = replaceById(html, "homeIntro", introHtml);
       } catch (e) { console.warn("[page-shell] 미션 소개 채우기 실패", e); }
 
-      preload["/api/public/home-content"] = { ok: true, data: home };
-      preload["/api/public/stats"] = { ok: true, data: stats };
+      /* 조회에 실패했으면 심지 않는다 — 그러면 브라우저가 API를 직접 불러 채운다 */
+      if (homeTree) preload["/api/public/home-content"] = { ok: true, data: homeTree };
+      preload["/api/public/stats"] = { ok: true, data: statsData };
 
       html = revealHomePending(html);
     }
@@ -166,15 +174,19 @@ export default async (req: Request) => {
 /* 홈 화면 보조                                                         */
 /* ------------------------------------------------------------------ */
 
-/** 저장된 지표를 '분류.항목' 형태 한 겹으로 편다 (예: donations.totalAmount) */
+/** 지표(API 모양: { donations:{totalAmount} … })를 '분류.항목' 형태 한 겹으로 편다 (예: donations.totalAmount)
+ *  저장소 평면 모양({ "donations.totalAmount": … })이 들어와도 그대로 받는다. */
 function flattenStats(stats: any): Record<string, any> {
   const out: Record<string, any> = {};
   if (!stats || typeof stats !== "object") return out;
   for (const [group, value] of Object.entries(stats)) {
+    if (group.startsWith("_")) continue;                       /* _meta */
     if (value && typeof value === "object" && !Array.isArray(value)) {
       for (const [k, v] of Object.entries(value as any)) {
         if (typeof v === "number" || typeof v === "string") out[`${group}.${k}`] = v;
       }
+    } else if ((typeof value === "number" || typeof value === "string") && group.includes(".")) {
+      out[group] = value;
     }
   }
   /* 누적 후원금은 화면에 '만원' 단위로 나온다 */

@@ -207,11 +207,37 @@
      저장해 둔 값이 있으면 먼저 그려서 기다림을 없애고, 조회가 끝나면 최신값으로 맞춘다. */
   const PREVIEW_Q = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
 
+  /* ★ 2026-10-07 안전망 — 서버가 페이지에 미리 심어 보낸 값이 저장소 평면 모양
+     ({ "home.hero.slides": … , "donations.totalAmount": … })으로 올 수도 있다.
+     (8-20~10-07 사이 실제로 그랬고, 그래서 메인 편집이 라이브에 반영되지 않았다)
+     그런 모양이면 중첩 모양으로 바꿔서 쓴다. 이미 중첩이면 그대로 돌려준다. */
+  function nestDotted(d) {
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return d;
+    const keys = Object.keys(d);
+    if (!keys.some((k) => k.indexOf('.') > 0)) return d;
+    const out = {};
+    keys.forEach((k) => {
+      if (k.indexOf('.') < 0) { out[k] = d[k]; return; }
+      const parts = k.split('.');
+      if (parts[0] === 'home') parts.shift();
+      let cur = out;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
+      let v = d[k];
+      if (v === 'true') v = true; else if (v === 'false') v = false;
+      else if (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v)) v = Number(v);
+      cur[parts[parts.length - 1]] = v;
+    });
+    return out;
+  }
+
   /** 화면에 통계 숫자를 반영 (몇 번 불려도 결과가 같아야 함) */
   function applyStats(json) {
     try {
       if (!json || !json.ok || !json.data) return;
-      const d = json.data;
+      const d = nestDotted(json.data);
 
       const mapping = {
         'donations.totalAmount': d.donations?.totalAmount,
@@ -272,8 +298,8 @@
     try {
       if (!json || !json.ok || !json.data) return;
 
-      const d = json.data;
-      console.log('[home.js] 메인 콘텐츠 API 적용', json._meta);
+      const d = nestDotted(json.data);
+      console.log('[home.js] 메인 콘텐츠 API 적용', d._meta || json._meta);
         /* ---- 퀵메뉴 박스 1개 HTML 생성 ---- */
   function renderQuickItem(item) {
     const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>

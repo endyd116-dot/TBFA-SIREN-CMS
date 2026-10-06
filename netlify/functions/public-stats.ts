@@ -4,9 +4,13 @@
 //
 // GET /api/public/stats              — 운영 적용된 값 (일반 사용자)
 // GET /api/public/stats?preview=1    — Draft 우선 (어드민 토큰 필요, 미인증 시 운영값 폴백)
+//
+// ★ 2026-10-07: 응답 모양은 lib/home-content.ts(buildPublicStats)가 만든다.
+//   홈을 서버에서 조립하는 page-shell이 페이지에 미리 심는 값도 같은 함수를 써서 어긋나지 않게 한다.
 
 import { authenticateAdmin } from "../../lib/auth";
 import { getPublishedSettings, getDraftSettings } from "../../lib/site-settings";
+import { buildPublicStats } from "../../lib/home-content";
 import { ok, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
 export default async (req: Request) => {
@@ -28,41 +32,8 @@ export default async (req: Request) => {
     const settings = useDraft
       ? await getDraftSettings("stats")
       : await getPublishedSettings("stats");
-    const stats = settings.stats || {};
 
-    /* 월별 추이 파싱 */
-    let monthlyTrend: any[] = [];
-    try {
-      const t = stats["donations.monthlyTrend"];
-      if (Array.isArray(t)) monthlyTrend = t;
-    } catch (_) {}
-
-    /* 응답 빌드 */
-    const data = {
-      donations: {
-        totalAmount: Number(stats["donations.totalAmount"] || 0),
-        monthlyTrend,
-      },
-      support: {
-        totalCount: Number(stats["support.totalCount"] || 0),
-      },
-      members: {
-        regularDonors: Number(stats["members.regularDonors"] || 0),
-        volunteers: Number(stats["members.volunteers"] || 0),
-      },
-      distribution: {
-        directSupport: Number(stats["distribution.directSupport"] || 0),
-        memorial: Number(stats["distribution.memorial"] || 0),
-        scholarship: Number(stats["distribution.scholarship"] || 0),
-        operation: Number(stats["distribution.operation"] || 0),
-      },
-      transparency: {
-        grade: stats["transparency.grade"] || "—",
-      },
-      /* Phase B: 미리보기 모드 메타 */
-      _meta: useDraft ? { mode: "draft" } : { mode: "published" },
-    };
-
+    const data = buildPublicStats(settings.stats || {}, useDraft);
     const response = ok(data);
 
     /* Phase B: Draft 모드는 캐싱 안 함 (실시간 반영) */
