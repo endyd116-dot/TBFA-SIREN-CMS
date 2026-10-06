@@ -4,15 +4,10 @@
   <script src="/js/icons.js?v=20260820-ssr"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- PWA(앱 설치) -->
-<link rel="manifest" href="/manifest.webmanifest" />
-<meta name="theme-color" content="#7a1f2b" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="SIREN" />
-<script src="/js/pwa.js?v=3" defer></script>
+<meta name="theme-color" content="#1e1b4b" />
 <title>함께워크 AX — 자살유족협회 온라인 추모관 구축 제안서 및 견적서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Brush+Script&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex,nofollow">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -187,7 +182,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 .scroll-cue i{width:16px;height:24px;border:2px solid #d97706;border-radius:9px;position:relative;display:block;background:rgba(255,255,255,.6)}
 .scroll-cue i:after{content:"";position:absolute;left:50%;top:5px;width:3px;height:6px;margin-left:-1.5px;border-radius:2px;background:#d97706;animation:wheel 1.4s ease-in-out infinite}
 @keyframes wheel{0%,100%{transform:translateY(0);opacity:1}60%{transform:translateY(7px);opacity:.2}}
-.exporting *,.exporting *:before,.exporting *:after{animation:none!important}
+/* ── 동행 나비 (SVG 1마리) ── */
+.bfly{position:absolute;pointer-events:none;z-index:4;filter:drop-shadow(0 4px 6px rgba(120,53,15,.22));overflow:visible}
+.bfly .wl,.bfly .wr{transform-box:fill-box}
+.bfly .wl{transform-origin:100% 55%;animation:wflap .6s ease-in-out infinite alternate}
+.bfly .wr{transform-origin:0% 55%;animation:wflap .6s ease-in-out infinite alternate}
+@keyframes wflap{from{transform:scaleX(1)}to{transform:scaleX(.42)}}
+.bfly.hover{animation:bhover 3.6s ease-in-out infinite}
+@keyframes bhover{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(4deg)}}
+.fpath{position:absolute;inset:0;pointer-events:none;z-index:3}
+.serif{font-family:'Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif}
+.brush{font-family:'Nanum Brush Script','Nanum Myeongjo',cursive}
+/* ── 스크롤 시연 ── */
+.demo{position:relative;overflow:hidden;background:#fffbf5}
+.demo .scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(180,83,9,.35) transparent}
+.demo .scr::-webkit-scrollbar{width:6px}.demo .scr::-webkit-scrollbar-thumb{background:rgba(180,83,9,.35);border-radius:3px}
+.demo .bfly{left:0;top:0;transition:transform .12s linear;will-change:transform}
+.rv{opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s ease}
+.rv.on{opacity:1;transform:none}
+.exporting *,.exporting *:before,.exporting *:after{animation:none!important;transition:none!important}
 </style>
 </head>
 <body>
@@ -205,7 +218,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:28px"><div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 8px 24px rgba(251,191,36,.35);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;color:#fff;letter-spacing:-.02em">AX</div><div style="text-align:left"><div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-.01em;line-height:1.1">함께워크 AX</div><div style="font-size:11px;color:rgba(255,255,255,.6);letter-spacing:.14em;margin-top:4px">SI · AI AGENT · PLATFORM</div></div></div>
   <div style="font-size:13px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.72);text-transform:uppercase;margin-bottom:16px">자살유족협회 귀중 · 2026.09.30 협의 내용 기준</div>
   <h1 style="font-size:50px;font-weight:900;line-height:1.12;color:#fff;margin-bottom:18px">온라인 추모관<br><span style="color:#fcd34d">구축 제안서 및 견적서</span></h1>
-  <p style="font-size:17px;color:rgba(255,255,255,.78);max-width:720px;line-height:1.65">본 제안서는 2026년 9월 30일 협의 내용을 기준으로 작성하였습니다.<br>요구 기능 정의, 화면 설계안(PC·모바일), 시스템 구성 및 기술 사양, 정가 기준 견적과 운영비, 추진 일정, 향후 확장 계획을 포함합니다.</p>
+  <p style="font-size:17px;color:rgba(255,255,255,.78);max-width:720px;line-height:1.65">본 제안서는 2026년 9월 30일 협의 내용을 기준으로 작성하였습니다.<br>요구 기능 정의, 화면 설계안(PC·모바일), 시스템 구성 및 기술 사양, 정가와 협회 특별가, 운영비, 추진 일정, 향후 확장 계획을 포함합니다.</p>
   <div style="margin-top:36px;display:flex;gap:32px;justify-content:center">
     <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">38</div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">요구 기능 항목</div></div>
     <div style="width:1px;background:rgba(255,255,255,.2)"></div>
@@ -213,7 +226,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div style="width:1px;background:rgba(255,255,255,.2)"></div>
     <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">8<span style="font-size:16px">종</span></div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">선택 옵션</div></div>
     <div style="width:1px;background:rgba(255,255,255,.2)"></div>
-    <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">정가</div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">항목별 견적 기준</div></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">60<span style="font-size:16px">%</span></div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">협회 특별 할인</div></div>
   </div>
   <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.45)">함께워크 AX · 2026.10 · 2026.09.30 협의 회의록 기준</div>
 </div>
@@ -278,9 +291,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         <p style="font-size:13.5px">가입비 1만 원은 기부금으로 처리합니다(입금 확인 후 계정 개설). 사이트 내 결제와 기존 홈페이지 연동은 범위에서 제외합니다.</p>
       </div>
       <div class="card" style="border-left:4px solid #7c3aed;border-radius:0 14px 14px 0;padding:18px 22px">
-        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px">정가 기준 · 옵션 분리</div>
+        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px">정가 · 특별가 병기 · 옵션 분리</div>
         <div style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:3px">협회가 취사선택하고 자금을 확보할 수 있도록</div>
-        <p style="font-size:13.5px">협회 요청에 따라 정가 기준으로, 기본 기능과 옵션(RAG·AI 상담·동영상 등)을 항목별로 구분해 제시합니다. 외부 기업 네이밍 후원은 받지 않는 방침입니다.</p>
+        <p style="font-size:13.5px">정가와 협회 특별가를 함께 제시하고, 기본 기능과 옵션(RAG·AI 상담·동영상 등)을 항목별로 구분합니다. 외부 기업 네이밍 후원은 받지 않는 방침입니다.</p>
       </div>
     </div>
   </div>
@@ -588,7 +601,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
       <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid #7c3aed;border-radius:0 14px 14px 0">
         <div style="font-size:22px;font-weight:900;color:#7c3aed;line-height:1;min-width:30px">3</div>
-        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">정가 기준 항목별 견적 · 추가 청구 없음</div><div style="font-size:13px;color:#64748b">기능별 금액과 기간을 미리 명시하고, 범위 밖 요청은 별도 견적으로 사전 합의 후에만 진행합니다.</div></div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">정가·특별가 항목별 제시 · 추가 청구 없음</div><div style="font-size:13px;color:#64748b">기능별 금액과 기간을 미리 명시하고, 범위 밖 요청은 별도 견적으로 사전 합의 후에만 진행합니다.</div></div>
       </div>
       <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid #16a34a;border-radius:0 14px 14px 0">
         <div style="font-size:22px;font-weight:900;color:#16a34a;line-height:1;min-width:30px">4</div>
@@ -607,7 +620,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <p style="font-size:17px;color:rgba(255,255,255,.75);max-width:760px;line-height:1.7">협의 회의록의 요구사항을 38개 기능 항목으로 정의하고 기본 범위와 옵션을 구분하였습니다.<br>이어서 메인·개인 추모관·가입 인증·관리자 화면의 PC·모바일 설계안과 시스템 구성, 구현 기준을 설명합니다.</p>
   <div style="margin-top:36px;display:flex;gap:14px">
     <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">기능사항정의서</div><div style="font-size:20px;font-weight:900;color:#fff">38개 항목 · 기본 31 · 옵션 6 · 제안 1</div></div>
-    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">화면 설계안</div><div style="font-size:20px;font-weight:900;color:#fff">PC 3종 · 스토리보드 1 · 모바일 7종</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">화면 설계안</div><div style="font-size:20px;font-weight:900;color:#fff">PC 3종 · 구성안 1 · 시연 1 · 모바일 7종</div></div>
     <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">기술 사양</div><div style="font-size:20px;font-weight:900;color:#fff">구성도 · 보안 · 성능</div></div>
   </div>
 </div>
@@ -706,14 +719,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       <thead><tr><th style="width:52px">ID</th><th style="width:70px">구분</th><th style="width:150px">기능명</th><th>상세 내용</th><th style="width:56px" class="c">범위</th><th style="width:90px" class="c">근거</th></tr></thead>
       <tbody>
         <tr><td class="mute">F-35</td><td>메인</td><td><b>스크롤 스토리텔링 메인</b></td><td>첫 화면(사진벽·검색·등불) → <b>협회의 말</b> → 등불·한마디 벽(To./From. 카드) → 공지·소개·계좌 순으로 <b>내려가며 읽는 한 편</b>으로 구성. 문구는 내리는 위치에 맞춰 한 줄씩 떠오름. 스크롤 방식은 기본 유지(미끄러지는 스크롤 미적용 — 고령 사용자).</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">제안 · 참고 사례</td></tr>
-        <tr><td class="mute">F-36</td><td>연출</td><td><b>나비 · 꽃잎 연출 (라이트)</b></td><td>여백에만 나는 나비 3~5마리와 꽃잎. <b>등불 = 남긴 말, 나비 = 다녀간 마음</b>(마음 보내기·방문)으로 역할 분리. 글자 위는 지나가지 않음. 개수·켜고 끄기는 관리자 설정.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">제안 · 참고 사례</td></tr>
-        <tr><td class="mute">F-37</td><td>연출</td><td><b>스토리텔링 풀 패키지</b></td><td>협회 전용 나비·꽃 일러스트 제작, 꽃이 피는 짧은 영상 연출, 개인 추모관 진입 연출(0.8초), 마음 보내기 시 나비가 날아오르는 반응, 명절·기일 테마 전환.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">제안 (O8)</td></tr>
+        <tr><td class="mute">F-36</td><td>연출</td><td><b>동행 나비 연출 (라이트)</b></td><td><b>나비 한 마리</b>가 스크롤 위치에 따라 화면 여백을 따라 이동하며 동행(참고 사례와 같은 방식). 글자 영역은 지나가지 않는 고정 경로. 꽃 장식은 정적 1~2개. 켜고 끄기·경로는 관리자 설정.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">제안 · 참고 사례</td></tr>
+        <tr><td class="mute">F-37</td><td>연출</td><td><b>스토리텔링 풀 패키지</b></td><td>협회 전용 나비 일러스트·날개 움직임 고도화, 꽃이 피는 짧은 영상 연출, 개인 추모관 진입 연출(0.8초), 마음 보내기 시 나비가 잠시 내려앉는 반응, 명절·기일 테마 전환.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">제안 (O8)</td></tr>
         <tr><td class="mute">F-38</td><td>접근성</td><td><b>움직임 줄이기</b></td><td>글씨 크기 버튼 옆 '움직임 줄이기' 버튼. 기기의 '동작 줄이기' 설정을 자동으로 존중하고, 저사양 폰에서는 나비·효과를 자동 간소화. 어지러움·배터리 부담 방지.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">제안 · 3-3 고령 유족</td></tr>
       </tbody>
     </table>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
-      <div class="card" style="padding:14px 18px;border-left:4px solid #f59e0b;border-radius:0 14px 14px 0"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:5px">참고 사례 적용 요소</div><div style="font-size:12px;color:#475569;line-height:1.6">내려가며 읽는 한 편 구성 · 감정 도입 문구가 떠오르는 등장 효과 · To./From. 메시지 벽 · 여백을 나는 나비와 꽃잎 · 이름을 누르면 개인 추모관으로 들어가는 흐름</div></div>
-      <div class="card" style="padding:14px 18px;border-left:4px solid #7c3aed;border-radius:0 14px 14px 0"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:5px">본 프로젝트 조정 사항</div><div style="font-size:12px;color:#475569;line-height:1.6">미끄러지는 스크롤 제거(고령 사용자) · 나비는 글자 밖 여백만, 3~5마리 · 움직임 줄이기 버튼 · 기부 유도 대신 '한마디'가 중심 · 사진벽은 식별 불가 1장 유지</div></div>
+      <div class="card" style="padding:14px 18px;border-left:4px solid #f59e0b;border-radius:0 14px 14px 0"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:5px">참고 사례 적용 요소</div><div style="font-size:12px;color:#475569;line-height:1.6">내려가며 읽는 구성 · 문구가 떠오르는 등장 효과 · To./From. 메시지 벽 · 스크롤을 따라 동행하는 나비 한 마리 · 꽃 장식 · 이름을 누르면 개인 추모관으로 들어가는 흐름</div></div>
+      <div class="card" style="padding:14px 18px;border-left:4px solid #7c3aed;border-radius:0 14px 14px 0"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:5px">본 프로젝트 조정 사항</div><div style="font-size:12px;color:#475569;line-height:1.6">미끄러지는 스크롤 제거(고령 사용자) · 나비는 1마리, 글자 밖 여백 경로 고정 · 움직임 줄이기 버튼 · 기부 유도 대신 '한마디'가 중심 · 사진벽은 식별 불가 1장 유지</div></div>
     </div>
   </div>
 </div>
@@ -765,14 +778,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <!-- ════ 17 목업 · 메인 PC ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 01</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 첫 화면 (PC) — 안개 사진벽 · 검색 · 등불 · 나비</div></div>
-    <div style="font-size:12px;color:#64748b">스크롤 시 '협회의 말 → 등불·한마디 벽 → 공지' 순으로 이어짐 (다음 장 구성안 참조)</div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 01</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 첫 화면 (PC) — 안개 사진벽 · 검색 · 등불 · 동행 나비</div></div>
+    <div style="font-size:12px;color:#64748b">스크롤 시 '협회의 말 → 한마디 벽 → 공지' 순으로 이어짐 (다음 장 구성안 · 시연 참조)</div>
   </div>
   <div style="padding:18px 40px;display:flex;gap:18px;align-items:flex-start">
     <div class="browser" style="width:820px;height:540px;flex-shrink:0">
       <div class="browser-bar"><i style="background:#fca5a5"></i><i style="background:#fcd34d"></i><i style="background:#86efac"></i><div class="browser-url">https://추모관주소.or.kr</div></div>
       <div style="height:510px;position:relative;background:#fffbf5;overflow:hidden">
-        <div style="height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:rgba(255,255,255,.92);border-bottom:1px solid #f1e9dc;position:relative;z-index:4">
+        <div style="height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:rgba(255,255,255,.92);border-bottom:1px solid #f1e9dc;position:relative;z-index:5">
           <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 0 10px rgba(251,191,36,.6)"></div><div style="font-size:13px;font-weight:900;color:#0f172a">온라인 추모관</div><div style="font-size:9px;color:#94a3b8;margin-left:4px">자살유족협회</div></div>
           <div style="display:flex;gap:16px;align-items:center;font-size:11.5px;font-weight:700;color:#334155"><span>추모관 소개</span><span>공지사항</span><span>한마디 쓰기</span><span style="color:#b45309">로그인</span><span style="background:#0f172a;color:#fff;padding:4px 10px;border-radius:100px;font-size:10.5px">가 글씨 크게</span><span style="border:1px solid #cbd5e1;color:#475569;padding:3px 9px;border-radius:100px;font-size:10px">움직임 줄이기</span></div>
         </div>
@@ -783,19 +796,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
           <div class="lan s" style="left:124px;top:66px;animation-delay:-2.1s"><b>익명</b></div>
           <div class="lan" style="left:150px;top:250px;animation-delay:-1.3s"><b>박○○님</b></div>
           <div class="lan s" style="left:70px;top:310px;animation-delay:-3s"><b>한○○님</b></div>
-          <div class="lan" style="right:56px;top:120px;animation-delay:-.9s"><b>이○○님</b></div>
-          <div class="lan s" style="right:146px;top:54px;animation-delay:-2.6s"><b>최○○님</b></div>
+          <div class="lan" style="right:56px;top:140px;animation-delay:-.9s"><b>이○○님</b></div>
+          <div class="lan s" style="right:150px;top:72px;animation-delay:-2.6s"><b>최○○님</b></div>
           <div class="lan" style="right:118px;top:262px;animation-delay:-1.8s"><b>정○○님</b></div>
           <div class="lan s" style="right:44px;top:318px;animation-delay:-.2s"><b>익명</b></div>
-          <div class="bf" style="left:250px;top:60px"><i></i><i></i></div>
-          <div class="bf v" style="right:250px;top:300px;animation-delay:-2.2s"><i></i><i></i></div>
-          <div class="bf s p" style="left:40px;top:230px;animation-delay:-3.4s"><i></i><i></i></div>
-          <div class="bf s b" style="right:40px;top:200px;animation-delay:-1.1s"><i></i><i></i></div>
-          <div class="petal" style="left:210px;top:120px;animation-delay:-2s"></div>
-          <div class="petal" style="right:300px;top:40px;animation-delay:-5s"></div>
+          <svg class="fpath" viewBox="0 0 820 388" preserveAspectRatio="none"><path d="M 812 -8 C 780 50, 720 70, 672 94" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="4 6" opacity=".6"/></svg>
+          <svg class="bfly hover" viewBox="0 0 64 56" style="width:44px;height:38px;left:640px;top:76px;"><defs><linearGradient id="bwA1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA1)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB1)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA1)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB1)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;text-align:center;padding-bottom:30px">
-            <div style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:8px">자살유족협회 온라인 추모관</div>
-            <div style="font-size:24px;font-weight:900;color:#1f2937;line-height:1.3;margin-bottom:16px">혼자가 아닙니다.<br>여기, 함께 기억하는 사람들이 있습니다</div>
+            <div class="brush" style="font-size:19px;color:#b45309;margin-bottom:4px">그리운 이름을 불러 주세요</div>
+            <div class="serif" style="font-size:26px;font-weight:800;color:#1f2937;line-height:1.35;margin-bottom:16px">혼자가 아닙니다.<br>여기, 함께 기억하는 사람들이 있습니다</div>
             <div class="srch" style="width:420px;height:44px;font-size:13px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름을 검색하세요</span><b style="width:74px;height:32px;font-size:12px">검색</b></div>
             <div style="font-size:10px;color:#78350f;margin-top:10px">이름을 검색하면 추모관으로 이동합니다 · 등불을 누르면 남겨진 글을 읽을 수 있습니다</div>
           </div>
@@ -805,29 +814,29 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         </div>
         <div style="height:76px;position:relative;background:linear-gradient(180deg,#fff7e6,#fffbf5);padding:14px 26px 0;overflow:hidden">
           <div style="font-size:9px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:5px">협회의 말</div>
-          <div style="font-size:20px;font-weight:900;color:#1f2937;line-height:1.3">돌아가신 분이 이 땅에서 <span style="color:#d97706">단 100g도</span> 사라지지 않도록</div>
-          <div class="bf s v" style="right:60px;top:16px;animation-delay:-1.5s"><i></i><i></i></div>
+          <div class="serif" style="font-size:20px;font-weight:800;color:#1f2937;line-height:1.3">돌아가신 분이 이 땅에서 <span style="color:#d97706">단 100g도</span> 사라지지 않도록</div>
+          <svg viewBox="0 0 60 60" style="position:absolute;right:36px;top:10px;width:46px;height:46px;z-index:1;opacity:.85"><defs><radialGradient id="flp" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#fff1f2"/><stop offset="1" stop-color="#fb7185"/></radialGradient></defs><g fill="url(#flp)" opacity=".92"><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(0 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(72 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(144 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(216 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(288 30 30)"/></g><circle cx="30" cy="30" r="6.5" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/></svg>
           <div style="position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(180deg,rgba(255,251,245,0),#fffbf5)"></div>
         </div>
       </div>
-      <div style="position:absolute;left:236px;top:118px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">1</div><div style="position:absolute;left:632px;top:286px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">2</div><div style="position:absolute;left:92px;top:92px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">3</div><div style="position:absolute;left:274px;top:124px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">4</div><div style="position:absolute;left:446px;top:404px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">5</div>
+      <div style="position:absolute;left:236px;top:118px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">1</div><div style="position:absolute;left:632px;top:286px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">2</div><div style="position:absolute;left:92px;top:92px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">3</div><div style="position:absolute;left:700px;top:100px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">4</div><div style="position:absolute;left:446px;top:404px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">5</div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;gap:9px">
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">1</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">안개 사진벽 — 정적 이미지 1장</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">동의 사진 100장을 안개·흐림 처리해 한 장으로. 식별 불가, 클릭 없음, 회원 데이터와 연결하지 않음.</div></div></div>
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">중앙 검색바</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">고인 이름 → 개인 추모관. 동명이인은 목록 선택. 큰 입력칸과 큰 버튼.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">중앙 검색바 · 명조 서체 제목</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">고인 이름 → 개인 추모관. 제목은 참고 사례처럼 붓글씨 느낌의 안내 문구와 명조 서체로 구성합니다.</div></div></div>
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">3</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">등불: 방명록 글</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">공개로 작성한 글이 등불 형태로 표시됩니다. 작성자명이 함께 표시되고, 클릭하면 내용을 볼 수 있습니다.</div></div></div>
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">4</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">나비: 방문·공감 표시</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">'마음 보내기'와 방문이 나비 요소로 표시됩니다. 글자 영역을 피해 여백에만 3~5마리를 배치합니다.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">4</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">동행 나비 — 한 마리</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">화면 오른쪽 위에서 내려와 자리를 잡고, 스크롤을 내리면 점선 경로를 따라 함께 이동합니다. 글자 영역은 지나가지 않습니다.</div></div></div>
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">5</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">내려서 읽기</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">첫 화면 하단에 '협회의 말' 영역 일부를 노출해 스크롤을 유도합니다. 공지·계좌는 마지막 구간에 배치합니다.</div></div></div>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>색감:</b> 크림·금빛 계열 바탕에 안개 처리. 움직임은 '움직임 줄이기' 버튼으로 끌 수 있고, 저사양 기기에서는 자동으로 줄입니다.</div>
     </div>
   </div>
 </div>
 
-<!-- ════ 18 목업 · 메인 스크롤 스토리보드 ════ -->
+<!-- ════ 18 목업 · 메인 스크롤 구성안 ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 02</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 페이지 스크롤 구성안 (4단계)</div></div>
-    <div style="font-size:12px;color:#64748b">스크롤 위치에 따라 문구가 순차 표시되며, 나비 요소는 여백에만 배치 · 기본 스크롤 방식 유지</div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 02</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 페이지 스크롤 구성안 (4단계) — 나비 한 마리가 끝까지 동행</div></div>
+    <div style="font-size:12px;color:#64748b">점선 = 나비 이동 경로 · 글자 영역 밖 여백으로만 · 기본 스크롤 방식 유지</div>
   </div>
   <div style="padding:14px 40px 0">
     <div style="position:relative;height:30px;margin:0 129px 8px">
@@ -839,6 +848,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><i style="width:16px;height:16px;border-radius:50%;background:#fb7185;border:3px solid #fff;box-shadow:0 0 0 1px #fb7185;display:block"></i><span style="font-size:10px;font-weight:800;color:#be123c">공지 · 협회 · 계좌 · 100%</span></div>
       </div>
     </div>
+    <div style="position:relative">
     <div style="display:flex;gap:22px;justify-content:space-between">
       <!-- ① 첫 화면 -->
       <div class="sb">
@@ -846,14 +856,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
           <div class="wall" data-cols="8" data-rows="8" style="grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)"></div>
           <div class="fog"></div><div class="fog2"></div>
           <div style="position:absolute;top:0;left:0;right:0;height:34px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:9px;font-weight:800;color:#0f172a;z-index:4;border-bottom:1px solid #f1e9dc"><span style="display:flex;align-items:center;gap:5px"><i style="width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);display:block"></i>온라인 추모관</span><span style="color:#b45309">로그인</span></div>
-          <div class="lan s" style="left:18px;top:86px;animation-delay:-1s"><b>김○○님</b></div>
-          <div class="lan s" style="right:22px;top:120px;animation-delay:-2.2s"><b>익명</b></div>
+          <div class="lan s" style="left:18px;top:96px;animation-delay:-1s"><b>김○○님</b></div>
+          <div class="lan s" style="right:22px;top:150px;animation-delay:-2.2s"><b>익명</b></div>
           <div class="lan s" style="left:34px;top:300px;animation-delay:-.5s"><b>박○○님</b></div>
-          <div class="bf s" style="right:30px;top:60px"><i></i><i></i></div>
-          <div class="bf s v" style="left:60px;top:220px;animation-delay:-2.8s"><i></i><i></i></div>
           <div style="position:absolute;inset:34px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 18px 40px;z-index:2">
-            <div style="font-size:7.5px;font-weight:800;letter-spacing:.12em;color:#b45309;margin-bottom:6px">자살유족협회 온라인 추모관</div>
-            <div style="font-size:14px;font-weight:900;color:#1f2937;line-height:1.35;margin-bottom:12px">혼자가 아닙니다.<br>함께 기억하는<br>사람들이 있습니다</div>
+            <div class="brush" style="font-size:14px;color:#b45309;margin-bottom:4px">그리운 이름을 불러 주세요</div>
+            <div class="serif" style="font-size:15px;font-weight:800;color:#1f2937;line-height:1.4;margin-bottom:12px">혼자가 아닙니다.<br>함께 기억하는<br>사람들이 있습니다</div>
             <div class="srch" style="width:100%;height:34px;font-size:10px;padding-left:12px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름</span><b style="width:46px;height:24px;font-size:9.5px">검색</b></div>
           </div>
           <div class="scroll-cue" style="bottom:14px;z-index:3"><i></i>내려서 읽기</div>
@@ -862,75 +870,158 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       <!-- ② 협회의 말 -->
       <div class="sb" style="background:linear-gradient(180deg,#fff7e6 0%,#fffbf5 60%,#fdf2f8 100%)">
         <div style="position:absolute;right:-30px;top:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.22),rgba(251,191,36,0) 70%)"></div>
-        <div class="bf v" style="right:26px;top:58px"><i></i><i></i></div>
-        <div class="bf s p" style="left:22px;top:296px;animation-delay:-2s"><i></i><i></i></div>
-        <div class="bf s" style="right:40px;top:330px;animation-delay:-4s"><i></i><i></i></div>
-        <div class="petal" style="left:44px;top:60px"></div><div class="petal" style="right:62px;top:200px;animation-delay:-3s"></div><div class="petal" style="left:200px;top:330px;animation-delay:-5s"></div>
-        <div style="padding:46px 24px 0;position:relative;z-index:2">
-          <div style="font-size:8.5px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:14px">협회의 말</div>
-          <div style="font-size:21px;font-weight:900;color:#1f2937;line-height:1.42">돌아가신 분이<br>이 땅에서<br><span style="color:#d97706">단 100g도</span><br>사라지지 않도록</div>
-          <div style="width:28px;height:2px;background:#f59e0b;margin:16px 0"></div>
-          <div style="font-size:10.5px;color:#475569;line-height:1.65">명절과 생일에 납골당에 가듯<br>여기 들러 한 줄을 남겨 주세요.<br>우는 것 말고도<br>애도하는 방법이 있습니다.</div>
-          <div style="font-size:9px;color:#94a3b8;margin-top:18px;line-height:1.5">함께 기억하는 가족 <b style="color:#b45309">128</b> · 남겨진 한마디 <b style="color:#b45309">1,284</b></div>
+        <div style="padding:40px 24px 0;position:relative;z-index:2">
+          <div style="font-size:8.5px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:12px">협회의 말</div>
+          <div class="serif" style="font-size:13.5px;font-weight:700;color:#374151;line-height:1.7;margin-bottom:12px">보고 싶은 마음은<br>시간이 지나도<br>줄어들지 않습니다.</div>
+          <div class="serif" style="font-size:19px;font-weight:800;color:#1f2937;line-height:1.42">돌아가신 분이<br>이 땅에서<br><span style="color:#d97706">단 100g도</span><br>사라지지 않도록</div>
+          <div style="width:28px;height:2px;background:#f59e0b;margin:14px 0"></div>
+          <div style="font-size:10.5px;color:#475569;line-height:1.65">명절과 생일에 납골당에 가듯<br>여기 들러 한 줄을 남겨 주세요.</div>
         </div>
+        <svg viewBox="0 0 60 60" style="position:absolute;right:18px;bottom:44px;width:64px;height:64px;z-index:1;"><defs><radialGradient id="flp" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#fff1f2"/><stop offset="1" stop-color="#fb7185"/></radialGradient></defs><g fill="url(#flp)" opacity=".92"><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(0 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(72 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(144 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(216 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(288 30 30)"/></g><circle cx="30" cy="30" r="6.5" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/></svg>
         <div style="position:absolute;left:24px;right:24px;bottom:14px;font-size:8.5px;color:#b45309;background:rgba(255,255,255,.75);border-radius:8px;padding:5px 9px;z-index:2">↓ 스크롤에 따라 한 줄씩 표시</div>
       </div>
       <!-- ③ 등불 · 한마디 벽 -->
       <div class="sb" style="background:#fffbf5">
         <div style="padding:16px 14px 0">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:12px;font-weight:900;color:#0f172a">남겨진 한마디 <span style="color:#94a3b8;font-weight:600;font-size:10px">1,284</span></div><span style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-size:9px;font-weight:800;padding:5px 10px;border-radius:100px">한마디 쓰기</span></div>
-          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 김○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.02</div></div>
-            <div style="font-size:10.5px;color:#1f2937;line-height:1.55">엄마, 추석에 송편 빚다가 또 생각났어. 거기선 아프지 않지?</div>
-            <div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 막내딸</div>
-          </div>
-          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)">
-            <div class="bf s p" style="right:10px;top:-7px;animation:none"><i></i><i></i></div>
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 박○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.01</div></div>
-            <div style="font-size:10.5px;color:#1f2937;line-height:1.55">형, 거기서도 낚시 잘 되지? 보고 싶다.</div>
-            <div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 동생</div>
-          </div>
-          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:10px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 모두에게</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">09.28</div></div>
-            <div style="font-size:10.5px;color:#1f2937;line-height:1.55">같은 마음으로 지나가다 한 줄 남깁니다.</div>
-            <div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 익명</div>
-          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="serif" style="font-size:13px;font-weight:800;color:#0f172a">남겨진 한마디 <span style="color:#94a3b8;font-weight:600;font-size:10px;font-family:inherit">1,284</span></div><span style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-size:9px;font-weight:800;padding:5px 10px;border-radius:100px">한마디 쓰기</span></div>
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 김○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.02</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">엄마, 추석에 송편 빚다가 또 생각났어. 거기선 아프지 않지?</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 막내딸</div></div><div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 박○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.01</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">형, 거기서도 낚시 잘 되지? 보고 싶다.</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 동생</div></div><div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:10px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 모두에게</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">09.28</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">같은 마음으로 지나가다 한 줄 남깁니다.</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 익명</div></div>
           <div style="display:flex;gap:6px;justify-content:center"><span class="pill pill-a">더 보기</span><span class="pill pill-s">마음 보내기 ♡ 24</span></div>
         </div>
       </div>
-      <!-- ④ 공지 · 협회 · 계좌 -->
+      <!-- ④ 공지 · FAQ · 계좌 -->
       <div class="sb" style="background:#fffbf5">
-        <div style="padding:16px 14px 0;display:flex;flex-direction:column;gap:9px">
-          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:11px;font-weight:900;color:#0f172a">공지사항</div><div style="font-size:8.5px;color:#94a3b8">더보기 ›</div></div>
-            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:4px 0;border-bottom:1px solid #f8f4ec"><span><span class="pill pill-a" style="margin-right:5px">공지</span>추모관 이용 안내</span><span style="color:#94a3b8">10.02</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:4px 0;border-bottom:1px solid #f8f4ec"><span><span class="pill pill-b" style="margin-right:5px">행사</span>가을 합동 추모의 밤</span><span style="color:#94a3b8">09.28</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:4px 0"><span><span class="pill pill-s" style="margin-right:5px">안내</span>사진 보관 동의 절차</span><span style="color:#94a3b8">09.15</span></div>
+        <div style="padding:16px 14px 0;display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:9px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><div style="font-size:11px;font-weight:900;color:#0f172a">공지사항</div><div style="font-size:8.5px;color:#94a3b8">더보기 ›</div></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:3px 0;border-bottom:1px solid #f8f4ec"><span><span class="pill pill-a" style="margin-right:5px">공지</span>추모관 이용 안내</span><span style="color:#94a3b8">10.02</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:3px 0"><span><span class="pill pill-b" style="margin-right:5px">행사</span>가을 합동 추모의 밤</span><span style="color:#94a3b8">09.28</span></div>
           </div>
-          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px">
-            <div style="font-size:11px;font-weight:900;color:#0f172a;margin-bottom:4px">협회 소개</div>
-            <div style="font-size:9.5px;color:#475569;line-height:1.5">자살유족협회는 남겨진 가족이 서로를 지탱하며 살아갈 수 있도록 함께합니다.</div>
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:9px 12px">
+            <div style="font-size:11px;font-weight:900;color:#0f172a;margin-bottom:4px">자주 묻는 질문</div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:4px 0;border-bottom:1px solid #f8f4ec"><span>가입은 어떻게 하나요?</span><span style="color:#b45309">▾</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:4px 0;border-bottom:1px solid #f8f4ec"><span>사진은 누가 올릴 수 있나요?</span><span style="color:#b45309">▾</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#334155;padding:4px 0"><span>글을 지우면 어떻게 되나요?</span><span style="color:#b45309">▾</span></div>
           </div>
-          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:9px 12px;font-size:9.5px;color:#78350f;line-height:1.5"><b>기부금 계좌</b><br>○○은행 000-000-000000 (자살유족협회)<br><span style="color:#b45309">가입비 1만 원은 기부금으로 처리됩니다</span></div>
-          <div style="display:flex;gap:6px;align-items:center"><div style="flex:1;height:24px;border:1px dashed #cbd5e1;border-radius:6px;font-size:8px;color:#94a3b8;display:flex;align-items:center;justify-content:center">협회 로고</div><div style="flex:1;height:24px;border:1px dashed #cbd5e1;border-radius:6px;font-size:8px;color:#94a3b8;display:flex;align-items:center;justify-content:center">함께워크 AX</div></div>
-          <div style="font-size:8px;color:#94a3b8;text-align:center">개인정보처리방침 · 이용약관 · 문의</div>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:8px 12px;font-size:9.5px;color:#78350f;line-height:1.5"><b>기부금 계좌</b> ○○은행 000-000-000000 (자살유족협회)<br><span style="color:#b45309">가입비 1만 원은 기부금으로 처리됩니다</span></div>
+          <div style="display:flex;gap:6px;align-items:center"><div style="flex:1;height:22px;border:1px dashed #cbd5e1;border-radius:6px;font-size:8px;color:#94a3b8;display:flex;align-items:center;justify-content:center">협회 로고</div><div style="flex:1;height:22px;border:1px dashed #cbd5e1;border-radius:6px;font-size:8px;color:#94a3b8;display:flex;align-items:center;justify-content:center">함께워크 AX</div></div>
         </div>
-        <div class="bf s b" style="left:16px;bottom:16px;animation-delay:-1.6s"><i></i><i></i></div>
         <div style="position:absolute;right:12px;bottom:12px;width:30px;height:30px;border-radius:50%;background:#0f172a;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(15,23,42,.25)">↑</div>
       </div>
     </div>
+    <svg class="fpath" viewBox="0 0 1200 412" preserveAspectRatio="none"><path d="M 206 60 C 150 180, 270 290, 346 250 C 470 190, 700 60, 850 140 C 930 190, 900 360, 990 336" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="5 7" opacity=".65"/></svg>
+    <svg class="bfly hover" viewBox="0 0 64 56" style="width:36px;height:31px;left:188px;top:46px;"><defs><linearGradient id="bwA2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA2)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB2)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA2)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB2)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><svg class="bfly hover" viewBox="0 0 64 56" style="width:36px;height:31px;left:330px;top:236px;animation-delay:-1.2s"><defs><linearGradient id="bwA3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA3)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB3)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA3)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB3)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><svg class="bfly hover" viewBox="0 0 64 56" style="width:36px;height:31px;left:834px;top:126px;animation-delay:-2.1s"><defs><linearGradient id="bwA4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA4)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB4)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA4)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB4)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><svg class="bfly hover" viewBox="0 0 64 56" style="width:36px;height:31px;left:974px;top:322px;animation-delay:-.6s"><defs><linearGradient id="bwA5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA5)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB5)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA5)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB5)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:10px">
-      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">① 첫 화면</b> — 사진벽·검색·등불 표시. 나비는 여백에만 배치하고 하단에 스크롤 안내를 둡니다.</div>
-      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">② 협회의 말</b> — 스크롤 위치에 맞춰 문구가 한 줄씩 표시됩니다. 꽃잎·나비는 글자 영역 밖에만 배치합니다.</div>
-      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">③ 등불·한마디 벽</b> — To./From. 카드 목록. 카드를 누르면 전문, 이름을 누르면 개인 추모관으로 이동합니다.</div>
-      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">④ 공지·협회·계좌</b> — 관리자가 편집하는 안내 영역. '맨 위로' 버튼으로 첫 화면 이동.</div>
+      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">① 첫 화면</b> — 사진벽·검색·등불. 나비가 오른쪽 위에 자리를 잡고, 하단의 스크롤 안내가 다음 구간을 알립니다.</div>
+      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">② 협회의 말</b> — 스크롤 위치에 맞춰 문구가 한 줄씩 표시됩니다. 나비는 글자 왼쪽 여백으로 내려오고, 꽃 장식은 정적입니다.</div>
+      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">③ 등불·한마디 벽</b> — To./From. 카드 목록. 나비가 카드 옆에 잠시 머뭅니다. 이름을 누르면 개인 추모관으로 이동합니다.</div>
+      <div style="font-size:11.5px;color:#64748b;line-height:1.5"><b style="color:#0f172a">④ 공지·FAQ·계좌</b> — 관리자가 편집하는 안내 영역. '맨 위로'를 누르면 나비도 처음 자리로 돌아갑니다.</div>
     </div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <span class="pill pill-s" style="font-size:11px;padding:5px 11px">움직임 줄이기 버튼 (글씨 크기 옆)</span>
-      <span class="pill pill-s" style="font-size:11px;padding:5px 11px">기기의 '동작 줄이기' 설정 자동 존중</span>
-      <span class="pill pill-s" style="font-size:11px;padding:5px 11px">저사양 폰은 나비·효과 자동 간소화</span>
+      <span class="pill pill-s" style="font-size:11px;padding:5px 11px">나비는 1마리 · 경로는 글자 밖 여백으로 고정</span>
+      <span class="pill pill-s" style="font-size:11px;padding:5px 11px">움직임 줄이기 버튼 · 기기 '동작 줄이기' 설정 자동 존중</span>
+      <span class="pill pill-s" style="font-size:11px;padding:5px 11px">저사양 폰은 나비 정지 · 효과 간소화</span>
       <span class="pill pill-s" style="font-size:11px;padding:5px 11px">미끄러지는 스크롤 효과 없음 — 기본 스크롤 유지</span>
-      <span class="pill pill-a" style="font-size:11px;padding:5px 11px">풀 패키지(O8): 전용 일러스트 · 꽃 피는 영상 · 진입 연출 · 마음 보내기 나비 반응</span>
+      <span class="pill pill-a" style="font-size:11px;padding:5px 11px">풀 패키지(O8): 전용 나비 일러스트 · 꽃 피는 영상 · 진입 연출 · 마음 보내기 반응</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 18b 목업 · 스크롤 시연 ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 03</span><div style="font-size:19px;font-weight:900;color:#0f172a">스크롤 시연 — 화면 안에서 직접 내려 보세요</div></div>
+    <div style="font-size:12px;color:#64748b">마우스 휠·터치로 스크롤하면 나비가 따라오고 문구가 떠오릅니다 (PDF에서는 첫 화면 정지 상태)</div>
+  </div>
+  <div style="padding:18px 40px;display:flex;gap:20px;align-items:flex-start">
+    <!-- PC 시연 -->
+    <div class="browser" style="width:600px;height:500px;flex-shrink:0">
+      <div class="browser-bar"><i style="background:#fca5a5"></i><i style="background:#fcd34d"></i><i style="background:#86efac"></i><div class="browser-url">https://추모관주소.or.kr — 휠로 내려 보세요</div></div>
+      <div class="demo" style="height:470px">
+        <div class="scr">
+          <section style="position:relative;height:430px;overflow:hidden">
+            <div class="wall" data-cols="12" data-rows="7" style="grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(7,1fr)"></div>
+            <div class="fog"></div><div class="fog2"></div>
+            <div style="position:absolute;top:0;left:0;right:0;height:38px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:800;color:#0f172a;z-index:4;border-bottom:1px solid #f1e9dc"><span style="display:flex;align-items:center;gap:6px"><i style="width:13px;height:13px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);display:block"></i>온라인 추모관</span><span style="display:flex;gap:12px;color:#334155"><span>추모관 소개</span><span>공지</span><span>한마디 쓰기</span><span style="color:#b45309">로그인</span></span></div>
+            <div class="lan s" style="left:40px;top:120px;animation-delay:-1s"><b>김○○님</b></div>
+            <div class="lan s" style="left:90px;top:300px;animation-delay:-2.4s"><b>박○○님</b></div>
+            <div class="lan s" style="right:60px;top:280px;animation-delay:-.6s"><b>이○○님</b></div>
+            <div style="position:absolute;inset:38px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px 30px;z-index:2">
+              <div class="brush" style="font-size:17px;color:#b45309;margin-bottom:4px">그리운 이름을 불러 주세요</div>
+              <div class="serif" style="font-size:21px;font-weight:800;color:#1f2937;line-height:1.4;margin-bottom:14px">혼자가 아닙니다.<br>여기, 함께 기억하는 사람들이 있습니다</div>
+              <div class="srch" style="width:320px;height:38px;font-size:11px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름을 검색하세요</span><b style="width:60px;height:28px;font-size:11px">검색</b></div>
+            </div>
+            <div class="scroll-cue" style="bottom:12px;z-index:3"><i></i>내려서 읽기</div>
+          </section>
+          <section style="position:relative;background:linear-gradient(180deg,#fff7e6,#fffbf5 60%,#fdf2f8);padding:56px 64px 60px;overflow:hidden">
+            <svg viewBox="0 0 60 60" style="position:absolute;right:50px;top:70px;width:70px;height:70px;z-index:1;opacity:.9"><defs><radialGradient id="flp" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#fff1f2"/><stop offset="1" stop-color="#fb7185"/></radialGradient></defs><g fill="url(#flp)" opacity=".92"><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(0 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(72 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(144 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(216 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(288 30 30)"/></g><circle cx="30" cy="30" r="6.5" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/></svg>
+            <div class="rv" style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:14px">협회의 말</div>
+            <div class="rv serif" style="font-size:16px;font-weight:700;color:#374151;line-height:1.75;margin-bottom:16px">보고 싶은 마음은<br>시간이 지나도 줄어들지 않습니다.</div>
+            <div class="rv serif" style="font-size:24px;font-weight:800;color:#1f2937;line-height:1.4">돌아가신 분이 이 땅에서<br><span style="color:#d97706">단 100g도</span> 사라지지 않도록</div>
+            <div class="rv" style="width:30px;height:2px;background:#f59e0b;margin:18px 0"></div>
+            <div class="rv" style="font-size:12.5px;color:#475569;line-height:1.7">명절과 생일에 납골당에 가듯 여기 들러 한 줄을 남겨 주세요.<br>우는 것 말고도 애도하는 방법이 있습니다.</div>
+            <div class="rv" style="font-size:11px;color:#94a3b8;margin-top:22px">함께 기억하는 가족 <b style="color:#b45309">128</b> · 남겨진 한마디 <b style="color:#b45309">1,284</b></div>
+          </section>
+          <section style="padding:40px 64px 30px;background:#fffbf5">
+            <div class="rv" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="serif" style="font-size:16px;font-weight:800;color:#0f172a">남겨진 한마디 <span style="color:#94a3b8;font-weight:600;font-size:11px;font-family:inherit">1,284</span></div><span style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-size:10px;font-weight:800;padding:6px 12px;border-radius:100px">한마디 쓰기</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 김○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.02</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">엄마, 추석에 송편 빚다가 또 생각났어. 거기선 아프지 않지?</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 막내딸</div></div><div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 박○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.01</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">형, 거기서도 낚시 잘 되지? 보고 싶다.</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 동생</div></div><div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 이○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">09.30</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">아버지, 손주가 걸음마를 뗐어요. 보셨죠?</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 큰아들</div></div><div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 모두에게</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">09.28</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">같은 마음으로 지나가다 한 줄 남깁니다.</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 익명</div></div>
+            </div>
+          </section>
+          <section style="padding:24px 64px 70px;background:#fff">
+            <div class="rv" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="background:#fffbf5;border:1px solid #f1e9dc;border-radius:12px;padding:12px 14px"><div style="font-size:11.5px;font-weight:900;color:#0f172a;margin-bottom:6px">공지사항</div><div style="font-size:10.5px;color:#334155;padding:3px 0;border-bottom:1px solid #f8f4ec">추모관 이용 안내</div><div style="font-size:10.5px;color:#334155;padding:3px 0">가을 합동 추모의 밤</div></div>
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:10.5px;color:#78350f;line-height:1.55"><b>기부금 계좌</b><br>○○은행 000-000-000000 (자살유족협회)<br>가입비 1만 원은 기부금으로 처리됩니다</div>
+            </div>
+            <div class="rv" style="margin-top:12px;display:flex;gap:8px;align-items:center;font-size:9px;color:#94a3b8"><div style="height:22px;padding:0 10px;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center">협회 로고</div><div style="height:22px;padding:0 10px;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center">함께워크 AX</div><span style="margin-left:auto">개인정보처리방침 · 이용약관</span></div>
+          </section>
+        </div>
+        <svg class="bfly " viewBox="0 0 64 56" style="width:46px;height:40px;"><defs><linearGradient id="bwA6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA6)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB6)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA6)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB6)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <!-- 모바일 시연 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr">
+      <div class="demo" style="height:100%">
+        <div class="scr">
+          <section style="position:relative;height:420px;overflow:hidden">
+            <div class="wall" data-cols="8" data-rows="8" style="grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)"></div>
+            <div class="fog"></div><div class="fog2"></div>
+            <div class="m-nav" style="position:relative;z-index:4;padding-top:12px;height:48px;background:rgba(255,255,255,.92)"><div class="brand"><i></i>온라인 추모관</div><span class="siren-icon-wrap" data-icon="menu"></span></div>
+            <div class="lan s" style="left:18px;top:110px;animation-delay:-1s"><b>김○○님</b></div>
+            <div class="lan s" style="right:24px;top:290px;animation-delay:-2.2s"><b>익명</b></div>
+            <div style="position:absolute;inset:48px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 18px 30px;z-index:2">
+              <div class="brush" style="font-size:14px;color:#b45309;margin-bottom:4px">그리운 이름을 불러 주세요</div>
+              <div class="serif" style="font-size:15px;font-weight:800;color:#1f2937;line-height:1.4;margin-bottom:12px">혼자가 아닙니다.<br>함께 기억하는<br>사람들이 있습니다</div>
+              <div class="srch" style="width:100%;height:36px;font-size:10.5px;padding-left:12px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름</span><b style="width:50px;height:26px;font-size:10px">검색</b></div>
+            </div>
+            <div class="scroll-cue" style="bottom:12px;z-index:3"><i></i>내려서 읽기</div>
+          </section>
+          <section style="position:relative;background:linear-gradient(180deg,#fff7e6,#fffbf5 60%,#fdf2f8);padding:36px 20px 40px;overflow:hidden">
+            <svg viewBox="0 0 60 60" style="position:absolute;right:14px;bottom:30px;width:52px;height:52px;z-index:1;"><defs><radialGradient id="flp" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#fff1f2"/><stop offset="1" stop-color="#fb7185"/></radialGradient></defs><g fill="url(#flp)" opacity=".92"><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(0 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(72 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(144 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(216 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(288 30 30)"/></g><circle cx="30" cy="30" r="6.5" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/></svg>
+            <div class="rv" style="font-size:8.5px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:10px">협회의 말</div>
+            <div class="rv serif" style="font-size:12.5px;font-weight:700;color:#374151;line-height:1.7;margin-bottom:12px">보고 싶은 마음은<br>시간이 지나도<br>줄어들지 않습니다.</div>
+            <div class="rv serif" style="font-size:18px;font-weight:800;color:#1f2937;line-height:1.42">돌아가신 분이<br>이 땅에서<br><span style="color:#d97706">단 100g도</span><br>사라지지 않도록</div>
+            <div class="rv" style="width:26px;height:2px;background:#f59e0b;margin:14px 0"></div>
+            <div class="rv" style="font-size:10.5px;color:#475569;line-height:1.65">명절과 생일에 납골당에 가듯<br>여기 들러 한 줄을 남겨 주세요.</div>
+          </section>
+          <section style="padding:22px 14px 10px;background:#fffbf5">
+            <div class="rv" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="serif" style="font-size:13px;font-weight:800;color:#0f172a">남겨진 한마디 <span style="color:#94a3b8;font-weight:600;font-size:10px;font-family:inherit">1,284</span></div><span style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-size:9px;font-weight:800;padding:5px 10px;border-radius:100px">한마디 쓰기</span></div>
+            <div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 김○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.02</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">엄마, 추석에 송편 빚다가 또 생각났어. 거기선 아프지 않지?</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 막내딸</div></div><div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 박○○</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">10.01</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">형, 거기서도 낚시 잘 되지? 보고 싶다.</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 동생</div></div><div class="rv" style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative;box-shadow:0 4px 12px rgba(120,53,15,.06)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:9px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div style="font-size:9.5px;font-weight:800;color:#b45309">To. 모두에게</div><div style="margin-left:auto;font-size:8px;color:#94a3b8">09.28</div></div><div style="font-size:10.5px;color:#1f2937;line-height:1.55">같은 마음으로 지나가다 한 줄 남깁니다.</div><div style="font-size:9px;color:#64748b;margin-top:5px;text-align:right">From. 익명</div></div>
+          </section>
+          <section style="padding:14px 14px 70px;background:#fff">
+            <div class="rv" style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:9px 12px;font-size:9.5px;color:#78350f;line-height:1.5"><b>기부금 계좌</b> ○○은행 000-000-000000<br>가입비 1만 원은 기부금으로 처리됩니다</div>
+            <div class="rv" style="margin-top:10px;font-size:8.5px;color:#94a3b8;text-align:center">협회 로고 · 함께워크 AX · 개인정보처리방침</div>
+          </section>
+        </div>
+        <svg class="bfly " viewBox="0 0 64 56" style="width:34px;height:29px;"><defs><linearGradient id="bwA7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA7)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB7)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA7)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB7)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </div></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">동작 방식</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">스크롤 진행률(0~100%)을 읽어 나비의 위치를 미리 정한 경로 위에서 계산합니다. 스크롤을 멈추면 나비도 그 자리에 머물며 날개만 움직입니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">문구 등장</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">각 문단이 화면에 들어오는 순간 아래에서 떠오르듯 표시됩니다. 참고 사례의 감정 도입부와 같은 호흡입니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">경로 규칙</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">글자 영역을 피해 좌우 여백으로만 이동합니다. 화면 폭에 따라 경로를 PC·모바일 각각 정의합니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">꺼지는 조건</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">'움직임 줄이기' 버튼, 기기의 동작 줄이기 설정, 저사양 기기 감지 시 나비는 한 자리에 정지합니다.</div></div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>시연용 간이 구현</b>입니다. 실제 구축 시 나비 일러스트·경로·속도는 디자인 시안 단계에서 확정합니다.</div>
     </div>
   </div>
 </div>
@@ -938,7 +1029,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <!-- ════ 18 목업 · 메인 모바일 + 등불 열람 + 한마디 쓰기 ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 03</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 (모바일) · 등불 열람 · 한마디 쓰기</div></div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 04</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 (모바일) · 등불 열람 · 한마디 쓰기</div></div>
     <div style="font-size:12px;color:#64748b">모바일 기준 3번 이내 터치로 글 작성까지 완료</div>
   </div>
   <div style="padding:22px 40px;display:flex;gap:22px;align-items:flex-start">
@@ -952,21 +1043,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         <div class="lan s" style="right:22px;top:66px;animation-delay:-2.2s"><b>익명</b></div>
         <div class="lan s" style="left:30px;top:180px;animation-delay:-.5s"><b>박○○님</b></div>
         <div class="lan s" style="right:30px;top:176px;animation-delay:-3s"><b>이○○님</b></div>
-        <div class="bf s" style="left:62px;top:24px"><i></i><i></i></div>
-        <div class="bf s p" style="right:46px;top:150px;animation-delay:-2.4s"><i></i><i></i></div>
+        <svg class="bfly hover" viewBox="0 0 64 56" style="width:32px;height:28px;right:16px;top:46px;"><defs><linearGradient id="bwA8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#fdba74"/><stop offset="1" stop-color="#f97316"/></linearGradient><linearGradient id="bwB8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fecdd3"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><g class="wl"><path d="M31 27 C 24 6, 3 2, 4 19 C 5 29, 19 32, 31 27 Z" fill="url(#bwA8)"/><path d="M31 30 C 20 31, 7 43, 13 50 C 19 55, 29 43, 31 30 Z" fill="url(#bwB8)"/></g><g class="wr"><path d="M33 27 C 40 6, 61 2, 60 19 C 59 29, 45 32, 33 27 Z" fill="url(#bwA8)"/><path d="M33 30 C 44 31, 57 43, 51 50 C 45 55, 35 43, 33 30 Z" fill="url(#bwB8)"/></g><ellipse cx="32" cy="30" rx="2.3" ry="9.5" fill="#7c2d12"/><path d="M30 21 C 27 16, 24 14, 21 12 M34 21 C 37 16, 40 14, 43 12" stroke="#7c2d12" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;text-align:center;padding:0 18px">
-          <div style="font-size:8px;font-weight:800;letter-spacing:.12em;color:#b45309;margin-bottom:6px">자살유족협회 온라인 추모관</div>
-          <div style="font-size:15px;font-weight:900;color:#1f2937;line-height:1.3;margin-bottom:12px">혼자가 아닙니다.<br>함께 기억하는 사람들이 있습니다</div>
+          <div class="brush" style="font-size:13px;color:#b45309;margin-bottom:4px">그리운 이름을 불러 주세요</div>
+          <div class="serif" style="font-size:15px;font-weight:800;color:#1f2937;line-height:1.4;margin-bottom:12px">혼자가 아닙니다.<br>함께 기억하는 사람들이 있습니다</div>
           <div class="srch" style="width:100%;height:38px;font-size:11px;padding-left:12px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름</span><b style="width:52px;height:28px;font-size:10.5px">검색</b></div>
         </div>
       </div>
       <div style="position:relative;height:236px;background:linear-gradient(180deg,#fff7e6,#fffbf5);padding:12px 16px 0;overflow:hidden">
         <div style="font-size:9.5px;color:#92400e;text-align:center;margin-bottom:10px">오늘 밝힌 등불 <b>12</b> · 지금까지 <b>1,284</b></div>
         <div style="font-size:8px;font-weight:800;letter-spacing:.12em;color:#b45309;margin-bottom:6px">협회의 말</div>
-        <div style="font-size:15px;font-weight:900;color:#1f2937;line-height:1.45">돌아가신 분이<br>이 땅에서<br><span style="color:#d97706">단 100g도</span><br>사라지지 않도록</div>
+        <div class="serif" style="font-size:15px;font-weight:800;color:#1f2937;line-height:1.45">돌아가신 분이<br>이 땅에서<br><span style="color:#d97706">단 100g도</span><br>사라지지 않도록</div>
         <div style="font-size:9px;color:#64748b;line-height:1.5;margin-top:8px;opacity:.6">명절과 생일에 납골당에 가듯, 여기 들러 한 줄을 남겨 주세요.</div>
-        <div class="bf s v" style="right:18px;top:64px"><i></i><i></i></div>
-        <div class="petal" style="right:40px;top:120px;animation-delay:-3s"></div>
+        <svg viewBox="0 0 60 60" style="position:absolute;right:16px;top:56px;width:44px;height:44px;z-index:1;opacity:.85"><defs><radialGradient id="flp" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#fff1f2"/><stop offset="1" stop-color="#fb7185"/></radialGradient></defs><g fill="url(#flp)" opacity=".92"><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(0 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(72 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(144 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(216 30 30)"/><ellipse cx="30" cy="15" rx="8" ry="13" transform="rotate(288 30 30)"/></g><circle cx="30" cy="30" r="6.5" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/></svg>
         <div style="position:absolute;left:0;right:0;bottom:0;height:76px;background:linear-gradient(180deg,rgba(255,251,245,0),#fffbf5 55%)"></div>
         <div style="position:absolute;left:12px;right:12px;bottom:10px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:12px;padding:11px;font-size:13px;font-weight:900;text-align:center;box-shadow:0 8px 18px rgba(217,119,6,.3)">한마디 쓰기</div>
       </div>
@@ -1016,7 +1105,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <!-- ════ 19 목업 · 개인 추모관 PC ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 04</span><div style="font-size:19px;font-weight:900;color:#0f172a">개인 추모관 (PC) — 대표 사진 · 서브 사진 10장 · 방명록</div></div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 05</span><div style="font-size:19px;font-weight:900;color:#0f172a">개인 추모관 (PC) — 대표 사진 · 서브 사진 10장 · 방명록</div></div>
     <div style="font-size:12px;color:#64748b">회의록 3-3 · 5 기준 · 미니홈피형 구성</div>
   </div>
   <div style="padding:18px 40px;display:flex;gap:18px;align-items:flex-start">
@@ -1098,7 +1187,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <!-- ════ 20 목업 · 개인 추모관 모바일 + 설정 ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 05</span><div style="font-size:19px;font-weight:900;color:#0f172a">개인 추모관 (모바일) · 사진 배치 설정 · 공개 단계 · 글씨 크기</div></div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 06</span><div style="font-size:19px;font-weight:900;color:#0f172a">개인 추모관 (모바일) · 사진 배치 설정 · 공개 단계 · 글씨 크기</div></div>
     <div style="font-size:12px;color:#64748b">유족이 직접 설정하는 화면 — 고령 사용자 기준 큰 글씨·큰 터치 영역</div>
   </div>
   <div style="padding:22px 40px;display:flex;gap:22px;align-items:flex-start">
@@ -1175,7 +1264,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <!-- ════ 21 목업 · 가입 · 인증 ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 06</span><div style="font-size:19px;font-weight:900;color:#0f172a">가입 · 인증 — 간편 인증 · 문자 인증 · 가족관계증명서 · 초대 링크</div></div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 07</span><div style="font-size:19px;font-weight:900;color:#0f172a">가입 · 인증 — 간편 인증 · 문자 인증 · 가족관계증명서 · 초대 링크</div></div>
     <div style="font-size:12px;color:#64748b">회의록 3-4 · 3-7 기준 · 메일 인증 없음</div>
   </div>
   <div style="padding:22px 40px;display:flex;gap:22px;align-items:flex-start">
@@ -1237,7 +1326,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <!-- ════ 22 목업 · 관리자 콘솔 ════ -->
 <div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
   <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
-    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 07</span><div style="font-size:19px;font-weight:900;color:#0f172a">관리자 콘솔 (PC) — 승인 · 등급 지정 · AI 보류 판정 · 휴지통 · 일괄 처리</div></div>
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 08</span><div style="font-size:19px;font-weight:900;color:#0f172a">관리자 콘솔 (PC) — 승인 · 등급 지정 · AI 보류 판정 · 휴지통 · 일괄 처리</div></div>
     <div style="font-size:12px;color:#64748b">총괄 관리자(사무총장) 기준 화면 · 일반 관리자는 위임 그룹만 보임</div>
   </div>
   <div style="padding:18px 40px;display:flex;gap:18px;align-items:flex-start">
@@ -1298,7 +1387,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">승인하면서 등급을 바로 지정</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">단계를 거치지 않고 지역 관리자·가족 회원·일반 관리자(위임 그룹 포함)를 한 번에 지정합니다.</div></div>
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">AI 보류 판정함</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">하루 작성 건 중 AI가 보류한 건만 표시됩니다. 판정 결과(게시·삭제·블랙)는 기록되어 협회의 판정 기준 데이터로 축적됩니다.</div></div>
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">휴지통 · 일괄 처리</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">삭제 사진은 남은 보관 일수와 함께 표시됩니다(동의자만 복구). 수정 요청은 월·금 10시 대기열로 모아 일괄 처리합니다.</div></div>
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">공지·문구·계좌는 관리자가 직접</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">메인 문구, 공지, 기부 계좌, 안내문, 나비 개수와 움직임 설정까지 관리 화면에서 직접 변경할 수 있어 개발사 지원 없이 운영이 가능합니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">공지·문구·계좌는 관리자가 직접</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">메인 문구, 공지, 기부 계좌, 안내문, 동행 나비 켜기/끄기와 경로 설정까지 관리 화면에서 직접 변경할 수 있어 개발사 지원 없이 운영이 가능합니다.</div></div>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>일반 관리자 화면</b>은 같은 구성에서 위임받은 100명 그룹만 표시되며, 최종 승인·삭제는 총괄 관리자에게 상신됩니다.</div>
     </div>
   </div>
@@ -1412,7 +1501,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#64748b;letter-spacing:.06em;margin-bottom:3px">전송 · 보안</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">전 세계 CDN + 전 구간 HTTPS</div><div style="font-size:11px;color:#64748b">사진·화면을 가까운 서버에서 전달, 명절 트래픽 자동 흡수</div></div>
         </div>
         <div style="text-align:center;color:#94a3b8;font-size:14px;line-height:1">▼</div>
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#2563eb;letter-spacing:.06em;margin-bottom:3px">프론트엔드 (화면)</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">HTML5 · CSS3 · JavaScript 반응형 웹 — 프레임워크 없이 가볍게</div><div style="font-size:11px;color:#475569">글씨 크기 3단계 · 이미지 지연 로딩 · 스크롤 등장 효과(IntersectionObserver) · 등불·나비는 CSS 애니메이션으로 저사양 휴대폰에서도 부드럽게 · 기기의 '동작 줄이기' 설정 존중 · 접근성(ARIA) 라벨</div></div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#2563eb;letter-spacing:.06em;margin-bottom:3px">프론트엔드 (화면)</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">HTML5 · CSS3 · JavaScript 반응형 웹 — 프레임워크 없이 가볍게</div><div style="font-size:11px;color:#475569">글씨 크기 3단계 · 이미지 지연 로딩 · 스크롤 등장 효과(IntersectionObserver) · 등불은 CSS 애니메이션, 동행 나비는 스크롤 진행률 기반 이동(requestAnimationFrame) · 기기의 '동작 줄이기' 설정 존중 · 접근성(ARIA) 라벨</div></div>
         <div style="text-align:center;color:#94a3b8;font-size:14px;line-height:1">▼</div>
         <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:8px">
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#16a34a;letter-spacing:.06em;margin-bottom:3px">백엔드 (API 서버)</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">Node.js 20 + TypeScript 서버리스 함수 (Netlify Functions)</div><div style="font-size:11px;color:#475569">REST API · 요청 검증 · 역할 기반 권한 검사 · 감사 로그. 상시 서버 방식이 아닌 요청 시 실행 구조로 유휴 비용이 없음</div></div>
@@ -1453,7 +1542,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
       <div class="card" style="padding:16px 16px;border-top:4px solid #2563eb">
         <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="zap"></span> 성능 목표</div>
-        <div style="font-size:11.5px;color:#475569;line-height:1.65">· 모바일 Lighthouse 성능 90점 이상<br>· 첫 화면 표시 2초 이내 (4G 기준)<br>· 메인 사진벽 1장 150KB 이하로 최적화<br>· 사진 WebP 자동 변환 · 3단계 크기 · 지연 로딩<br>· CDN 캐시로 반복 방문 시 즉시 표시<br>· 동시 접속 급증(명절) 자동 확장, 상한 없음<br>· 등불·나비 애니메이션 60fps, 저사양 기기 자동 간소화</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.65">· 모바일 Lighthouse 성능 90점 이상<br>· 첫 화면 표시 2초 이내 (4G 기준)<br>· 메인 사진벽 1장 150KB 이하로 최적화<br>· 사진 WebP 자동 변환 · 3단계 크기 · 지연 로딩<br>· CDN 캐시로 반복 방문 시 즉시 표시<br>· 동시 접속 급증(명절) 자동 확장, 상한 없음<br>· 등불·동행 나비 애니메이션 60fps, 저사양 기기 자동 간소화</div>
       </div>
       <div class="card" style="padding:16px 16px;border-top:4px solid #f59e0b">
         <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="hand"></span> 접근성 · 사용성</div>
@@ -1476,11 +1565,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="cov-lan" style="width:22px;height:30px;right:200px;top:140px;left:auto;animation-delay:-1.6s"></div>
   <div class="cov-lan" style="width:14px;height:19px;right:130px;top:330px;left:auto;animation-delay:-.4s;opacity:.6"></div>
   <div class="tag tag-white" style="margin-bottom:22px">PART 3 · 견적 제안</div>
-  <h1 style="font-size:50px;font-weight:900;line-height:1.12;color:#fff;margin-bottom:22px">견적 제안<br><span style="color:#fcd34d">정가 기준 · 항목별 금액과 기간 · 운영비</span></h1>
-  <p style="font-size:17px;color:rgba(255,255,255,.75);max-width:780px;line-height:1.7">협회 요청에 따라 할인가가 아닌 정가로 산정하였습니다. 소규모 SI 기업 기준 시장 단가를 적용해 기본 구축 14개 항목과 옵션 8종을 항목별로 구분하였으며, 월 운영비(인프라 실비 + 유지보수), 일회성 실비, 12주 추진 일정, 향후 확장 계획을 포함합니다.</p>
+  <h1 style="font-size:50px;font-weight:900;line-height:1.12;color:#fff;margin-bottom:22px">견적 제안<br><span style="color:#fcd34d">정가와 협회 특별가 · 운영비</span></h1>
+  <p style="font-size:17px;color:rgba(255,255,255,.75);max-width:800px;line-height:1.7">소규모 SI 표준 공수와 등급 단가로 정가를 산정하고, 비영리 단체 지원·선례 사업의 레퍼런스 가치·기존 플랫폼 모듈 재사용 절감분을 반영해 <b style="color:#fff">60%를 할인한 협회 특별가</b>를 함께 제시합니다. 기본 14개 항목과 옵션 8종, 월 운영비와 일회성 실비, 12주 일정, 향후 확장 계획을 포함합니다.</p>
   <div style="margin-top:36px;display:flex;gap:14px">
-    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">기본 구축 (VAT 별도)</div><div style="font-size:22px;font-weight:900;color:#fff">60,886,000원 · 12주</div></div>
-    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">옵션 8종 합계</div><div style="font-size:22px;font-weight:900;color:#fff">61,490,000원 · 취사선택</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">정가 (추천 B안 · VAT 별도)</div><div style="font-size:22px;font-weight:900;color:rgba(255,255,255,.7);text-decoration:line-through">130,000,000원</div></div>
+    <div style="background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.5);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:#fde68a">협회 특별가 (60% 할인 · VAT 별도)</div><div style="font-size:22px;font-weight:900;color:#fff">52,000,000원 · 13주</div></div>
     <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">월 운영 실비</div><div style="font-size:22px;font-weight:900;color:#fff">약 8만 원 ~</div></div>
   </div>
 </div>
@@ -1490,26 +1579,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="top-bar bar-a"></div>
   <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
     <div class="tag tag-amber" style="margin-bottom:12px">견적 기준</div>
-    <h2 style="font-size:26px;margin-bottom:16px">산정 단가와 원칙</h2>
-    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:20px">
+    <h2 style="font-size:26px;margin-bottom:16px">정가 산정 단가와 협회 특별가 원칙</h2>
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:20px">
       <div>
         <table class="tbl">
-          <thead><tr><th>역할</th><th>등급</th><th class="num">월 단가 (M/M)</th><th class="num">일 단가 (M/D)</th><th>투입 영역</th></tr></thead>
+          <thead><tr><th>등급</th><th class="num">월 단가 (M/M)</th><th class="num">일 단가 (M/D)</th><th>KOSA 2025 공표 대응</th><th>본 건 투입</th></tr></thead>
           <tbody>
-            <tr><td><b>기획 · PM</b></td><td>고급</td><td class="num">8,000,000</td><td class="num">380,000</td><td class="mute">요구사항 · 정책 · 설계 · 관리 · 교육</td></tr>
-            <tr><td><b>UI/UX 디자이너</b></td><td>중급</td><td class="num">5,500,000</td><td class="num">262,000</td><td class="mute">화면 디자인 · 사진벽 제작 · 등불 모션</td></tr>
-            <tr><td><b>풀스택 개발</b></td><td>고급</td><td class="num">7,500,000</td><td class="num">357,000</td><td class="mute">화면 · API · DB · 인프라 · AI 연동</td></tr>
-            <tr><td><b>QA · 검수</b></td><td>중급</td><td class="num">4,500,000</td><td class="num">214,000</td><td class="mute">시나리오 테스트 · 기기 테스트</td></tr>
+            <tr><td><b>특급</b></td><td class="num">12,600,000</td><td class="num">600,000</td><td class="mute">IT PM 상위 25% 구간 596,003</td><td class="mute">PM · 기획 (박두용)</td></tr>
+            <tr><td><b>고급</b></td><td class="num">9,450,000</td><td class="num">450,000</td><td class="mute">응용SW개발자 상위 25% 구간 449,024</td><td class="mute">개발 · 디자인</td></tr>
+            <tr><td><b>중급</b></td><td class="num">7,350,000</td><td class="num">350,000</td><td class="mute">응용SW개발자 평균 337,061</td><td class="mute">퍼블리싱 · 테스트</td></tr>
+            <tr><td><b>초급</b></td><td class="num">5,460,000</td><td class="num">260,000</td><td class="mute">응용SW개발자 하위 25% 구간 219,087</td><td class="mute">본 건 미투입</td></tr>
           </tbody>
         </table>
-        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.55">· 일 단가 = 월 단가 ÷ 21일(월 근무일). 금액은 M/D × 일 단가, 천 원 단위로 표기.<br>· 소규모 SI 기업의 2026년 시장 단가를 기준으로 하되, 소프트웨어 기술자 평균임금 공표 수준보다 낮게 적용했습니다.</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.55">· 일 단가 = 월 단가 ÷ 21일. 소규모 SI 기업이 민간 견적에 적용하는 등급 단가이며, 한국소프트웨어산업협회 '2025년 적용 SW기술자 평균임금' 분포와 대응시켜 표기하였습니다.<br>· 정가는 기존 모듈 재사용 없이 처음부터 개발하는 <b>표준 공수(243 M/D)</b> 기준입니다.</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:9px">
-        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">1</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">정가 기준 (할인 미적용)</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">협회 요청에 따라 정가로 산정하였습니다. 비영리 단체 지원 단가는 범위 확정 후 별도 협의합니다.</div></div></div>
-        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">항목별 견적 · 항목별 청구</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">기능 단위로 금액·공수·기간을 분리하였으며, 항목 제외 시 해당 금액만큼 차감됩니다.</div></div></div>
-        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">3</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">범위 외 요청은 별도 견적 (추가 청구 없음)</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">기능사항정의서(F-01~F-38) 외 요청은 사전 합의 후 진행합니다.</div></div></div>
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">1</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">정가 = 표준 공수 × 등급 단가</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">항목별로 등급·공수·기간을 명시하였으며, 항목 제외 시 해당 금액만큼 차감됩니다.</div></div></div>
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start;border:2px solid #f59e0b;background:#fffdf7"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">협회 특별가 = 정가의 40% (60% 할인)</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">① 비영리 단체 지원 ② 선례 없는 사업의 표준 모델 레퍼런스 가치 ③ 기존 플랫폼(회원·인증·저장소·CMS·AI 검토) 재사용으로 줄어드는 공수를 협회에 환원. 기본·옵션·유지보수에 동일 적용합니다.</div></div></div>
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">3</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">범위 외 요청은 별도 견적 (추가 청구 없음)</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">기능사항정의서(F-01~F-38) 외 요청은 사전 합의 후 진행하며, 같은 할인율을 적용합니다.</div></div></div>
         <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">4</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">부가세 별도 · 유효기간 60일</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">모든 금액은 VAT 별도. 견적일로부터 60일간 유효. 지급 조건: 계약 30% · 디자인 확정 30% · 검수 완료 40%.</div></div></div>
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>포함:</b> 산출물 6종 · 관리자 교육 2회 · 6개월 무상 하자보증 · 소스코드 양도. <b>불포함:</b> 월 운영 실비(별도 슬라이드) · 외부 법률 검토 실비 · 협회 측 콘텐츠(사진·문구) 준비.</div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>포함:</b> 산출물 6종 · 관리자 교육 2회 · 6개월 무상 하자보증 · 소스코드 양도. <b>불포함:</b> 월 운영 실비 · 외부 법률 검토 실비 · 협회 측 콘텐츠(사진·문구) 준비.</div>
       </div>
     </div>
   </div>
@@ -1521,21 +1610,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
       <div><div class="tag tag-amber" style="margin-bottom:10px">기본 구축 견적 1 / 2</div><h2 style="font-size:26px">설계 · 디자인 · 메인 · 개인 추모관 · 회원</h2></div>
-      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도 · 기간은 다른 항목과 병행 진행</div>
+      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도 · 협회 특별가 = 정가 × 40% · 기간은 병행 진행</div>
     </div>
-    <table class="tbl">
-      <thead><tr><th style="width:34px">#</th><th style="width:190px">항목</th><th>포함 내용</th><th style="width:110px">투입</th><th style="width:60px" class="c">기간</th><th style="width:100px" class="num">금액</th></tr></thead>
-      <tbody>
-        <tr><td class="mute">1</td><td><b>요구사항 분석 · 정책 · 화면 설계</b></td><td>회의록 → 요구사항정의서 확정, 정보구조, 화면 설계서(와이어프레임), 권한·공개·휴지통 정책 정의, DB 설계서</td><td class="mute">PM 15 M/D</td><td class="c">2주</td><td class="num">5,700,000</td></tr>
-        <tr><td class="mute">2</td><td><b>UI/UX 디자인 (PC · 모바일)</b></td><td>메인·개인 추모관·가입·설정·관리자 전 화면 디자인, 큰 글씨 모드, 안개 사진벽 1장 제작, 등불·나비 모션 가이드, 스크롤 스토리 흐름·문구 연출, 액자 스타일 3종, 시안 2회 검토</td><td class="mute">디자인 27 M/D</td><td class="c">3주</td><td class="num">7,074,000</td></tr>
-        <tr><td class="mute">3</td><td><b>메인 페이지</b></td><td>스크롤 스토리텔링 4장면(첫 화면·협회의 말·등불 벽·공지), 문구 등장 효과, 나비·꽃잎 라이트 연출, 움직임 줄이기, 사진벽 배경, 중앙 검색바, 공지·협회 소개·기부 계좌, 로고 영역, 반응형 (F-01 · 03 · 07 · 09 · 11 · 35 · 36 · 38)</td><td class="mute">개발 11 M/D</td><td class="c">1.5주</td><td class="num">3,927,000</td></tr>
-        <tr><td class="mute">4</td><td><b>등불 방명록</b></td><td>떠오르는 등불 애니메이션, 작성자명 표시·클릭 열람 카드, 한마디 쓰기, 공개/비공개 선택, 마음 보내기, 오늘·누적 등불 수 (F-04 · 05)</td><td class="mute">개발 12 M/D</td><td class="c">1.5주</td><td class="num">4,284,000</td></tr>
-        <tr><td class="mute">5</td><td><b>고인 검색 · 공유 링크</b></td><td>이름 검색(동명이인 목록), 비공개 제외, 개인 추모관 고유 주소, 공유 링크 메인 경유 진입 (F-02 · 06)</td><td class="mute">개발 6 M/D</td><td class="c">1주</td><td class="num">2,142,000</td></tr>
-        <tr><td class="mute">6</td><td><b>개인 추모관</b></td><td>대표 사진 액자 3종, 이름·생몰년·한 문장, 서브 사진 10장·배치 선택(2×2·1×4·3+1), 개인 방명록·답글, 단계적 공개 설정, 내 추모관 관리 화면 (F-12~15)</td><td class="mute">개발 18 M/D</td><td class="c">2.5주</td><td class="num">6,426,000</td></tr>
-        <tr><td class="mute">7</td><td><b>회원 가입 · 인증</b></td><td>카카오·네이버 간편 인증, 문자 인증, 문자 단독 전환 설정, 대표 유족 가입(가족관계증명서 첨부·암호화·자동 파기), 초대 링크 가입, 보관 동의, 재가입 3일 제한 (F-17~21)</td><td class="mute">개발 15 M/D</td><td class="c">2주</td><td class="num">5,355,000</td></tr>
-        <tr class="sum"><td></td><td colspan="4">1 ~ 7 소계</td><td class="num">34,908,000</td></tr>
-      </tbody>
-    </table>
+    <table class="tbl"><thead><tr><th style="width:34px">#</th><th style="width:176px">항목</th><th>포함 내용</th><th style="width:104px">표준 공수</th><th style="width:56px" class="c">기간</th><th style="width:96px" class="num">정가</th><th style="width:96px" class="num">협회 특별가</th></tr></thead><tbody><tr><td class="mute">1</td><td><b>요구사항 분석 · 정책 · 화면 설계</b></td><td>회의록 → 요구사항정의서 확정, 정보구조, 화면 설계서(와이어프레임), 권한·공개·휴지통 정책 정의, DB 설계서</td><td class="mute">특급 15 M/D</td><td class="c">2주</td><td class="num mute" style="text-decoration:line-through">9,000,000</td><td class="num"><b>3,600,000</b></td></tr><tr><td class="mute">2</td><td><b>UI/UX 디자인 (PC · 모바일)</b></td><td>전 화면 디자인, 큰 글씨 모드, 안개 사진벽 1장 제작, 등불·동행 나비 모션 가이드, 스크롤 구성·문구 연출, 액자 스타일 3종, 시안 2회 검토</td><td class="mute">고급 32 M/D</td><td class="c">3주</td><td class="num mute" style="text-decoration:line-through">14,400,000</td><td class="num"><b>5,760,000</b></td></tr><tr><td class="mute">3</td><td><b>메인 페이지</b></td><td>스크롤 4구간(첫 화면·협회의 말·한마디 벽·공지), 문구 등장 효과, 동행 나비 라이트, 움직임 줄이기, 사진벽·검색·공지·계좌·로고, 반응형 (F-01·03·07·09·11·35·36·38)</td><td class="mute">고급 10 · 중급 6</td><td class="c">1.5주</td><td class="num mute" style="text-decoration:line-through">6,600,000</td><td class="num"><b>2,640,000</b></td></tr><tr><td class="mute">4</td><td><b>등불 방명록</b></td><td>떠오르는 등불 애니메이션, 작성자명 표시·클릭 열람 카드, 한마디 쓰기, 공개/비공개 선택, 마음 보내기, 오늘·누적 등불 수 (F-04·05)</td><td class="mute">고급 14 · 중급 4</td><td class="c">1.5주</td><td class="num mute" style="text-decoration:line-through">7,700,000</td><td class="num"><b>3,080,000</b></td></tr><tr><td class="mute">5</td><td><b>고인 검색 · 공유 링크</b></td><td>이름 검색(동명이인 목록), 비공개 제외, 개인 추모관 고유 주소, 공유 링크 메인 경유 진입 (F-02·06)</td><td class="mute">고급 7 M/D</td><td class="c">1주</td><td class="num mute" style="text-decoration:line-through">3,150,000</td><td class="num"><b>1,260,000</b></td></tr><tr><td class="mute">6</td><td><b>개인 추모관</b></td><td>대표 사진 액자 3종, 이름·생몰년·한 문장, 서브 사진 10장·배치 선택, 개인 방명록·답글, 단계적 공개 설정, 내 추모관 관리 화면 (F-12~15)</td><td class="mute">고급 20 · 중급 8</td><td class="c">2.5주</td><td class="num mute" style="text-decoration:line-through">11,800,000</td><td class="num"><b>4,720,000</b></td></tr><tr><td class="mute">7</td><td><b>회원 가입 · 인증</b></td><td>카카오·네이버 간편 인증, 문자 인증, 문자 단독 전환 설정, 대표 유족 가입(가족관계증명서 첨부·암호화·자동 파기), 초대 링크 가입, 보관 동의, 재가입 3일 제한 (F-17~21)</td><td class="mute">고급 20 M/D</td><td class="c">2주</td><td class="num mute" style="text-decoration:line-through">9,000,000</td><td class="num"><b>3,600,000</b></td></tr><tr class="sum"><td></td><td colspan="4">1 ~ 7 소계</td><td class="num mute" style="text-decoration:line-through">61,650,000</td><td class="num">24,660,000</td></tr></tbody></table>
   </div>
 </div>
 
@@ -1545,23 +1622,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
       <div><div class="tag tag-amber" style="margin-bottom:10px">기본 구축 견적 2 / 2</div><h2 style="font-size:26px">권한 · 사진 · 관리자 · AI 필터 · 인프라 · 검수 · 관리</h2></div>
-      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도</div>
+      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도 · 협회 특별가 = 정가 × 40%</div>
     </div>
-    <table class="tbl">
-      <thead><tr><th style="width:34px">#</th><th style="width:190px">항목</th><th>포함 내용</th><th style="width:110px">투입</th><th style="width:60px" class="c">기간</th><th style="width:100px" class="num">금액</th></tr></thead>
-      <tbody>
-        <tr><td class="mute">8</td><td><b>권한 체계 · 승인 워크플로</b></td><td>5등급 권한, 승인 시 바로 등급 지정, 100명 단위 그룹 위임, 초대 발송 사전 보고 알림, 권한 토글 화면 (F-22 · 23)</td><td class="mute">개발 12 M/D</td><td class="c">1.5주</td><td class="num">4,284,000</td></tr>
-        <tr><td class="mute">9</td><td><b>사진 관리</b></td><td>다중 업로드, WebP 3단계 변환, 회전 보정·위치 정보 제거, 순서 변경, 휴지통 30일·자동 영구 삭제 예약 작업, 동의자 복구 (F-24~26)</td><td class="mute">개발 10 M/D</td><td class="c">1.5주</td><td class="num">3,570,000</td></tr>
-        <tr><td class="mute">10</td><td><b>관리자 콘솔</b></td><td>대시보드, 회원 승인·등급, 사진 삭제 승인, 방명록 관리, 공지·문구·계좌 편집, 일괄 처리 대기열(월·금 10시), 제재·블랙리스트, 통계, 감사 로그 (F-27~29)</td><td class="mute">개발 18 M/D</td><td class="c">2.5주</td><td class="num">6,426,000</td></tr>
-        <tr><td class="mute">11</td><td><b>AI 1차 필터링</b></td><td>작성 즉시 분류(게시·보류·차단), 기준 문구 관리 화면, 보류 판정함, 판정 기록 축적, 제재 누적 자동 경고 (F-30)</td><td class="mute">개발 8 M/D</td><td class="c">1주</td><td class="num">2,856,000</td></tr>
-        <tr><td class="mute">12</td><td><b>인프라 · 보안 · 배포</b></td><td>클라우드·DB·저장소 구성, 도메인·SSL, 스테이징/운영 분리, 자동 배포, 암호화·속도 제한·접근 로그, 백업·복구 점검</td><td class="mute">개발 6 M/D</td><td class="c">1주</td><td class="num">2,142,000</td></tr>
-        <tr><td class="mute">13</td><td><b>통합 테스트 · 검수 · 오픈</b></td><td>PC·모바일 기기별 시나리오 테스트, 고령 사용자 시나리오, 협회 검수 지원, 오픈 당일 모니터링</td><td class="mute">QA 10 M/D</td><td class="c">2주</td><td class="num">2,140,000</td></tr>
-        <tr><td class="mute">14</td><td><b>프로젝트 관리 · 매뉴얼 · 교육</b></td><td>주간 보고, 이슈 관리, 운영 매뉴얼, 관리자 교육 2회, 산출물 인도, 하자보증 운영</td><td class="mute">PM 12 M/D</td><td class="c">전 기간</td><td class="num">4,560,000</td></tr>
-        <tr><td></td><td colspan="4" style="color:#64748b">8 ~ 14 소계</td><td class="num" style="color:#64748b">25,978,000</td></tr>
-        <tr class="sum"><td></td><td colspan="2">기본 구축 합계 (1 ~ 14) · 총 180 M/D (PM 27 · 디자인 27 · 개발 116 · QA 10)</td><td colspan="2" class="c">12주</td><td class="num">60,886,000</td></tr>
-        <tr><td></td><td colspan="4" class="mute">VAT 포함 시</td><td class="num mute">66,974,600</td></tr>
-      </tbody>
-    </table>
+    <table class="tbl"><thead><tr><th style="width:34px">#</th><th style="width:176px">항목</th><th>포함 내용</th><th style="width:104px">표준 공수</th><th style="width:56px" class="c">기간</th><th style="width:96px" class="num">정가</th><th style="width:96px" class="num">협회 특별가</th></tr></thead><tbody><tr><td class="mute">8</td><td><b>권한 체계 · 승인 워크플로</b></td><td>5등급 권한, 승인 시 바로 등급 지정, 100명 단위 그룹 위임, 초대 발송 사전 보고 알림, 권한 토글 화면 (F-22·23)</td><td class="mute">고급 14 M/D</td><td class="c">1.5주</td><td class="num mute" style="text-decoration:line-through">6,300,000</td><td class="num"><b>2,520,000</b></td></tr><tr><td class="mute">9</td><td><b>사진 관리</b></td><td>다중 업로드, WebP 3단계 변환, 회전 보정·위치 정보 제거, 순서 변경, 휴지통 30일·자동 영구 삭제 예약 작업, 동의자 복구 (F-24~26)</td><td class="mute">고급 12 M/D</td><td class="c">1.5주</td><td class="num mute" style="text-decoration:line-through">5,400,000</td><td class="num"><b>2,160,000</b></td></tr><tr><td class="mute">10</td><td><b>관리자 콘솔</b></td><td>대시보드, 회원 승인·등급, 사진 삭제 승인, 방명록 관리, 공지·문구·계좌·연출 편집, 일괄 처리 대기열(월·금 10시), 제재·블랙리스트, 통계, 감사 로그 (F-27~29)</td><td class="mute">고급 22 · 중급 6</td><td class="c">2.5주</td><td class="num mute" style="text-decoration:line-through">12,000,000</td><td class="num"><b>4,800,000</b></td></tr><tr><td class="mute">11</td><td><b>AI 1차 필터링</b></td><td>작성 즉시 분류(게시·보류·차단), 기준 문구 관리 화면, 보류 판정함, 판정 기록 축적, 제재 누적 자동 경고 (F-30)</td><td class="mute">고급 10 M/D</td><td class="c">1주</td><td class="num mute" style="text-decoration:line-through">4,500,000</td><td class="num"><b>1,800,000</b></td></tr><tr><td class="mute">12</td><td><b>인프라 · 보안 · 배포</b></td><td>클라우드·DB·저장소 구성, 도메인·SSL, 스테이징/운영 분리, 자동 배포, 암호화·속도 제한·접근 로그, 백업·복구 점검</td><td class="mute">고급 8 M/D</td><td class="c">1주</td><td class="num mute" style="text-decoration:line-through">3,600,000</td><td class="num"><b>1,440,000</b></td></tr><tr><td class="mute">13</td><td><b>통합 테스트 · 검수 · 오픈</b></td><td>PC·모바일 기기별 시나리오 테스트, 고령 사용자 시나리오, 협회 검수 지원, 오픈 당일 모니터링</td><td class="mute">중급 14 M/D</td><td class="c">2주</td><td class="num mute" style="text-decoration:line-through">4,900,000</td><td class="num"><b>1,960,000</b></td></tr><tr><td class="mute">14</td><td><b>프로젝트 관리 · 매뉴얼 · 교육</b></td><td>주간 보고, 이슈 관리, 운영 매뉴얼, 관리자 교육 2회, 산출물 인도, 하자보증 운영</td><td class="mute">특급 15 M/D</td><td class="c">전 기간</td><td class="num mute" style="text-decoration:line-through">9,000,000</td><td class="num"><b>3,600,000</b></td></tr><tr><td></td><td colspan="4" style="color:#64748b">8 ~ 14 소계</td><td class="num mute" style="text-decoration:line-through">45,700,000</td><td class="num" style="color:#64748b">18,280,000</td></tr>
+        <tr class="sum"><td></td><td colspan="2">기본 구축 합계 (1 ~ 14) · 표준 공수 243 M/D (특급 30 · 고급 169 · 중급 44)</td><td colspan="2" class="c">12주</td><td class="num mute" style="text-decoration:line-through">107,350,000</td><td class="num">42,940,000</td></tr>
+        <tr><td></td><td colspan="4" class="mute">VAT 포함 시</td><td class="num mute">118,085,000</td><td class="num mute">47,234,000</td></tr></tbody></table>
   </div>
 </div>
 
@@ -1571,24 +1636,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
       <div><div class="tag tag-amber" style="margin-bottom:10px">옵션 견적 — 협회가 취사선택</div><h2 style="font-size:23px">RAG · AI 상담 · 동영상 · 심사 대응 · 등급 마크 · BI · 기일 알림 · 스토리텔링</h2></div>
-      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도 · 기본 구축과 병행 또는 오픈 후 추가 가능</div>
+      <div style="font-size:12px;color:#64748b;text-align:right;white-space:nowrap">단위: 원 · VAT 별도 · 특별가 동일 적용</div>
     </div>
     <table class="tbl">
-      <thead><tr><th style="width:44px">코드</th><th style="width:180px">항목</th><th>포함 내용</th><th style="width:150px">투입</th><th style="width:70px" class="c">기간</th><th style="width:100px" class="num">금액</th><th style="width:64px" class="c">추천</th></tr></thead>
-      <tbody>
-        <tr><td class="mute">O1</td><td><b>RAG 판단 기준 엔진</b></td><td>판정 사례·운영 지침 수집 도구, 벡터 검색(pgvector), 보류 건에 유사 사례·근거 제시, 기준 튜닝 2회, 관리자 교체 대비 기준 문서화 (F-31)</td><td class="mute">개발 50 · PM 10 M/D</td><td class="c">5주</td><td class="num">21,650,000</td><td class="c"><span class="pill pill-s">2차</span></td></tr>
-        <tr><td class="mute">O2</td><td><b>AI 상담 에이전트</b></td><td>QnA 버튼 10개 필수 노출, 자연어 응대, 상담 시간 안내, 총괄 관리자 핸드오프(문자·대기열), 대화 기록·개선 화면 (F-32)</td><td class="mute">개발 38 · 디자인 5 · PM 5 M/D</td><td class="c">4주</td><td class="num">16,776,000</td><td class="c"><span class="pill pill-s">2차</span></td></tr>
-        <tr><td class="mute">O3</td><td><b>동영상 업로드</b></td><td>10~15초·추모관당 2개·720p·50MB 제한 필터, 업로드 즉시 변환, 모바일 재생, 저장소 설계 (F-16)</td><td class="mute">개발 16 · 디자인 2 M/D</td><td class="c">2주</td><td class="num">6,236,000</td><td class="c"><span class="pill pill-s">선택</span></td></tr>
-        <tr><td class="mute">O3-b</td><td><b>사진 플래시 효과 (동영상 대안)</b></td><td>사진 3~4장이 부드럽게 넘어가는 효과. 저장소 추가 비용 없음. O3와 택일</td><td class="mute">개발 4 · 디자인 2 M/D</td><td class="c">3일</td><td class="num">1,952,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
-        <tr><td class="mute">O4</td><td><b>간편 인증 심사 대응</b></td><td>카카오·네이버 개발자 등록, 검수 서류 작성, '자살' 키워드 심사 소명, 탈락 시 문자 단독 전환 설정</td><td class="mute">PM 4 M/D</td><td class="c">외부 2~4주</td><td class="num">1,520,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
-        <tr><td class="mute">O5</td><td><b>등급 마크 · 방문 기록</b></td><td>일반·열심·우수 회원 마크, 방문 기록, 사행성 요소 배제 설계 (F-33)</td><td class="mute">개발 8 · 디자인 3 M/D</td><td class="c">1.5주</td><td class="num">3,642,000</td><td class="c"><span class="pill pill-s">선택</span></td></tr>
-        <tr><td class="mute">O6</td><td><b>추모관 BI · 서비스명</b></td><td>서비스명 후보 제안, 심볼·로고(협회 홈페이지 배너용), 등불 모션 아이덴티티, 사용 가이드</td><td class="mute">디자인 12 M/D</td><td class="c">2주</td><td class="num">3,144,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
-        <tr><td class="mute">O7</td><td><b>기일 · 생일 알림</b></td><td>고인 기일·생일 등록, 가족에게 문자·카카오 알림(발송 실비 별도), 방문 유도 문구 관리 (F-34)</td><td class="mute">개발 8 M/D</td><td class="c">1주</td><td class="num">2,856,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
-        <tr><td class="mute">O8</td><td><b>스토리텔링 풀 패키지</b></td><td>협회 전용 나비·꽃 일러스트, 꽃이 피는 짧은 영상 연출, 개인 추모관 진입 연출(0.8초), 마음 보내기 시 나비가 날아오르는 반응, 명절·기일 테마 전환 (F-37)</td><td class="mute">디자인 8 · 개발 10 M/D</td><td class="c">2주</td><td class="num">5,666,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
-        <tr class="sum"><td></td><td colspan="4">옵션 전체 합계 (O3 선택 · O3-b 제외)</td><td class="num">61,490,000</td><td></td></tr>
+      <thead><tr><th style="width:44px">코드</th><th style="width:168px">항목</th><th>포함 내용</th><th style="width:112px">표준 공수</th><th style="width:66px" class="c">기간</th><th style="width:92px" class="num">정가</th><th style="width:92px" class="num">협회 특별가</th><th style="width:52px" class="c">추천</th></tr></thead>
+      <tbody><tr><td class="mute">O1</td><td><b>RAG 판단 기준 엔진</b></td><td>판정 사례·운영 지침 수집 도구, 벡터 검색(pgvector), 보류 건에 유사 사례·근거 제시, 기준 튜닝 2회, 관리자 교체 대비 기준 문서화 (F-31)</td><td class="mute">고급 55 · 특급 10</td><td class="c">5주</td><td class="num mute" style="text-decoration:line-through">30,750,000</td><td class="num"><b>12,300,000</b></td><td class="c"><span class="pill pill-s">2차</span></td></tr><tr><td class="mute">O2</td><td><b>AI 상담 에이전트</b></td><td>QnA 버튼 10개 필수 노출, 자연어 응대, 상담 시간 안내, 총괄 관리자 핸드오프(문자·대기열), 대화 기록·개선 화면 (F-32)</td><td class="mute">고급 47 · 특급 5</td><td class="c">4주</td><td class="num mute" style="text-decoration:line-through">24,150,000</td><td class="num"><b>9,660,000</b></td><td class="c"><span class="pill pill-s">2차</span></td></tr><tr><td class="mute">O3</td><td><b>동영상 업로드</b></td><td>10~15초·추모관당 2개·720p·50MB 제한 필터, 업로드 즉시 변환, 모바일 재생, 저장소 설계 (F-16)</td><td class="mute">고급 20 M/D</td><td class="c">2주</td><td class="num mute" style="text-decoration:line-through">9,000,000</td><td class="num"><b>3,600,000</b></td><td class="c"><span class="pill pill-s">선택</span></td></tr><tr><td class="mute">O3-b</td><td><b>사진 플래시 효과 (동영상 대안)</b></td><td>사진 3~4장이 부드럽게 넘어가는 효과. 저장소 추가 비용 없음. O3와 택일</td><td class="mute">고급 6 M/D</td><td class="c">3일</td><td class="num mute" style="text-decoration:line-through">2,700,000</td><td class="num"><b>1,080,000</b></td><td class="c"><span class="pill pill-g">추천</span></td></tr><tr><td class="mute">O4</td><td><b>간편 인증 심사 대응</b></td><td>카카오·네이버 개발자 등록, 검수 서류 작성, '자살' 키워드 심사 소명, 탈락 시 문자 단독 전환 설정</td><td class="mute">특급 4 M/D</td><td class="c">외부 2~4주</td><td class="num mute" style="text-decoration:line-through">2,400,000</td><td class="num"><b>960,000</b></td><td class="c"><span class="pill pill-g">추천</span></td></tr><tr><td class="mute">O5</td><td><b>등급 마크 · 방문 기록</b></td><td>일반·열심·우수 회원 마크, 방문 기록, 사행성 요소 배제 설계 (F-33)</td><td class="mute">고급 12 M/D</td><td class="c">1.5주</td><td class="num mute" style="text-decoration:line-through">5,400,000</td><td class="num"><b>2,160,000</b></td><td class="c"><span class="pill pill-s">선택</span></td></tr><tr><td class="mute">O6</td><td><b>추모관 BI · 서비스명</b></td><td>서비스명 후보 제안, 심볼·로고(협회 홈페이지 배너용), 등불 모션 아이덴티티, 사용 가이드</td><td class="mute">고급 12 M/D</td><td class="c">2주</td><td class="num mute" style="text-decoration:line-through">5,400,000</td><td class="num"><b>2,160,000</b></td><td class="c"><span class="pill pill-g">추천</span></td></tr><tr><td class="mute">O7</td><td><b>기일 · 생일 알림</b></td><td>고인 기일·생일 등록, 가족에게 문자·카카오 알림(발송 실비 별도), 방문 유도 문구 관리 (F-34)</td><td class="mute">고급 9 M/D</td><td class="c">1주</td><td class="num mute" style="text-decoration:line-through">4,050,000</td><td class="num"><b>1,620,000</b></td><td class="c"><span class="pill pill-g">추천</span></td></tr><tr><td class="mute">O8</td><td><b>스토리텔링 풀 패키지</b></td><td>협회 전용 나비 일러스트·날개 움직임 고도화, 꽃이 피는 짧은 영상 연출, 개인 추모관 진입 연출, 마음 보내기 반응, 명절·기일 테마 (F-37)</td><td class="mute">고급 18 M/D</td><td class="c">2주</td><td class="num mute" style="text-decoration:line-through">8,100,000</td><td class="num"><b>3,240,000</b></td><td class="c"><span class="pill pill-g">추천</span></td></tr>
+        <tr class="sum"><td></td><td colspan="4">옵션 전체 합계 (O3 선택 · O3-b 제외)</td><td class="num mute" style="text-decoration:line-through">89,250,000</td><td class="num">35,700,000</td><td></td></tr>
       </tbody>
     </table>
-    <div style="margin-top:10px;font-size:12px;color:#64748b;line-height:1.5"><b style="color:#0f172a">추천 기준:</b> 오픈 시점에 효과가 크고 비용이 작은 것(O3-b · O4 · O6 · O7 · O8)을 1차 추천. RAG와 AI 상담(O1 · O2)은 회의 결론대로 1차 범위에서 제외하고, 판정 기록이 쌓인 뒤 2차 도입 시 효과가 가장 큽니다.</div>
+    <div style="margin-top:10px;font-size:12px;color:#64748b;line-height:1.5"><b style="color:#0f172a">추천 기준:</b> 오픈 시점에 효과가 크고 비용이 작은 것(O3-b · O4 · O6 · O7 · O8)을 1차 추천. RAG와 AI 상담(O1 · O2)은 협의 결론대로 1차 범위에서 제외하고, 판정 기록이 쌓인 뒤 2차 도입 시 효과가 가장 큽니다.</div>
   </div>
 </div>
 
@@ -1619,7 +1675,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       </div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div class="card" style="padding:14px 16px;border:2px solid #f59e0b">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div style="font-size:11px;font-weight:800;color:#b45309">유지보수 정액 (선택)</div><div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:2px">월 600,000원</div><div style="font-size:10.5px;color:#94a3b8;margin-top:3px">근거: 구축비 연 12% 요율(업계 관행 10~15%) ÷ 12개월 ≈ 월 61만 원</div></div><span class="tag tag-amber">하자보증 6개월 후</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div style="font-size:11px;font-weight:800;color:#b45309">유지보수 정액 (선택)</div><div style="font-size:13px;color:#94a3b8;text-decoration:line-through;margin-top:4px">정가 월 1,625,000원</div><div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:2px">협회 특별가 월 650,000원</div><div style="font-size:10.5px;color:#94a3b8;margin-top:3px">근거: 구축 정가 130,000,000원 × 연 15% ÷ 12개월 = 1,625,000원 → 60% 할인</div></div><span class="tag tag-amber">하자보증 6개월 후</span></div>
           <div style="font-size:11.5px;color:#475569;line-height:1.55">· 장애 24시간 내 대응 · 보안 패치·라이브러리 갱신<br>· 경미한 수정 월 8시간 (문구·화면 조정)<br>· 월·금 일괄 처리 기술 지원 · 월간 운영 리포트<br>· 담당자 교체 시 무상 재교육</div>
         </div>
         <table class="tbl">
@@ -1631,7 +1687,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
             <tr><td>간편 인증 심사 수수료 (심사 자체 무료 · 대응 공수는 O4)</td><td class="num">0</td></tr>
           </tbody>
         </table>
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#1e40af;line-height:1.5"><b>연간 운영비 요약:</b> 인프라 실비 약 93만 원 + 유지보수(선택) 720만 원 = <b>약 813만 원/년</b>. 유지보수 미계약 시 약 93만 원/년.</div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#1e40af;line-height:1.5"><b>연간 운영비 요약:</b> 인프라 실비 약 93만 원 + 유지보수(선택) 7,800,000원 = <b>약 873만 원/년</b>. 유지보수 미계약 시 약 93만 원/년.</div>
       </div>
     </div>
   </div>
@@ -1642,29 +1698,32 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="top-bar bar-a"></div>
   <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
     <div class="tag tag-amber" style="margin-bottom:12px">견적 총괄</div>
-    <h2 style="font-size:26px;margin-bottom:16px">견적 총괄 — 구성안 3종</h2>
+    <h2 style="font-size:26px;margin-bottom:16px">견적 총괄 — 구성안 3종 (정가 → 협회 특별가 60% 할인)</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
       <div class="card" style="padding:20px 22px;border-top:4px solid #475569">
         <div style="font-size:12px;font-weight:800;color:#475569;margin-bottom:4px">A안 · 기본 구축</div>
-        <div style="font-size:26px;font-weight:900;color:#0f172a">60,886,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 66,974,600 · 12주</div>
-        <div style="font-size:12px;color:#475569;line-height:1.6">기능사항정의서의 기본 31개 + 제안 1개 (옵션 F-16 · F-31~34 · F-37 제외). 협의 확정 범위에 스크롤 구성·나비 연출(라이트) 포함.</div>
-        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 6,182만 원</div>
+        <div style="font-size:13px;color:#94a3b8;text-decoration:line-through">정가 107,350,000원</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a">42,940,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 47,234,000 · 12주</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">기능사항정의서의 기본 31개 + 제안 1개 (옵션 F-16 · F-31~34 · F-37 제외). 협의 확정 범위에 스크롤 구성·동행 나비(라이트) 포함.</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 4,387만 원</div>
       </div>
       <div class="card" style="padding:20px 22px;border:2px solid #f59e0b;background:#fffdf7;position:relative">
         <div style="position:absolute;top:-11px;left:18px;background:#f59e0b;color:#fff;font-size:10px;font-weight:900;padding:3px 10px;border-radius:100px;letter-spacing:.06em">추천</div>
         <div style="font-size:12px;font-weight:800;color:#b45309;margin-bottom:4px">B안 · 기본 + 추천 옵션 5종</div>
-        <div style="font-size:26px;font-weight:900;color:#0f172a">76,024,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 83,626,400 · 13주</div>
+        <div style="font-size:13px;color:#94a3b8;text-decoration:line-through">정가 130,000,000원</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a">52,000,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 57,200,000 · 13주</div>
         <div style="font-size:12px;color:#475569;line-height:1.6">A안 + 스토리텔링 풀 패키지(O8) + 사진 플래시 효과(O3-b) + 간편 인증 심사 대응(O4) + 추모관 BI(O6) + 기일·생일 알림(O7). 오픈 시점 완성도가 가장 높은 구성.</div>
-        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 7,695만 원</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 5,293만 원</div>
       </div>
       <div class="card" style="padding:20px 22px;border-top:4px solid #7c3aed">
         <div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:4px">C안 · 전체 옵션 포함</div>
-        <div style="font-size:26px;font-weight:900;color:#0f172a">122,376,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 134,613,600 · 18주</div>
+        <div style="font-size:13px;color:#94a3b8;text-decoration:line-through">정가 196,600,000원</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a">78,640,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 86,504,000 · 18주</div>
         <div style="font-size:12px;color:#475569;line-height:1.6">A안 + O1~O8 전체(동영상은 O3). RAG와 AI 상담을 1차에 포함하는 구성입니다. 초기에는 판정 사례가 적어 RAG 효과가 제한적이므로 2단계 도입을 권장합니다.</div>
-        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 1억 2,331만 원</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 7,957만 원</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
@@ -1673,7 +1732,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:3px">산출물 · 소유권</div><div style="font-size:13px;font-weight:800;color:#0f172a">산출물 6종 · 소스코드 100% 양도</div></div>
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:3px">견적 유효기간</div><div style="font-size:13px;font-weight:800;color:#0f172a">2026.10.06 기준 60일</div></div>
     </div>
-    <div style="margin-top:12px;font-size:11.5px;color:#64748b">1년 총비용 = 구축비 + 인프라 실비 약 93만 원. 유지보수 정액(월 60만 원)은 하자보증 종료 후 선택 계약으로 별도.</div>
+    <div style="margin-top:12px;font-size:11.5px;color:#64748b">1년 총비용 = 협회 특별가 + 인프라 실비 약 93만 원. 유지보수(월 650,000원)는 하자보증 종료 후 선택 계약으로 별도. 모든 항목에 60% 할인을 동일 적용하므로 옵션을 개별 선택해도 같은 비율입니다.</div>
   </div>
 </div>
 
@@ -1774,7 +1833,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <button class="nav-arr" id="aPrev" onclick="nav(-1)">&#8592;</button>
 <button class="nav-arr" id="aNext" onclick="nav(1)">&#8594;</button>
 <div class="dots-bar" id="dotsBar"></div>
-<div class="ctr" id="ctr">1 / 39</div>
+<div class="ctr" id="ctr">1 / 40</div>
 <div class="sec-ind" id="secInd">개요</div>
 
 <!-- 내보내기 툴바 -->
@@ -1847,6 +1906,27 @@ slides[0].classList.add('active');
 document.getElementById('ctr').textContent = '1 / ' + total;
 // 주소창 #번호 로 특정 슬라이드 바로 열기 (예: /3#17)
 (function(){ var h=parseInt((location.hash||'').replace('#',''),10); if(h>1&&h<=total) goTo(h-1); })();
+
+// ── 스크롤 시연: 스크롤 진행률에 따라 나비 1마리 이동 + 문단 등장 ──
+(function(){
+  function setup(demo){
+    var scr=demo.querySelector('.scr'), bf=demo.querySelector(':scope > .bfly'); if(!scr||!bf) return;
+    var rvs=Array.prototype.slice.call(scr.querySelectorAll('.rv')), bw=parseFloat(bf.style.width)||40, bh=bw*0.875, lastX=null;
+    function pos(p){ var W=demo.clientWidth, H=demo.clientHeight;
+      var wide=W>400, x=W*(wide?0.80:0.84)+Math.sin(p*Math.PI*2.3)*W*(wide?0.14:0.10), y=56+p*(H-130)+Math.sin(p*Math.PI*7)*9; return [x,y]; }
+    function update(){
+      var max=scr.scrollHeight-scr.clientHeight, p=max>0?scr.scrollTop/max:0, xy=pos(p);
+      var ang=lastX==null?0:Math.max(-22,Math.min(22,(xy[0]-lastX)*1.6)); lastX=xy[0];
+      bf.style.transform='translate('+(xy[0]-bw/2)+'px,'+(xy[1]-bh/2)+'px) rotate('+ang+'deg)';
+      var sr=scr.getBoundingClientRect();
+      rvs.forEach(function(el){ var r=el.getBoundingClientRect(); el.classList.toggle('on',(r.top-sr.top)/sr.height<0.92); });
+    }
+    scr.addEventListener('scroll',update,{passive:true});
+    var m=/[?&]demo=([0-9.]+)/.exec(location.search); if(m){ scr.scrollTop=(scr.scrollHeight-scr.clientHeight)*parseFloat(m[1]); }
+    update(); setTimeout(update,300); setTimeout(update,1200);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.demo'),setup);
+})();
 
 // 뷰포트 스케일링
 function scaleVP() {
