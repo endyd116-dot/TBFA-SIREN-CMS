@@ -1,11 +1,12 @@
 // netlify/functions/admin-memorial-family-notes.ts
 // ★ 2026-08-28 추모관 v2 — 유가족 근황 소식 관리 (운영자)
 //
-// 아침관 '우린 요즘 이렇게 지냅니다'에 나가는 짧은 근황을 등록·수정·삭제한다.
+// 아침관 '우린 요즘 이렇게 지냅니다'에 나가는 근황을 등록·수정·삭제한다.
 // 유가족 신원 보호를 위해 실명이 아니라 표기용 이름만 받는다.
+// ★ 2026-10-07: 사진 한 장을 붙일 수 있다 (photoBlobId — /api/blob-upload 로 올린 번호).
 //
 //   GET                      목록 (숨긴 것 포함)
-//   POST                     등록      { title, content, authorLabel, mood, isPublic, sortOrder }
+//   POST                     등록      { title, content, authorLabel, mood, photoBlobId, isPublic, sortOrder }
 //   POST ?action=update&id=  수정      (같은 필드, 준 것만 바뀐다)
 //   POST ?action=delete&id=  삭제
 
@@ -36,6 +37,13 @@ function bad(msg: string) {
   });
 }
 
+function shape(r: any) {
+  return {
+    ...r,
+    photoUrl: r?.photoBlobId ? `/api/blob-image?id=${r.photoBlobId}` : null,
+  };
+}
+
 export default async function handler(req: Request, _ctx: Context) {
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
@@ -50,7 +58,7 @@ export default async function handler(req: Request, _ctx: Context) {
         .select()
         .from(memorialFamilyNotes)
         .orderBy(asc(memorialFamilyNotes.sortOrder), desc(memorialFamilyNotes.publishedAt));
-      return new Response(jsonKST({ ok: true, data: { notes: rows } }), {
+      return new Response(jsonKST({ ok: true, data: { notes: rows.map(shape) } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err) { return jsonError("select_notes", err); }
@@ -86,6 +94,8 @@ export default async function handler(req: Request, _ctx: Context) {
   const mood = MOODS.indexOf(moodRaw) >= 0 ? moodRaw : "calm";
   const isPublic = body.isPublic === undefined ? true : !!body.isPublic;
   const sortOrder = Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0;
+  const photoBlobId = Number.isFinite(Number(body.photoBlobId)) && Number(body.photoBlobId) > 0
+    ? Number(body.photoBlobId) : null;
 
   /* ───────── 수정 ───────── */
   if (action === "update") {
@@ -98,6 +108,7 @@ export default async function handler(req: Request, _ctx: Context) {
       if (body.mood !== undefined) patch.mood = mood;
       if (body.isPublic !== undefined) patch.isPublic = isPublic;
       if (body.sortOrder !== undefined) patch.sortOrder = sortOrder;
+      if (body.photoBlobId !== undefined) patch.photoBlobId = photoBlobId;
 
       const [row] = await db
         .update(memorialFamilyNotes)
@@ -105,7 +116,7 @@ export default async function handler(req: Request, _ctx: Context) {
         .where(eq(memorialFamilyNotes.id, id))
         .returning();
       if (!row) return bad("해당 근황을 찾을 수 없습니다");
-      return new Response(jsonKST({ ok: true, data: { note: row } }), {
+      return new Response(jsonKST({ ok: true, data: { note: shape(row) } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err) { return jsonError("update_note", err); }
@@ -120,11 +131,11 @@ export default async function handler(req: Request, _ctx: Context) {
     const [row] = await db
       .insert(memorialFamilyNotes)
       .values({
-        title, content, authorLabel, mood, isPublic, sortOrder,
+        title, content, authorLabel, mood, isPublic, sortOrder, photoBlobId,
         createdBy: guard.ctx?.uid ?? guard.ctx?.id ?? null,
       } as any)
       .returning();
-    return new Response(jsonKST({ ok: true, data: { note: row } }), {
+    return new Response(jsonKST({ ok: true, data: { note: shape(row) } }), {
       status: 201, headers: { "Content-Type": "application/json" },
     });
   } catch (err) { return jsonError("insert_note", err); }

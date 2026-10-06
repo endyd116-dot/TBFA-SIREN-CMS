@@ -54,7 +54,7 @@ function fmtDate(s) {
 
 /* ─── 탭 전환 ─── */
 function switchTab(name) {
-  ['teachers', 'moderation', 'spotlight', 'family', 'settings'].forEach(function (t) {
+  ['teachers', 'moderation', 'spotlight', 'family', 'timeline', 'settings'].forEach(function (t) {
     var el = document.getElementById('panel-' + t);
     if (el) el.classList.toggle('active', t === name);
   });
@@ -65,6 +65,7 @@ function switchTab(name) {
   if (name === 'settings') loadSettings();
   if (name === 'spotlight') loadSpots();
   if (name === 'family') loadFamilyNotes();
+  if (name === 'timeline') tlLoad();
 }
 
 /* =========================================================
@@ -336,6 +337,13 @@ function editTeacher(id) {
   document.getElementById('fPortraitCaption').value = pc.portraitCaption || '';
   document.getElementById('fPhotoTitle').value = pc.photoTitle || '';
   document.getElementById('fPhotoDesc').value = pc.photoDesc || '';
+  /* ★ 2026-10-07 — 이 선생님만의 편지 목표 통수 + 초대 링크 */
+  var lg = document.getElementById('fLetterGoal');
+  if (lg) lg.value = pc.letterGoal ? String(pc.letterGoal) : '';
+  var iu = document.getElementById('fInviteUrl');
+  if (iu) iu.value = tInviteUrl(id);
+  var iq = document.getElementById('fInviteQr');
+  if (iq) iq.innerHTML = '';
 
   document.getElementById('teacherFormTitle').textContent = '선생님 수정';
   /* ★ 2026-08-28: 이 선생님의 생전 사진 관리도 함께 켠다
@@ -354,10 +362,12 @@ function closeTeacherForm() {
 }
 function clearTeacherForm() {
   ['fId', 'fName', 'fSchoolRegion', 'fBirthDate', 'fDeathDate', 'fTributeLine', 'fBioHtml', 'fPhotoBlobId',
-   'fLeadLine', 'fPortraitCaption', 'fPhotoTitle', 'fPhotoDesc'].forEach(function (id) {
+   'fLeadLine', 'fPortraitCaption', 'fPhotoTitle', 'fPhotoDesc', 'fLetterGoal', 'fInviteUrl'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
+  var iq = document.getElementById('fInviteQr');
+  if (iq) iq.innerHTML = '';
   document.getElementById('fSortOrder').value = 0;
   document.getElementById('fIsPublic').value = 'true';
   document.getElementById('fPhotoFile').value = '';
@@ -409,6 +419,10 @@ function collectPageCopy() {
     var v = ((document.getElementById(pair[0]) || {}).value || '').trim();
     if (v) out[pair[1]] = v; else delete out[pair[1]];
   });
+
+  /* ★ 2026-10-07 — 편지 목표 통수(숫자). 비우면 공통 설정을 따른다 */
+  var goal = parseInt(((document.getElementById('fLetterGoal') || {}).value || '').trim(), 10);
+  if (goal > 0) out.letterGoal = goal; else delete out.letterGoal;
 
   return Object.keys(out).length ? out : null;
 }
@@ -495,8 +509,14 @@ function renderMod(items) {
     var badge = '<span class="report-badge' + (rc ? '' : ' zero') + '">신고 ' + rc + '</span>';
     var status = it.isHidden ? '<span class="status-pill off">숨김</span>' : '<span class="status-pill on">노출</span>';
     var text = (it.title ? '【' + esc(it.title) + '】 ' : '') + esc(it.content || '');
+    /* ★ 2026-10-07 — 편지는 출판 동의 여부·비회원 작성을 함께 보여준다 (책 엮기용) */
+    var who = esc(it.authorName || '익명');
+    if (_modType === 'letter') {
+      if (it.publishConsent) who += '<div style="margin-top:5px"><span class="status-pill on">출판 동의</span></div>';
+      if (it.isMemberWriter === false) who += '<div style="margin-top:5px"><span class="status-pill off">비회원</span></div>';
+    }
     return '<tr>' +
-      '<td>' + esc(it.authorName || '익명') + '</td>' +
+      '<td>' + who + '</td>' +
       '<td><div class="mod-content' + (it.isHidden ? ' hidden-row' : '') + '">' + text + '</div></td>' +
       '<td>' + badge + '</td>' +
       '<td>' + status + '</td>' +
@@ -594,7 +614,12 @@ function collectHallCopy() {
   var c = {
     night:   { greet: val('sNightGreet'), title: val('sNightTitle'), sub: val('sNightSub') },
     dawn:    { line:  val('sDawnLine'),   sub:   val('sDawnSub') },
-    morning: { greet: val('sMornGreet'),  title: val('sMornTitle'), sub: val('sMornSub') },
+    morning: {
+      greet: val('sMornGreet'),  title: val('sMornTitle'), sub: val('sMornSub'),
+      /* ★ 2026-10-07 — 아침관 안쪽 구간 제목 */
+      notesTitle: val('sNotesTitle'), notesSub: val('sNotesSub'),
+      timelineTitle: val('sTlTitle'), timelineSub: val('sTlSub')
+    },
     /* ★ 2026-08-28 — 선생님 화면 구간 문구 (모든 선생님 공통) */
     teacher: collectTeacherCopy()
   };
@@ -616,6 +641,10 @@ function fillHallCopy(hall) {
   setVal('sMornGreet',  hall.morning && hall.morning.greet);
   setVal('sMornTitle',  hall.morning && hall.morning.title);
   setVal('sMornSub',    hall.morning && hall.morning.sub);
+  setVal('sNotesTitle', hall.morning && hall.morning.notesTitle);
+  setVal('sNotesSub',   hall.morning && hall.morning.notesSub);
+  setVal('sTlTitle',    hall.morning && hall.morning.timelineTitle);
+  setVal('sTlSub',      hall.morning && hall.morning.timelineSub);
   fillTeacherCopy(hall.teacher);
 }
 
@@ -635,7 +664,17 @@ var TEACHER_COPY_FIELDS = [
   ['stOfferTitle', 'offerTitle'],
   ['stOfferDesc', 'offerDesc'],
   ['stNoteTag', 'noteTag'],
-  ['stNoteTitle', 'noteTitle']
+  ['stNoteTitle', 'noteTitle'],
+  /* ★ 2026-10-07 — 서신 작성 구간: 30통 목표·질문 카드·안내·초대장 */
+  ['stLetterGoal', 'letterGoal'],
+  ['stLetterGoalLine', 'letterGoalLine'],
+  ['stLetterGoalDone', 'letterGoalDone'],
+  ['stLetterGoalSub', 'letterGoalSub'],
+  ['stLetterQuestions', 'letterQuestions'],
+  ['stLetterPlaceholder', 'letterPlaceholder'],
+  ['stLetterHint', 'letterHint'],
+  ['stInviteTitle', 'inviteTitle'],
+  ['stInviteDesc', 'inviteDesc']
 ];
 
 function collectTeacherCopy() {
@@ -677,12 +716,16 @@ function loadFamilyNotes() {
       return;
     }
     box.innerHTML = '<table class="tbl"><thead><tr>' +
-      '<th style="width:56px">순서</th><th>제목</th><th style="width:130px">표기명</th>' +
+      '<th style="width:56px">순서</th><th style="width:78px">사진</th><th>제목</th><th style="width:130px">표기명</th>' +
       '<th style="width:110px">분위기</th><th style="width:80px">공개</th><th style="width:150px">관리</th>' +
       '</tr></thead><tbody>' +
       notes.map(function (n) {
+        var thumb = n.photoUrl
+          ? '<img src="' + fnEscape(n.photoUrl) + '" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:5px">'
+          : '<span style="color:#bbb">—</span>';
         return '<tr>' +
           '<td>' + fnEscape(n.sortOrder) + '</td>' +
+          '<td>' + thumb + '</td>' +
           '<td><b>' + fnEscape(n.title) + '</b><div style="color:#888;font-size:12px;margin-top:4px">' +
             fnEscape(String(n.content || '').slice(0, 60)) + '…</div></td>' +
           '<td>' + fnEscape(n.authorLabel || '—') + '</td>' +
@@ -709,6 +752,8 @@ function fnEdit(id) {
   var mood = document.getElementById('fnMood'); if (mood) mood.value = n.mood || 'calm';
   var pub = document.getElementById('fnPublic'); if (pub) pub.checked = !!n.isPublic;
   setVal('fnSort', n.sortOrder);
+  setVal('fnPhotoBlobId', n.photoBlobId || '');
+  fnPhotoPreview(n.photoUrl || '');
   var el = document.getElementById('fnTitle'); if (el) el.focus();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -718,6 +763,7 @@ function fnReset() {
   var mood = document.getElementById('fnMood'); if (mood) mood.value = 'calm';
   var pub = document.getElementById('fnPublic'); if (pub) pub.checked = true;
   setVal('fnSort', '0');
+  fnClearPhoto();
 }
 
 function fnSave() {
@@ -728,7 +774,9 @@ function fnSave() {
     authorLabel: val('fnAuthorLabel'),
     mood: (document.getElementById('fnMood') || {}).value || 'calm',
     isPublic: !!(document.getElementById('fnPublic') || {}).checked,
-    sortOrder: Number(val('fnSort')) || 0
+    sortOrder: Number(val('fnSort')) || 0,
+    /* ★ 2026-10-07 — 사진. 없으면 null 로 보내 '지우기'도 저장된다 */
+    photoBlobId: Number(val('fnPhotoBlobId')) || null
   };
   if (!payload.title) { toast('제목을 입력해 주세요.', 'error'); return; }
   if (!payload.content) { toast('내용을 입력해 주세요.', 'error'); return; }
@@ -1076,3 +1124,252 @@ document.addEventListener('DOMContentLoaded', function () {
   var reset = document.getElementById('tsReset');
   if (reset) reset.addEventListener('click', tsResetForm);
 });
+
+/* =========================================================
+   ★ 2026-10-07 정책국장 요청 — 유가족 근황 사진
+   사진 파일은 기존 업로드 경로(/api/blob-upload)를 그대로 쓴다.
+   ========================================================= */
+function fnPhotoPreview(url) {
+  var wrap = document.getElementById('fnPhotoWrap');
+  if (!wrap) return;
+  wrap.innerHTML = url
+    ? '<img class="photo-preview" style="border-radius:10px;width:120px;height:80px" src="' + esc(url) + '" alt="">'
+    : '<div class="photo-preview-empty" style="border-radius:10px"><span class="siren-icon-wrap" data-icon="image"></span></div>';
+  if (window.Icons && window.Icons.hydrate) { try { window.Icons.hydrate(wrap); } catch (_) {} }
+}
+function fnClearPhoto() {
+  setVal('fnPhotoBlobId', '');
+  var f = document.getElementById('fnPhotoFile'); if (f) f.value = '';
+  fnPhotoPreview('');
+}
+function fnUploadPhoto() {
+  var input = document.getElementById('fnPhotoFile');
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('context', 'memorial_family');
+  fd.append('isPublic', 'true');
+  toast('업로드 중…');
+  fetch('/api/blob-upload', { method: 'POST', credentials: 'include', body: fd })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok && d.ok !== false, data: d }; }); })
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && (res.data.error || res.data.message)) || '업로드 실패', 'error'); return; }
+      var id = (res.data && res.data.data && res.data.data.id) || (res.data && res.data.id) || (res.data && res.data.blobId);
+      if (!id) { toast('업로드 응답에 ID가 없습니다.', 'error'); return; }
+      setVal('fnPhotoBlobId', id);
+      fnPhotoPreview('/api/blob-image?id=' + id);
+      toast('사진이 업로드되었습니다.', 'success');
+    })
+    .catch(function (e) { toast('업로드 실패: ' + e.message, 'error'); });
+}
+
+/* =========================================================
+   ★ 2026-10-07 정책국장 요청 — 온기의 징검다리 (협의회가 걸어온 길, 시간순)
+   ========================================================= */
+var _tlItems = [];
+
+function tlPhotoPreview(url) {
+  var wrap = document.getElementById('tlPhotoWrap');
+  if (!wrap) return;
+  wrap.innerHTML = url
+    ? '<img class="photo-preview" style="border-radius:10px;width:120px;height:80px" src="' + esc(url) + '" alt="">'
+    : '<div class="photo-preview-empty" style="border-radius:10px"><span class="siren-icon-wrap" data-icon="image"></span></div>';
+  if (window.Icons && window.Icons.hydrate) { try { window.Icons.hydrate(wrap); } catch (_) {} }
+}
+function tlClearPhoto() {
+  setVal('tlBlobId', '');
+  var f = document.getElementById('tlFile'); if (f) f.value = '';
+  tlPhotoPreview('');
+}
+function tlUpload() {
+  var input = document.getElementById('tlFile');
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('context', 'memorial_timeline');
+  fd.append('isPublic', 'true');
+  toast('업로드 중…');
+  fetch('/api/blob-upload', { method: 'POST', credentials: 'include', body: fd })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok && d.ok !== false, data: d }; }); })
+    .then(function (res) {
+      if (!res.ok) { toast((res.data && (res.data.error || res.data.message)) || '업로드 실패', 'error'); return; }
+      var id = (res.data && res.data.data && res.data.data.id) || (res.data && res.data.id) || (res.data && res.data.blobId);
+      if (!id) { toast('업로드 응답에 ID가 없습니다.', 'error'); return; }
+      setVal('tlBlobId', id);
+      tlPhotoPreview('/api/blob-image?id=' + id);
+      toast('사진이 업로드되었습니다.', 'success');
+    })
+    .catch(function (e) { toast('업로드 실패: ' + e.message, 'error'); });
+}
+
+function tlReset() {
+  ['tlId', 'tlDate', 'tlDateLabel', 'tlCategory', 'tlTitle', 'tlSummary', 'tlDetail', 'tlLink'].forEach(function (id) { setVal(id, ''); });
+  setVal('tlSort', '0');
+  var pub = document.getElementById('tlPublic'); if (pub) pub.checked = true;
+  tlClearPhoto();
+}
+
+function tlLoad() {
+  var box = document.getElementById('tlList');
+  if (!box) return;
+  box.innerHTML = '<div style="padding:20px;color:#888">불러오는 중…</div>';
+  callApi('GET', '/api/admin-memorial-timeline').then(function (res) {
+    if (!res.ok) {
+      box.innerHTML = '<div style="padding:20px;color:#c00">불러오지 못했습니다. ' + esc((res.data && res.data.error) || '') + '</div>';
+      return;
+    }
+    if (pick(res, 'ready') === false) {
+      box.innerHTML = '<div class="tbl-empty">저장소 준비가 아직 끝나지 않았습니다. ' +
+        '관리자 주소창에 <code>https://tbfa.co.kr/api/migrate-memorial-v3?run=1</code> 을 한 번 실행해 주세요.</div>';
+      return;
+    }
+    _tlItems = pick(res, 'items') || [];
+    if (!_tlItems.length) {
+      box.innerHTML = '<div style="padding:24px;color:#888">등록된 징검다리가 없습니다. 위에서 첫 기록을 남겨보세요. (항목이 없으면 추모관 화면에서 이 구간은 보이지 않습니다)</div>';
+      return;
+    }
+    box.innerHTML = '<table class="tbl"><thead><tr>' +
+      '<th style="width:56px">순서</th><th style="width:120px">날짜</th><th style="width:70px">사진</th><th>제목</th>' +
+      '<th style="width:120px">구분</th><th style="width:70px">공개</th><th style="width:150px">관리</th>' +
+      '</tr></thead><tbody>' +
+      _tlItems.map(function (x) {
+        var thumb = x.photoUrl
+          ? '<img src="' + esc(x.photoUrl) + '" alt="" style="width:56px;height:40px;object-fit:cover;border-radius:5px">'
+          : '<span style="color:#bbb">—</span>';
+        return '<tr>' +
+          '<td>' + esc(x.sortOrder) + '</td>' +
+          '<td style="white-space:nowrap">' + esc(x.dateLabel || '—') + '</td>' +
+          '<td>' + thumb + '</td>' +
+          '<td><b>' + esc(x.title) + '</b>' +
+            (x.summary ? '<div style="color:#888;font-size:12px;margin-top:4px">' + esc(String(x.summary).slice(0, 60)) + '…</div>' : '') + '</td>' +
+          '<td>' + esc(x.category || '—') + '</td>' +
+          '<td>' + (x.isPublic ? '공개' : '<span style="color:#c00">숨김</span>') + '</td>' +
+          '<td>' +
+            '<button class="btn btn-sm" onclick="tlEdit(' + x.id + ')">수정</button> ' +
+            '<button class="btn btn-sm" onclick="tlDelete(' + x.id + ')">삭제</button>' +
+          '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function (e) {
+    box.innerHTML = '<div style="padding:20px;color:#c00">오류: ' + esc(e.message) + '</div>';
+  });
+}
+
+function tlEdit(id) {
+  var x = _tlItems.filter(function (v) { return Number(v.id) === Number(id); })[0];
+  if (!x) return;
+  setVal('tlId', x.id);
+  setVal('tlDate', x.eventDate || '');
+  setVal('tlDateLabel', x.dateLabel && x.dateLabel !== (x.eventDate || '').replace(/-/g, '.') ? x.dateLabel : '');
+  setVal('tlCategory', x.category || '');
+  setVal('tlTitle', x.title || '');
+  setVal('tlSummary', x.summary || '');
+  setVal('tlDetail', x.detail || '');
+  setVal('tlLink', x.linkUrl || '');
+  setVal('tlSort', x.sortOrder != null ? x.sortOrder : 0);
+  var pub = document.getElementById('tlPublic'); if (pub) pub.checked = x.isPublic !== false;
+  setVal('tlBlobId', x.imageBlobId || '');
+  tlPhotoPreview(x.photoUrl || '');
+  var el = document.getElementById('tlTitle'); if (el) el.focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function tlSave() {
+  var id = val('tlId');
+  var payload = {
+    eventDate: val('tlDate') || null,
+    dateLabel: val('tlDateLabel') || null,
+    category: val('tlCategory') || null,
+    title: val('tlTitle'),
+    summary: val('tlSummary') || null,
+    detail: val('tlDetail') || null,
+    imageBlobId: Number(val('tlBlobId')) || null,
+    linkUrl: val('tlLink') || null,
+    sortOrder: Number(val('tlSort')) || 0,
+    isPublic: !!(document.getElementById('tlPublic') || {}).checked
+  };
+  if (!payload.title) { toast('제목을 입력해 주세요.', 'error'); return; }
+  if (!payload.eventDate && !payload.dateLabel) { toast('날짜 또는 날짜 표기 중 하나는 적어주세요.', 'error'); return; }
+
+  var method = id ? 'PATCH' : 'POST';
+  var url = '/api/admin-memorial-timeline' + (id ? '?id=' + encodeURIComponent(id) : '');
+  callApi(method, url, payload).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }
+    if (pick(res, 'ready') === false) { toast('저장소 준비(마이그레이션)가 아직 끝나지 않았습니다.', 'error'); return; }
+    toast(id ? '수정되었습니다.' : '징검다리를 추가했습니다.', 'success');
+    tlReset();
+    tlLoad();
+  }).catch(function (e) { toast('저장 실패: ' + e.message, 'error'); });
+}
+
+function tlDelete(id) {
+  if (!confirm('이 징검다리를 삭제할까요? 되돌릴 수 없습니다.')) return;
+  callApi('DELETE', '/api/admin-memorial-timeline?id=' + encodeURIComponent(id)).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '삭제 실패', 'error'); return; }
+    toast('삭제되었습니다.', 'success');
+    tlReset();
+    tlLoad();
+  }).catch(function (e) { toast('삭제 실패: ' + e.message, 'error'); });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var save = document.getElementById('tlSave');
+  if (save) save.addEventListener('click', tlSave);
+  var reset = document.getElementById('tlReset');
+  if (reset) reset.addEventListener('click', tlReset);
+});
+
+/* =========================================================
+   ★ 2026-10-07 정책국장 요청 — 고인별 초대 링크 · QR (선생님 편집)
+   링크는 늘 공식 도메인(tbfa.co.kr)으로 만든다. QR은 누를 때만 작은 생성기를
+   불러와 브라우저에서 그린다(외부 서비스 의존 없음).
+   ========================================================= */
+var INVITE_BASE = 'https://tbfa.co.kr/memorial-teacher.html';
+var QR_LIB_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+
+function tInviteUrl(id) {
+  return INVITE_BASE + '?id=' + encodeURIComponent(id) + '&invite=1';
+}
+function tInviteCopy() {
+  var url = val('fInviteUrl');
+  if (!url) { toast('선생님을 먼저 저장해 주세요.', 'error'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function () { toast('초대 링크를 복사했습니다.', 'success'); },
+      function () { window.prompt('아래 링크를 복사해 주세요', url); });
+  } else {
+    window.prompt('아래 링크를 복사해 주세요', url);
+  }
+}
+function loadQrLib() {
+  return new Promise(function (resolve, reject) {
+    if (window.qrcode) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = QR_LIB_SRC; s.async = true;
+    s.onload = function () { resolve(); };
+    s.onerror = function () { reject(new Error('QR 생성기를 불러오지 못했습니다')); };
+    document.head.appendChild(s);
+  });
+}
+function tInviteQr() {
+  var url = val('fInviteUrl');
+  var box = document.getElementById('fInviteQr');
+  if (!url || !box) { toast('선생님을 먼저 저장해 주세요.', 'error'); return; }
+  box.innerHTML = '<span class="hint">QR을 그리는 중…</span>';
+  loadQrLib().then(function () {
+    var qr = window.qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    var dataUrl = qr.createDataURL(6, 12);
+    var t = _teachers.filter(function (x) { return x.id === _editingTeacherId; })[0];
+    var fname = (t && t.name ? t.name + '-' : '') + '초대장-QR.png';
+    box.innerHTML =
+      '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
+        '<img src="' + dataUrl + '" alt="초대 링크 QR" style="width:150px;height:150px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">' +
+        '<div><a class="btn btn-ghost btn-sm" href="' + dataUrl + '" download="' + esc(fname) + '" style="text-decoration:none;display:inline-block">QR 이미지 저장</a>' +
+        '<div class="hint" style="margin-top:6px">인쇄물·안내문에 넣어 쓰실 수 있습니다.</div></div>' +
+      '</div>';
+  }).catch(function (e) {
+    box.innerHTML = '<span class="hint" style="color:#c00">' + esc(e.message || 'QR 코드를 만들지 못했습니다') + '</span>';
+  });
+}

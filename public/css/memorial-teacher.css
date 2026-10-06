@@ -319,25 +319,128 @@
   margin: 18px 0 0; word-break: keep-all;
 }
 
-/* 무엇을 남길지 고르는 두 갈래 — 남는 모습이 서로 다르다는 걸 보여준다 */
-.mt2-ways {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 26px;
+/* ★ 2026-10-07 정책국장 요청 — 편지 하나로 모은 서신 작성 구간 */
+
+/* 초대 링크로 들어온 분께 */
+.mt2-invite-banner {
+  max-width: 700px; margin: -14px auto 26px; padding: 16px 20px; border-radius: 14px;
+  background: rgba(214, 142, 58, .10); border: 1px solid rgba(214, 142, 58, .32);
+  display: flex; flex-direction: column; gap: 4px; text-align: center;
+  font-size: 13.5px; line-height: 1.7; color: var(--m2-earth); word-break: keep-all;
 }
-.mt2-way {
-  appearance: none; cursor: pointer; font: inherit; text-align: center;
-  border: 1px solid rgba(44, 49, 45, .15); background: none; color: var(--m2-earth);
-  padding: 19px 14px; border-radius: 14px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  transition: border-color .25s ease, background .25s ease, transform .25s ease;
+.mt2-invite-banner b { font-family: var(--m2-serif); font-size: 16px; color: #8A5A1D; }
+
+/* 편지 30통이 모이면 책이 됩니다 */
+.mt2-goal {
+  max-width: 700px; margin: 0 auto 22px; padding: 22px 24px 20px; border-radius: 18px;
+  background: #FFFFFF; border: 1px solid rgba(44, 49, 45, .10);
+  box-shadow: 0 4px 20px rgba(44, 49, 45, .05);
 }
-.mt2-way .m2-emoji { font-size: 22px; line-height: 1; color: var(--m2-bloom); }
-.mt2-way b { font-size: 15px; font-weight: 600; }
-.mt2-way small { font-size: 12px; line-height: 1.6; color: var(--m2-earth-mute); word-break: keep-all; }
-.mt2-way[aria-selected="true"] {
-  border-color: var(--m2-bloom); background: rgba(214, 142, 58, .09); transform: translateY(-2px);
+.mt2-goal-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 12px;
 }
-.mt2-way[aria-selected="true"] small { color: var(--m2-bloom); }
-.mt2-area-sm { min-height: 92px; }
+.mt2-goal-line {
+  font-family: var(--m2-serif); font-size: clamp(16px, 2.6vw, 19px); font-weight: 700;
+  color: var(--m2-earth); word-break: keep-all;
+}
+.mt2-goal-count { font-size: 13.5px; font-weight: 600; color: var(--m2-bloom); white-space: nowrap; }
+.mt2-goal-bar {
+  height: 10px; border-radius: 999px; overflow: hidden;
+  background: rgba(44, 49, 45, .08);
+}
+.mt2-goal-bar i {
+  display: block; height: 100%; width: 0; border-radius: 999px;
+  background: linear-gradient(90deg, #E8B465, var(--m2-bloom));
+  transition: width .8s cubic-bezier(.2, .7, .3, 1);
+}
+.mt2-goal-bar.is-done i { background: linear-gradient(90deg, var(--m2-leaf), #55786A); }
+.mt2-goal-sub {
+  margin: 12px 0 0; font-size: 12.5px; line-height: 1.8; color: var(--m2-earth-mute); word-break: keep-all;
+}
+
+/* 질문 카드 — 하나를 고르면 그것이 편지의 주제가 된다 */
+.mt2-qcards {
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+}
+.mt2-qcard {
+  appearance: none; cursor: pointer; font: inherit; text-align: left;
+  border: 1px solid rgba(44, 49, 45, .15); background: var(--m2-morn-1); color: var(--m2-earth);
+  padding: 13px 14px; border-radius: 12px; min-height: 64px;
+  display: flex; gap: 10px; align-items: flex-start;
+  transition: border-color .22s ease, background .22s ease, transform .22s ease;
+}
+.mt2-qcard-no {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 700; color: var(--m2-earth-mute);
+  background: rgba(44, 49, 45, .08);
+}
+.mt2-qcard-text { font-size: 13.5px; line-height: 1.6; word-break: keep-all; }
+.mt2-qcard:hover { border-color: rgba(214, 142, 58, .5); }
+.mt2-qcard[aria-checked="true"] {
+  border-color: var(--m2-bloom); background: rgba(214, 142, 58, .10); transform: translateY(-2px);
+}
+.mt2-qcard[aria-checked="true"] .mt2-qcard-no { background: var(--m2-bloom); color: #fff; }
+
+/* 출판 동의 · 익명 */
+.mt2-consent { display: flex; flex-direction: column; gap: 10px; margin: 2px 0 18px; }
+.mt2-check-consent { align-items: flex-start; }
+.mt2-check-consent input { margin-top: 4px; }
+.mt2-check-consent b { color: var(--m2-earth); font-weight: 600; }
+.mt2-check-consent small { font-size: 12px; color: var(--m2-earth-mute); line-height: 1.7; word-break: keep-all; }
+.mt2-foot-hint { margin: 0; flex: 1 1 260px; }
+
+/* 먼저 도착한 짧은 편지 + 작성 유도 카드 */
+.mt2-samples { margin-top: 28px; padding-top: 22px; border-top: 1px dashed rgba(44, 49, 45, .16); }
+.mt2-samples-head { margin: 0 0 12px; font-size: 12.5px; letter-spacing: .06em; color: var(--m2-earth-mute); }
+.mt2-sample-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.mt2-sample {
+  appearance: none; cursor: pointer; font: inherit; text-align: left; color: var(--m2-earth);
+  background: var(--m2-morn-1); border: 1px solid rgba(44, 49, 45, .11); border-radius: 12px;
+  padding: 14px 15px; display: flex; flex-direction: column; gap: 7px; min-height: 120px;
+  transition: border-color .22s ease, transform .22s ease;
+}
+.mt2-sample:hover { border-color: rgba(214, 142, 58, .45); transform: translateY(-2px); }
+.mt2-sample-q { font-size: 11.5px; color: var(--m2-bloom); font-weight: 600; word-break: keep-all; }
+.mt2-sample-text {
+  font-family: var(--m2-serif); font-size: 13.5px; line-height: 1.8; margin: 0; flex: 1;
+  word-break: keep-all; color: rgba(44, 49, 45, .86);
+}
+.mt2-sample-by { font-size: 11.5px; color: var(--m2-earth-mute); }
+.mt2-sample-cta {
+  border-style: dashed; border-color: rgba(214, 142, 58, .5); background: rgba(214, 142, 58, .06);
+  align-items: center; justify-content: center; text-align: center;
+}
+.mt2-sample-cta b { font-family: var(--m2-serif); font-size: 15px; color: #8A5A1D; }
+.mt2-sample-cta span { font-size: 12px; line-height: 1.7; color: var(--m2-earth-mute); word-break: keep-all; }
+
+/* 초대장 — 유가족이 지인에게 편지를 청한다 */
+.mt2-invite {
+  max-width: 700px; margin: 26px auto 0; padding: 24px 26px; border-radius: 18px;
+  background: linear-gradient(135deg, rgba(59, 88, 78, .07), rgba(214, 142, 58, .07));
+  border: 1px solid rgba(59, 88, 78, .16);
+}
+.mt2-invite-text b {
+  display: block; font-family: var(--m2-serif); font-size: 17px; font-weight: 700;
+  color: var(--m2-earth); margin-bottom: 8px; word-break: keep-all;
+}
+.mt2-invite-text p { margin: 0 0 16px; font-size: 13.5px; line-height: 1.85; color: var(--m2-earth-mute); word-break: keep-all; }
+.mt2-invite-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.mt2-invite-actions .mt2-ghost { background: #fff; }
+.mt2-qr {
+  margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(44, 49, 45, .10);
+  display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+}
+.mt2-qr-img img { display: block; width: 180px; height: 180px; border-radius: 10px; background: #fff; border: 1px solid rgba(44, 49, 45, .1); }
+.mt2-qr-side { flex: 1 1 220px; }
+.mt2-qr-side p { margin: 0 0 12px; font-size: 13px; line-height: 1.8; color: var(--m2-earth-mute); word-break: keep-all; }
+.mt2-qr-side .mt2-ghost { display: inline-block; text-decoration: none; background: #fff; }
+
+/* 방금 도착한 편지 — 잠시 밝게 */
+.mt2-env.is-new {
+  border-color: var(--m2-bloom); box-shadow: 0 0 0 4px rgba(214, 142, 58, .16), 0 20px 40px rgba(44, 49, 45, .12);
+}
 
 /* ══ 7. 남겨진 한마디 ═══════════════════════════════════ */
 .mt2-notes {
@@ -409,10 +512,12 @@
   .mt2-envelopes { grid-template-columns: 1fr; }
   .mt2-notes { grid-template-columns: 1fr; }
   .mt2-paper { padding: 25px 20px; }
-  .mt2-ways { grid-template-columns: 1fr; gap: 10px; }
-  .mt2-way { flex-direction: row; gap: 12px; text-align: left; padding: 15px 16px; }
-  .mt2-way b { flex: none; }
-  .mt2-way small { display: none; }
+  .mt2-qcards { grid-template-columns: 1fr; gap: 8px; }
+  .mt2-qcard { min-height: 0; padding: 11px 13px; }
+  .mt2-sample-grid { grid-template-columns: 1fr 1fr; }
+  .mt2-goal { padding: 18px 18px 16px; }
+  .mt2-invite { padding: 20px 18px; }
+  .mt2-foot .mt2-btn { width: 100%; }
   .mt2-sheet { padding: 30px 22px 26px; }
 }
 

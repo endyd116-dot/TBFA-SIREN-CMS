@@ -12,9 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="SIREN" />
 <script src="/js/pwa.js?v=3" defer></script>
 <title>선생님을 기억합니다 | 교사유가족협의회</title>
-<meta name="description" content="먼저 떠나신 선생님의 이름과 이야기를 기억합니다. 생전의 순간을 함께 보고, 별빛과 편지로 마음을 전해주세요.">
+<meta name="description" content="먼저 떠나신 선생님의 이름과 이야기를 기억합니다. 생전의 순간을 함께 보고, 편지 한 통으로 마음을 전해주세요. 편지 30통이 모이면 한 권의 책이 됩니다.">
 <meta property="og:title" content="선생님을 기억합니다 | 교사유가족협의회">
-<meta property="og:description" content="먼저 떠나신 선생님의 이름과 이야기를 기억합니다.">
+<meta property="og:description" content="먼저 떠나신 선생님의 이름과 이야기를 기억합니다. 편지 한 통으로 마음을 전해주세요.">
 <meta property="og:image" content="https://tbfa.co.kr/og-default.png">
 <meta property="og:type" content="profile">
 <meta property="og:site_name" content="교사유가족협의회">
@@ -30,8 +30,8 @@
 <link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
-<link rel="stylesheet" href="/css/memorial.css?v=20260828-star">
-<link rel="stylesheet" href="/css/memorial-teacher.css?v=20260828-align">
+<link rel="stylesheet" href="/css/memorial.css?v=20261007-v3">
+<link rel="stylesheet" href="/css/memorial-teacher.css?v=20261007-v3">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -102,8 +102,9 @@
       </div>
     </section>
 
-    <!-- ══ 4. 기억의 편지 — 도착한 마음 ═════════════════ -->
-    <section class="mt2-sec mt2-sec-letters">
+    <!-- ══ 4. 기억의 편지 — 도착한 마음 ═════════════════
+         보낸 편지는 바로 여기에 봉투로 놓인다 (정책국장 기획의 흐름) -->
+    <section class="mt2-sec mt2-sec-letters" id="mtLetterSec">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
           <span class="mt2-tag" id="mtLtTag">기억의 편지</span>
@@ -115,7 +116,7 @@
 
         <div id="mtLetters" class="mt2-envelopes"></div>
         <div id="mtLtEmpty" class="mt2-empty" style="display:none">
-          아직 도착한 편지가 없습니다.<br>첫 편지를 남겨주시겠어요?
+          아직 도착한 편지가 없습니다.<br>아래에서 첫 편지를 남겨주시겠어요?
         </div>
         <!-- ★ 2026-09-03: 처음엔 감춤 — 서버 원본에 로딩 문구가 노출되지 않게 (광고그랜트) -->
         <div id="mtLtLoading" class="mt2-loading" style="display:none">불러오는 중…</div>
@@ -125,78 +126,102 @@
       </div>
     </section>
 
-    <!-- ══ 5. 마음 남기기 — 두 갈래 ═════════════════════ -->
+    <!-- ══ 5. 나만의 서신 작성하기 ═══════════════════════
+         ★ 2026-10-07 정책국장 요청:
+           · 별빛 한 줄 / 편지 한 통 두 갈래를 없애고 편지 하나로 모은다.
+           · 보낸 편지는 위 '기억의 편지'에 바로 봉투로 놓인다.
+           · "편지 30통이 모이면 책이 됩니다" 목표와 진행을 함께 보여준다.
+           · 제목 대신 질문 카드 하나를 고르면 그것이 편지의 주제가 된다.
+           · 출판 동의 체크 · 먼저 도착한 짧은 편지 카드 · 고인별 초대 링크(QR). -->
     <section class="mt2-sec mt2-sec-offer" id="mtOfferSec">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
-          <span class="mt2-tag" id="mtOfferTag">마음 남기기</span>
-          <h2 class="mt2-h2" id="mtOfferTitle">잠시 머물다 가셔도 좋습니다</h2>
+          <span class="mt2-tag" id="mtOfferTag">나만의 서신 작성하기</span>
+          <h2 class="mt2-h2" id="mtOfferTitle">선생님께 편지 한 통을 남겨주세요</h2>
           <p class="mt2-desc" id="mtOfferDesc">
-            짧은 한 줄도, 긴 편지도 좋습니다. 원하시는 쪽을 골라주세요.
+            보내신 편지는 위 &lsquo;기억의 편지&rsquo;에 봉투로 놓여, 이곳을 찾는 분들이 열어보게 됩니다.
           </p>
         </div>
 
+        <!-- 초대 링크로 들어온 분께 -->
+        <div class="mt2-invite-banner" id="mtInviteBanner" style="display:none">
+          <b id="mtInviteBannerLine">선생님을 기억하는 분이 당신을 초대했습니다.</b>
+          <span>한 문장이어도 충분합니다. 선생님께 편지 한 통을 남겨주세요.</span>
+        </div>
+
+        <!-- 편지 30통이 모이면 책이 됩니다 -->
+        <div class="mt2-goal" id="mtGoal">
+          <div class="mt2-goal-head">
+            <b class="mt2-goal-line" id="mtGoalLine">편지 30통이 모이면 책이 됩니다</b>
+            <span class="mt2-goal-count" id="mtGoalCount">0 / 30통</span>
+          </div>
+          <div class="mt2-goal-bar" id="mtGoalBar" role="progressbar" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0" aria-label="모인 편지"><i id="mtGoalFill"></i></div>
+          <p class="mt2-goal-sub" id="mtGoalSub">모인 편지는 유가족의 동의를 거쳐 한 권의 책으로 엮습니다. 선생님을 오래 기억하는 가장 확실한 방법입니다.</p>
+        </div>
+
         <div class="mt2-paper">
-          <!-- 무엇을 남길지 먼저 고른다 — 두 행위는 남는 모습이 다르다 -->
-          <div class="mt2-ways" id="mtWays" role="tablist" aria-label="남기는 방법">
-            <button type="button" class="mt2-way" data-way="star" role="tab" aria-selected="true">
-              <span class="m2-emoji" aria-hidden="true">✦</span>
-              <b>별빛 한 줄</b>
-              <small>바로 남기실 수 있고,<br>밤하늘의 별이 됩니다</small>
-            </button>
-            <button type="button" class="mt2-way" data-way="letter" role="tab" aria-selected="false">
-              <span class="m2-emoji" aria-hidden="true">✉</span>
-              <b>편지 한 통</b>
-              <small>봉투로 놓여<br>다른 분들이 열어봅니다</small>
-            </button>
+          <div class="mt2-field">
+            <label id="mtQLabel">어떤 이야기를 들려주시겠어요? <span class="mt2-opt">(하나를 고르면 그 질문이 편지의 주제가 됩니다)</span></label>
+            <div class="mt2-qcards" id="mtQCards" role="radiogroup" aria-labelledby="mtQLabel"></div>
+          </div>
+          <div class="mt2-field">
+            <label for="mtLtBody">편지 <span class="mt2-opt">&mdash; 한 문장이어도 충분합니다</span></label>
+            <textarea class="mt2-input mt2-area" id="mtLtBody"
+                      placeholder="예) 선생님은 늘 교실 문 앞에서 아이들 이름을 하나씩 불러주셨습니다. 그 목소리가 아직도 들리는 것 같습니다."></textarea>
+          </div>
+          <div class="mt2-field">
+            <label for="mtLtName">보내는 이 <span class="mt2-opt">(비워두면 익명)</span></label>
+            <input type="text" class="mt2-input" id="mtLtName" maxlength="40" placeholder="예: 3학년 2반 제자 · 동료 교사 · 학부모">
+          </div>
+          <div class="mt2-consent">
+            <label class="mt2-check mt2-check-consent">
+              <input type="checkbox" id="mtLtConsent">
+              <span><b>이 편지를 책으로 엮는 데 동의합니다</b> <span class="mt2-opt">(출판 동의 · 선택)</span><br>
+              <small>동의한 편지만 책에 실립니다. 실릴 때는 &lsquo;보내는 이&rsquo; 표기를 그대로 씁니다.</small></span>
+            </label>
+            <label class="mt2-check"><input type="checkbox" id="mtLtAnon"> 이름 없이 보내기</label>
+          </div>
+          <div class="mt2-foot">
+            <p class="mt2-hint mt2-foot-hint" id="mtLtHint">
+              로그인 없이 보내실 수 있습니다. 보내신 편지는 모두에게 보이며,
+              부적절한 글은 자동 검토와 운영자 확인을 거쳐 가려집니다.
+            </p>
+            <button type="button" class="mt2-btn" id="mtLtSubmit">서신 보내기</button>
           </div>
 
-          <!-- 갈래 ① 별빛 한 줄 -->
-          <div id="mtWayStar">
-            <div class="mt2-field">
-              <label for="mtName2">부르실 이름 <span class="mt2-opt">(비워두면 익명)</span></label>
-              <input type="text" class="mt2-input" id="mtName2" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
-            </div>
-            <div class="mt2-field">
-              <label for="mtMsgText">전하고 싶은 한마디</label>
-              <textarea class="mt2-input mt2-area mt2-area-sm" id="mtMsgText" maxlength="1000"
-                        placeholder="선생님께 닿았으면 하는 말을 남겨주세요."></textarea>
-            </div>
-            <div class="mt2-foot">
-              <label class="mt2-check"><input type="checkbox" id="mtAnon"> 이름 없이 남기기</label>
-              <button type="button" class="mt2-btn" id="mtOfferBtn">별빛 밝히기</button>
-            </div>
-            <p class="mt2-hint">
-              한마디를 적지 않고 별빛만 밝히셔도 됩니다. 로그인은 필요하지 않습니다.<br>
-              남겨주신 글은 모두에게 보입니다. 부적절한 글은 자동 검토와 운영자 확인을 거쳐 가려집니다.
-            </p>
+          <!-- 먼저 도착한 짧은 편지 — 참여 부담을 낮춘다. 마지막 카드는 작성 유도 -->
+          <div class="mt2-samples" id="mtSamples" style="display:none">
+            <p class="mt2-samples-head" id="mtSamplesHead">먼저 도착한 편지들</p>
+            <div class="mt2-sample-grid" id="mtSampleGrid"></div>
           </div>
+        </div>
 
-          <!-- 갈래 ② 편지 한 통 -->
-          <div id="mtWayLetter" style="display:none">
-            <div class="mt2-field">
-              <label for="mtLtTitle">편지 제목</label>
-              <input type="text" class="mt2-input" id="mtLtTitle" maxlength="150" placeholder="예: 어느 겨울날의 약속">
+        <!-- 초대장 — 유가족이 지인에게 편지를 청한다 -->
+        <div class="mt2-invite" id="mtInvite">
+          <div class="mt2-invite-text">
+            <b id="mtInviteTitle">선생님을 기억하는 분들께 편지를 청해보세요</b>
+            <p id="mtInviteDesc">이 선생님만의 초대 링크를 지인에게 보내면, 받은 분이 바로 이 자리에서 편지를 남길 수 있습니다. 가족·동료·제자 누구나 보낼 수 있습니다.</p>
+          </div>
+          <div class="mt2-invite-actions">
+            <button type="button" class="mt2-ghost" id="mtInviteCopy">초대 링크 복사</button>
+            <button type="button" class="mt2-ghost" id="mtInviteShare" style="display:none">공유하기</button>
+            <button type="button" class="mt2-ghost" id="mtInviteQr">QR 코드 만들기</button>
+          </div>
+          <div class="mt2-qr" id="mtQrBox" style="display:none">
+            <div class="mt2-qr-img" id="mtQrImg"></div>
+            <div class="mt2-qr-side">
+              <p>이 QR을 찍으면 바로 이 선생님의 편지 자리로 옵니다.<br>인쇄물·안내문에 넣어 쓰실 수 있습니다.</p>
+              <a class="mt2-ghost" id="mtQrDown" href="#" download="초대장-QR.png">QR 이미지 저장</a>
             </div>
-            <div class="mt2-field">
-              <label for="mtLtBody">편지 내용</label>
-              <textarea class="mt2-input mt2-area" id="mtLtBody" placeholder="천천히 적어주세요."></textarea>
-            </div>
-            <div class="mt2-foot">
-              <label class="mt2-check"><input type="checkbox" id="mtLtAnon"> 이름 없이 보내기</label>
-              <button type="button" class="mt2-btn" id="mtLtSubmit">편지 보내기</button>
-            </div>
-            <p class="mt2-hint" id="mtLtHint">
-              편지는 위 &lsquo;기억의 편지&rsquo;에 봉투로 놓여 다른 분들이 열어보실 수 있습니다.<br>
-              편지는 로그인 후 보내실 수 있습니다.
-            </p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ══ 6. 남겨주신 한마디 ═══════════════════════════ -->
-    <section class="mt2-sec">
+    <!-- ══ 6. 남겨주신 한마디 ═══════════════════════════
+         ★ 2026-10-07: 이 화면에서 새로 적는 길은 편지 하나로 모였다.
+            예전에 남겨진 한마디가 있을 때만 보인다. -->
+    <section class="mt2-sec" id="mtNoteSec" style="display:none">
       <div class="mt2-wrap">
         <div class="mt2-sec-head">
           <span class="mt2-tag" id="mtNoteTag">머물다 가신 분들</span>
@@ -249,6 +274,6 @@
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260906-receipt" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-bloom" defer></script>
-  <script src="/js/memorial-teacher.js?v=20260828-align" defer></script>
+  <script src="/js/memorial-teacher.js?v=20261007-v3" defer></script>
 </body>
 </html>

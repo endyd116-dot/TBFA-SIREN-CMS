@@ -5,6 +5,7 @@ import { db } from "../../db";
 import { memorialMessages, memorialLetters } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createNotification } from "../../lib/notify";
+import { consentMapFor, letterExtrasReady } from "../../lib/memorial-letter-extras";
 
 export const config = { path: "/api/admin-memorial-moderation" };
 
@@ -35,10 +36,11 @@ export default async function handler(req: Request, _ctx: Context) {
         const order = sortRecent
           ? [desc(memorialLetters.createdAt)]
           : [desc(memorialLetters.reportCount), desc(memorialLetters.createdAt)];
-        const items = await db
+        const rows = await db
           .select({
             id:          memorialLetters.id,
             teacherId:   memorialLetters.teacherId,
+            memberId:    memorialLetters.memberId,
             authorName:  memorialLetters.authorName,
             title:       memorialLetters.title,
             content:     memorialLetters.content,
@@ -49,7 +51,24 @@ export default async function handler(req: Request, _ctx: Context) {
           .from(memorialLetters)
           .orderBy(...order)
           .limit(500);
-        return new Response(jsonKST({ ok: true, data: { items } }), {
+
+        /* ★ 2026-10-07: 책으로 엮는 데 동의한 편지인지 함께 보여준다 (출판 사업용).
+           저장 칸이 아직 없으면(마이그 전) 표시만 빠진다. */
+        const consent = await consentMapFor(rows.map((r) => r.id));
+        const consentReady = await letterExtrasReady();
+        const items = rows.map((r) => ({
+          id: r.id,
+          teacherId: r.teacherId,
+          authorName: r.authorName,
+          title: r.title,
+          content: r.content,
+          reportCount: r.reportCount,
+          isHidden: r.isHidden,
+          createdAt: r.createdAt,
+          isMemberWriter: r.memberId != null,
+          publishConsent: consent[r.id] === true,
+        }));
+        return new Response(jsonKST({ ok: true, data: { items, consentReady } }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       }

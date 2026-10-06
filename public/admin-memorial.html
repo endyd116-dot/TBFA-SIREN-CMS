@@ -91,7 +91,81 @@ tr:last-child td { border-bottom:none; }
   <div class="tab" data-tab="spotlight" onclick="switchTab('spotlight')"><span class="siren-icon-wrap" data-icon="candle"></span> 이달의 기억</div>
   <!-- ★ 2026-08-28 추모관 v2 — 아침관(유가족 응원) 관리 -->
   <div class="tab" data-tab="family" onclick="switchTab('family')"><span class="siren-icon-wrap" data-icon="sun"></span> 유가족 근황</div>
+  <!-- ★ 2026-10-07 정책국장 요청 — 협의회가 걸어온 길(시간순) -->
+  <div class="tab" data-tab="timeline" onclick="switchTab('timeline')"><span class="siren-icon-wrap" data-icon="flag"></span> 온기의 징검다리</div>
   <div class="tab" data-tab="settings" onclick="switchTab('settings')"><span class="siren-icon-wrap" data-icon="settings"></span> 추모관 설정</div>
+</div>
+
+<!-- ===== ★ 2026-10-07: 온기의 징검다리 (아침관 '우리가 함께 놓은 온기의 징검다리') ===== -->
+<div class="tab-panel" id="panel-timeline">
+  <div class="page-hd">
+    <h2><span class="siren-icon-wrap" data-icon="flag"></span> 온기의 징검다리</h2>
+  </div>
+  <p class="hint" style="margin:-8px 0 18px;line-height:1.7">
+    추모관 <b>아침</b> 구간에 <b>시간순</b>으로 나갑니다. 협의회가 유가족을 위해 <b>해온 일 · 하고 있는 일 · 앞으로 할 일</b>을 적어주세요.<br>
+    방문자가 항목을 누르면 &lsquo;자세한 이야기&rsquo;와 사진이 열립니다. 날짜가 없으면 &lsquo;날짜 표기&rsquo;(예: 2026년 봄·추진 중)만 보입니다.
+  </p>
+
+  <div class="form-panel">
+    <input type="hidden" id="tlId">
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>날짜</label>
+        <input type="date" id="tlDate">
+        <div class="hint">정렬과 기본 표기(2025.05.15)에 쓰입니다. 앞으로 할 일은 비워두어도 됩니다.</div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>날짜 표기 <span style="opacity:.6;font-weight:400">(선택 — 날짜 대신 보일 글)</span></label>
+        <input type="text" id="tlDateLabel" maxlength="40" placeholder="예: 2026년 상반기 · 추진 중 · 2027 예정">
+      </div>
+    </div>
+    <div class="form-row-2" style="margin-top:16px">
+      <div class="form-row" style="margin-bottom:0">
+        <label>구분</label>
+        <input type="text" id="tlCategory" maxlength="40" placeholder="예: 자조 모임 · 유가족 권리 선언 · 장학">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>제목 <span style="color:#c00">*</span></label>
+        <input type="text" id="tlTitle" maxlength="150" placeholder="예: 제1회 유가족 치유 포럼 ‘늘봄’">
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:16px">
+      <label>요약 (목록에 보이는 두세 줄)</label>
+      <textarea id="tlSummary" rows="3" placeholder="예: 전국 50여 유가족 가구가 처음으로 모여 아픔을 나누고 서로를 일으켜 세운 자리였습니다."></textarea>
+    </div>
+    <div class="form-row">
+      <label>자세한 이야기 (눌렀을 때 열림)</label>
+      <textarea id="tlDetail" rows="5" placeholder="줄바꿈은 그대로 보입니다. 그날의 이야기, 유가족의 한마디, 이후의 변화를 적어주세요."></textarea>
+    </div>
+    <div class="form-row">
+      <label>사진 (선택)</label>
+      <div class="photo-up">
+        <div id="tlPhotoWrap"><div class="photo-preview-empty" style="border-radius:10px"><span class="siren-icon-wrap" data-icon="image"></span></div></div>
+        <div>
+          <input type="file" id="tlFile" accept="image/*" onchange="tlUpload()">
+          <input type="hidden" id="tlBlobId">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="tlClearPhoto()" style="margin-top:6px">사진 지우기</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>관련 링크 (선택)</label>
+        <input type="text" id="tlLink" maxlength="300" placeholder="예: /activity.html?id=12 또는 https://…">
+      </div>
+      <div class="form-row" style="margin-bottom:0;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
+        <label style="margin:0;display:flex;align-items:center;gap:8px">정렬 <input type="number" id="tlSort" value="0" style="width:90px"></label>
+        <label style="margin:0;display:flex;align-items:center;gap:8px"><input type="checkbox" id="tlPublic" checked> 공개</label>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:6px">정렬 숫자가 같으면 날짜 순(오래된 것부터)으로 놓입니다.</div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="tlSave" type="button">저장</button>
+      <button class="btn btn-ghost" id="tlReset" type="button">새로 쓰기</button>
+    </div>
+  </div>
+
+  <div id="tlList" style="margin-top:24px"></div>
 </div>
 
 <!-- ===== ★ 2026-08-28: 유가족 근황 (아침관 '우린 요즘 이렇게 지냅니다') ===== -->
@@ -101,18 +175,32 @@ tr:last-child td { border-bottom:none; }
   </div>
   <p class="hint" style="margin:-8px 0 18px">
     추모관 <b>아침</b> 구간의 &lsquo;우린 요즘 이렇게 지냅니다&rsquo;에 나갑니다.
+    카드에는 사진·제목·앞머리가 보이고, <b>누르면 이야기 전체</b>가 열립니다.<br>
     유가족 신원 보호를 위해 <b>실명 대신 표기용 이름</b>만 적어주세요. (예: OO 선생님 가족)
   </p>
 
   <div class="form-panel">
     <input type="hidden" id="fnId">
+    <!-- ★ 2026-10-07 정책국장 요청 — 근황에 사진을 붙인다 -->
+    <div class="form-row">
+      <label>사진 (선택)</label>
+      <div class="photo-up">
+        <div id="fnPhotoWrap"><div class="photo-preview-empty" style="border-radius:10px"><span class="siren-icon-wrap" data-icon="image"></span></div></div>
+        <div>
+          <input type="file" id="fnPhotoFile" accept="image/*" onchange="fnUploadPhoto()">
+          <input type="hidden" id="fnPhotoBlobId">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="fnClearPhoto()" style="margin-top:6px">사진 지우기</button>
+          <div class="hint">카드 위에 크게 보입니다. 가로 사진이 잘 어울립니다. <b>유가족이 동의한 사진만</b> 올려주세요.</div>
+        </div>
+      </div>
+    </div>
     <div class="form-row">
       <label>제목 <span style="color:#c00">*</span></label>
       <input type="text" id="fnTitle" maxlength="150" placeholder="예: 아이가 이번에 중학교에 갔습니다">
     </div>
     <div class="form-row">
       <label>내용 <span style="color:#c00">*</span></label>
-      <textarea id="fnContent" rows="5" placeholder="짧아도 괜찮습니다. 평범한 하루가 얼마나 큰 회복인지 전해주세요."></textarea>
+      <textarea id="fnContent" rows="7" placeholder="카드에는 앞머리 110자만 보이고, 누르면 전체가 열립니다. 길게 적으셔도 됩니다. 줄바꿈은 그대로 보입니다."></textarea>
     </div>
     <div class="form-row">
       <label>표기용 이름</label>
@@ -358,6 +446,25 @@ tr:last-child td { border-bottom:none; }
       아래 '생전의 순간'에 올린 사진들 위에 붙는 제목과 설명입니다. 비워두면 기본 문구가 나옵니다.
     </div>
 
+    <!-- ★ 2026-10-07 정책국장 요청 — 편지 30통 목표 · 고인별 초대 링크 -->
+    <div class="form-row-2" style="margin-top:16px">
+      <div class="form-row" style="margin-bottom:0">
+        <label>편지 목표 통수 <span style="opacity:.6;font-weight:400">(비워두면 공통 설정, 기본 30)</span></label>
+        <input type="number" id="fLetterGoal" min="1" max="9999" placeholder="30">
+        <div class="hint">선생님 화면의 &ldquo;편지 N통이 모이면 책이 됩니다&rdquo; 진행바 기준입니다.</div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>초대 링크 <span style="opacity:.6;font-weight:400">(유가족·지인에게 전달)</span></label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="fInviteUrl" readonly placeholder="선생님을 저장하면 만들어집니다" style="min-width:0;flex:1">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="tInviteCopy()" style="white-space:nowrap">복사</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="tInviteQr()" style="white-space:nowrap">QR</button>
+        </div>
+        <div class="hint">받은 분은 이 선생님 화면의 편지 자리로 바로 옵니다. 선생님 화면에도 같은 복사·QR 단추가 있습니다.</div>
+        <div id="fInviteQr" style="margin-top:8px"></div>
+      </div>
+    </div>
+
     <hr class="form-divider">
 
     <div class="form-row-2">
@@ -532,11 +639,23 @@ tr:last-child td { border-bottom:none; }
       <input type="text" id="sDawnSub" maxlength="120" placeholder="같은 마음이 이제 다른 얼굴로 피어납니다">
     </div>
 
-    <div class="form-row" style="border-bottom:1px solid #e5e5e5;padding-bottom:18px">
-      <label style="font-size:15px"><b>☀️ 아침 구간 문구</b> — 유가족을 응원하는 자리</label>
+    <div class="form-row">
+      <label style="font-size:15px"><b>☀️ 아침 구간 문구</b> — 유가족의 오늘을 보는 자리</label>
       <input type="text" id="sMornGreet" maxlength="60" placeholder="Good morning" style="margin-bottom:8px">
-      <textarea id="sMornTitle" rows="2" placeholder="남겨진 이들의&#10;오늘을 응원합니다" style="margin-bottom:8px"></textarea>
-      <textarea id="sMornSub" rows="2" placeholder="유가족의 시간은 그날에 멈춰 있지 않습니다."></textarea>
+      <textarea id="sMornTitle" rows="2" placeholder="그날 이후의 시간을,&#10;유가족들이 함께 살아내고 있습니다" style="margin-bottom:8px"></textarea>
+      <textarea id="sMornSub" rows="2" placeholder="유가족의 시간은 그날에 멈춰 있지 않습니다.&#10;다시 걷고 있는 그분들 곁에 함께 서주세요."></textarea>
+    </div>
+    <!-- ★ 2026-10-07 — 아침관 안쪽 구간 제목 -->
+    <div class="form-row">
+      <label>아침 · 유가족 근황 구간</label>
+      <input type="text" id="sNotesTitle" maxlength="60" placeholder="우린 요즘 이렇게 지냅니다" style="margin-bottom:8px">
+      <textarea id="sNotesSub" rows="2" placeholder="유가족이 전해온 근황입니다. 평범한 하루가 얼마나 큰 회복인지 함께 봐주세요. 카드를 누르면 이야기 전체를 읽으실 수 있습니다."></textarea>
+    </div>
+    <div class="form-row" style="border-bottom:1px solid #e5e5e5;padding-bottom:18px">
+      <label>아침 · 온기의 징검다리 구간</label>
+      <input type="text" id="sTlTitle" maxlength="60" placeholder="우리가 함께 놓은 온기의 징검다리" style="margin-bottom:8px">
+      <textarea id="sTlSub" rows="2" placeholder="교사유가족협의회가 유가족 곁에서 해온 일, 하고 있는 일, 앞으로 할 일을 시간순으로 기록합니다. 항목을 누르면 자세한 이야기가 열립니다."></textarea>
+      <div class="hint">항목 자체는 &lsquo;온기의 징검다리&rsquo; 탭에서 등록합니다. 등록된 항목이 없으면 구간이 보이지 않습니다.</div>
     </div>
 
     <!-- ★ 2026-08-28 — 선생님 화면 구간 문구 (모든 선생님 공통).
@@ -583,28 +702,67 @@ tr:last-child td { border-bottom:none; }
       <input type="text" id="stLetterDesc" maxlength="140" placeholder="봉투를 누르면 그 안에 담긴 이야기를 읽으실 수 있습니다.">
     </div>
 
+    <!-- ★ 2026-10-07 정책국장 요청 — 별빛/편지 두 갈래 대신 '나만의 서신 작성하기' 하나 -->
     <div class="form-row">
-      <label>③ 마음 남기는 구간</label>
-      <input type="text" id="stOfferTag" maxlength="40" placeholder="마음 남기기" style="margin-bottom:8px">
-      <input type="text" id="stOfferTitle" maxlength="60" placeholder="잠시 머물다 가셔도 좋습니다" style="margin-bottom:8px">
-      <input type="text" id="stOfferDesc" maxlength="140" placeholder="짧은 한 줄도, 긴 편지도 좋습니다. 원하시는 쪽을 골라주세요.">
+      <label>③ 서신 작성 구간</label>
+      <input type="text" id="stOfferTag" maxlength="40" placeholder="나만의 서신 작성하기" style="margin-bottom:8px">
+      <input type="text" id="stOfferTitle" maxlength="60" placeholder="선생님께 편지 한 통을 남겨주세요" style="margin-bottom:8px">
+      <input type="text" id="stOfferDesc" maxlength="160" placeholder="보내신 편지는 위 ‘기억의 편지’에 봉투로 놓여, 이곳을 찾는 분들이 열어보게 됩니다.">
+      <div class="hint">작은 딱지 / 큰 제목 / 설명 순서입니다.</div>
+    </div>
+
+    <div class="form-row">
+      <label>③-1 “편지 30통이 모이면 책이 됩니다” — 목표와 진행바</label>
+      <div class="form-row-2">
+        <div>
+          <input type="number" id="stLetterGoal" min="1" max="9999" placeholder="30">
+          <div class="hint">공통 목표 통수. 선생님별로 다르게 하려면 선생님 수정에서 적어주세요.</div>
+        </div>
+        <div>
+          <input type="text" id="stLetterGoalLine" maxlength="80" placeholder="편지 {goal}통이 모이면 책이 됩니다">
+          <div class="hint"><code>{goal}</code> 자리에 목표 통수가 들어갑니다.</div>
+        </div>
+      </div>
+      <input type="text" id="stLetterGoalDone" maxlength="80" placeholder="편지 {count}통이 모였습니다 — 책으로 엮을 준비를 합니다" style="margin:8px 0">
+      <textarea id="stLetterGoalSub" rows="2" placeholder="모인 편지는 유가족의 동의를 거쳐 한 권의 책으로 엮습니다. 선생님을 오래 기억하는 가장 확실한 방법입니다."></textarea>
+      <div class="hint">목표를 채웠을 때 문구(<code>{count}</code>=모인 통수) / 진행바 아래 설명.</div>
+    </div>
+
+    <div class="form-row">
+      <label>③-2 질문 카드 <span style="opacity:.6;font-weight:400">(한 줄에 하나 · 5~6개 권장 · 최대 8개)</span></label>
+      <textarea id="stLetterQuestions" rows="6" placeholder="선생님은 당신에게 어떤 분으로 기억됩니까?&#10;선생님과 함께한 날 중 가장 선명한 하루는 언제였나요?&#10;선생님께 미처 전하지 못한 말이 있다면 무엇인가요?&#10;선생님이 남기신 말이나 가르침 중 지금도 따르는 것이 있나요?&#10;선생님이 계셨다면 지금 어떤 이야기를 나누고 싶으세요?&#10;선생님을 떠올리게 하는 물건·장소·노래가 있나요?"></textarea>
+      <div class="hint">방문자가 하나를 고르면 그 질문이 편지의 주제(제목)가 됩니다. 비워두면 위 회색 글씨 6개가 나옵니다.</div>
+    </div>
+
+    <div class="form-row">
+      <label>③-3 작성란 안내</label>
+      <textarea id="stLetterPlaceholder" rows="2" placeholder="예) 선생님은 늘 교실 문 앞에서 아이들 이름을 하나씩 불러주셨습니다. 그 목소리가 아직도 들리는 것 같습니다." style="margin-bottom:8px"></textarea>
+      <textarea id="stLetterHint" rows="2" placeholder="로그인 없이 보내실 수 있습니다. 보내신 편지는 모두에게 보이며, 부적절한 글은 자동 검토와 운영자 확인을 거쳐 가려집니다."></textarea>
+      <div class="hint">작성란에 흐리게 보이는 예시 문장 / 보내기 단추 옆 안내.</div>
+    </div>
+
+    <div class="form-row">
+      <label>③-4 초대장 안내</label>
+      <input type="text" id="stInviteTitle" maxlength="80" placeholder="선생님을 기억하는 분들께 편지를 청해보세요" style="margin-bottom:8px">
+      <textarea id="stInviteDesc" rows="2" placeholder="이 선생님만의 초대 링크를 지인에게 보내면, 받은 분이 바로 이 자리에서 편지를 남길 수 있습니다. 가족·동료·제자 누구나 보낼 수 있습니다."></textarea>
     </div>
 
     <div class="form-row" style="border-bottom:1px solid #e5e5e5;padding-bottom:18px">
-      <label>④ 남겨진 한마디 구간</label>
+      <label>④ 남겨진 한마디 구간 <span style="opacity:.6;font-weight:400">(예전 한마디가 있을 때만 보임)</span></label>
       <input type="text" id="stNoteTag" maxlength="40" placeholder="머물다 가신 분들" style="margin-bottom:8px">
       <input type="text" id="stNoteTitle" maxlength="60" placeholder="이곳에 남겨진 한마디">
     </div>
 
     <!-- ★ 2026-08-28: 선생님 화면이 '한 사람에게 집중하는' 구성으로 바뀌면서
-         소개·발자취 제목 입력란은 없앴다. 문구는 선생님별로 편집한다. -->
+         소개·발자취 제목 입력란은 없앴다. 문구는 선생님별로 편집한다.
+         ★ 2026-10-07: 헌화 표시 토글은 '서신 작성 구간 표시'로 뜻이 바뀌었다. -->
     <div class="form-row">
-      <label>선생님 페이지에 헌화 표시</label>
+      <label>선생님 페이지에 서신 작성 구간 표시</label>
       <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer">
         <input type="checkbox" id="sShowTeacherOffering" checked>
-        <span>선생님마다 헌화 영역을 보여줍니다</span>
+        <span>선생님마다 &lsquo;나만의 서신 작성하기&rsquo; 구간을 보여줍니다</span>
       </label>
-      <div class="hint">추모관 첫 화면에서 이미 헌화할 수 있습니다. 꺼두면 선생님 페이지에서는 헌화 영역이 사라져 이야기에 더 집중하게 됩니다.</div>
+      <div class="hint">꺼두면 편지를 보낼 수 없고 도착한 편지만 보입니다. 특별한 사정이 없으면 켜두세요.</div>
     </div>
 
     <hr class="form-divider">
@@ -624,6 +782,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20260828-photos"></script>
+<script src="/js/admin-memorial.js?v=20261007-v3"></script>
 </body>
 </html>

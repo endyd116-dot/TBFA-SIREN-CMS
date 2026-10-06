@@ -544,3 +544,144 @@
   display: block; font-size: 12px; color: var(--m2-candle);
   margin-bottom: 6px; font-weight: 600; letter-spacing: .04em;
 }
+
+/* =========================================================
+   ★ 2026-10-07 정책국장 요청 반영
+   · 밤 첫 문장이 세 줄로 길어져 글자를 한 단계 줄인다
+   · 유가족 근황 카드: 사진 + 누르면 이야기 전체
+   · 온기의 징검다리: 협의회가 걸어온 길(시간순)
+   · 겹쳐 뜨는 화면(근황·징검다리 공용)
+   ========================================================= */
+.mem2-hero h1.mem2-h1-quote {
+  font-size: clamp(22px, 4.6vw, 40px); line-height: 1.7; letter-spacing: -.02em;
+}
+.mem2-hero h1.mem2-h1-quote em { display: inline-block; margin-top: 8px; }
+
+/* 근황 카드 — 이제 버튼이다(누르면 이야기 전체가 열린다) */
+.mem2-notes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.mem2-note {
+  appearance: none; cursor: pointer; font: inherit; color: inherit; text-align: left;
+  width: 100%; padding: 0; display: flex; flex-direction: column;
+}
+.mem2-note:focus-visible { outline: 2px solid var(--m2-leaf); outline-offset: 3px; }
+.mem2-note-img { aspect-ratio: 16 / 10; background: var(--m2-morn-2); overflow: hidden; }
+.mem2-note-img img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .6s ease;
+}
+.mem2-note:hover .mem2-note-img img { transform: scale(1.04); }
+.mem2-note-body { padding: 24px 24px 20px; display: flex; flex-direction: column; flex: 1; }
+.mem2-note-mood { font-size: 12.5px; color: var(--m2-leaf); font-weight: 600; margin-bottom: 12px; }
+.mem2-note-body h3 {
+  font-family: var(--m2-serif); font-size: 17.5px; font-weight: 700;
+  margin: 0 0 10px; word-break: keep-all; line-height: 1.6;
+}
+.mem2-note-body p {
+  font-size: 14px; line-height: 1.9; color: var(--m2-earth-mute);
+  margin: 0 0 18px; word-break: keep-all; white-space: normal; flex: 1;
+}
+.mem2-note-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-top: 14px; border-top: 1px solid rgba(60, 70, 60, .09);
+  font-size: 12.5px;
+}
+.mem2-note-foot .mem2-note-by { margin: 0; }
+.mem2-note-open { color: var(--m2-bloom); font-weight: 600; white-space: nowrap; }
+
+/* 징검다리 — 세로 줄 위에 디딤돌이 놓인다 */
+.mem2-tl {
+  list-style: none; margin: 0 auto; padding: 0 0 0 28px; max-width: 720px;
+  border-left: 2px solid rgba(59, 88, 78, .22);
+}
+.mem2-tl-item { position: relative; margin-bottom: 36px; }
+.mem2-tl-item:last-child { margin-bottom: 0; }
+.mem2-tl-btn {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  font: inherit; color: inherit; text-align: left; width: 100%; padding: 2px 0 0;
+}
+.mem2-tl-dot {
+  position: absolute; left: -39px; top: 6px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--m2-morn-1); border: 4px solid var(--m2-leaf);
+  box-shadow: 0 0 0 4px rgba(251, 248, 243, .9);
+  transition: transform .3s ease;
+}
+.mem2-tl-dot::after {
+  content: ''; position: absolute; inset: 2px; border-radius: 50%; background: var(--m2-bloom);
+}
+.mem2-tl-btn:hover .mem2-tl-dot, .mem2-tl-btn:focus-visible .mem2-tl-dot { transform: scale(1.2); }
+.mem2-tl-btn:focus-visible { outline: 2px solid var(--m2-leaf); outline-offset: 6px; border-radius: 8px; }
+.mem2-tl-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.mem2-tl-date {
+  font-family: 'Inter', var(--m2-serif); font-size: 12.5px; font-weight: 700;
+  letter-spacing: .14em; color: var(--m2-leaf);
+}
+.mem2-tl-cat {
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 6px;
+  background: rgba(60, 70, 60, .09); color: var(--m2-earth-mute);
+}
+.mem2-tl-title {
+  font-family: var(--m2-serif); font-size: clamp(17px, 2.6vw, 21px); font-weight: 700;
+  margin: 0 0 8px; word-break: keep-all; line-height: 1.55; transition: color .2s ease;
+}
+.mem2-tl-btn:hover .mem2-tl-title { color: var(--m2-leaf); }
+.mem2-tl-sum {
+  font-size: 14px; line-height: 1.9; color: var(--m2-earth-mute); margin: 0; word-break: keep-all;
+}
+.mem2-tl-more {
+  display: inline-block; margin-top: 10px; font-size: 12.5px; font-weight: 600;
+  color: var(--m2-earth-mute); text-decoration: underline; text-underline-offset: 3px;
+}
+.mem2-tl-btn:hover .mem2-tl-more { color: var(--m2-leaf); }
+
+/* 겹쳐 뜨는 화면 */
+.mem2-modal {
+  position: fixed; inset: 0; z-index: 80; display: none;
+  align-items: center; justify-content: center; padding: 24px;
+  background: rgba(28, 32, 29, .78);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.mem2-modal.on { display: flex; }
+.mem2-modal-inner {
+  max-width: 680px; width: 100%; max-height: 90vh; overflow: auto;
+  background: var(--m2-morn-1); color: var(--m2-earth);
+  border: 1px solid rgba(44, 49, 45, .12); border-radius: 20px;
+}
+.mem2-modal-img { width: 100%; max-height: 48vh; object-fit: cover; display: block; background: var(--m2-morn-2); }
+.mem2-modal-body { padding: 28px 30px 32px; }
+.mem2-modal-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.mem2-modal-tag {
+  display: inline-block; font-size: 12px; font-weight: 600; color: var(--m2-leaf);
+  background: rgba(59, 88, 78, .1); padding: 4px 10px; border-radius: 999px; margin-bottom: 12px;
+}
+.mem2-modal-meta .mem2-modal-tag { margin-bottom: 0; }
+.mem2-modal-title {
+  font-family: var(--m2-serif); font-size: clamp(19px, 3vw, 24px); font-weight: 700;
+  line-height: 1.55; margin: 0 0 16px; word-break: keep-all;
+}
+.mem2-modal-text {
+  font-family: var(--m2-serif); font-size: 15.5px; line-height: 2.1;
+  color: rgba(44, 49, 45, .88); margin: 0; word-break: keep-all;
+}
+.mem2-modal-detail {
+  margin-top: 18px; padding: 18px 20px; border-radius: 14px;
+  background: #fff; border: 1px solid rgba(44, 49, 45, .09);
+  font-size: 14.5px; line-height: 2; color: rgba(44, 49, 45, .84); word-break: keep-all;
+}
+.mem2-modal-by {
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(44, 49, 45, .09);
+  font-size: 13px; color: var(--m2-leaf); font-weight: 600;
+}
+.mem2-modal-by:empty { display: none; }
+.mem2-modal-close {
+  position: absolute; top: 22px; right: 24px; z-index: 1;
+  appearance: none; border: 1px solid rgba(255, 255, 255, .28);
+  background: rgba(0, 0, 0, .35); color: #fff; width: 42px; height: 42px; border-radius: 50%;
+  cursor: pointer; font-size: 18px; line-height: 1;
+}
+@media (max-width: 640px) {
+  .mem2-notes { grid-template-columns: 1fr; }
+  .mem2-tl { padding-left: 22px; }
+  .mem2-tl-dot { left: -33px; width: 16px; height: 16px; }
+  .mem2-modal { padding: 14px; }
+  .mem2-modal-body { padding: 22px 20px 26px; }
+}

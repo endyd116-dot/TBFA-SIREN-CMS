@@ -12,9 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="SIREN" />
 <script src="/js/pwa.js?v=3" defer></script>
 <title>온라인 추모관 | 교사유가족협의회</title>
-<meta name="description" content="굿나잇, 굿모닝 — 먼저 떠나신 선생님들을 기억하는 밤과, 남겨진 유가족의 오늘을 응원하는 아침. 당신이 밝힌 별빛 하나가 아침에는 꽃이 되어 다시 핍니다.">
+<meta name="description" content="굿나잇, 굿모닝 — 먼저 떠나신 선생님들을 기억하는 밤과, 그날 이후의 시간을 함께 살아내는 유가족의 아침. 사람은 두 번 떠난다고 합니다. 세상에서 한 번, 기억에서 한 번. 두 번 이별은 없도록 기억해주세요.">
 <meta property="og:title" content="온라인 추모관 | 교사유가족협의회">
-<meta property="og:description" content="당신이 밝힌 별빛 하나가 아침에는 꽃이 되어 다시 핍니다.">
+<meta property="og:description" content="사람은 두 번 떠난다고 합니다. 세상에서 한 번, 기억에서 한 번. 두 번 이별은 없도록 기억해주세요.">
 <meta property="og:image" content="https://tbfa.co.kr/og-default.png">
 <meta property="og:url" content="https://tbfa.co.kr/memorial.html">
 <meta property="og:type" content="website">
@@ -22,7 +22,7 @@
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="온라인 추모관 | 교사유가족협의회">
-<meta name="twitter:description" content="당신이 밝힌 별빛 하나가 아침에는 꽃이 되어 다시 핍니다.">
+<meta name="twitter:description" content="사람은 두 번 떠난다고 합니다. 세상에서 한 번, 기억에서 한 번. 두 번 이별은 없도록 기억해주세요.">
 <meta name="twitter:image" content="https://tbfa.co.kr/og-default.png">
 <link rel="canonical" href="https://tbfa.co.kr/memorial.html">
 
@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
-<link rel="stylesheet" href="/css/memorial.css?v=20260828-star">
+<link rel="stylesheet" href="/css/memorial.css?v=20261007-v3">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -47,14 +47,15 @@
 
   <div id="header-slot"></div>
 
-  <!-- 밤 ↔ 아침 전환 (스크롤 위치를 따라 저절로 바뀐다) -->
+  <!-- 밤 ↔ 아침 전환 (스크롤 위치를 따라 저절로 바뀐다)
+       ★ 2026-10-07: 정책국장 기획의 두 관 이름을 그대로 쓴다 -->
   <div class="mem2-switch" id="m2Switch" data-phase="night">
     <div class="mem2-switch-inner" role="tablist" aria-label="추모관 전환">
       <button type="button" class="mem2-switch-btn" id="m2GoNight" role="tab" aria-selected="true" aria-controls="hallNight">
-        <span class="m2-dot"></span>밤 · 기억
+        <span class="m2-dot"></span>밤 · 꺼지지 않는 밤
       </button>
       <button type="button" class="mem2-switch-btn" id="m2GoMorning" role="tab" aria-selected="false" aria-controls="hallMorning">
-        <span class="m2-dot"></span>아침 · 응원
+        <span class="m2-dot"></span>아침 · 다시 뜨는 하루
       </button>
     </div>
   </div>
@@ -70,7 +71,8 @@
       <div class="mem2-hero">
         <div class="mem2-wrap mem2-hero-inner">
           <div class="mem2-hero-greet" id="m2NightGreet">Good night</div>
-          <h1 id="m2NightTitle">불을 끄지 않고<br><em>당신을 기다립니다</em></h1>
+          <!-- ★ 2026-10-07: 정책국장 기획의 첫 문장으로 되돌린다 -->
+          <h1 id="m2NightTitle" class="mem2-h1-quote">사람은 두 번 떠난다고 합니다.<br>세상에서 한 번, 기억에서 한 번.<br><em>두 번 이별은 없도록 기억해주세요.</em></h1>
           <p class="mem2-hero-sub" id="m2NightSub">
             먼저 떠나신 선생님들의 이름을 하나씩 부릅니다.<br>
             잊지 않는 일이 우리가 할 수 있는 첫 번째 약속입니다.
@@ -193,16 +195,23 @@
       </div>
     </section>
 
-    <!-- ══════════════════ 아침 ══════════════════ -->
-    <section class="mem2-morning" id="hallMorning" aria-label="아침 — 유가족을 응원하는 자리">
-      <!-- 이 구간 전체가 들판이다. 같은 마음이 꽃이 되어 배경에 핀다. -->
+    <!-- ══════════════════ 아침 ══════════════════
+         ★ 2026-10-07 정책국장 요청 반영:
+           · 응원 한마디 입력·응원 목록·들판 숫자 블록은 걷어냈다
+             (유가족에게 "이런 글이 왔어요"라고 보이는 것이 되려 실례일 수 있어서).
+           · 배경의 꽃은 밤에 밝힌 별빛 수만큼 조용히 피는 장식으로만 남긴다.
+           · 유가족 근황은 누르면 이야기 전체가 열리고, 사진을 붙일 수 있다.
+           · 지원 프로그램 카드 3개 대신 협의회가 걸어온 길을 시간순으로 적는다.
+           · 유가족의 목소리(영상)는 맨 아래로 내린다. -->
+    <section class="mem2-morning" id="hallMorning" aria-label="아침 — 유가족의 오늘">
+      <!-- 이 구간 전체가 들판이다. 밤의 별빛이 아침에는 꽃이 되어 배경에 핀다. -->
       <canvas class="mem2-backdrop mem2-backdrop-field" id="m2MornField" aria-hidden="true"></canvas>
 
       <!-- 히어로 -->
       <div class="mem2-hero">
         <div class="mem2-wrap mem2-hero-inner">
           <div class="mem2-hero-greet" id="m2MornGreet">Good morning</div>
-          <h1 id="m2MornTitle">남겨진 이들의<br><em>오늘을 응원합니다</em></h1>
+          <h1 id="m2MornTitle">그날 이후의 시간을,<br><em>유가족들이 함께 살아내고 있습니다</em></h1>
           <p class="mem2-hero-sub" id="m2MornSub">
             유가족의 시간은 그날에 멈춰 있지 않습니다.<br>
             다시 걷고 있는 그분들 곁에 함께 서주세요.
@@ -215,8 +224,8 @@
         <div class="mem2-wrap">
           <div class="mem2-center">
             <span class="mem2-eyebrow">Our days</span>
-            <h2 class="mem2-h2">우린 요즘 이렇게 지냅니다</h2>
-            <p class="mem2-lead">유가족이 전해온 짧은 근황입니다. 평범한 하루가 얼마나 큰 회복인지 함께 봐주세요.</p>
+            <h2 class="mem2-h2" id="m2NotesTitle">우린 요즘 이렇게 지냅니다</h2>
+            <p class="mem2-lead" id="m2NotesSub">유가족이 전해온 근황입니다. 평범한 하루가 얼마나 큰 회복인지 함께 봐주세요. 카드를 누르면 이야기 전체를 읽으실 수 있습니다.</p>
           </div>
           <div id="m2NoteList" class="mem2-notes"></div>
           <div id="m2NoteEmpty" class="mem2-empty" style="display:none">
@@ -226,8 +235,37 @@
         </div>
       </div>
 
-      <!-- 유가족의 목소리 (영상) -->
-      <div class="mem2-block" id="m2StoryBlock" style="padding-top:0;display:none">
+      <!-- 온기의 징검다리 — 협의회가 걸어온 길 (시간순) -->
+      <div class="mem2-block" id="m2TlBlock" style="padding-top:0;display:none">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <span class="mem2-eyebrow">Stepping stones</span>
+            <h2 class="mem2-h2" id="m2TlTitle">우리가 함께 놓은 온기의 징검다리</h2>
+            <p class="mem2-lead" id="m2TlSub">
+              교사유가족협의회가 유가족 곁에서 해온 일, 하고 있는 일, 앞으로 할 일을 시간순으로 기록합니다. 항목을 누르면 자세한 이야기가 열립니다.
+            </p>
+          </div>
+          <ol class="mem2-tl" id="m2TlList"></ol>
+        </div>
+      </div>
+
+      <!-- 후원 -->
+      <div class="mem2-block" style="padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-center">
+            <button type="button" class="mem2-submit" data-action="open-modal" data-target="donateModal">
+              <span class="siren-icon-wrap" data-icon="ribbon"></span> 교사유가족협의회 후원하기
+            </button>
+            <p class="mem2-hint" style="margin-top:14px">
+              후원금은 심리상담 · 법률 지원 · 장학 사업에 쓰입니다.
+              <a href="/p/donate" style="color:inherit;text-decoration:underline">후원 안내 자세히 보기</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 유가족의 목소리 (영상) — 맨 아래 -->
+      <div class="mem2-block" id="m2StoryBlock" style="padding-top:0;padding-bottom:96px;display:none">
         <div class="mem2-wrap">
           <div class="mem2-center">
             <span class="mem2-eyebrow">Their voices</span>
@@ -242,128 +280,43 @@
           </div>
         </div>
       </div>
-
-      <!-- 응원 남기기 (아침) -->
-      <div class="mem2-block" style="padding-top:0">
-        <div class="mem2-wrap">
-          <div class="mem2-center">
-            <span class="mem2-eyebrow">Send warmth</span>
-            <h2 class="mem2-h2">응원 한마디를 남겨주세요</h2>
-            <p class="mem2-lead">
-              거창하지 않아도 됩니다. 짧은 한 줄이 유가족에게는 하루를 버티는 힘이 됩니다.
-            </p>
-          </div>
-
-          <div class="mem2-compose">
-            <div class="mem2-field">
-              <label for="m2MornName">부르실 이름 <span style="opacity:.6">(비워두면 익명)</span></label>
-              <input type="text" class="mem2-input" id="m2MornName" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
-            </div>
-            <div class="mem2-field">
-              <label for="m2MornMsg">유가족에게 전하는 응원</label>
-              <textarea class="mem2-textarea" id="m2MornMsg" maxlength="1000" placeholder="오늘 하루도 잘 보내셨기를 바랍니다."></textarea>
-            </div>
-            <div class="mem2-compose-foot">
-              <label class="mem2-anon"><input type="checkbox" id="m2MornAnon"> 익명으로 남기기</label>
-              <button type="button" class="mem2-submit" id="m2MornSubmit">
-                <span class="siren-icon-wrap" data-icon="heart"></span> 꽃 한 송이 놓기
-              </button>
-            </div>
-            <p class="mem2-hint">
-              남겨주신 응원은 <b>유가족이 직접 읽습니다.</b> 위로가 되는 말로 부탁드립니다.<br>
-              로그인 없이도 남기실 수 있고, 부적절한 글은 자동 검토와 운영자 확인을 거쳐 가려집니다.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 들판 -->
-      <div class="mem2-block" style="padding-top:0">
-        <div class="mem2-wrap mem2-center">
-          <span class="mem2-eyebrow">Our field</span>
-          <h2 class="mem2-h2">우리가 피운 들판</h2>
-          <div class="mem2-count">
-            <b id="m2MornCount">0</b><span>송이의 마음이 이 아침에 피었습니다</span>
-          </div>
-          <p class="mem2-lead mem2-center" id="m2SameLine" style="margin-bottom:26px"></p>
-
-          <p class="mem2-lead mem2-center" style="margin-bottom:8px">
-            이 화면에 피어 있는 꽃 하나하나가 누군가 보낸 응원입니다.
-          </p>
-
-          <div class="mem2-sky-actions">
-            <button type="button" class="mem2-ghost" id="m2FindFlower">
-              <span class="siren-icon-wrap" data-icon="search"></span> 내 꽃 찾기
-            </button>
-          </div>
-          <div class="mem2-mine" id="m2MornMine" style="display:none"></div>
-        </div>
-      </div>
-
-      <!-- 응원 목록 -->
-      <div class="mem2-block" style="padding-top:0">
-        <div class="mem2-wrap">
-          <div class="mem2-center">
-            <span class="mem2-eyebrow">Cheering</span>
-            <h2 class="mem2-h2">함께 보낸 응원</h2>
-          </div>
-          <div id="m2MornMsgs" class="mem2-msgs"></div>
-          <div id="m2MornMsgEmpty" class="mem2-empty" style="display:none">
-            첫 응원을 남겨주세요.
-          </div>
-          <div id="m2MornMsgLoading" class="mem2-loading">불러오는 중…</div>
-          <div class="mem2-more" id="m2MornMoreWrap" style="display:none">
-            <button type="button" class="mem2-ghost" id="m2MornMore">더 보기</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 온기의 징검다리 -->
-      <div class="mem2-block" style="padding-top:0;padding-bottom:96px">
-        <div class="mem2-wrap">
-          <div class="mem2-center">
-            <span class="mem2-eyebrow">Stepping stones</span>
-            <h2 class="mem2-h2">온기의 징검다리</h2>
-            <p class="mem2-lead">
-              마음만으로 그치지 않도록, 협의회가 유가족 곁에서 실제로 하고 있는 일입니다.
-            </p>
-          </div>
-
-          <div class="mem2-programs">
-            <div class="mem2-program">
-              <div class="mem2-program-ic"><span class="siren-icon-wrap" data-icon="heart"></span></div>
-              <h3>마음을 보듬는 심리상담</h3>
-              <p>전문 상담사가 함께하는 1:1 정서 회복 프로그램입니다. 순직 인정 여부와 관계없이, 사건이 일어난 그날부터 곁을 지킵니다.</p>
-              <a class="mem2-program-cta" href="#" data-action="open-modal" data-target="supportModal">상담 신청하기 →</a>
-            </div>
-            <div class="mem2-program">
-              <div class="mem2-program-ic"><span class="siren-icon-wrap" data-icon="scale"></span></div>
-              <h3>외롭지 않은 법률 동행</h3>
-              <p>진상규명과 순직 인정 절차에 필요한 변호사 자문과 서면 작성을 지원합니다. 혼자 감당하지 않도록 끝까지 함께 걷습니다.</p>
-              <a class="mem2-program-cta" href="/legal-support.html" onclick="window.location.href='/legal-support.html';return false;">법률 지원 보기 →</a>
-            </div>
-            <div class="mem2-program">
-              <div class="mem2-program-ic"><span class="siren-icon-wrap" data-icon="graduation-cap"></span></div>
-              <h3>아이들의 내일, 장학 사업</h3>
-              <p>유가족 자녀의 학업이 끊기지 않도록 학기별 장학금과 1:1 학습 멘토링을 지원합니다.</p>
-              <a class="mem2-program-cta" href="/p/memorial-scholarship" onclick="window.location.href='/p/memorial-scholarship';return false;">장학 사업 보기 →</a>
-            </div>
-          </div>
-
-          <div class="mem2-center" style="margin-top:44px">
-            <button type="button" class="mem2-submit" data-action="open-modal" data-target="donateModal">
-              <span class="siren-icon-wrap" data-icon="ribbon"></span> 이 걸음에 함께하기
-            </button>
-            <p class="mem2-hint" style="margin-top:14px">
-              후원금은 심리상담 · 법률 지원 · 장학 사업에 쓰입니다.
-              <a href="/p/donate" style="color:inherit;text-decoration:underline">후원 안내 자세히 보기</a>
-            </p>
-          </div>
-        </div>
-      </div>
     </section>
 
   </main>
+
+  <!-- 유가족 근황을 눌렀을 때 -->
+  <div class="mem2-modal" id="m2NoteBox" role="dialog" aria-modal="true" aria-label="유가족 이야기">
+    <button type="button" class="mem2-modal-close" id="m2NoteBoxClose" aria-label="닫기">×</button>
+    <div class="mem2-modal-inner">
+      <img class="mem2-modal-img" id="m2NoteBoxImg" alt="" style="display:none">
+      <div class="mem2-modal-body">
+        <span class="mem2-modal-tag" id="m2NoteBoxTag"></span>
+        <h3 class="mem2-modal-title" id="m2NoteBoxTitle"></h3>
+        <p class="mem2-modal-text" id="m2NoteBoxText"></p>
+        <div class="mem2-modal-by" id="m2NoteBoxBy"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 징검다리를 눌렀을 때 -->
+  <div class="mem2-modal" id="m2TlBox" role="dialog" aria-modal="true" aria-label="징검다리 이야기">
+    <button type="button" class="mem2-modal-close" id="m2TlBoxClose" aria-label="닫기">×</button>
+    <div class="mem2-modal-inner">
+      <img class="mem2-modal-img" id="m2TlBoxImg" alt="" style="display:none">
+      <div class="mem2-modal-body">
+        <div class="mem2-modal-meta">
+          <span class="mem2-tl-date" id="m2TlBoxDate"></span>
+          <span class="mem2-modal-tag" id="m2TlBoxCat"></span>
+        </div>
+        <h3 class="mem2-modal-title" id="m2TlBoxTitle"></h3>
+        <p class="mem2-modal-text" id="m2TlBoxSummary"></p>
+        <div class="mem2-modal-detail" id="m2TlBoxDetail" style="display:none"></div>
+        <div class="mem2-more" id="m2TlBoxLinkWrap" style="display:none;text-align:left;margin-top:18px">
+          <a class="mem2-ghost" id="m2TlBoxLink" href="#" target="_blank" rel="noopener">자세히 보기 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
@@ -373,7 +326,7 @@
   <script src="/js/common.js?v=20260821-imgfb" defer></script>
   <script src="/js/auth.js?v=20260906-receipt" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-bloom" defer></script>
-  <script src="/js/memorial.js?v=20260828-star" defer></script>
+  <script src="/js/memorial.js?v=20261007-v3" defer></script>
   <script src="/js/memorial-bgm.js?v=3" defer></script>
 </body>
 </html>

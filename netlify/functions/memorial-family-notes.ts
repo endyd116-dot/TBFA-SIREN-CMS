@@ -1,8 +1,9 @@
 // netlify/functions/memorial-family-notes.ts
 // ★ 2026-08-28 추모관 v2 — 아침관 '우린 요즘 이렇게 지냅니다' (공개 조회)
 //
-// 유가족이 전해온 짧은 근황을 내보낸다. 운영자가 어드민에서 등록한 것만 나간다.
+// 유가족이 전해온 근황을 내보낸다. 운영자가 어드민에서 등록한 것만 나간다.
 // 유가족 신원 보호를 위해 실명이 아니라 표기용 이름(authorLabel)만 담는다.
+// ★ 2026-10-07: 사진이 붙는다(photoUrl). 카드를 누르면 이야기 전체가 열리므로 본문을 그대로 보낸다.
 
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
@@ -22,21 +23,41 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   try {
-    const rows = await db
-      .select({
-        id:          memorialFamilyNotes.id,
-        title:       memorialFamilyNotes.title,
-        content:     memorialFamilyNotes.content,
-        authorLabel: memorialFamilyNotes.authorLabel,
-        mood:        memorialFamilyNotes.mood,
-        publishedAt: memorialFamilyNotes.publishedAt,
-      })
+    const base = {
+      id:          memorialFamilyNotes.id,
+      title:       memorialFamilyNotes.title,
+      content:     memorialFamilyNotes.content,
+      authorLabel: memorialFamilyNotes.authorLabel,
+      mood:        memorialFamilyNotes.mood,
+      publishedAt: memorialFamilyNotes.publishedAt,
+    };
+    const q = (cols: any) => db
+      .select(cols)
       .from(memorialFamilyNotes)
       .where(eq(memorialFamilyNotes.isPublic, true))
       .orderBy(asc(memorialFamilyNotes.sortOrder), desc(memorialFamilyNotes.publishedAt))
       .limit(LIMIT);
 
-    return new Response(jsonKST({ ok: true, data: { notes: rows } }), {
+    /* 사진 칸이 아직 없는 저장소여도 근황은 나가야 한다 — 실패하면 사진 없이 다시 읽는다 */
+    let rows: any[];
+    try {
+      rows = await q({ ...base, photoBlobId: memorialFamilyNotes.photoBlobId });
+    } catch (err) {
+      console.warn("[memorial-family-notes] 사진 칸 조회 실패 — 사진 없이 계속", err);
+      rows = await q(base);
+    }
+
+    const notes = rows.map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      content: r.content,
+      authorLabel: r.authorLabel,
+      mood: r.mood,
+      publishedAt: r.publishedAt,
+      photoUrl: r.photoBlobId ? `/api/blob-image?id=${r.photoBlobId}` : null,
+    }));
+
+    return new Response(jsonKST({ ok: true, data: { notes } }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

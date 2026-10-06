@@ -7,8 +7,16 @@
      자유 구간 : 운영자가 원하는 만큼 직접 만들어 넣는 자리
      어느 하루 : 생전의 사진 (폴라로이드 — 누르면 그날 이야기)
      기억의 편지: 도착한 편지 (봉투 — 누르면 편지지가 펼쳐진다)
-     마음 남기기: 별빛 한 줄(즉시·로그인 불필요) / 편지 한 통(로그인 필요)
-     한마디    : 머물다 가신 분들이 남긴 글
+     서신 작성 : 편지 한 통 (로그인 없이 · 질문 카드 · 30통 목표 · 출판 동의 · 초대 링크)
+     한마디    : 예전에 남겨진 한마디가 있을 때만 보인다
+
+   ★ 2026-10-07 정책국장 요청 반영
+     · 별빛 한 줄 / 편지 한 통 두 갈래를 없애고 '나만의 서신 작성하기' 하나로.
+     · 보낸 편지는 위 '기억의 편지'에 바로 봉투로 놓인다.
+     · "편지 30통이 모이면 책이 됩니다" — 목표 문구와 진행바.
+     · 제목 대신 질문 카드 하나를 고르면 그것이 편지의 주제가 된다.
+     · 먼저 도착한 짧은 편지 2~3통을 카드로, 마지막은 작성 유도 카드.
+     · 고인별 초대 링크(QR) — 유가족이 지인에게 편지를 청한다.
 
    화면 문구는 두 겹이다 — 모든 선생님 공통(추모관 설정) 위에
    이 선생님만의 문구(선생님 편집)가 덮인다.
@@ -62,16 +70,18 @@
   }
   function num(n) { return Number(n || 0).toLocaleString('ko-KR'); }
 
+  var PARAMS = new URLSearchParams(location.search);
   var TEACHER_ID = (function () {
-    var m = new URLSearchParams(location.search).get('id');
+    var m = PARAMS.get('id');
     return m ? Number(m) : 0;
   })();
+  /* 초대 링크로 들어왔는지 — 들어오면 편지 자리로 바로 안내한다 */
+  var INVITED = PARAMS.get('invite') === '1';
 
+  var TEACHER_NAME = '';
   var PHOTOS = [];
   var MSG_PAGE = 1;
   var MSG_CACHE = [];
-  /* 남기는 것은 '별빛' 하나뿐이다. 저장되는 값은 예전과 같게 둔다. */
-  var OFFER_TYPE = 'candle';
 
   /* ───────── 1. 선생님 정보 ───────── */
   function loadTeacher() {
@@ -93,6 +103,7 @@
   }
 
   function paintTeacher(t, display) {
+    TEACHER_NAME = t.name || '';
     document.title = (t.name || '선생님') + '을 기억합니다 | 교사유가족협의회';
 
     var nameEl = $('mtName');
@@ -128,8 +139,10 @@
     /* 화면 문구는 두 겹이다.
        ① 모든 선생님에게 공통으로 쓰는 문구(어드민 > 추모관 설정)
        ② 이 선생님께만 쓰는 문구(선생님 편집) — 있으면 ①을 덮는다 */
-    applyCopy(display.teacherCopy || {});
+    var tc = display.teacherCopy || {};
+    applyCopy(tc);
     applyCopy(copy);
+    applyLetterSettings(tc, copy, t);
 
     /* 사진이 있으면 빈 자리를 말하는 문구는 걷어낸다 */
     if (t.photoUrl && !copy.portraitCaption) {
@@ -144,7 +157,6 @@
       show($('mtBioSec'), true);
     }
 
-
     /* 운영자가 직접 늘린 구간 — 소개와 사진 사이에 놓인다 */
     renderSections(Array.isArray(t.sections) ? t.sections : []);
 
@@ -154,8 +166,21 @@
     show($('mtPhotoEmpty'), PHOTOS.length === 0);
     show($('mtPhotoSec'), true);
 
-    /* 개별 헌화를 감추도록 설정했으면 그 구간을 숨긴다 */
+    /* 서신 작성 구간을 감추도록 설정했으면 숨긴다 (추모관 설정) */
     if (display.showTeacherOffering === false) show($('mtOfferSec'), false);
+
+    /* 초대 링크로 들어온 분 — 이름을 넣어 반기고 편지 자리로 데려간다 */
+    if (INVITED) {
+      var bl = $('mtInviteBannerLine');
+      if (bl) bl.textContent = (t.name ? t.name + '을 ' : '') + '기억하는 분이 당신을 초대했습니다.';
+      show($('mtInviteBanner'), true);
+      setTimeout(function () {
+        var sec = $('mtOfferSec');
+        if (sec && sec.style.display !== 'none') {
+          try { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { sec.scrollIntoView(); }
+        }
+      }, 600);
+    }
 
     mountHeroSky(t.candleCount);
   }
@@ -175,6 +200,10 @@
     ['mtOfferTag', 'offerTag'],
     ['mtOfferTitle', 'offerTitle'],
     ['mtOfferDesc', 'offerDesc'],
+    ['mtGoalSub', 'letterGoalSub'],
+    ['mtLtHint', 'letterHint'],
+    ['mtInviteTitle', 'inviteTitle'],
+    ['mtInviteDesc', 'inviteDesc'],
     ['mtNoteTag', 'noteTag'],
     ['mtNoteTitle', 'noteTitle']
   ];
@@ -291,7 +320,7 @@
     MemorialSky.mount(c, { mode: 'star', backdrop: true, items: deco, total: deco.length });
   }
 
-  /* ───────── 5. 한마디 ───────── */
+  /* ───────── 4. 한마디 (예전에 남겨진 것이 있을 때만) ───────── */
   function msgCard(m) {
     return '<article class="mt2-note">' +
       '<div class="mt2-note-head">' +
@@ -305,7 +334,6 @@
   function loadMessages(append) {
     if (!TEACHER_ID) return Promise.resolve();
     if (!append) { MSG_PAGE = 1; MSG_CACHE = []; }
-    show($('mtMsgLoading'), true);
     return api('/api/memorial-messages?teacherId=' + TEACHER_ID + '&page=' + MSG_PAGE).then(function (res) {
       show($('mtMsgLoading'), false);
       var msgs = unwrap(res, 'messages') || [];
@@ -313,66 +341,31 @@
       MSG_CACHE = append ? MSG_CACHE.concat(msgs) : msgs;
       var list = $('mtMsgs');
       if (list) list.innerHTML = MSG_CACHE.map(msgCard).join('');
-      show($('mtMsgEmpty'), MSG_CACHE.length === 0);
       show($('mtMsgMoreWrap'), !!pg.hasMore);
+      /* 새로 적는 길은 편지로 모였다 — 남겨진 한마디가 있을 때만 구간이 보인다 */
+      show($('mtNoteSec'), MSG_CACHE.length > 0);
     });
   }
 
-  function submitOffer() {
-    var btn = $('mtOfferBtn');
-    var nick = ($('mtName2') && $('mtName2').value.trim()) || '';
-    var text = ($('mtMsgText') && $('mtMsgText').value.trim()) || '';
-    var anon = !!($('mtAnon') && $('mtAnon').checked);
-    if (btn) btn.disabled = true;
-
-    api('/api/memorial-offering', {
-      method: 'POST',
-      body: { type: OFFER_TYPE, teacherId: TEACHER_ID, nickname: anon ? null : (nick || null) }
-    }).then(function (res) {
-      if (!res.ok) {
-        if (btn) btn.disabled = false;
-        toast((res.data && res.data.error) || '헌화하지 못했습니다. 잠시 후 다시 시도해 주세요.');
-        return;
-      }
-      if (!text) { if (btn) btn.disabled = false; toast('별빛을 밝혔습니다. 고맙습니다.'); return; }
-
-      api('/api/memorial-messages', {
-        method: 'POST',
-        body: {
-          teacherId: TEACHER_ID,
-          authorName: anon ? '익명' : (nick || '익명'),
-          content: text, isAnonymous: anon
-        }
-      }).then(function (r2) {
-        if (btn) btn.disabled = false;
-        if (!r2.ok) {
-          toast('별빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — ' +
-            ((r2.data && r2.data.error) || '잠시 후 다시 시도해 주세요.'));
-          return;
-        }
-        if ($('mtMsgText')) $('mtMsgText').value = '';
-        loadMessages(false);
-        toast('별빛과 마음을 함께 남겼습니다. 고맙습니다.');
-      });
-    });
-  }
-
-  /* ───────── 4. 기억의 편지 ───────── */
+  /* ───────── 5. 기억의 편지 (도착한 봉투) ───────── */
   var LETTERS = [];
   var LT_SHOWN = 6;          /* 처음에는 여섯 통만 펼쳐 둔다 */
+  var NEW_LETTER_ID = null;  /* 방금 보낸 편지 — 잠시 밝게 표시한다 */
 
   /* 봉투 겉면에는 앞머리만 살짝 비친다 — 열어봐야 다 읽힌다 */
-  function peekOf(text) {
+  function peekOf(text, n) {
     var t = String(text || '').replace(/\s+/g, ' ').trim();
-    return t.length > 90 ? t.slice(0, 90) + '…' : t;
+    var max = n || 90;
+    return t.length > max ? t.slice(0, max) + '…' : t;
   }
 
   function envelopeCard(l, i) {
-    return '<button type="button" class="mt2-env" data-mt-letter="' + i + '">' +
-      '<h3 class="mt2-env-title">' + esc(l.title || '제목 없는 편지') + '</h3>' +
+    var isNew = NEW_LETTER_ID != null && Number(l.id) === Number(NEW_LETTER_ID);
+    return '<button type="button" class="mt2-env' + (isNew ? ' is-new' : '') + '" data-mt-letter="' + i + '" id="mtEnv' + esc(l.id) + '">' +
+      '<h3 class="mt2-env-title">' + esc(l.title || '선생님께') + '</h3>' +
       '<p class="mt2-env-peek">' + esc(peekOf(l.content)) + '</p>' +
       '<div class="mt2-env-foot">' +
-      '<span>' + esc(l.authorName || '익명') + '</span>' +
+      '<span>' + esc(l.authorName || '익명') + (isNew ? ' · 방금 도착' : '') + '</span>' +
       '<span class="mt2-env-open">열어보기 →</span>' +
       '</div></button>';
   }
@@ -383,6 +376,7 @@
     wrap.innerHTML = LETTERS.slice(0, LT_SHOWN).map(envelopeCard).join('');
     show($('mtLtEmpty'), LETTERS.length === 0);
     show($('mtLtMoreWrap'), LETTERS.length > LT_SHOWN);
+    renderSamples();
   }
 
   function loadLetters() {
@@ -398,9 +392,9 @@
   function openLetter(i) {
     var l = LETTERS[i];
     if (!l) return;
-    setBox('mtLtBoxTo', '선생님께');
+    setBox('mtLtBoxTo', (TEACHER_NAME || '선생님') + '께');
     setBox('mtLtBoxWhen', fmtDate(l.createdAt));
-    setBox('mtLtBoxTitle', l.title || '제목 없는 편지');
+    setBox('mtLtBoxTitle', l.title || '선생님께');
     setBox('mtLtBoxBody', l.content || '');
     setBox('mtLtBoxFrom', (l.authorName || '익명') + ' 드림');
     openBox('mtLtBox');
@@ -410,58 +404,260 @@
     if (el) el.textContent = v || '';
   }
 
+  /* ───────── 6. 나만의 서신 작성하기 ───────── */
+  var DEFAULT_QUESTIONS = [
+    '선생님은 당신에게 어떤 분으로 기억됩니까?',
+    '선생님과 함께한 날 중 가장 선명한 하루는 언제였나요?',
+    '선생님께 미처 전하지 못한 말이 있다면 무엇인가요?',
+    '선생님이 남기신 말이나 가르침 중 지금도 따르는 것이 있나요?',
+    '선생님이 계셨다면 지금 어떤 이야기를 나누고 싶으세요?',
+    '선생님을 떠올리게 하는 물건·장소·노래가 있나요?'
+  ];
+  var DEFAULT_GOAL = 30;
+  var DEFAULT_GOAL_LINE = '편지 {goal}통이 모이면 책이 됩니다';
+  var DEFAULT_GOAL_DONE = '편지 {count}통이 모였습니다 — 책으로 엮을 준비를 합니다';
+
+  var GOAL = DEFAULT_GOAL;
+  var GOAL_LINE = DEFAULT_GOAL_LINE;
+  var GOAL_DONE = DEFAULT_GOAL_DONE;
+  var LETTER_COUNT = 0;
+  var QUESTIONS = DEFAULT_QUESTIONS.slice();
+  var Q_PICK = 0;
+
+  /* 운영자가 줄마다 하나씩 적은 목록, 또는 배열을 받는다 */
+  function parseList(v) {
+    var arr = Array.isArray(v) ? v : String(v || '').split(/\r?\n/);
+    arr = arr.map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+    return arr.length ? arr.slice(0, 8) : null;
+  }
+  function pickNum(v) {
+    var n = Number(v);
+    return isFinite(n) && n > 0 ? Math.round(n) : 0;
+  }
+
+  /* 공통 문구(tc) 위에 이 선생님의 문구(copy)가 덮인다 */
+  function applyLetterSettings(tc, copy, t) {
+    tc = tc || {}; copy = copy || {};
+    GOAL = pickNum(copy.letterGoal) || pickNum(tc.letterGoal) || DEFAULT_GOAL;
+    GOAL_LINE = copy.letterGoalLine || tc.letterGoalLine || DEFAULT_GOAL_LINE;
+    GOAL_DONE = copy.letterGoalDone || tc.letterGoalDone || DEFAULT_GOAL_DONE;
+    QUESTIONS = parseList(copy.letterQuestions) || parseList(tc.letterQuestions) || DEFAULT_QUESTIONS.slice();
+    var ph = copy.letterPlaceholder || tc.letterPlaceholder;
+    if (ph && $('mtLtBody')) $('mtLtBody').placeholder = ph;
+    LETTER_COUNT = Number((t && t.letterCount) || 0);
+    renderQuestions();
+    paintGoal();
+  }
+
+  function renderQuestions() {
+    var wrap = $('mtQCards');
+    if (!wrap) return;
+    if (Q_PICK >= QUESTIONS.length) Q_PICK = 0;
+    wrap.innerHTML = QUESTIONS.map(function (q, i) {
+      return '<button type="button" class="mt2-qcard" role="radio" data-mt-q="' + i + '" ' +
+        'aria-checked="' + (i === Q_PICK ? 'true' : 'false') + '">' +
+        '<span class="mt2-qcard-no">' + (i + 1) + '</span>' +
+        '<span class="mt2-qcard-text">' + esc(q) + '</span>' +
+        '</button>';
+    }).join('');
+  }
+
+  function pickQuestion(i) {
+    Q_PICK = i;
+    var wrap = $('mtQCards');
+    if (!wrap) return;
+    Array.prototype.forEach.call(wrap.querySelectorAll('.mt2-qcard'), function (b) {
+      b.setAttribute('aria-checked', Number(b.getAttribute('data-mt-q')) === i ? 'true' : 'false');
+    });
+  }
+
+  function paintGoal() {
+    var goal = GOAL || DEFAULT_GOAL;
+    var count = LETTER_COUNT;
+    var pct = Math.max(0, Math.min(100, Math.round(count / goal * 100)));
+    var line = $('mtGoalLine'), cnt = $('mtGoalCount'), bar = $('mtGoalBar'), fill = $('mtGoalFill');
+    var done = count >= goal;
+    if (line) {
+      line.textContent = (done ? GOAL_DONE : GOAL_LINE)
+        .replace(/\{goal\}/g, num(goal)).replace(/\{count\}/g, num(count));
+    }
+    if (cnt) cnt.textContent = num(count) + ' / ' + num(goal) + '통';
+    if (bar) {
+      bar.setAttribute('aria-valuemax', String(goal));
+      bar.setAttribute('aria-valuenow', String(Math.min(count, goal)));
+      bar.classList.toggle('is-done', done);
+    }
+    if (fill) fill.style.width = (count > 0 && pct < 3 ? 3 : pct) + '%';
+  }
+
+  /* 먼저 도착한 짧은 편지 2~3통 — 짧은 것부터 보여주어 "이 정도면 나도" 싶게 한다.
+     마지막 카드는 늘 작성 유도 카드다. */
+  function renderSamples() {
+    var box = $('mtSamples'), grid = $('mtSampleGrid'), head = $('mtSamplesHead');
+    if (!box || !grid) return;
+    var pool = LETTERS.filter(function (l) { return l && l.content; });
+    var sorted = pool.slice().sort(function (a, b) {
+      return String(a.content).length - String(b.content).length;
+    });
+    var picks = sorted.filter(function (l) { return String(l.content).length <= 220; }).slice(0, 3);
+    if (picks.length < 2) picks = pool.slice(0, 3);
+
+    var cards = picks.map(function (l) {
+      var idx = LETTERS.indexOf(l);
+      return '<button type="button" class="mt2-sample" data-mt-letter="' + idx + '">' +
+        (l.title ? '<span class="mt2-sample-q">' + esc(l.title) + '</span>' : '') +
+        '<p class="mt2-sample-text">' + esc(peekOf(l.content, 80)) + '</p>' +
+        '<span class="mt2-sample-by">' + esc(l.authorName || '익명') + '</span>' +
+        '</button>';
+    });
+    cards.push(
+      '<button type="button" class="mt2-sample mt2-sample-cta" id="mtSampleCta">' +
+      '<b>당신의 기억도 놓아주세요</b>' +
+      '<span>한 문장이면 충분합니다. 위 질문 하나를 골라 적어주세요.</span>' +
+      '</button>'
+    );
+    grid.innerHTML = cards.join('');
+    if (head) head.textContent = picks.length ? '먼저 도착한 편지들' : '첫 편지를 기다리고 있습니다';
+    show(box, true);
+  }
+
   function submitLetter() {
     var btn = $('mtLtSubmit');
-    var title = ($('mtLtTitle') && $('mtLtTitle').value.trim()) || '';
     var body = ($('mtLtBody') && $('mtLtBody').value.trim()) || '';
+    var nick = ($('mtLtName') && $('mtLtName').value.trim()) || '';
     var anon = !!($('mtLtAnon') && $('mtLtAnon').checked);
-    if (!body) { toast('편지 내용을 적어주세요.'); if ($('mtLtBody')) $('mtLtBody').focus(); return; }
+    var consent = !!($('mtLtConsent') && $('mtLtConsent').checked);
+    if (!body) { toast('편지를 적어주세요. 한 문장이어도 충분합니다.'); if ($('mtLtBody')) $('mtLtBody').focus(); return; }
     if (btn) btn.disabled = true;
+    toast('편지를 보내고 있습니다…');
 
     api('/api/memorial-letters', {
       method: 'POST',
-      body: { teacherId: TEACHER_ID, title: title || null, content: body, isAnonymous: anon }
+      body: {
+        teacherId: TEACHER_ID,
+        title: QUESTIONS[Q_PICK] || null,
+        content: body,
+        authorName: anon ? null : (nick || null),
+        isAnonymous: anon,
+        publishConsent: consent,
+        invited: INVITED
+      }
     }).then(function (res) {
       if (btn) btn.disabled = false;
       if (!res.ok) {
         if (res.status === 401) {
-          toast('편지는 로그인 후 보내실 수 있습니다.');
+          toast('편지를 보내려면 로그인이 필요합니다.');
           if (window.SIREN && window.SIREN.openModal) window.SIREN.openModal('loginModal');
           return;
         }
-        toast((res.data && res.data.error) || '편지를 보내지 못했습니다.');
+        toast((res.data && res.data.error) || '편지를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
         return;
       }
-      if ($('mtLtTitle')) $('mtLtTitle').value = '';
+      var letter = unwrap(res, 'letter') || {};
       if ($('mtLtBody')) $('mtLtBody').value = '';
-      loadLetters();
-      toast('편지가 도착했습니다. 고맙습니다.');
+      if ($('mtLtConsent')) $('mtLtConsent').checked = false;
+
+      if (letter.pendingReview) {
+        toast('편지를 받았습니다. 자동 검토를 거친 뒤 봉투로 놓입니다. 고맙습니다.');
+        return;
+      }
+      LETTER_COUNT += 1;
+      paintGoal();
+      NEW_LETTER_ID = letter.id || null;
+      loadLetters().then(function () {
+        var sec = $('mtLetterSec');
+        var env = NEW_LETTER_ID != null ? $('mtEnv' + NEW_LETTER_ID) : null;
+        var target = env || sec;
+        if (target) {
+          try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { target.scrollIntoView(); }
+        }
+      });
+      toast('편지가 도착했습니다. 위 ‘기억의 편지’에 봉투로 놓였습니다.');
+    });
+  }
+
+  /* ───────── 7. 초대 링크 · QR ───────── */
+  function inviteUrl() {
+    return location.origin + '/memorial-teacher.html?id=' + encodeURIComponent(TEACHER_ID) + '&invite=1';
+  }
+  function copyInvite() {
+    var url = inviteUrl();
+    var done = function () { toast('초대 링크를 복사했습니다. 지인에게 붙여 넣어 보내주세요.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { window.prompt('아래 링크를 복사해 주세요', url); });
+    } else {
+      window.prompt('아래 링크를 복사해 주세요', url);
+    }
+  }
+  function shareInvite() {
+    if (!navigator.share) { copyInvite(); return; }
+    navigator.share({
+      title: (TEACHER_NAME || '선생님') + '께 편지 한 통',
+      text: (TEACHER_NAME || '선생님') + '을 기억하는 편지를 남겨주세요. 한 문장이어도 충분합니다.',
+      url: inviteUrl()
+    }).catch(function () { /* 사용자가 취소 — 조용히 */ });
+  }
+
+  /* QR 그리기 — 누를 때만 작은 생성기를 불러온다 (외부 서비스 없이 브라우저에서 그린다) */
+  var QR_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+  function loadQrLib() {
+    return new Promise(function (resolve, reject) {
+      if (window.qrcode) { resolve(); return; }
+      var s = document.createElement('script');
+      s.src = QR_SRC; s.async = true;
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error('QR 생성기를 불러오지 못했습니다')); };
+      document.head.appendChild(s);
+    });
+  }
+  function makeQr() {
+    var btn = $('mtInviteQr');
+    if (btn) btn.disabled = true;
+    loadQrLib().then(function () {
+      var qr = window.qrcode(0, 'M');
+      qr.addData(inviteUrl());
+      qr.make();
+      var dataUrl = qr.createDataURL(6, 12);
+      var img = $('mtQrImg');
+      if (img) img.innerHTML = '<img src="' + dataUrl + '" alt="초대 링크 QR 코드" width="220" height="220">';
+      var dl = $('mtQrDown');
+      if (dl) {
+        dl.href = dataUrl;
+        dl.download = (TEACHER_NAME ? TEACHER_NAME + '-' : '') + '초대장-QR.png';
+      }
+      show($('mtQrBox'), true);
+      if (btn) { btn.disabled = false; btn.textContent = 'QR 다시 만들기'; }
+    }).catch(function (e) {
+      if (btn) btn.disabled = false;
+      toast(e && e.message ? e.message : 'QR 코드를 만들지 못했습니다.');
     });
   }
 
   /* ───────── 시작 ───────── */
   function bind() {
-    /* 별빛 한 줄 · 편지 한 통 — 남기는 방법을 고른다 */
-    var ways = $('mtWays');
-    if (ways) ways.addEventListener('click', function (ev) {
-      var b = ev.target.closest && ev.target.closest('.mt2-way');
-      if (!b) return;
-      var pick = b.dataset.way || 'star';
-      Array.prototype.forEach.call(ways.querySelectorAll('.mt2-way'), function (x) {
-        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
-      });
-      show($('mtWayStar'), pick === 'star');
-      show($('mtWayLetter'), pick === 'letter');
-    });
-
-    var ob = $('mtOfferBtn'); if (ob) ob.addEventListener('click', submitOffer);
     var lb = $('mtLtSubmit'); if (lb) lb.addEventListener('click', submitLetter);
     var more = $('mtMsgMore'); if (more) more.addEventListener('click', function () { MSG_PAGE++; loadMessages(true); });
     var ltMore = $('mtLtMore');
     if (ltMore) ltMore.addEventListener('click', function () { LT_SHOWN += 6; renderLetters(); });
 
-    /* 사진·편지 열기 · 닫기 */
+    var ic = $('mtInviteCopy'); if (ic) ic.addEventListener('click', copyInvite);
+    var is = $('mtInviteShare');
+    if (is) {
+      if (navigator.share) show(is, true);
+      is.addEventListener('click', shareInvite);
+    }
+    var iq = $('mtInviteQr'); if (iq) iq.addEventListener('click', makeQr);
+
+    /* 질문 고르기 · 유도 카드 · 사진·편지 열기 · 닫기 */
     document.addEventListener('click', function (ev) {
+      var q = ev.target.closest && ev.target.closest('[data-mt-q]');
+      if (q) { pickQuestion(Number(q.getAttribute('data-mt-q'))); return; }
+      var cta = ev.target.closest && ev.target.closest('#mtSampleCta');
+      if (cta) {
+        var ta = $('mtLtBody');
+        if (ta) { try { ta.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} ta.focus(); }
+        return;
+      }
       var close = ev.target.closest && ev.target.closest('#mtLightbox, #mtLtBox');
       var ph = ev.target.closest && ev.target.closest('[data-mt-photo]');
       if (ph) { openPhoto(Number(ph.getAttribute('data-mt-photo'))); return; }
@@ -477,6 +673,8 @@
 
   function start() {
     bind();
+    renderQuestions();
+    paintGoal();
     loadTeacher();
     loadMessages(false);
     loadLetters();
