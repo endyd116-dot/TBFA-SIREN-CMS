@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <script src="/js/icons.js?v=20260820-ssr"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- PWA(앱 설치) -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#7a1f2b" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="SIREN" />
+<script src="/js/pwa.js?v=3" defer></script>
+<title>함께워크_SI — 자살유족협회 온라인 추모관 도입 제안서 · 견적</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif}
+
+/* ── 뷰포트 스케일 ── */
+.deck{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+.viewport{position:relative;width:1280px;height:720px;overflow:hidden;transform-origin:center center}
+
+/* ── 슬라이드 기본 ── */
+.slide{position:absolute;inset:0;opacity:0;transition:opacity .35s ease,transform .35s ease;transform:translateX(50px);pointer-events:none;overflow:hidden}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+.slide.out{opacity:0;transform:translateX(-50px)}
+
+/* ── 네비게이션 ── */
+.nav-arr{position:fixed;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.8);font-size:18px;cursor:pointer;z-index:300;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.nav-arr:hover{background:rgba(217,119,6,.55);border-color:#f59e0b;color:#fff}
+#aPrev{left:12px}#aNext{right:12px}
+
+.dots-bar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:300;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);padding:7px 14px;border-radius:100px}
+.dot{width:6px;height:6px;border-radius:50%;border:none;cursor:pointer;opacity:.4;transition:all .2s}
+.dot.active{width:16px;border-radius:3px;opacity:1}
+.sc-a{background:#fbbf24}.sc-b{background:#60a5fa}.sc-c{background:#a78bfa}.sc-d{background:#34d399}.sc-e{background:#f472b6}
+
+.ctr{position:fixed;top:12px;right:14px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:rgba(255,255,255,.55);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;z-index:300;border:1px solid rgba(255,255,255,.1)}
+.sec-ind{position:fixed;top:12px;left:14px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:rgba(255,255,255,.55);font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;z-index:300;border:1px solid rgba(255,255,255,.1);letter-spacing:.06em}
+
+/* ── 공통 컴포넌트 ── */
+.tag{display:inline-flex;align-items:center;padding:5px 14px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.tag-blue{background:#eff6ff;color:#2563eb}
+.tag-white{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.tag-green{background:#f0fdf4;color:#16a34a}
+.tag-purple{background:#f5f3ff;color:#7c3aed}
+.tag-amber{background:#fffbeb;color:#b45309}
+.tag-rose{background:#fff1f2;color:#be123c}
+
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-dark{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:24px}
+
+.stat-n{font-size:48px;font-weight:900;line-height:1;color:#2563eb}
+.stat-u{font-size:20px;font-weight:700;color:#2563eb;margin-left:3px}
+.stat-l{font-size:13px;color:#64748b;margin-top:6px;font-weight:500}
+
+.row{display:flex;gap:20px;align-items:stretch}
+.col{display:flex;flex-direction:column}
+.g12{gap:12px}.g16{gap:16px}.g20{gap:20px}.g24{gap:24px}.g32{gap:32px}
+
+/* ── 흰 슬라이드 ── */
+.sw{background:#fff;color:#0f172a}
+.sw h1{font-size:44px;font-weight:900;line-height:1.15;color:#0f172a}
+.sw h2{font-size:30px;font-weight:800;line-height:1.2;color:#0f172a}
+.sw h3{font-size:20px;font-weight:700;color:#0f172a}
+.sw p{color:#475569;line-height:1.65;font-size:15px}
+.sw .sub{color:#64748b;font-size:15px;margin-top:10px;line-height:1.6}
+.top-bar{position:absolute;top:0;left:0;right:0;height:5px}
+.bar-b{background:linear-gradient(90deg,#2563eb,#06b6d4)}
+.bar-p{background:linear-gradient(90deg,#7c3aed,#3b82f6)}
+.bar-g{background:linear-gradient(90deg,#10b981,#2563eb)}
+.bar-o{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.bar-a{background:linear-gradient(90deg,#f59e0b,#fb7185)}
+.sw .pad{padding:56px 72px}
+.sw .lpad{padding:48px 56px}
+.sw .mpad{padding:40px 56px}
+
+/* ── 어두운 슬라이드 ── */
+.sd{background:#0f172a;color:#fff}
+.sd h1{font-size:44px;font-weight:900;line-height:1.15}
+.sd h2{font-size:30px;font-weight:800}
+.sd h3{font-size:20px;font-weight:700}
+.sd p{color:#94a3b8;line-height:1.65;font-size:15px}
+.sd .pad{padding:56px 72px}
+.grad{background:linear-gradient(135deg,#fbbf24,#fb7185);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.grad2{background:linear-gradient(135deg,#60a5fa,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ── 표지·섹션 표지 ── */
+.cov{background:linear-gradient(135deg,#1e1b4b 0%,#3b2a7a 42%,#9a3412 100%);color:#fff}
+.cov-lan{position:absolute;border-radius:12px 12px 10px 10px;background:linear-gradient(180deg,#fef3c7,#f59e0b);box-shadow:0 0 26px 10px rgba(251,191,36,.35);animation:float 5s ease-in-out infinite;opacity:.9}
+.sec-cov{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 55%,#3b2a7a 100%);color:#fff}
+
+/* ── 표 ── */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.tbl th{background:#f8fafc;color:#475569;font-weight:700;padding:9px 11px;text-align:left;border-bottom:1px solid #e2e8f0;font-size:11px;letter-spacing:.03em;white-space:nowrap}
+.tbl td{padding:7px 11px;border-bottom:1px solid #f1f5f9;color:#0f172a;vertical-align:top;line-height:1.45}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .c{text-align:center;white-space:nowrap}
+.tbl .sum td{background:#fffbeb;font-weight:800;color:#0f172a;border-top:2px solid #fcd34d}
+.tbl .mute{color:#64748b}
+.pill{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;white-space:nowrap;line-height:1.5}
+.pill-b{background:#eff6ff;color:#2563eb}.pill-a{background:#fffbeb;color:#b45309}.pill-g{background:#f0fdf4;color:#16a34a}.pill-p{background:#f5f3ff;color:#7c3aed}.pill-r{background:#fef2f2;color:#dc2626}.pill-s{background:#f1f5f9;color:#475569}.pill-d{background:#0f172a;color:#fff}
+
+/* ── 목업 공통 ── */
+.browser{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 22px 60px rgba(15,23,42,.28);border:1px solid #cbd5e1;position:relative}
+.browser-bar{height:30px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;padding:0 12px}
+.browser-bar i{width:9px;height:9px;border-radius:50%;display:block}
+.browser-url{flex:1;margin-left:8px;height:18px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:9px;color:#94a3b8;display:flex;align-items:center;padding:0 8px}
+.phone{width:250px;height:520px;background:#0f172a;border-radius:34px;padding:10px;box-shadow:0 24px 60px rgba(15,23,42,.35);position:relative;flex-shrink:0}
+.phone-scr{width:100%;height:100%;border-radius:26px;overflow:hidden;background:#fff;position:relative}
+.phone-notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:20px;background:#0f172a;border-radius:0 0 14px 14px;z-index:5}
+.m-nav{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;font-weight:800;color:#0f172a;background:#fff;border-bottom:1px solid #f1f5f9}
+.m-nav .brand{display:flex;align-items:center;gap:6px}
+.m-nav .brand i{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);display:block}
+
+/* 사진벽 */
+.wall{position:absolute;inset:0;display:grid;gap:2px;overflow:hidden;background:#e7e5e4}
+.wall i{display:block;border-radius:2px;min-height:0}
+.fog{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,251,245,.62) 0%,rgba(255,251,245,.72) 40%,rgba(255,251,245,.9) 78%,#fffbf5 100%)}
+.fog2{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(255,251,245,.85) 0%,rgba(255,251,245,.35) 45%,rgba(255,251,245,0) 75%)}
+
+/* 등불 */
+.lan{position:absolute;width:24px;height:32px;border-radius:11px 11px 9px 9px;background:linear-gradient(180deg,#fef3c7 0%,#fcd34d 40%,#f59e0b 100%);box-shadow:0 0 16px 6px rgba(251,191,36,.42),inset 0 -6px 10px rgba(217,119,6,.35);animation:float 4s ease-in-out infinite}
+.lan:after{content:"";position:absolute;left:50%;bottom:-5px;width:8px;height:5px;background:#b45309;transform:translateX(-50%);border-radius:0 0 3px 3px}
+.lan:before{content:"";position:absolute;left:50%;top:-4px;width:10px;height:4px;background:#b45309;transform:translateX(-50%);border-radius:3px 3px 0 0}
+.lan b{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:9px;color:#78350f;white-space:nowrap;font-weight:700;letter-spacing:-.01em}
+.lan.s{width:16px;height:22px;border-radius:8px 8px 6px 6px;box-shadow:0 0 10px 4px rgba(251,191,36,.35)}
+.lan.s b{font-size:8px;top:-13px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+/* 검색바 */
+.srch{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #f59e0b;border-radius:100px;padding:0 6px 0 16px;box-shadow:0 10px 30px rgba(180,83,9,.18)}
+.srch .ph{flex:1;color:#94a3b8;text-align:left}
+.srch b{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:100px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+/* 액자 */
+.frame-gold{padding:6px;border-radius:10px;background:linear-gradient(135deg,#fde68a,#d97706 35%,#fbbf24 60%,#b45309);box-shadow:0 14px 34px rgba(120,53,15,.28)}
+.frame-gold>div:first-child{border-radius:6px;background:linear-gradient(180deg,#f5f0e8 0%,#d9d1c5 100%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.flower{position:absolute;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#fff7ed 0 30%,#fb7185 32% 60%,transparent 62%);box-shadow:0 0 0 3px rgba(251,113,133,.25)}
+
+/* 간트 */
+.gantt{display:grid;grid-template-columns:168px repeat(12,1fr);gap:3px 2px;align-items:center;font-size:11px}
+.gantt .lbl{font-weight:700;color:#0f172a;padding-right:8px;white-space:nowrap}
+.gantt .wk{font-size:10px;color:#94a3b8;text-align:center;font-weight:700}
+.gbar{height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden}
+
+/* 플로우 */
+.step{flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-top:3px solid #f59e0b;border-radius:0 0 12px 12px;padding:14px 12px;text-align:center}
+.step .n{font-size:10px;font-weight:800;color:#b45309;letter-spacing:.06em;margin-bottom:5px}
+.step .t{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px}
+.step .d{font-size:11px;color:#64748b;line-height:1.45}
+.arr{display:flex;align-items:center;color:#f59e0b;font-size:18px;font-weight:900}
+
+/* ── 내보내기 툴바 ── */
+.exptools{position:fixed;top:11px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:400}
+.expbtn{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:5px 13px;border-radius:100px;cursor:pointer;transition:.2s;font-family:inherit}
+.expbtn:hover{background:rgba(217,119,6,.7);border-color:#f59e0b}
+.expbtn:disabled{opacity:.5;cursor:default}
+.exp-overlay{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;color:#fff}
+.exp-overlay.on{display:flex}
+.exp-spin{width:46px;height:46px;border:4px solid rgba(255,255,255,.2);border-top-color:#fbbf24;border-radius:50%;animation:expspin .8s linear infinite}
+@keyframes expspin{to{transform:rotate(360deg)}}
+.exp-msg{font-size:15px;font-weight:600}
+.exp-sub{font-size:12px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="viewport" id="vp">
+
+<!-- ════ 01 표지 ════ -->
+<div class="slide cov" data-sec="개요" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px">
+  <div class="cov-lan" style="width:30px;height:40px;left:120px;top:150px;animation-delay:-1s"></div>
+  <div class="cov-lan" style="width:20px;height:27px;left:230px;top:420px;animation-delay:-2.5s;opacity:.7"></div>
+  <div class="cov-lan" style="width:24px;height:32px;left:1080px;top:200px;animation-delay:-.6s"></div>
+  <div class="cov-lan" style="width:16px;height:22px;left:1160px;top:470px;animation-delay:-3s;opacity:.6"></div>
+  <div class="cov-lan" style="width:14px;height:19px;left:330px;top:620px;animation-delay:-1.8s;opacity:.5"></div>
+  <div class="cov-lan" style="width:18px;height:24px;left:960px;top:600px;animation-delay:-2.2s;opacity:.6"></div>
+  <img src="img/logo.jpg" alt="함께워크_SI" style="height:84px;margin-bottom:28px;filter:drop-shadow(0 4px 20px rgba(0,0,0,.3))">
+  <div style="font-size:13px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.72);text-transform:uppercase;margin-bottom:16px">자살유족협회 · 온라인 추모관 도입 제안서 및 견적</div>
+  <h1 style="font-size:50px;font-weight:900;line-height:1.12;color:#fff;margin-bottom:18px">돌아가신 분이 이 땅에서<br><span style="color:#fcd34d">단 100g도 사라지지 않도록</span></h1>
+  <p style="font-size:17px;color:rgba(255,255,255,.78);max-width:720px;line-height:1.65">2026년 9월 30일 협회와 나눈 회의 내용을 바탕으로, 메인 사진벽·등불 방명록·개인 추모관·권한 체계·AI 필터링까지<br>기능 정의, 화면 목업, 기술 사양, 정가 기준 견적과 운영비, 향후 발전 방안을 한 권에 담았습니다.</p>
+  <div style="margin-top:36px;display:flex;gap:32px;justify-content:center">
+    <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">34</div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">정의한 기능 항목</div></div>
+    <div style="width:1px;background:rgba(255,255,255,.2)"></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">12<span style="font-size:16px">주</span></div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">기본 구축 기간</div></div>
+    <div style="width:1px;background:rgba(255,255,255,.2)"></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">7<span style="font-size:16px">종</span></div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">취사선택 옵션</div></div>
+    <div style="width:1px;background:rgba(255,255,255,.2)"></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#fff">정가</div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">할인 없는 라인별 견적</div></div>
+  </div>
+  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.45)">함께워크_SI · 2026.10 · 본 문서는 2026.09.30 회의록을 근거로 작성되었습니다</div>
+</div>
+
+<!-- ════ 02 목차 ════ -->
+<div class="slide sw" data-sec="개요">
+  <div class="top-bar bar-a"></div>
+  <div class="pad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-amber" style="margin-bottom:20px">목차</div>
+    <h2 style="margin-bottom:32px">제안서 구성</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 24px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#fffbeb;color:#b45309;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+        <div><div style="font-weight:700;color:#0f172a;font-size:15px">제안 배경과 회의 결정 사항</div><div style="color:#64748b;font-size:13px;margin-top:2px">추모관의 취지 · 확정된 요구사항 · 설계 원칙</div></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 24px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#eff6ff;color:#2563eb;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+        <div><div style="font-weight:700;color:#0f172a;font-size:15px">함께워크_SI 소개와 레퍼런스</div><div style="color:#64748b;font-size:13px;margin-top:2px">팀 · 대기업 실적 · 유족 단체 플랫폼과 추모관 실 운영 사례</div></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 24px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#f5f3ff;color:#7c3aed;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+        <div><div style="font-weight:700;color:#0f172a;font-size:15px">기능사항정의서</div><div style="color:#64748b;font-size:13px;margin-top:2px">34개 기능을 기본·옵션으로 구분, 회의록 근거 표기</div></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 24px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#f5f3ff;color:#7c3aed;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+        <div><div style="font-weight:700;color:#0f172a;font-size:15px">화면 목업과 기능 설명</div><div style="color:#64748b;font-size:13px;margin-top:2px">메인 · 개인 추모관 · 가입 인증 · 관리자 (PC·모바일)</div></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 24px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf4;color:#16a34a;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">5</div>
+        <div><div style="font-weight:700;color:#0f172a;font-size:15px">기술 사양과 구현 방식</div><div style="color:#64748b;font-size:13px;margin-top:2px">구성도 · 보안 · 성능 · 산출물</div></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 24px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#fffbeb;color:#b45309;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">6</div>
+        <div><div style="font-weight:700;color:#0f172a;font-size:15px">견적 · 운영비 · 일정 · 발전 방안</div><div style="color:#64748b;font-size:13px;margin-top:2px">기능별 금액과 기간 · 옵션 · 월 운영비와 실비 · 로드맵</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 03 제안 배경 ════ -->
+<div class="slide sw" data-sec="개요">
+  <div class="top-bar bar-a"></div>
+  <div class="pad" style="display:flex;gap:56px;align-items:center;height:100%">
+    <div style="flex:1">
+      <div class="tag tag-amber" style="margin-bottom:20px">제안 배경</div>
+      <h1 style="font-size:40px;margin-bottom:16px">우는 것 외의<br>애도 방법을 만듭니다</h1>
+      <p class="sub">명절과 생일에 납골당을 찾듯, 온라인 추모관에 들러 한 줄을 남기는 문화를 만드는 것이 협회의 목표입니다.<br>선례가 없는 사업이기에, 구축되면 업계 표준 모델이 될 가능성이 높다는 점에 양측이 공감했습니다.</p>
+      <div style="margin-top:24px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px 20px">
+        <div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:6px">회의에서 확인한 핵심 메시지</div>
+        <div style="font-size:15px;color:#0f172a;line-height:1.7;font-weight:600">"유족이 이렇게 많다, 나만 그런 게 아니다."<br>메인 화면이 가장 먼저 전해야 하는 심리적 안정감입니다.</div>
+      </div>
+    </div>
+    <div style="flex:1.15;display:flex;flex-direction:column;gap:14px">
+      <div class="card" style="border-left:4px solid #f59e0b;border-radius:0 14px 14px 0;padding:18px 22px">
+        <div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:5px">01 — 시작 규모</div>
+        <div style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:3px">유족 가족 단위 약 100명으로 시작, 지속 증가</div>
+        <p style="font-size:13.5px">이탈보다 유입이 수 배 많을 것으로 전망. 100명 단위 그룹을 일반 관리자에게 위임하는 구조로 확장에 대비합니다.</p>
+      </div>
+      <div class="card" style="border-left:4px solid #2563eb;border-radius:0 14px 14px 0;padding:18px 22px">
+        <div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:5px">02 — 별도 사이트, 결제 없음</div>
+        <div style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:3px">협회 홈페이지에서 배너로 이동하는 독립 추모관</div>
+        <p style="font-size:13.5px">가입비 1만 원은 기부금으로 처리(입금 확인 후 아이디 개설). 사이트 내 결제·기존 홈페이지 연동은 범위에서 제외해 비용을 줄입니다.</p>
+      </div>
+      <div class="card" style="border-left:4px solid #7c3aed;border-radius:0 14px 14px 0;padding:18px 22px">
+        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:5px">03 — 정가 기준, 옵션 분리</div>
+        <div style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:3px">협회가 취사선택하고 자금을 확보할 수 있도록</div>
+        <p style="font-size:13.5px">할인가가 아닌 정가로, 기본 기능과 옵션(RAG·AI 상담·동영상 등)을 항목별로 나누어 제시합니다. 외부 기업 네이밍 후원은 받지 않습니다.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 04 회의 결정 사항 ════ -->
+<div class="slide sw" data-sec="개요">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-amber" style="margin-bottom:14px">2026.09.30 회의 결정 사항</div>
+    <h2 style="margin-bottom:18px">회의에서 확정된 12가지</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 18px">
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-a">메인</span><div style="font-size:13px;color:#0f172a;line-height:1.5"><b>고인 사진 80~100장</b>이 화면을 채우되 안개·흐림으로 개별 식별 불가. 정적 이미지 1장, 클릭 없음.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-a">메인</span><div style="font-size:13px;color:#0f172a;line-height:1.5">중앙 <b>검색바</b>로 고인 이름 검색 → 개인 추모관. 하단에 공지·협회 소개·기부 계좌.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-a">메인</span><div style="font-size:13px;color:#0f172a;line-height:1.5">공개 방명록은 <b>등불 애니메이션</b>으로 떠오름. 작성자명 표시, 클릭하면 내용 열람. '한마디 쓰기' 버튼.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-a">메인</span><div style="font-size:13px;color:#0f172a;line-height:1.5">공유 링크로 와도 <b>메인을 거쳐</b> 개인 추모관에 진입. 전체 분위기는 슬프고 어둡지 않게.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-b">개인관</span><div style="font-size:13px;color:#0f172a;line-height:1.5"><b>대표 사진 + 서브 약 10장 + 방명록</b>. 영정 느낌 지양(금테·꽃 장식). 서브 배치(2×2·1×4)를 유족이 직접 선택.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-b">개인관</span><div style="font-size:13px;color:#0f172a;line-height:1.5">PC·모바일 <b>반응형 필수</b>. 고령 유족을 위해 큰 글씨·직관적 메뉴·최소 클릭.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-p">권한</span><div style="font-size:13px;color:#0f172a;line-height:1.5"><b>5등급</b>(총괄·일반·지역 관리자·가족·일반 회원). 승인 시 단계 없이 바로 등급 지정. 블랙·강제 탈퇴.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-p">권한</span><div style="font-size:13px;color:#0f172a;line-height:1.5">사진 삭제는 <b>휴지통 약 1개월</b> 보관 후 영구 삭제. 가입 시 사진 보관 동의 항목, 동의자만 복구.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-g">인증</span><div style="font-size:13px;color:#0f172a;line-height:1.5"><b>카카오·네이버 간편 인증 + 문자 인증</b>. 메일 인증 제외. 심사 탈락 시 문자 인증만 운영.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-r">AI</span><div style="font-size:13px;color:#0f172a;line-height:1.5"><b>AI 1차 필터링</b>(비방·명예훼손) → 애매한 건만 총괄 관리자 판단. RAG는 필요성 합의, 범위는 견적 후 결정.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-r">AI</span><div style="font-size:13px;color:#0f172a;line-height:1.5"><b>AI 상담 에이전트는 1차 범위 제외</b>, 옵션으로 견적 포함. 도입 시 QnA 버튼 10개·핸드오프 필수.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px">
+        <span class="pill pill-s">운영</span><div style="font-size:13px;color:#0f172a;line-height:1.5">수정 요청은 <b>주 2회(월·금 10시) 일괄 처리</b>. 탈퇴 후 재가입 3일 제한 등 협회 운영 노하우 반영.</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:11px 18px;font-size:13px;color:#1e40af"><strong>범위 밖으로 확정:</strong> 사이트 내 결제 · 기존 홈페이지 SSO/DB 연동 · 캐릭터 꾸미기 · 별·풍선 등 사행성 보상 요소 · 외부 기업 네이밍 후원</div>
+  </div>
+</div>
+
+<!-- ════ 05 설계 원칙 ════ -->
+<div class="slide sw" data-sec="개요">
+  <div class="top-bar bar-a"></div>
+  <div class="pad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-amber" style="margin-bottom:16px">설계 원칙</div>
+    <h2 style="margin-bottom:8px">회의에서 나온 말을 다섯 가지 원칙으로 바꿨습니다</h2>
+    <p style="font-size:14px;color:#64748b;margin-bottom:24px">이 원칙이 이후 모든 화면 목업과 기능 정의의 판단 기준입니다.</p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px">
+      <div class="card" style="border-top:4px solid #f59e0b;padding:20px 18px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px"><span class="siren-icon-wrap" data-icon="sun"></span></div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:6px">밝게, 어둡지 않게</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">"납골당도 밝다." 따뜻한 크림·금빛 톤, 검은 배경과 영정 느낌을 피합니다.</div>
+      </div>
+      <div class="card" style="border-top:4px solid #2563eb;padding:20px 18px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px"><span class="siren-icon-wrap" data-icon="users"></span></div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:6px">나만 그런 게 아니다</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">사진 100장이 가득한 첫 화면. 식별은 불가능하지만, 함께 있다는 느낌은 분명하게.</div>
+      </div>
+      <div class="card" style="border-top:4px solid #16a34a;padding:20px 18px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px"><span class="siren-icon-wrap" data-icon="mouse-pointer"></span></div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:6px">최소 클릭, 큰 글씨</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">고령 유족 기준. 검색 → 추모관 → 한마디까지 3번 이내 터치, 글씨 크기 3단계.</div>
+      </div>
+      <div class="card" style="border-top:4px solid #7c3aed;padding:20px 18px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px"><span class="siren-icon-wrap" data-icon="eye"></span></div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:6px">마음의 준비만큼 공개</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">방명록만 → 큰 사진 → 작은 사진. 유족이 단계를 고르고, 되돌릴 수 있습니다.</div>
+      </div>
+      <div class="card" style="border-top:4px solid #dc2626;padding:20px 18px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px"><span class="siren-icon-wrap" data-icon="shield-check"></span></div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:6px">운영자가 지치지 않게</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">AI가 먼저 거르고, 주 2회 일괄 처리하고, 홧김 삭제는 30일 휴지통이 받아줍니다.</div>
+      </div>
+    </div>
+    <div style="margin-top:22px;display:flex;gap:14px">
+      <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;display:flex;gap:12px;align-items:center">
+        <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="ban"></span></span>
+        <div style="font-size:13px;color:#475569"><strong style="color:#0f172a">쓰지 않는 표현:</strong> '극단적 선택'. 협회가 '자살'을 명시적으로 쓰는 이유를 존중해 모든 화면 문구를 협회 기준으로 작성합니다.</div>
+      </div>
+      <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;display:flex;gap:12px;align-items:center">
+        <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="heart-crack"></span></span>
+        <div style="font-size:13px;color:#475569"><strong style="color:#0f172a">상처가 될 수 있는 요소 배제:</strong> 별·풍선 같은 사행성 연상 보상, 캐릭터 꾸미기, 기계 티 나는 챗봇은 설계에서 뺍니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 06 회사 소개 · 팀 ════ -->
+<div class="slide sw" data-sec="회사·레퍼런스">
+  <div class="top-bar bar-b"></div>
+  <div class="pad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-blue" style="margin-bottom:16px">함께워크_SI 소개</div>
+    <h2 style="margin-bottom:8px">대기업 검증 기획자 + 보안·플랫폼 풀스택 개발자,<br>두 사람이 설계부터 운영까지 직접 맡습니다</h2>
+    <p style="font-size:14px;color:#64748b;margin-bottom:22px">영업·하청을 거치지 않습니다. 회의에서 들은 말이 중간에서 변형되지 않고 그대로 결과물에 반영됩니다.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card" style="border-top:4px solid #2563eb;padding:24px 26px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div style="width:50px;height:50px;border-radius:50%;background:#eff6ff;border:2px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-size:22px"><span class="siren-icon-wrap" data-icon="user"></span></div>
+          <div><div style="font-size:19px;font-weight:900;color:#0f172a">박두용</div><div style="font-size:13px;color:#2563eb;font-weight:700">기획 · PM · 대표</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:#0f172a;line-height:1.55">
+          <div><span class="siren-icon-wrap" data-icon="check"></span> 前 액트베이스 전략기획부 부장 · 플레오 대표이사, 총 경력 14년</div>
+          <div><span class="siren-icon-wrap" data-icon="check"></span> 대형 RFP 경쟁입찰 1위 다수 (아워홈·신세계·의사협회·미래에셋)</div>
+          <div><span class="siren-icon-wrap" data-icon="check"></span> 경영혁신·신사업 기획·데이터 모델링</div>
+          <div><span class="siren-icon-wrap" data-icon="check"></span> (사)교사유가족협의회 플랫폼 기획·운영 총괄 — 유족 단체 운영 현장 경험</div>
+        </div>
+      </div>
+      <div class="card" style="border-top:4px solid #7c3aed;padding:24px 26px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div style="width:50px;height:50px;border-radius:50%;background:#f5f3ff;border:2px solid #ddd6fe;display:flex;align-items:center;justify-content:center;font-size:22px"><span class="siren-icon-wrap" data-icon="user"></span></div>
+          <div><div style="font-size:19px;font-weight:900;color:#0f172a">장석주</div><div style="font-size:13px;color:#7c3aed;font-weight:700">보안 · 플랫폼 풀스택 개발</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:#0f172a;line-height:1.55">
+          <div><span class="siren-icon-wrap" data-icon="check"></span> Java/Spring · Node.js/TypeScript · React · PostgreSQL · AWS · Kafka</div>
+          <div><span class="siren-icon-wrap" data-icon="check"></span> 국가과제 NFLUX (스마트 항만 · 강릉 데이터허브) 핵심 개발</div>
+          <div><span class="siren-icon-wrap" data-icon="check"></span> 미래에셋생명 오픈소스 취약점 관리 시스템 (망분리 환경)</div>
+          <div><span class="siren-icon-wrap" data-icon="check"></span> 합동참모본부 보안훈련 시스템 · 다크트레이스 연계</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">38억+</div><div style="font-size:12px;color:#64748b;margin-top:2px">누적 수주 실적</div></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">5+ / 2+</div><div style="font-size:12px;color:#64748b;margin-top:2px">대기업 / 국가과제</div></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">직접</div><div style="font-size:12px;color:#64748b;margin-top:2px">기획·개발·유지보수 (외주 없음)</div></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">6개월</div><div style="font-size:12px;color:#64748b;margin-top:2px">무상 하자보증</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 07 대기업 레퍼런스 ════ -->
+<div class="slide sw" data-sec="회사·레퍼런스">
+  <div class="top-bar bar-b"></div>
+  <div class="pad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-blue" style="margin-bottom:16px">레퍼런스 ① 구축 실적</div>
+    <h2 style="margin-bottom:8px">아워홈·신세계·미래에셋·국가과제까지,<br>결과물로 검증된 팀입니다</h2>
+    <p style="font-size:14px;color:#64748b;margin-bottom:22px">대기업 기준의 산출물·검수·보안 절차를 같은 방식으로 추모관 프로젝트에 적용합니다.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">아워홈 TQMS</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">통합품질관리 플랫폼</div><div style="font-size:12px;color:#059669;font-weight:700">10억 · 경쟁입찰 1위</div></div>
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">신세계 LCMS</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">임직원 교육 플랫폼</div><div style="font-size:12px;color:#059669;font-weight:700">8억 · 경쟁입찰 1위</div></div>
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">아워홈 밀케어</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">헬스케어 식품 플랫폼</div><div style="font-size:12px;color:#059669;font-weight:700">5억 · 경쟁입찰 1위</div></div>
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">의사협회</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">의사과학자 교류 플랫폼</div><div style="font-size:12px;color:#059669;font-weight:700">5억 · 경쟁입찰 1위</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">미래에셋</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">주식분석 플랫폼</div><div style="font-size:12px;color:#059669;font-weight:700">경쟁입찰 1위</div></div>
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">국가과제 NFLUX</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">스마트 항만 · 강릉 데이터허브</div><div style="font-size:12px;color:#059669;font-weight:700">국가과제 · 수주</div></div>
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">미래에셋생명</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">오픈소스 취약점 관리</div><div style="font-size:12px;color:#059669;font-weight:700">금융권 보안</div></div>
+      <div class="card" style="padding:16px 16px"><div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:6px">법무법인 바른</div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">법률지원 플랫폼</div><div style="font-size:12px;color:#059669;font-weight:700">수주</div></div>
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 22px;display:flex;align-items:center;gap:28px">
+      <div style="font-size:14px;color:#1e40af;flex:1"><strong>추모관에 그대로 적용되는 것:</strong> 요구사항정의서 → 화면 설계 → DB 설계서 → 주간 보고 → 검수확인서 → 운영 매뉴얼 → 소스코드 100% 양도. 특정 업체에 종속되지 않습니다.</div>
+      <div style="display:flex;gap:18px">
+        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:#2563eb">5+</div><div style="font-size:11px;color:#64748b">대기업</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:#2563eb">2+</div><div style="font-size:11px;color:#64748b">국가과제</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:#2563eb">38억+</div><div style="font-size:11px;color:#64748b">누적 수주</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 08 레퍼런스 ② 유족 단체 플랫폼 ════ -->
+<div class="slide sw" data-sec="회사·레퍼런스">
+  <div class="top-bar bar-b"></div>
+  <div class="pad" style="display:flex;gap:52px;align-items:center;height:100%">
+    <div style="flex:1">
+      <div class="tag tag-blue" style="margin-bottom:18px">레퍼런스 ② 유족 단체 통합 플랫폼</div>
+      <h2 style="margin-bottom:14px">(사)교사유가족협의회<br><span style="color:#2563eb">SIREN — 실 운영 중</span></h2>
+      <p class="sub" style="margin-bottom:22px">교사 유가족 단체의 후원·회원·유가족 지원·신고·추모관·협업을 하나로 묶은 플랫폼을 직접 설계·개발해 <strong style="color:#0f172a">현재 운영 중</strong>입니다. 유족 단체의 운영 현실과 민감한 데이터 다루는 법을 현장에서 익혔습니다.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">56+</div><div style="font-size:11px;color:#64748b">DB 테이블</div></div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">170+</div><div style="font-size:11px;color:#64748b">서버 API</div></div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:#2563eb">24/7</div><div style="font-size:11px;color:#64748b">무중단 운영</div></div>
+      </div>
+    </div>
+    <div style="flex:1.15;display:flex;flex-direction:column;gap:12px">
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="users"></span></div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">회원 관리 · 역할별 권한 · 승인 흐름</div><div style="font-size:13px;color:#64748b">운영자·관리자·회원 등급별 권한 정책을 화면에서 토글로 관리. 추모관의 5등급 체계에 그대로 쓰는 설계입니다.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#fff1f2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="hand-heart"></span></div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">유가족 지원 · 신고 접수 · 민감 정보 보호</div><div style="font-size:13px;color:#64748b">심리상담·법률·장학 지원과 익명 신고를 다루며 암호화 저장·접근 로그·개인정보 최소 수집을 기본으로 운영합니다.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="bot"></span></div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">AI 1차 검토 → 운영자 최종 판단 구조</div><div style="font-size:13px;color:#64748b">추모 글·편지를 AI가 먼저 검토해 보류 건만 운영자가 판정합니다. 협회가 요청한 필터링 구조를 이미 운영하고 있습니다.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><span class="siren-icon-wrap" data-icon="send"></span></div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">문자 · 카카오 알림톡 · 운영자 CMS</div><div style="font-size:13px;color:#64748b">문자 인증·알림 발송과 운영자가 코드 없이 문구·공지·콘텐츠를 바꾸는 통합 관리 화면을 실 운영 중입니다.</div></div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 18px;display:flex;gap:12px;align-items:center">
+        <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="link"></span></span>
+        <div style="font-size:13px;color:#166534">라이브 확인: <strong>tbfa.co.kr</strong> — 데모가 아니라 실제 운영 화면입니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 09 레퍼런스 ③ 추모관 실 운영 ════ -->
+<div class="slide" data-sec="회사·레퍼런스" style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#7c2d12 100%);padding:44px 60px 0">
+  <span class="tag tag-white">레퍼런스 ③ 같은 유형의 추모관을 이미 운영합니다</span>
+  <h2 style="font-size:28px;font-weight:900;color:#fff;margin:12px 0 6px">온라인 추모관 「굿나잇, 굿모닝」 — <span style="color:#fcd34d">교사유가족협의회 실 운영 사례</span></h2>
+  <p style="font-size:13px;color:#c7d2fe;margin-bottom:16px">밤(선생님 추모)과 아침(유가족 응원) 두 공간으로 지은 추모관입니다. 참여 하나가 밤에는 하늘의 별, 아침에는 들판의 꽃으로 두 번 나타납니다. 협회가 원하는 '등불이 떠오르는 방명록'과 같은 계열의 장치를 이미 설계·운영한 경험입니다.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card-dark" style="border-top:2px solid #fcd34d;padding:18px 20px">
+      <div style="font-size:11px;font-weight:700;color:#fcd34d;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="star"></span> 참여가 화면에 떠오르는 구조</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:8px">별빛 한 줄 · 편지 한 통</div>
+      <div style="font-size:12px;color:#c7d2fe;line-height:1.6">로그인 없이 즉시 남기는 한 줄과, 로그인 후 쓰는 편지. 남긴 즉시 화면에 반영되고 검토 중임을 표시합니다. 등불 방명록의 '작성자명이 올라가고 클릭하면 열람'과 동일한 상호작용입니다.</div>
+    </div>
+    <div class="card-dark" style="border-top:2px solid #a5b4fc;padding:18px 20px">
+      <div style="font-size:11px;font-weight:700;color:#a5b4fc;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="shield-check"></span> 익명 참여 + 안전장치 3종</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:8px">AI 검토 · 속도 제한 · 운영자 보류함</div>
+      <div style="font-size:12px;color:#c7d2fe;line-height:1.6">익명으로 열어두되 비방·장난 글은 AI가 1차로 걸러 보류함에 넣고, 운영자가 모더레이션 화면에서 최종 판정합니다. 협회가 요구한 "애매한 건만 사람이 본다" 구조입니다.</div>
+    </div>
+    <div class="card-dark" style="border-top:2px solid #fda4af;padding:18px 20px">
+      <div style="font-size:11px;font-weight:700;color:#fda4af;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="images"></span> 개인 추모 화면 · 운영자 CMS</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:8px">폴라로이드 사진 · 편지 봉투 · 자유 구간</div>
+      <div style="font-size:12px;color:#c7d2fe;line-height:1.6">생전 사진은 기울어진 액자로, 도착한 편지는 봉투로. 모든 문구·사진·구간을 운영자가 관리 화면에서 직접 추가·수정합니다. 개발사 호출 없이 운영이 자립합니다.</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:18px"><span class="siren-icon-wrap" data-icon="lightbulb"></span></span>
+      <div><div style="font-size:12px;font-weight:700;color:#fff">운영하며 배운 것을 설계에 반영</div><div style="font-size:11px;color:#a5b4fc">참여가 두 번 세어지던 문제, 검토가 끝나야 숫자가 오르던 문제 등 실제 운영에서 잡은 함정을 추모관 설계에 처음부터 피해 둡니다.</div></div>
+    </div>
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:18px"><span class="siren-icon-wrap" data-icon="circle-check"></span></span>
+      <div><div style="font-size:12px;font-weight:700;color:#fff">접근 방향의 차이는 분명히 인지</div><div style="font-size:11px;color:#a5b4fc">교사 추모관은 일반 교사 참여형, 협회 추모관은 유족 중심. 회의에서 상호 확인한 차이를 전제로 유족 중심 흐름을 새로 설계합니다.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 10 레퍼런스 ④ 유족 도메인 경험 ════ -->
+<div class="slide sw" data-sec="회사·레퍼런스">
+  <div class="top-bar bar-b"></div>
+  <div class="pad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-blue" style="margin-bottom:16px">레퍼런스 ④ 유족을 대하는 경험</div>
+    <h2 style="margin-bottom:8px">기술보다 먼저 필요한 것은<br>유족의 마음을 아는 일입니다</h2>
+    <p style="font-size:14px;color:#64748b;margin-bottom:22px">교사 유가족 단체와 2년 가까이 일하며 쌓은, 추모관 설계에 직접 쓰이는 경험입니다.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
+      <div class="card" style="padding:20px 18px;border-top:4px solid #2563eb">
+        <div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:8px">유가족 지원 관리</div>
+        <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">심리상담 · 법률 · 장학</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">신청부터 연결·결과까지 전 과정을 시스템으로. 유족이 같은 말을 여러 번 반복하지 않게 하는 흐름을 압니다.</div>
+      </div>
+      <div class="card" style="padding:20px 18px;border-top:4px solid #7c3aed">
+        <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:8px">순직 인정 지원 시스템</div>
+        <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">자료 수집 · 분석 · 서면 작성</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">녹취·문서·한글 파일을 모아 사건을 정리하고 서면 초안까지 만드는 도구. 민감한 사건 자료를 안전하게 다루는 설계 경험입니다.</div>
+      </div>
+      <div class="card" style="padding:20px 18px;border-top:4px solid #dc2626">
+        <div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:8px">익명 신고 플랫폼</div>
+        <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">사건 · 괴롭힘 · 법률 상담 접수</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">익명을 보장하면서 악용은 막아야 하는 양면 요구. 차단 회원 처리·블랙리스트·증빙 관리까지 운영 중입니다.</div>
+      </div>
+      <div class="card" style="padding:20px 18px;border-top:4px solid #16a34a">
+        <div style="font-size:11px;font-weight:700;color:#16a34a;margin-bottom:8px">운영 자립 CMS</div>
+        <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">운영자가 코드 없이 관리</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.55">문구·메뉴·공지·콘텐츠·권한을 전부 관리 화면에서. 담당자가 바뀌어도 매뉴얼과 화면만으로 이어받습니다.</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;display:flex;gap:12px;align-items:center">
+        <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="message-circle"></span></span>
+        <div style="font-size:13px;color:#78350f"><strong>"기계 티가 나면 안 된다"</strong>는 요청을 이해합니다. 교사 추모관에서도 AI는 뒤에서 거르고, 앞에서는 사람의 말투로만 보이게 했습니다.</div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;display:flex;gap:12px;align-items:center">
+        <span style="font-size:20px"><span class="siren-icon-wrap" data-icon="clock"></span></span>
+        <div style="font-size:13px;color:#1e40af"><strong>운영 부담을 줄이는 장치</strong>를 이미 씁니다. 휴지통 자동 정리, 일괄 처리 예약 작업, 아침 브리핑 등 운영자 시간을 아끼는 자동화가 기본입니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 11 왜 함께워크_SI ════ -->
+<div class="slide sw" data-sec="회사·레퍼런스">
+  <div class="top-bar bar-b"></div>
+  <div class="pad" style="display:flex;gap:52px;align-items:center;height:100%">
+    <div style="flex:1">
+      <div class="tag tag-blue" style="margin-bottom:18px">왜 함께워크_SI인가</div>
+      <h2 style="margin-bottom:14px">업계 표준 모델이 될 사업,<br><span style="color:#2563eb">만들어 본 팀이 맡아야 합니다</span></h2>
+      <p class="sub">협회가 말한 대로 이 추모관은 선례가 없습니다. 유족 단체 플랫폼과 추모관을 실제로 운영해 본 경험, 대기업 기준의 절차, 그리고 두 사람이 끝까지 직접 책임지는 구조를 제안합니다.</p>
+    </div>
+    <div style="flex:1.1;display:flex;flex-direction:column;gap:12px">
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid #f59e0b;border-radius:0 14px 14px 0">
+        <div style="font-size:22px;font-weight:900;color:#f59e0b;line-height:1;min-width:30px">1</div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">같은 유형의 추모관을 이미 운영 중</div><div style="font-size:13px;color:#64748b">참여가 떠오르는 화면, 익명 참여 안전장치, AI 1차 검토, 운영자 CMS. 추모관에서 생기는 문제를 먼저 겪고 해결했습니다.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid #2563eb;border-radius:0 14px 14px 0">
+        <div style="font-size:22px;font-weight:900;color:#2563eb;line-height:1;min-width:30px">2</div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">유족 단체 운영의 현실을 아는 기획</div><div style="font-size:13px;color:#64748b">고령 유족의 사용성, 민감 정보 보호, 운영자 1인의 부담. 회의에서 나온 요구를 번역 없이 이해합니다.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid #7c3aed;border-radius:0 14px 14px 0">
+        <div style="font-size:22px;font-weight:900;color:#7c3aed;line-height:1;min-width:30px">3</div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">정가 · 라인별 견적 · 0원 숨김 청구</div><div style="font-size:13px;color:#64748b">기능별 금액과 기간을 미리 명시하고, 범위 밖 요청은 별도 견적으로 사전 합의 후에만 진행합니다.</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid #16a34a;border-radius:0 14px 14px 0">
+        <div style="font-size:22px;font-weight:900;color:#16a34a;line-height:1;min-width:30px">4</div>
+        <div><div style="font-weight:700;color:#0f172a;margin-bottom:3px">표준 산출물 + 소스코드 100% 양도</div><div style="font-size:13px;color:#64748b">요구사항정의서·화면 설계·DB 설계서·검수확인서·운영 매뉴얼. 어느 팀이 이어받아도 운영할 수 있습니다.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 12 섹션 표지 · 기능 설계 ════ -->
+<div class="slide sec-cov" data-sec="기능 정의" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:80px 100px">
+  <div class="cov-lan" style="width:22px;height:30px;right:180px;top:160px;left:auto;animation-delay:-1.2s"></div>
+  <div class="cov-lan" style="width:14px;height:19px;right:120px;top:300px;left:auto;animation-delay:-2.6s;opacity:.6"></div>
+  <div class="tag tag-white" style="margin-bottom:22px">PART 2 · 기능 설계</div>
+  <h1 style="font-size:50px;font-weight:900;line-height:1.12;color:#fff;margin-bottom:22px">기능사항정의서에서 시작해<br><span style="color:#fcd34d">화면 목업과 기술 사양</span>까지</h1>
+  <p style="font-size:17px;color:rgba(255,255,255,.75);max-width:760px;line-height:1.7">회의록의 모든 요구를 34개 기능 항목으로 번호를 붙여 정의하고, 기본 범위와 옵션을 구분했습니다.<br>이어서 메인·개인 추모관·가입 인증·관리자 화면을 PC와 모바일 목업으로 보여드리고, 어떤 기술로 어떻게 구현하는지 설명합니다.</p>
+  <div style="margin-top:36px;display:flex;gap:14px">
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">기능사항정의서</div><div style="font-size:20px;font-weight:900;color:#fff">34개 항목 · 기본 28 · 옵션 5 · 제안 1</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">화면 목업</div><div style="font-size:20px;font-weight:900;color:#fff">PC 3종 · 모바일 7종</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">기술 사양</div><div style="font-size:20px;font-weight:900;color:#fff">구성도 · 보안 · 성능</div></div>
+  </div>
+</div>
+
+<!-- ════ 13 기능사항정의서 1/3 ════ -->
+<div class="slide sw" data-sec="기능 정의">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-purple" style="margin-bottom:10px">기능사항정의서 1 / 3</div><h2 style="font-size:26px">메인 페이지 · 검색 · 등불 방명록 · 공통</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right;line-height:1.6">근거 = 2026.09.30 회의록 항목 번호<br><span class="pill pill-g">기본</span> 1차 구축 범위 &nbsp;<span class="pill pill-a">옵션</span> 취사선택 &nbsp;<span class="pill pill-s">제안</span> 개발사 제안</div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th style="width:52px">ID</th><th style="width:70px">구분</th><th style="width:130px">기능명</th><th>상세 내용</th><th style="width:56px" class="c">범위</th><th style="width:70px" class="c">근거</th></tr></thead>
+      <tbody>
+        <tr><td class="mute">F-01</td><td>메인</td><td><b>안개 사진벽</b></td><td>사전 동의받은 고인 사진 80~100장을 안개·흐림 처리한 <b>정적 이미지 1장</b>으로 메인 배경 구성. 개별 식별 불가, 클릭 없음, 회원 데이터와 비연동. 사진은 협회가 제공.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2</td></tr>
+        <tr><td class="mute">F-02</td><td>메인</td><td><b>고인 이름 검색</b></td><td>중앙 검색바에 고인 이름 입력 → 개인 추모관 진입. 동명이인은 사진·생몰년 목록에서 선택. 비공개 추모관은 검색 결과에서 제외.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2</td></tr>
+        <tr><td class="mute">F-03</td><td>메인</td><td><b>공지 · 협회 소개 · 계좌</b></td><td>검색바 하단에 공지사항(최신 3건), 협회 소개, 기부금 계좌 노출. 관리자 화면에서 문구·순서 편집.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2</td></tr>
+        <tr><td class="mute">F-04</td><td>메인</td><td><b>등불 방명록</b></td><td>공개 방명록이 등불 모양으로 화면에 떠오름. 작성자명(또는 아이디)이 함께 올라가고 클릭하면 내용 열람. 최신 글 우선, 화면당 표시 개수 제한.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2</td></tr>
+        <tr><td class="mute">F-05</td><td>메인</td><td><b>한마디 쓰기</b></td><td>메인의 '한마디 쓰기' 버튼으로 바로 작성. 작성 시점에 <b>공개 / 비공개를 작성자가 직접 선택</b>. 비공개 글은 유족(가족 회원)과 관리자만 열람.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2 · 3-5</td></tr>
+        <tr><td class="mute">F-06</td><td>메인</td><td><b>공유 링크 메인 경유</b></td><td>개인 추모관 공유 링크로 접속해도 메인 페이지를 거친 뒤 해당 추모관으로 이동(메인 메시지를 먼저 보여주는 구조).</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2</td></tr>
+        <tr><td class="mute">F-07</td><td>공통</td><td><b>밝은 톤 · 반응형</b></td><td>슬프고 어둡지 않은 색·사진 톤. PC·태블릿·모바일 반응형 한 벌로 제작. 직관적 메뉴, 최소 클릭 동선.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-2 · 3-3</td></tr>
+        <tr><td class="mute">F-08</td><td>공통</td><td><b>글씨 크기 3단계</b></td><td>고령 유족을 위해 보통·크게·아주 크게 버튼 제공, 선택값 기억. 버튼·입력칸도 함께 커짐.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-3</td></tr>
+        <tr><td class="mute">F-09</td><td>공통</td><td><b>로고 노출 정책</b></td><td>협회 로고 + 개발사 로고만 노출. 외부 기업 네이밍·배너 영역 없음.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-8</td></tr>
+        <tr><td class="mute">F-10</td><td>공통</td><td><b>홈 화면 설치(PWA)</b></td><td>별도 앱 개발 없이 휴대폰 홈 화면에 앱처럼 설치. 명절·기일에 바로 들어오는 진입점.</td><td class="c"><span class="pill pill-s">제안</span></td><td class="c mute">5 취지</td></tr>
+        <tr><td class="mute">F-11</td><td>공통</td><td><b>협회 홈페이지 배너 연결</b></td><td>협회 홈페이지에 추모관 BI 배너·링크를 넣어 이동. SSO·DB 연동 없는 독립 사이트.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ 14 기능사항정의서 2/3 ════ -->
+<div class="slide sw" data-sec="기능 정의">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-purple" style="margin-bottom:10px">기능사항정의서 2 / 3</div><h2 style="font-size:26px">개인 추모관 · 회원 가입 인증 · 권한 체계</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right;line-height:1.6"><span class="pill pill-g">기본</span> 1차 구축 범위 &nbsp;<span class="pill pill-a">옵션</span> 취사선택 &nbsp;<span class="pill pill-s">제안</span> 개발사 제안</div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th style="width:52px">ID</th><th style="width:70px">구분</th><th style="width:130px">기능명</th><th>상세 내용</th><th style="width:56px" class="c">범위</th><th style="width:70px" class="c">근거</th></tr></thead>
+      <tbody>
+        <tr><td class="mute">F-12</td><td>개인관</td><td><b>대표 사진 액자</b></td><td>영정사진 느낌을 피한 액자 스타일(금테·꽃 장식·나무 액자 등) 중 유족이 선택. 이름·생몰년·기억하는 한 문장 표시.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-3</td></tr>
+        <tr><td class="mute">F-13</td><td>개인관</td><td><b>서브 사진 10장 · 배치 선택</b></td><td>사진 약 10장 등록, 순서 변경. 배치(2×2 · 1×4 · 3+1 등)를 유족이 설정에서 직접 선택. 미니홈피형 UI.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-3</td></tr>
+        <tr><td class="mute">F-14</td><td>개인관</td><td><b>개인 방명록</b></td><td>고인별 방명록. 공개 글은 메인 등불에도 반영, 비공개 글은 가족·관리자만 열람. 가족 회원은 답글 가능.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-3 · 3-5</td></tr>
+        <tr><td class="mute">F-15</td><td>개인관</td><td><b>단계적 공개 설정</b></td><td>공개 범위를 <b>방명록만 → 대표 사진 → 서브 사진</b> 순으로 유족이 단계 선택. 언제든 되돌릴 수 있음.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">5</td></tr>
+        <tr><td class="mute">F-16</td><td>개인관</td><td><b>동영상 업로드</b></td><td>10~15초 내외 영상. 개수·길이·화질 제한 필터로 저장소 비용 통제. <b>대안:</b> 사진 3~4장 자동 전환(플래시) 효과.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">3-3</td></tr>
+        <tr><td class="mute">F-17</td><td>회원</td><td><b>카카오 · 네이버 간편 인증</b></td><td>간편 로그인으로 가입·로그인. '자살' 키워드로 심사 탈락 시 문자 인증만 운영하도록 전환 가능한 구조.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-7</td></tr>
+        <tr><td class="mute">F-18</td><td>회원</td><td><b>휴대폰 문자 인증</b></td><td>문자 인증번호로 본인 확인. 메일 인증은 제외(고령 유족 비밀번호 문제). 관리자 로그인은 문자 2단계 인증.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-7</td></tr>
+        <tr><td class="mute">F-19</td><td>회원</td><td><b>지역 관리자(대표 유족) 가입</b></td><td>가입 시 <b>가족관계증명서 첨부 필수</b> → 총괄 관리자 승인. 증명서는 암호화 저장, 승인 후 자동 파기(보관 기간 협의).</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-20</td><td>회원</td><td><b>초대 링크 가족 가입</b></td><td>지역 관리자가 가족에게 초대 링크 발송(발송 시 총괄 관리자에게 사전 보고 알림) → 가족 가입 → 총괄 승인.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-21</td><td>회원</td><td><b>일반 회원 자동 가입</b></td><td>인증만 거치면 자동 가입. 공개 추모관 열람·방명록 작성 가능. 탈퇴 후 재가입 3일 제한.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4 · 5</td></tr>
+        <tr><td class="mute">F-22</td><td>권한</td><td><b>5등급 권한 체계</b></td><td>총괄 관리자 · 일반 관리자 · 지역 관리자 · 가족 회원 · 일반 회원. 등급별 메뉴·버튼·열람 범위 분리.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-23</td><td>권한</td><td><b>바로 등급 지정 · 그룹 위임</b></td><td>승인 시 단계를 거치지 않고 특정 등급 즉시 지정. 일반 관리자에게 100명 단위 그룹을 위임해 관리.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ 15 기능사항정의서 3/3 ════ -->
+<div class="slide sw" data-sec="기능 정의">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-purple" style="margin-bottom:10px">기능사항정의서 3 / 3</div><h2 style="font-size:26px">사진 관리 · 관리자 · AI 필터링 · 옵션</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right;line-height:1.6"><span class="pill pill-g">기본</span> 1차 구축 범위 &nbsp;<span class="pill pill-a">옵션</span> 취사선택 &nbsp;<span class="pill pill-s">제안</span> 개발사 제안</div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th style="width:52px">ID</th><th style="width:70px">구분</th><th style="width:130px">기능명</th><th>상세 내용</th><th style="width:56px" class="c">범위</th><th style="width:70px" class="c">근거</th></tr></thead>
+      <tbody>
+        <tr><td class="mute">F-24</td><td>사진</td><td><b>휴지통 30일</b></td><td>삭제는 임시 삭제. 약 1개월 보관 후 자동 영구 삭제. 보관 중에는 유족이 스스로 복구 가능(홧김 삭제 대비).</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-25</td><td>사진</td><td><b>보관 동의 · 복구</b></td><td>가입 시 '사진 데이터 보관 동의' 항목 명시. 동의자에 한해 영구 삭제 전 복구 지원. 미동의자는 즉시 삭제 경로.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-26</td><td>사진</td><td><b>업로드 · 자동 최적화</b></td><td>휴대폰에서 바로 업로드, 서버가 크기·용량 자동 변환(WebP), 회전 보정. 사진 삭제 등은 총괄 관리자 최종 승인.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-27</td><td>관리</td><td><b>관리자 콘솔</b></td><td>회원 승인·등급 지정, 사진 삭제 승인, 방명록 관리, 공지·문구·계좌 편집, 통계(방문·방명록·회원), 감사 로그.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-28</td><td>관리</td><td><b>일괄 처리 대기열</b></td><td>수정 요청을 모아 <b>주 2회(월·금 10시)</b> 일괄 처리하는 대기열 화면. 처리 결과를 요청자에게 자동 알림.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4 · 5</td></tr>
+        <tr><td class="mute">F-29</td><td>관리</td><td><b>제재 · 블랙 · 강제 탈퇴</b></td><td>AI 필터 제재 누적 또는 관리자 판단으로 일반 회원 블랙 처리·강제 탈퇴. 재가입 차단 목록 관리.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-4</td></tr>
+        <tr><td class="mute">F-30</td><td>AI</td><td><b>AI 1차 필터링</b></td><td>방명록 작성 즉시 AI가 비방·명예훼손·광고를 분류 → <b>게시 / 보류 / 차단</b>. 애매한 보류 건만 총괄 관리자가 판정. 판정 기록 축적.</td><td class="c"><span class="pill pill-g">기본</span></td><td class="c mute">3-5</td></tr>
+        <tr><td class="mute">F-31</td><td>AI</td><td><b>RAG 판단 기준 엔진</b></td><td>협회의 판정 사례·운영 지침을 학습해 판단 근거를 제시. 관리자가 바뀌어도 협회의 일관된 기준(평균값) 유지.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">3-5 · 3-8</td></tr>
+        <tr><td class="mute">F-32</td><td>AI</td><td><b>AI 상담 에이전트</b></td><td>자주 묻는 질문 버튼 10개 필수 노출(빈 입력창만 제시 금지), 사람 수준 응대 불가 시 상담 시간 안내, 복잡 문의는 총괄 관리자 핸드오프.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">3-6 · 3-8</td></tr>
+        <tr><td class="mute">F-33</td><td>참여</td><td><b>등급 마크</b></td><td>일반·열심·우수 회원 마크 정도로 단순화. 캐릭터 꾸미기, 별·풍선 등 사행성 연상 요소는 도입하지 않음.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">3-9</td></tr>
+        <tr><td class="mute">F-34</td><td>알림</td><td><b>기일 · 생일 알림</b></td><td>고인의 기일·생일에 가족에게 문자·카카오로 방문을 권하는 알림. "명절·생일에 납골당 가듯" 방문 문화를 만드는 장치.</td><td class="c"><span class="pill pill-a">옵션</span></td><td class="c mute">5 취지</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ 16 정보 구조 · 사용자 흐름 ════ -->
+<div class="slide sw" data-sec="기능 정의">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-purple" style="margin-bottom:12px">정보 구조 · 사용자 흐름</div>
+    <h2 style="font-size:26px;margin-bottom:18px">누가 어디로 들어가서 무엇을 하는지</h2>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:22px">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;letter-spacing:.04em">사이트 구조</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:800;color:#78350f">메인 — 안개 사진벽 · 검색 · 등불 방명록 · 공지 · 협회 소개 · 계좌</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a"><b>개인 추모관</b><div style="color:#64748b;font-size:11px;margin-top:3px">대표 사진 · 서브 10장 · 방명록 · 공유</div></div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a"><b>한마디 쓰기</b><div style="color:#64748b;font-size:11px;margin-top:3px">공개/비공개 선택 · AI 검토</div></div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a"><b>공지 · 소개</b><div style="color:#64748b;font-size:11px;margin-top:3px">협회 안내 · 기부금 계좌</div></div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a"><b>로그인 · 가입</b><div style="color:#64748b;font-size:11px;margin-top:3px">카카오 · 네이버 · 문자</div></div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a"><b>내 추모관 관리</b><div style="color:#64748b;font-size:11px;margin-top:3px">사진 · 배치 · 공개 단계 · 초대</div></div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a"><b>관리자 콘솔</b><div style="color:#64748b;font-size:11px;margin-top:3px">승인 · 등급 · 휴지통 · 판정 · 일괄</div></div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;letter-spacing:.04em">방문자 동선 (3번 이내 터치)</div>
+        <div style="display:flex;gap:6px;align-items:stretch">
+          <div class="step"><div class="n">1</div><div class="t">메인 도착</div><div class="d">사진벽 · 등불이 먼저 보임</div></div><div class="arr">→</div>
+          <div class="step"><div class="n">2</div><div class="t">이름 검색</div><div class="d">또는 등불 클릭</div></div><div class="arr">→</div>
+          <div class="step"><div class="n">3</div><div class="t">개인 추모관</div><div class="d">사진 · 방명록 열람</div></div><div class="arr">→</div>
+          <div class="step" style="border-top-color:#2563eb"><div class="n" style="color:#2563eb">+1</div><div class="t">한마디 남기기</div><div class="d">공개/비공개 선택</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;letter-spacing:.04em">가입 · 승인 흐름 (가족 단위)</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px"><span class="pill pill-d">1</span><div style="font-size:12.5px;color:#0f172a"><b>협회</b> — 가입비 입금 확인 후 대표 유족에게 가입 안내</div></div>
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px"><span class="pill pill-d">2</span><div style="font-size:12.5px;color:#0f172a"><b>대표 유족(지역 관리자)</b> — 간편/문자 인증 → <b>가족관계증명서 첨부</b> → 사진 보관 동의</div></div>
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px"><span class="pill pill-d">3</span><div style="font-size:12.5px;color:#0f172a"><b>총괄 관리자</b> — 증명서 확인 → 승인 + 등급 바로 지정 → 개인 추모관 개설</div></div>
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px"><span class="pill pill-d">4</span><div style="font-size:12.5px;color:#0f172a"><b>지역 관리자</b> — 가족에게 <b>초대 링크</b> 발송 (총괄 관리자에게 사전 보고 알림 자동)</div></div>
+          <div style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px"><span class="pill pill-d">5</span><div style="font-size:12.5px;color:#0f172a"><b>가족 회원</b> — 링크로 가입 → 총괄 관리자 승인 → 비공개 방명록·사진 열람</div></div>
+          <div style="display:flex;gap:10px;align-items:center;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:9px 12px"><span class="pill pill-a">★</span><div style="font-size:12.5px;color:#78350f"><b>일반 회원</b> — 인증만 거치면 자동 가입. 공개 추모관 열람·방명록 작성. 제재 시 블랙·강제 탈퇴</div></div>
+        </div>
+        <div style="margin-top:12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 14px;font-size:12px;color:#5b21b6"><b>공유 링크 규칙:</b> 개인 추모관 링크(예: 추모관.kr/m/홍길동-2026)로 들어와도 메인을 0.8초 스쳐 지나며 사진벽 메시지를 본 뒤 해당 추모관으로 자동 이동합니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 17 목업 · 메인 PC ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 01</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 페이지 (PC) — 안개 사진벽 · 검색 · 등불 방명록</div></div>
+    <div style="font-size:12px;color:#64748b">회의록 3-2 기준 · 디자인 시안은 계약 후 2회 검토로 확정</div>
+  </div>
+  <div style="padding:18px 40px;display:flex;gap:18px;align-items:flex-start">
+    <div class="browser" style="width:820px;height:540px;flex-shrink:0">
+      <div class="browser-bar"><i style="background:#fca5a5"></i><i style="background:#fcd34d"></i><i style="background:#86efac"></i><div class="browser-url">https://추모관주소.or.kr</div></div>
+      <div style="height:510px;position:relative;background:#fffbf5;overflow:hidden">
+        <div style="height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:rgba(255,255,255,.92);border-bottom:1px solid #f1e9dc;position:relative;z-index:3">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 0 10px rgba(251,191,36,.6)"></div><div style="font-size:13px;font-weight:900;color:#0f172a">온라인 추모관</div><div style="font-size:9px;color:#94a3b8;margin-left:4px">자살유족협회</div></div>
+          <div style="display:flex;gap:16px;align-items:center;font-size:11.5px;font-weight:700;color:#334155"><span>추모관 소개</span><span>공지사항</span><span>한마디 쓰기</span><span style="color:#b45309">로그인</span><span style="background:#0f172a;color:#fff;padding:4px 10px;border-radius:100px;font-size:10.5px">가 글씨 크게</span></div>
+        </div>
+        <div style="position:relative;height:300px;overflow:hidden">
+          <div class="wall" data-cols="16" data-rows="6" style="grid-template-columns:repeat(16,1fr);grid-template-rows:repeat(6,1fr)"></div>
+          <div class="fog"></div><div class="fog2"></div>
+          <div class="lan" style="left:46px;top:140px;animation-delay:-.4s"><b>김○○님</b></div>
+          <div class="lan s" style="left:124px;top:62px;animation-delay:-2.1s"><b>익명</b></div>
+          <div class="lan" style="left:150px;top:216px;animation-delay:-1.3s"><b>박○○님</b></div>
+          <div class="lan s" style="left:70px;top:252px;animation-delay:-3s"><b>한○○님</b></div>
+          <div class="lan" style="right:56px;top:112px;animation-delay:-.9s"><b>이○○님</b></div>
+          <div class="lan s" style="right:146px;top:50px;animation-delay:-2.6s"><b>최○○님</b></div>
+          <div class="lan" style="right:118px;top:218px;animation-delay:-1.8s"><b>정○○님</b></div>
+          <div class="lan s" style="right:44px;top:256px;animation-delay:-.2s"><b>익명</b></div>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;text-align:center;padding-top:6px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#b45309;margin-bottom:8px">자살유족협회 온라인 추모관</div>
+            <div style="font-size:23px;font-weight:900;color:#1f2937;line-height:1.3;margin-bottom:16px">혼자가 아닙니다.<br>여기, 함께 기억하는 사람들이 있습니다</div>
+            <div class="srch" style="width:420px;height:44px;font-size:13px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름을 검색하세요</span><b style="width:74px;height:32px;font-size:12px">검색</b></div>
+            <div style="font-size:10px;color:#78350f;margin-top:10px">이름을 검색하면 그분의 추모관으로 갑니다 · 떠오르는 등불을 누르면 남겨진 한마디를 읽을 수 있어요</div>
+          </div>
+          <div style="position:absolute;right:26px;bottom:14px;z-index:3;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-size:11.5px;font-weight:800;padding:8px 14px;border-radius:100px;box-shadow:0 8px 20px rgba(217,119,6,.35);display:flex;align-items:center;gap:6px"><span class="siren-icon-wrap" data-icon="flame"></span> 한마디 쓰기</div>
+          <div style="position:absolute;left:26px;bottom:14px;z-index:3;font-size:10px;color:#92400e;background:rgba(255,255,255,.8);padding:5px 10px;border-radius:100px">오늘 밝힌 등불 <b>12</b> · 지금까지 <b>1,284</b></div>
+        </div>
+        <div style="height:164px;display:grid;grid-template-columns:1.2fr 1fr .85fr;gap:14px;padding:14px 26px 0;background:#fffbf5">
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:10px;padding:10px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;font-weight:900;color:#0f172a">공지사항</div><div style="font-size:9.5px;color:#94a3b8">더보기 ›</div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#334155;padding:5px 0;border-bottom:1px solid #f8f4ec"><span><span class="pill pill-a" style="margin-right:6px">공지</span>추모관 이용 안내와 가입 절차</span><span style="color:#94a3b8">10.02</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#334155;padding:5px 0;border-bottom:1px solid #f8f4ec"><span><span class="pill pill-b" style="margin-right:6px">행사</span>가을 합동 추모의 밤 안내</span><span style="color:#94a3b8">09.28</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#334155;padding:5px 0"><span><span class="pill pill-s" style="margin-right:6px">안내</span>사진 보관 동의 절차 변경</span><span style="color:#94a3b8">09.15</span></div>
+          </div>
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:10px;padding:10px 14px">
+            <div style="font-size:12px;font-weight:900;color:#0f172a;margin-bottom:5px">협회 소개</div>
+            <div style="font-size:10.5px;color:#475569;line-height:1.5;margin-bottom:7px">자살유족협회는 남겨진 가족이 서로를 지탱하며 살아갈 수 있도록 함께합니다.</div>
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 10px;font-size:10px;color:#78350f;line-height:1.5"><b>기부금 계좌</b> ○○은행 000-000-000000<br>가입비 1만 원은 기부금으로 처리됩니다</div>
+          </div>
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;justify-content:space-between">
+            <div><div style="font-size:12px;font-weight:900;color:#0f172a;margin-bottom:5px">추모관 소개</div><div style="font-size:10.5px;color:#475569;line-height:1.5">명절과 생일에 들러 한 줄을 남기는 곳. 돌아가신 분이 이 땅에서 단 100g도 사라지지 않도록.</div></div>
+            <div style="display:flex;gap:6px;align-items:center;margin-top:6px"><div style="flex:1;height:22px;border:1px dashed #cbd5e1;border-radius:6px;font-size:8.5px;color:#94a3b8;display:flex;align-items:center;justify-content:center">협회 로고</div><div style="flex:1;height:22px;border:1px dashed #cbd5e1;border-radius:6px;font-size:8.5px;color:#94a3b8;display:flex;align-items:center;justify-content:center">함께워크_SI</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute;left:236px;top:118px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">1</div>
+      <div style="position:absolute;left:640px;top:188px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">2</div>
+      <div style="position:absolute;left:92px;top:92px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">3</div>
+      <div style="position:absolute;left:30px;top:392px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">4</div>
+      <div style="position:absolute;left:770px;top:320px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">5</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">1</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">안개 사진벽 — 정적 이미지 1장</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">협회가 제공한 동의 사진 100장을 안개·흐림 처리해 한 장으로 제작. 식별 불가, 클릭 없음, 회원 데이터와 연결하지 않음.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">중앙 검색바</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">고인 이름 → 개인 추모관. 동명이인은 목록 선택. 큰 입력칸과 큰 버튼으로 고령 유족 고려.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">3</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">등불 방명록</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">공개로 쓴 한마디가 등불이 되어 천천히 떠오릅니다. 작성자명(또는 익명)이 함께 올라가고, 누르면 내용이 열립니다.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">4</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">공지 · 협회 소개 · 기부금 계좌</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">검색바 아래 배치. 모든 문구는 관리자 화면에서 편집. 협회 로고와 개발사 로고만 노출.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">5</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">한마디 쓰기 버튼</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">메인 어디서나 한 번에. 쓰는 시점에 공개·비공개를 고릅니다.</div></div></div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>톤:</b> 크림·금빛 바탕에 따뜻한 안개. "납골당도 밝다"는 말처럼 어둡지 않게.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 18 목업 · 메인 모바일 + 등불 열람 + 한마디 쓰기 ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 02</span><div style="font-size:19px;font-weight:900;color:#0f172a">메인 (모바일) · 등불 열람 · 한마디 쓰기</div></div>
+    <div style="font-size:12px;color:#64748b">모바일에서 3번 이내 터치로 한마디까지</div>
+  </div>
+  <div style="padding:22px 40px;display:flex;gap:22px;align-items:flex-start">
+    <!-- 폰 1 · 메인 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr">
+      <div class="m-nav" style="padding-top:12px;height:48px"><div class="brand"><i></i>온라인 추모관</div><div style="display:flex;gap:8px;align-items:center"><span style="background:#0f172a;color:#fff;padding:3px 8px;border-radius:100px;font-size:9px">가 크게</span><span class="siren-icon-wrap" data-icon="menu"></span></div></div>
+      <div style="position:relative;height:236px;overflow:hidden">
+        <div class="wall" data-cols="8" data-rows="6" style="grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(6,1fr)"></div>
+        <div class="fog"></div><div class="fog2"></div>
+        <div class="lan s" style="left:18px;top:40px;animation-delay:-1s"><b>김○○님</b></div>
+        <div class="lan s" style="right:22px;top:66px;animation-delay:-2.2s"><b>익명</b></div>
+        <div class="lan s" style="left:30px;top:180px;animation-delay:-.5s"><b>박○○님</b></div>
+        <div class="lan s" style="right:30px;top:176px;animation-delay:-3s"><b>이○○님</b></div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;text-align:center;padding:0 18px">
+          <div style="font-size:8px;font-weight:800;letter-spacing:.12em;color:#b45309;margin-bottom:6px">자살유족협회 온라인 추모관</div>
+          <div style="font-size:15px;font-weight:900;color:#1f2937;line-height:1.3;margin-bottom:12px">혼자가 아닙니다.<br>함께 기억하는 사람들이 있습니다</div>
+          <div class="srch" style="width:100%;height:38px;font-size:11px;padding-left:12px"><span class="siren-icon-wrap" data-icon="search"></span><span class="ph">고인의 이름</span><b style="width:52px;height:28px;font-size:10.5px">검색</b></div>
+        </div>
+      </div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;background:#fffbf5;height:236px">
+        <div style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:12px;padding:12px;font-size:13px;font-weight:900;text-align:center;box-shadow:0 8px 18px rgba(217,119,6,.3)">한마디 쓰기</div>
+        <div style="font-size:9.5px;color:#92400e;text-align:center">오늘 밝힌 등불 <b>12</b> · 지금까지 <b>1,284</b></div>
+        <div style="background:#fff;border:1px solid #f1e9dc;border-radius:10px;padding:9px 11px">
+          <div style="font-size:10.5px;font-weight:900;color:#0f172a;margin-bottom:5px">공지사항</div>
+          <div style="font-size:10px;color:#334155;padding:3px 0;border-bottom:1px solid #f8f4ec">추모관 이용 안내와 가입 절차</div>
+          <div style="font-size:10px;color:#334155;padding:3px 0">가을 합동 추모의 밤 안내</div>
+        </div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 11px;font-size:9.5px;color:#78350f;line-height:1.45"><b>기부금 계좌</b> ○○은행 000-000-000000</div>
+      </div>
+    </div></div>
+    <!-- 폰 2 · 등불 열람 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div style="position:relative;height:230px;overflow:hidden">
+        <div class="wall" data-cols="8" data-rows="6" style="grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(6,1fr)"></div>
+        <div class="fog"></div>
+        <div style="position:absolute;inset:0;background:rgba(15,23,42,.35)"></div>
+        <div class="lan" style="left:50%;top:92px;margin-left:-12px;animation:none;transform:scale(1.5);box-shadow:0 0 26px 12px rgba(251,191,36,.55)"><b style="font-size:8px">김○○님</b></div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:300px;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -10px 30px rgba(15,23,42,.18);padding:10px 16px 14px">
+        <div style="width:36px;height:4px;border-radius:2px;background:#e2e8f0;margin:0 auto 12px"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:12px"><span class="siren-icon-wrap" data-icon="flame"></span></div><div><div style="font-size:12.5px;font-weight:900;color:#0f172a">김○○님의 등불</div><div style="font-size:9px;color:#94a3b8">2026.10.02 · <span class="pill pill-g">공개</span></div></div></div>
+        <div style="font-size:12.5px;color:#1f2937;line-height:1.65;background:#fffbf5;border:1px solid #f1e9dc;border-radius:10px;padding:10px 12px;margin:6px 0 10px">엄마, 추석에 송편 빚다가 또 생각났어. 거기선 아프지 않지? 다음 주에 또 올게. 사랑해.</div>
+        <div style="display:flex;gap:8px"><div style="flex:1;border:1.5px solid #fcd34d;color:#b45309;border-radius:10px;padding:9px;font-size:11px;font-weight:800;text-align:center">마음 보내기 ♡ 24</div><div style="flex:1;background:#0f172a;color:#fff;border-radius:10px;padding:9px;font-size:11px;font-weight:800;text-align:center">다음 등불 →</div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:9px;color:#94a3b8"><span>김○○님 추모관 가기 ›</span><span>신고</span></div>
+      </div>
+    </div></div>
+    <!-- 폰 3 · 한마디 쓰기 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div class="m-nav" style="padding-top:12px;height:48px"><span style="font-size:11px;color:#64748b">‹ 닫기</span><div style="font-size:12px;font-weight:900">한마디 쓰기</div><span style="width:30px"></span></div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:9.5px;font-weight:800;color:#64748b">누구에게</div>
+        <div style="display:flex;gap:6px"><div style="flex:1;background:#0f172a;color:#fff;border-radius:8px;padding:7px;font-size:10px;font-weight:800;text-align:center">김○○님께</div><div style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:7px;font-size:10px;font-weight:700;text-align:center;color:#64748b">모두에게</div></div>
+        <div style="background:#fff;border:1.5px solid #fcd34d;border-radius:10px;padding:10px;height:92px;font-size:12.5px;color:#1f2937;line-height:1.6">엄마, 추석에 송편 빚다가 또 생각났어. 거기선 아프지 않지?<span style="color:#f59e0b">|</span></div>
+        <div style="display:flex;gap:6px;align-items:center"><div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:7px 9px;font-size:10px;color:#0f172a">표시 이름: 김○○</div><div style="font-size:9.5px;color:#475569;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border:1.5px solid #94a3b8;border-radius:3px;display:inline-block"></span>익명</div></div>
+        <div style="font-size:9.5px;font-weight:800;color:#64748b;margin-top:2px">공개 범위 — 쓰는 사람이 정합니다</div>
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:8px;text-align:center"><div style="font-size:11px;font-weight:900;color:#b45309">공개</div><div style="font-size:8.5px;color:#92400e;margin-top:2px">메인 등불로 떠오름</div></div>
+          <div style="flex:1;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;text-align:center"><div style="font-size:11px;font-weight:900;color:#475569">비공개</div><div style="font-size:8.5px;color:#94a3b8;margin-top:2px">가족·관리자만</div></div>
+        </div>
+        <div style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:12px;padding:12px;font-size:13px;font-weight:900;text-align:center;box-shadow:0 8px 18px rgba(217,119,6,.3);margin-top:4px">등불 띄우기</div>
+        <div style="font-size:8.5px;color:#94a3b8;text-align:center;line-height:1.45">비방·명예훼손 글은 먼저 걸러집니다. 보류된 글은 관리자가 확인한 뒤 올라갑니다.</div>
+      </div>
+    </div></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">메인 (모바일)</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">PC와 같은 사진벽·검색·등불을 세로 화면에 맞춰 재배치. '한마디 쓰기'는 엄지 닿는 위치에 큰 버튼으로.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">등불 열람</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">등불을 누르면 아래에서 카드가 올라옵니다. 작성자·날짜·내용, '마음 보내기'로 조용한 공감, 다음 등불로 넘기기.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">한마디 쓰기</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">누구에게 → 내용 → 이름(익명 가능) → <b>공개/비공개 선택</b> → 등불 띄우기. 공개 글만 메인 등불이 됩니다.</div></div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>글씨 크게 모드:</b> 모든 글자·버튼이 1.25배 또는 1.5배로 커집니다. 선택값은 기기에 기억됩니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 19 목업 · 개인 추모관 PC ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 03</span><div style="font-size:19px;font-weight:900;color:#0f172a">개인 추모관 (PC) — 대표 사진 · 서브 사진 10장 · 방명록</div></div>
+    <div style="font-size:12px;color:#64748b">회의록 3-3 · 5 기준 · 미니홈피형 구성</div>
+  </div>
+  <div style="padding:18px 40px;display:flex;gap:18px;align-items:flex-start">
+    <div class="browser" style="width:820px;height:540px;flex-shrink:0">
+      <div class="browser-bar"><i style="background:#fca5a5"></i><i style="background:#fcd34d"></i><i style="background:#86efac"></i><div class="browser-url">https://추모관주소.or.kr/m/김○○</div></div>
+      <div style="height:510px;position:relative;background:#fffbf5;overflow:hidden">
+        <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:#fff;border-bottom:1px solid #f1e9dc">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316)"></div><div style="font-size:12px;font-weight:900;color:#0f172a">온라인 추모관</div><div style="font-size:10px;color:#94a3b8;margin-left:8px">메인 › 김○○ 추모관</div></div>
+          <div style="display:flex;gap:14px;align-items:center;font-size:11px;font-weight:700;color:#334155"><span>검색</span><span>한마디 쓰기</span><span style="color:#b45309">김○○ 가족 ▾</span><span style="background:#0f172a;color:#fff;padding:3px 9px;border-radius:100px;font-size:10px">가 크게</span></div>
+        </div>
+        <div style="height:192px;background:linear-gradient(135deg,#fff7e6 0%,#fffbf5 55%,#fdf2f8 100%);display:flex;gap:22px;align-items:center;padding:0 26px;position:relative">
+          <div style="position:absolute;right:40px;top:16px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.18),rgba(251,191,36,0) 70%)"></div>
+          <div class="frame-gold" style="width:134px;height:164px;flex-shrink:0;position:relative">
+            <div style="width:100%;height:100%"><div style="width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#e9e0d3,#c9bba9);position:absolute;top:30px"></div><div style="width:96px;height:60px;border-radius:48px 48px 0 0;background:linear-gradient(180deg,#c7b9a7,#b3a391);position:absolute;bottom:0"></div></div>
+            <div class="flower" style="left:-6px;top:-6px"></div><div class="flower" style="right:-6px;top:-6px;background:radial-gradient(circle,#fff7ed 0 30%,#fbbf24 32% 60%,transparent 62%);box-shadow:0 0 0 3px rgba(251,191,36,.25)"></div><div class="flower" style="left:-6px;bottom:-6px;background:radial-gradient(circle,#fff7ed 0 30%,#fbbf24 32% 60%,transparent 62%);box-shadow:0 0 0 3px rgba(251,191,36,.25)"></div><div class="flower" style="right:-6px;bottom:-6px"></div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.1em;color:#b45309;margin-bottom:4px">기억합니다</div>
+            <div style="font-size:26px;font-weight:900;color:#1f2937;line-height:1.15">故 김○○</div>
+            <div style="font-size:11.5px;color:#64748b;margin:4px 0 8px">1968. 3. 12 — 2024. 11. 2 · 서울</div>
+            <div style="font-size:13px;color:#374151;font-style:italic;margin-bottom:12px">"따뜻한 손으로 늘 먼저 안아주던 사람"</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-size:11.5px;font-weight:800;padding:8px 14px;border-radius:100px;box-shadow:0 6px 16px rgba(217,119,6,.3)">한마디 남기기</div>
+              <div style="border:1.5px solid #cbd5e1;color:#334155;font-size:11px;font-weight:700;padding:7px 12px;border-radius:100px;background:#fff">공유 링크 복사</div>
+              <div style="border:1.5px dashed #c4b5fd;color:#6d28d9;font-size:11px;font-weight:700;padding:7px 12px;border-radius:100px;background:#faf5ff">가족 초대 보내기</div>
+              <div style="font-size:9.5px;color:#94a3b8">← 지역 관리자(대표 유족)에게만 보임</div>
+            </div>
+          </div>
+          <div style="position:absolute;right:26px;bottom:12px;display:flex;gap:6px"><span class="pill pill-a">액자: 금테 + 꽃</span><span class="pill pill-s">나무 액자</span><span class="pill pill-s">흰 테두리</span></div>
+        </div>
+        <div style="height:278px;display:grid;grid-template-columns:1.45fr 1fr;gap:14px;padding:12px 26px 0">
+          <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-size:12.5px;font-weight:900;color:#0f172a">기억의 사진 <span style="color:#94a3b8;font-weight:600;font-size:11px">10장</span></div>
+              <div style="display:flex;gap:4px;align-items:center;font-size:9.5px;color:#64748b">배치 <span class="pill pill-d">2×2</span><span class="pill pill-s">1×4</span><span class="pill pill-s">3+1</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="height:84px;border-radius:8px;background:linear-gradient(135deg,#fde68a,#fca5a5);position:relative;overflow:hidden"><div style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent);color:#fff;font-size:9.5px;padding:14px 8px 6px">1999 봄 · 제주</div></div>
+              <div style="height:84px;border-radius:8px;background:linear-gradient(135deg,#bfdbfe,#c7d2fe);position:relative;overflow:hidden"><div style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent);color:#fff;font-size:9.5px;padding:14px 8px 6px">딸 돌잔치</div></div>
+              <div style="height:84px;border-radius:8px;background:linear-gradient(135deg,#bbf7d0,#fde68a);position:relative;overflow:hidden"><div style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent);color:#fff;font-size:9.5px;padding:14px 8px 6px">마지막 가을 소풍</div></div>
+              <div style="height:84px;border-radius:8px;background:linear-gradient(135deg,#fbcfe8,#ddd6fe);position:relative;overflow:hidden"><div style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent);color:#fff;font-size:9.5px;padding:14px 8px 6px">텃밭에서</div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:rgba(15,23,42,.28)">+6장 더보기</div></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="background:#fff;border:1px solid #f1e9dc;border-radius:12px;padding:10px 12px;flex:1">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;font-weight:900;color:#0f172a">방명록 <span style="color:#94a3b8;font-weight:600;font-size:10px">128</span></div><div style="font-size:9px;color:#94a3b8">전체 보기 ›</div></div>
+              <div style="display:flex;gap:7px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f8f4ec"><span style="font-size:11px"><span class="siren-icon-wrap" data-icon="flame"></span></span><div style="font-size:10px;color:#334155;line-height:1.4"><b>박○○</b> <span class="pill pill-g">공개</span> <span style="color:#94a3b8">10.02</span><br>형, 거기서도 낚시 잘 되지? 보고 싶다.</div></div>
+              <div style="display:flex;gap:7px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f8f4ec"><span style="font-size:11px"><span class="siren-icon-wrap" data-icon="lock"></span></span><div style="font-size:10px;color:#334155;line-height:1.4"><b>막내</b> <span class="pill pill-s">비공개</span> <span style="color:#94a3b8">09.30</span><br>아빠, 나 취직했어. 제일 먼저 말하고 싶었어.</div></div>
+              <div style="display:flex;gap:7px;align-items:flex-start;padding:5px 0"><span style="font-size:11px"><span class="siren-icon-wrap" data-icon="flame"></span></span><div style="font-size:10px;color:#334155;line-height:1.4"><b>익명</b> <span class="pill pill-g">공개</span> <span style="color:#94a3b8">09.21</span><br>같은 마음으로 지나가다 한 줄 남깁니다.</div></div>
+            </div>
+            <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:9px 12px">
+              <div style="font-size:10px;font-weight:900;color:#5b21b6;margin-bottom:6px">공개 단계 (가족이 정합니다)</div>
+              <div style="display:flex;gap:4px;align-items:center;font-size:9px;font-weight:700">
+                <span style="flex:1;background:#7c3aed;color:#fff;border-radius:6px;padding:5px 0;text-align:center">1 방명록 ✓</span><span style="color:#a78bfa">›</span>
+                <span style="flex:1;background:#7c3aed;color:#fff;border-radius:6px;padding:5px 0;text-align:center">2 대표 사진 ✓</span><span style="color:#a78bfa">›</span>
+                <span style="flex:1;background:#fff;color:#7c3aed;border:1.5px dashed #c4b5fd;border-radius:6px;padding:4px 0;text-align:center">3 서브 사진</span>
+              </div>
+              <div style="font-size:8.5px;color:#6d28d9;margin-top:5px">3단계 전까지 서브 사진은 가족에게만 보입니다</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute;left:60px;top:90px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">1</div>
+      <div style="position:absolute;left:196px;top:282px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">2</div>
+      <div style="position:absolute;left:604px;top:282px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">3</div>
+      <div style="position:absolute;left:662px;top:452px;width:20px;height:20px;border-radius:50%;background:#7c3aed;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">4</div>
+      <div style="position:absolute;left:540px;top:160px;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)">5</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">1</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">대표 사진 — 영정이 아닌 액자</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">금테+꽃, 나무 액자, 흰 테두리 중 가족이 선택. 검은 리본·국화 배치는 쓰지 않습니다.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">서브 사진 10장 · 배치 선택</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">2×2 · 1×4 · 3+1 중 설정에서 고르면 즉시 바뀝니다. 사진마다 짧은 설명을 붙일 수 있습니다.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">3</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">방명록 — 공개 · 비공개 섞여 보관</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">비공개 글은 가족과 관리자만. 공개 글은 메인 등불로도 떠오릅니다. 가족은 답글을 달 수 있습니다.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-p" style="height:18px">4</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">단계적 공개</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">방명록만 → 대표 사진 → 서브 사진. 가족이 마음의 준비가 된 만큼만 열고, 언제든 되돌립니다.</div></div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px;display:flex;gap:10px"><span class="pill pill-a" style="height:18px">5</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">공유 · 가족 초대</div><div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-top:2px">공유 링크는 메인을 거쳐 들어옵니다. 초대 보내기는 대표 유족에게만 보이고 발송 시 총괄 관리자에게 알림이 갑니다.</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 20 목업 · 개인 추모관 모바일 + 설정 ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 04</span><div style="font-size:19px;font-weight:900;color:#0f172a">개인 추모관 (모바일) · 사진 배치 설정 · 공개 단계 · 글씨 크기</div></div>
+    <div style="font-size:12px;color:#64748b">유족이 직접 설정하는 화면 — 고령 사용자 기준 큰 글씨·큰 터치 영역</div>
+  </div>
+  <div style="padding:22px 40px;display:flex;gap:22px;align-items:flex-start">
+    <!-- 폰 1 · 개인 추모관 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div class="m-nav" style="padding-top:12px;height:48px"><span style="font-size:11px;color:#64748b">‹ 메인</span><div style="font-size:12px;font-weight:900">김○○ 추모관</div><span style="background:#0f172a;color:#fff;padding:3px 8px;border-radius:100px;font-size:9px">가 크게</span></div>
+      <div style="padding:14px 16px 10px;display:flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,#fff7e6,#fffbf5)">
+        <div class="frame-gold" style="width:112px;height:136px;position:relative">
+          <div style="width:100%;height:100%"><div style="width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#e9e0d3,#c9bba9);position:absolute;top:24px"></div><div style="width:80px;height:50px;border-radius:40px 40px 0 0;background:linear-gradient(180deg,#c7b9a7,#b3a391);position:absolute;bottom:0"></div></div>
+          <div class="flower" style="left:-6px;top:-6px"></div><div class="flower" style="right:-6px;bottom:-6px"></div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#1f2937;margin-top:10px">故 김○○</div>
+        <div style="font-size:10.5px;color:#64748b;margin-top:2px">1968. 3. 12 — 2024. 11. 2</div>
+        <div style="font-size:11px;color:#374151;font-style:italic;margin-top:6px;text-align:center">"따뜻한 손으로 늘 먼저 안아주던 사람"</div>
+      </div>
+      <div style="padding:8px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:900;text-align:center;box-shadow:0 8px 18px rgba(217,119,6,.3)">한마디 남기기</div>
+        <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:13px;font-weight:800;text-align:center;color:#0f172a">사진 보기 <span style="color:#94a3b8;font-weight:600;font-size:11px">10장</span></div>
+        <div style="background:#fff;border:1px solid #f1e9dc;border-radius:10px;padding:8px 11px">
+          <div style="font-size:10.5px;font-weight:900;color:#0f172a;margin-bottom:4px">방명록 128</div>
+          <div style="font-size:10px;color:#334155;padding:3px 0;border-bottom:1px solid #f8f4ec"><b>박○○</b> 형, 거기서도 낚시 잘 되지?</div>
+          <div style="font-size:10px;color:#334155;padding:3px 0"><b>익명</b> 같은 마음으로 한 줄 남깁니다.</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:44px;background:#fff;border-top:1px solid #f1e9dc;display:flex;justify-content:space-around;align-items:center;font-size:8.5px;font-weight:700;color:#64748b"><span style="color:#b45309">메인</span><span>검색</span><span>한마디</span><span>내 추모관</span></div>
+    </div></div>
+    <!-- 폰 2 · 사진 배치 설정 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div class="m-nav" style="padding-top:12px;height:48px"><span style="font-size:11px;color:#64748b">‹ 설정</span><div style="font-size:12px;font-weight:900">사진 배치</div><span style="font-size:11px;font-weight:800;color:#b45309">저장</span></div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:10px;font-weight:800;color:#64748b">배치 방식</div>
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:8px 6px;text-align:center"><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:34px;margin:0 auto 5px"><i style="height:12px;background:#f59e0b;border-radius:2px;display:block"></i><i style="height:12px;background:#f59e0b;border-radius:2px;display:block"></i><i style="height:12px;background:#f59e0b;border-radius:2px;display:block"></i><i style="height:12px;background:#f59e0b;border-radius:2px;display:block"></i></div><div style="font-size:10px;font-weight:900;color:#b45309">2×2</div></div>
+          <div style="flex:1;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="display:grid;grid-template-columns:1fr;gap:2px;width:34px;margin:0 auto 5px"><i style="height:5px;background:#cbd5e1;border-radius:2px;display:block"></i><i style="height:5px;background:#cbd5e1;border-radius:2px;display:block"></i><i style="height:5px;background:#cbd5e1;border-radius:2px;display:block"></i><i style="height:5px;background:#cbd5e1;border-radius:2px;display:block"></i></div><div style="font-size:10px;font-weight:800;color:#64748b">1×4</div></div>
+          <div style="flex:1;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;width:34px;margin:0 auto 5px"><i style="height:8px;background:#cbd5e1;border-radius:2px;display:block"></i><i style="height:8px;background:#cbd5e1;border-radius:2px;display:block"></i><i style="height:8px;background:#cbd5e1;border-radius:2px;display:block"></i><i style="height:12px;background:#cbd5e1;border-radius:2px;display:block;grid-column:1/4"></i></div><div style="font-size:10px;font-weight:800;color:#64748b">3+1</div></div>
+        </div>
+        <div style="font-size:10px;font-weight:800;color:#64748b;margin-top:4px">사진 순서 <span style="font-weight:600;color:#94a3b8">길게 눌러 옮기기</span></div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px"><span style="color:#cbd5e1;font-size:12px">≡</span><div style="width:34px;height:28px;border-radius:5px;background:linear-gradient(135deg,#fde68a,#fca5a5)"></div><div style="flex:1;font-size:10px;color:#0f172a">1999 봄 · 제주</div><span class="pill pill-a">대표</span></div>
+          <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px"><span style="color:#cbd5e1;font-size:12px">≡</span><div style="width:34px;height:28px;border-radius:5px;background:linear-gradient(135deg,#bfdbfe,#c7d2fe)"></div><div style="flex:1;font-size:10px;color:#0f172a">딸 돌잔치</div><span style="font-size:9px;color:#94a3b8">휴지통</span></div>
+          <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px"><span style="color:#cbd5e1;font-size:12px">≡</span><div style="width:34px;height:28px;border-radius:5px;background:linear-gradient(135deg,#bbf7d0,#fde68a)"></div><div style="flex:1;font-size:10px;color:#0f172a">마지막 가을 소풍</div><span style="font-size:9px;color:#94a3b8">휴지통</span></div>
+          <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px"><span style="color:#cbd5e1;font-size:12px">≡</span><div style="width:34px;height:28px;border-radius:5px;background:linear-gradient(135deg,#fbcfe8,#ddd6fe)"></div><div style="flex:1;font-size:10px;color:#0f172a">텃밭에서</div><span style="font-size:9px;color:#94a3b8">휴지통</span></div>
+        </div>
+        <div style="background:#fff;border:1.5px dashed #cbd5e1;border-radius:10px;padding:9px;font-size:11px;font-weight:800;color:#64748b;text-align:center">+ 사진 추가 (10장 중 6장)</div>
+        <div style="background:#f1f5f9;border-radius:10px;padding:8px 10px;font-size:9.5px;color:#475569;line-height:1.45"><b>휴지통 2장</b> · 30일 안에 복구할 수 있어요 (D-23)</div>
+      </div>
+    </div></div>
+    <!-- 폰 3 · 공개 단계 · 글씨 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div class="m-nav" style="padding-top:12px;height:48px"><span style="font-size:11px;color:#64748b">‹ 설정</span><div style="font-size:12px;font-weight:900">공개 범위 · 글씨</div><span style="font-size:11px;font-weight:800;color:#b45309">저장</span></div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:10px;font-weight:800;color:#64748b">공개 범위 — 준비된 만큼만</div>
+        <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 11px"><div style="flex:1"><div style="font-size:12px;font-weight:900;color:#0f172a">1단계 · 방명록 공개</div><div style="font-size:9px;color:#94a3b8">누구나 한마디를 남길 수 있어요</div></div><div style="width:38px;height:22px;border-radius:11px;background:#7c3aed;position:relative"><i style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;display:block"></i></div></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 11px"><div style="flex:1"><div style="font-size:12px;font-weight:900;color:#0f172a">2단계 · 대표 사진 공개</div><div style="font-size:9px;color:#94a3b8">검색 결과에도 사진이 보여요</div></div><div style="width:38px;height:22px;border-radius:11px;background:#7c3aed;position:relative"><i style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;display:block"></i></div></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px dashed #c4b5fd;border-radius:10px;padding:10px 11px"><div style="flex:1"><div style="font-size:12px;font-weight:900;color:#0f172a">3단계 · 서브 사진 공개</div><div style="font-size:9px;color:#94a3b8">마음의 준비가 되면 켜세요</div></div><div style="width:38px;height:22px;border-radius:11px;background:#e2e8f0;position:relative"><i style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;display:block"></i></div></div>
+        <div style="font-size:9px;color:#6d28d9;background:#f5f3ff;border-radius:8px;padding:6px 9px">언제든 끌 수 있어요. 끄면 가족에게만 보입니다.</div>
+        <div style="font-size:10px;font-weight:800;color:#64748b;margin-top:4px">글씨 크기</div>
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 4px;text-align:center"><div style="font-size:12px;font-weight:800;color:#64748b">가</div><div style="font-size:8.5px;color:#94a3b8">보통</div></div>
+          <div style="flex:1;background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:9px 4px;text-align:center"><div style="font-size:15px;font-weight:900;color:#b45309">가</div><div style="font-size:8.5px;color:#92400e">크게</div></div>
+          <div style="flex:1;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 4px;text-align:center"><div style="font-size:18px;font-weight:900;color:#64748b">가</div><div style="font-size:8.5px;color:#94a3b8">아주 크게</div></div>
+        </div>
+      </div>
+    </div></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">개인 추모관 (모바일)</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">액자·이름·한 문장이 첫 화면. 가장 많이 누르는 두 가지(한마디·사진)를 큰 버튼으로. 하단 탭 4개뿐.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">사진 배치 설정</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">그림으로 고르는 배치 3종, 길게 눌러 순서 바꾸기, 대표 지정, 휴지통(30일 복구).</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">공개 단계 · 글씨 크기</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">켜고 끄는 스위치 3개로 공개 범위를. 글씨는 보통·크게·아주 크게 — 버튼과 입력칸도 함께 커집니다.</div></div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>동영상(옵션):</b> 도입 시 '사진 보기' 옆에 '영상 보기'가 생깁니다. 10~15초·개수·화질 제한 필터 포함.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 21 목업 · 가입 · 인증 ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 05</span><div style="font-size:19px;font-weight:900;color:#0f172a">가입 · 인증 — 간편 인증 · 문자 인증 · 가족관계증명서 · 초대 링크</div></div>
+    <div style="font-size:12px;color:#64748b">회의록 3-4 · 3-7 기준 · 메일 인증 없음</div>
+  </div>
+  <div style="padding:22px 40px;display:flex;gap:22px;align-items:flex-start">
+    <!-- 폰 1 · 시작 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div style="padding:52px 18px 0;display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);box-shadow:0 0 24px rgba(251,191,36,.6);margin-bottom:14px"></div>
+        <div style="font-size:16px;font-weight:900;color:#1f2937;line-height:1.3">추모관에<br>오신 것을 환영합니다</div>
+        <div style="font-size:10px;color:#64748b;margin-top:8px;line-height:1.5">본인 확인 한 번이면 됩니다.<br>비밀번호를 외울 필요가 없어요.</div>
+      </div>
+      <div style="padding:22px 16px 0;display:flex;flex-direction:column;gap:9px">
+        <div style="background:#FEE500;color:#191919;border-radius:12px;padding:13px;font-size:13px;font-weight:900;text-align:center">카카오로 시작하기</div>
+        <div style="background:#03C75A;color:#fff;border-radius:12px;padding:13px;font-size:13px;font-weight:900;text-align:center">네이버로 시작하기</div>
+        <div style="background:#fff;border:2px solid #0f172a;color:#0f172a;border-radius:12px;padding:12px;font-size:13px;font-weight:900;text-align:center">휴대폰 문자로 시작하기</div>
+        <div style="font-size:8.5px;color:#94a3b8;text-align:center;line-height:1.5;margin-top:4px">간편 인증 심사 결과에 따라 문자 인증만 제공될 수 있습니다.</div>
+      </div>
+      <div style="position:absolute;left:16px;right:16px;bottom:18px;background:#fff;border:1px solid #f1e9dc;border-radius:10px;padding:8px 10px;font-size:9px;color:#475569;line-height:1.45"><b>처음이세요?</b> 인증만 하면 바로 가입됩니다. 가족 추모관을 열려면 협회 안내에 따라 대표 유족 가입을 진행하세요.</div>
+    </div></div>
+    <!-- 폰 2 · 대표 유족 가입 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#fffbf5">
+      <div class="m-nav" style="padding-top:12px;height:48px"><span style="font-size:11px;color:#64748b">‹</span><div style="font-size:12px;font-weight:900">대표 유족 가입</div><span style="width:20px"></span></div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:4px;align-items:center;font-size:8.5px;font-weight:800"><span style="flex:1;background:#16a34a;color:#fff;border-radius:6px;padding:4px 0;text-align:center">1 인증 ✓</span><span style="flex:1;background:#f59e0b;color:#fff;border-radius:6px;padding:4px 0;text-align:center">2 서류</span><span style="flex:1;background:#e2e8f0;color:#64748b;border-radius:6px;padding:4px 0;text-align:center">3 동의</span></div>
+        <div style="font-size:10px;font-weight:800;color:#64748b;margin-top:2px">고인과의 관계</div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:11px;color:#0f172a;display:flex;justify-content:space-between"><span>배우자</span><span style="color:#94a3b8">▾</span></div>
+        <div style="font-size:10px;font-weight:800;color:#64748b">가족관계증명서 <span style="color:#dc2626">필수</span></div>
+        <div style="background:#fff;border:2px dashed #f59e0b;border-radius:12px;padding:16px 10px;text-align:center"><div style="font-size:18px;margin-bottom:4px"><span class="siren-icon-wrap" data-icon="camera"></span></div><div style="font-size:11px;font-weight:900;color:#b45309">촬영하거나 파일 선택</div><div style="font-size:8.5px;color:#94a3b8;margin-top:3px">사진·PDF · 주민번호 뒷자리는 가려도 됩니다</div></div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 9px;font-size:8.5px;color:#166534;line-height:1.45">증명서는 암호화해 보관하고, 승인이 끝나면 자동으로 지워집니다.</div>
+        <div style="display:flex;gap:7px;align-items:flex-start;font-size:9.5px;color:#0f172a;line-height:1.4"><span style="width:14px;height:14px;border-radius:4px;background:#f59e0b;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</span>사진 데이터 보관에 동의합니다 (삭제 후 30일 복구용)</div>
+        <div style="display:flex;gap:7px;align-items:flex-start;font-size:9.5px;color:#0f172a;line-height:1.4"><span style="width:14px;height:14px;border-radius:4px;background:#f59e0b;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</span>개인정보 수집·이용에 동의합니다</div>
+        <div style="display:flex;gap:7px;align-items:flex-start;font-size:9.5px;color:#64748b;line-height:1.4"><span style="width:14px;height:14px;border-radius:4px;border:1.5px solid #cbd5e1;display:inline-block;flex-shrink:0"></span>(선택) 기일·생일 알림을 받겠습니다</div>
+        <div style="background:#0f172a;color:#fff;border-radius:12px;padding:12px;font-size:13px;font-weight:900;text-align:center;margin-top:2px">승인 요청하기</div>
+      </div>
+    </div></div>
+    <!-- 폰 3 · 초대 → 승인 대기 -->
+    <div class="phone"><div class="phone-notch"></div><div class="phone-scr" style="background:#f1f5f9">
+      <div style="padding:46px 14px 0">
+        <div style="font-size:9px;color:#94a3b8;text-align:center;margin-bottom:8px">문자 메시지</div>
+        <div style="background:#fff;border-radius:14px 14px 14px 4px;padding:10px 12px;font-size:10.5px;color:#1f2937;line-height:1.55;box-shadow:0 2px 6px rgba(0,0,0,.06)">[온라인 추모관] 김○○님이 가족으로 초대했습니다. 아래 주소에서 가입해 주세요.<br><span style="color:#2563eb">추모관주소.or.kr/i/7f3k2</span><br><span style="color:#94a3b8;font-size:9px">유효기간 7일</span></div>
+      </div>
+      <div style="margin:18px 14px 0;background:#fff;border-radius:14px;padding:16px 14px;text-align:center;box-shadow:0 6px 18px rgba(15,23,42,.08)">
+        <div style="width:46px;height:46px;border-radius:50%;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px"><span class="siren-icon-wrap" data-icon="hourglass"></span></div>
+        <div style="font-size:14px;font-weight:900;color:#0f172a">승인 대기 중</div>
+        <div style="font-size:10px;color:#64748b;margin-top:5px;line-height:1.5">총괄 관리자가 확인하고 있어요.<br>보통 1~2일 안에 문자로 알려드립니다.</div>
+        <div style="margin-top:10px;display:flex;gap:4px;align-items:center;font-size:8.5px;font-weight:800"><span style="flex:1;background:#16a34a;color:#fff;border-radius:6px;padding:4px 0">가입</span><span style="flex:1;background:#f59e0b;color:#fff;border-radius:6px;padding:4px 0">승인 대기</span><span style="flex:1;background:#e2e8f0;color:#64748b;border-radius:6px;padding:4px 0">가족 회원</span></div>
+      </div>
+      <div style="margin:12px 14px 0;background:#fff;border-radius:12px;padding:10px 12px;font-size:9.5px;color:#475569;line-height:1.5"><b>승인되면 할 수 있는 것</b><br>· 비공개 방명록·사진 열람<br>· 가족끼리만 보는 한마디 남기기<br>· 기일·생일 알림 받기 (선택)</div>
+      <div style="position:absolute;left:14px;right:14px;bottom:16px;font-size:8.5px;color:#94a3b8;text-align:center">탈퇴 후 재가입은 3일 뒤부터 가능합니다</div>
+    </div></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">시작 화면</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">카카오·네이버·문자 세 버튼뿐. 비밀번호가 없으니 고령 유족이 잊을 것도 없습니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">대표 유족 가입 — 증명서 필수</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">휴대폰으로 찍어 올리면 됩니다. 암호화 보관 후 승인 완료 시 자동 파기. 사진 보관 동의를 여기서 받습니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">초대 링크 → 승인 대기</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">대표 유족이 보낸 문자 링크로 가입. 발송 즉시 총괄 관리자에게 보고 알림. 승인되면 가족 회원.</div></div>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#991b1b;line-height:1.5"><b>심사 리스크 대비:</b> '자살' 키워드로 간편 인증 심사에서 탈락하면 설정 하나로 문자 인증 단독 운영으로 전환됩니다. 코드 수정 없이.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 22 목업 · 관리자 콘솔 ════ -->
+<div class="slide" data-sec="화면 목업" style="background:#f1f5f9">
+  <div style="background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:64px">
+    <div style="display:flex;align-items:center;gap:14px"><span class="tag tag-amber">화면 목업 06</span><div style="font-size:19px;font-weight:900;color:#0f172a">관리자 콘솔 (PC) — 승인 · 등급 지정 · AI 보류 판정 · 휴지통 · 일괄 처리</div></div>
+    <div style="font-size:12px;color:#64748b">총괄 관리자(사무총장) 기준 화면 · 일반 관리자는 위임 그룹만 보임</div>
+  </div>
+  <div style="padding:18px 40px;display:flex;gap:18px;align-items:flex-start">
+    <div class="browser" style="width:820px;height:540px;flex-shrink:0">
+      <div class="browser-bar"><i style="background:#fca5a5"></i><i style="background:#fcd34d"></i><i style="background:#86efac"></i><div class="browser-url">https://추모관주소.or.kr/admin</div></div>
+      <div style="height:510px;display:flex;background:#f8fafc">
+        <div style="width:150px;background:#0f172a;color:#cbd5e1;padding:14px 0;display:flex;flex-direction:column;font-size:10.5px">
+          <div style="padding:0 14px 12px;font-size:12px;font-weight:900;color:#fff;display:flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);display:block"></i>관리자</div>
+          <div style="padding:7px 14px;display:flex;justify-content:space-between"><span>대시보드</span></div>
+          <div style="padding:7px 14px;display:flex;justify-content:space-between;background:rgba(255,255,255,.08);color:#fff;font-weight:800;border-left:3px solid #f59e0b"><span>회원 승인</span><span style="background:#f59e0b;color:#fff;border-radius:100px;padding:0 6px;font-size:9px">3</span></div>
+          <div style="padding:7px 14px;display:flex;justify-content:space-between"><span>등급 · 그룹 위임</span></div>
+          <div style="padding:7px 14px;display:flex;justify-content:space-between"><span>방명록 판정</span><span style="background:#dc2626;color:#fff;border-radius:100px;padding:0 6px;font-size:9px">2</span></div>
+          <div style="padding:7px 14px;display:flex;justify-content:space-between"><span>사진 휴지통</span><span style="background:#475569;color:#fff;border-radius:100px;padding:0 6px;font-size:9px">7</span></div>
+          <div style="padding:7px 14px;display:flex;justify-content:space-between"><span>일괄 처리</span><span style="background:#2563eb;color:#fff;border-radius:100px;padding:0 6px;font-size:9px">12</span></div>
+          <div style="padding:7px 14px">공지 · 문구 · 계좌</div>
+          <div style="padding:7px 14px">제재 · 블랙리스트</div>
+          <div style="padding:7px 14px">통계</div>
+          <div style="padding:7px 14px">감사 로그</div>
+          <div style="margin-top:auto;padding:10px 14px;font-size:9px;color:#64748b;border-top:1px solid rgba(255,255,255,.08)">김주선 · 총괄 관리자<br>문자 2단계 인증 ✓</div>
+        </div>
+        <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px"><div style="font-size:9px;color:#64748b">승인 대기</div><div style="font-size:18px;font-weight:900;color:#f59e0b">3</div></div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px"><div style="font-size:9px;color:#64748b">AI 보류 판정</div><div style="font-size:18px;font-weight:900;color:#dc2626">2</div></div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px"><div style="font-size:9px;color:#64748b">휴지통 (30일)</div><div style="font-size:18px;font-weight:900;color:#475569">7</div></div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px"><div style="font-size:9px;color:#64748b">이번 주 등불</div><div style="font-size:18px;font-weight:900;color:#2563eb">86</div></div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:11px;font-weight:900;color:#0f172a">회원 승인 대기</div><div style="font-size:9px;color:#94a3b8">승인 시 등급을 바로 지정합니다</div></div>
+            <table style="width:100%;border-collapse:collapse;font-size:9.5px">
+              <tr style="color:#64748b;font-size:8.5px"><th style="text-align:left;padding:3px 4px;border-bottom:1px solid #f1f5f9">이름 · 연락처</th><th style="text-align:left;padding:3px 4px;border-bottom:1px solid #f1f5f9">경로</th><th style="text-align:left;padding:3px 4px;border-bottom:1px solid #f1f5f9">서류</th><th style="text-align:left;padding:3px 4px;border-bottom:1px solid #f1f5f9">등급 지정</th><th style="padding:3px 4px;border-bottom:1px solid #f1f5f9"></th></tr>
+              <tr><td style="padding:5px 4px;border-bottom:1px solid #f8fafc"><b>이○○</b> 010-****-1234</td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc">대표 유족 신청</td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc"><span class="pill pill-g">증명서 보기</span></td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc"><span style="border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px;background:#fff">지역 관리자 ▾</span></td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc;text-align:right"><span style="background:#16a34a;color:#fff;border-radius:6px;padding:3px 8px;font-weight:800">승인</span> <span style="color:#dc2626;font-weight:700">반려</span></td></tr>
+              <tr><td style="padding:5px 4px;border-bottom:1px solid #f8fafc"><b>이○○ (아들)</b> 010-****-5678</td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc">초대 링크 · 이○○</td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc"><span class="pill pill-s">해당 없음</span></td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc"><span style="border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px;background:#fff">가족 회원 ▾</span></td><td style="padding:5px 4px;border-bottom:1px solid #f8fafc;text-align:right"><span style="background:#16a34a;color:#fff;border-radius:6px;padding:3px 8px;font-weight:800">승인</span> <span style="color:#dc2626;font-weight:700">반려</span></td></tr>
+              <tr><td style="padding:5px 4px"><b>협회 간사 정○○</b></td><td style="padding:5px 4px">관리자 추가</td><td style="padding:5px 4px"><span class="pill pill-s">해당 없음</span></td><td style="padding:5px 4px"><span style="border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px;background:#fff">일반 관리자 · 그룹 B(100명) ▾</span></td><td style="padding:5px 4px;text-align:right"><span style="background:#16a34a;color:#fff;border-radius:6px;padding:3px 8px;font-weight:800">승인</span></td></tr>
+            </table>
+          </div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:10px;flex:1">
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px">
+              <div style="font-size:11px;font-weight:900;color:#0f172a;margin-bottom:6px">AI 보류 — 애매한 글만 여기로</div>
+              <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 9px;margin-bottom:6px"><div style="font-size:9.5px;color:#1f2937;line-height:1.4">"그 사람 때문에 이렇게 된 거잖아요. 다들 알면서…"</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><span style="font-size:8.5px;color:#991b1b">AI: 특정인 비난 가능성 62% · 보류</span><span style="font-size:8.5px"><span style="background:#16a34a;color:#fff;border-radius:5px;padding:2px 6px">게시</span> <span style="background:#dc2626;color:#fff;border-radius:5px;padding:2px 6px">삭제</span> <span style="background:#0f172a;color:#fff;border-radius:5px;padding:2px 6px">블랙</span></span></div></div>
+              <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 9px"><div style="font-size:9.5px;color:#1f2937;line-height:1.4">"상담 필요하신 분 연락주세요 010-…"</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><span style="font-size:8.5px;color:#991b1b">AI: 광고·연락처 노출 88% · 보류</span><span style="font-size:8.5px"><span style="background:#16a34a;color:#fff;border-radius:5px;padding:2px 6px">게시</span> <span style="background:#dc2626;color:#fff;border-radius:5px;padding:2px 6px">삭제</span> <span style="background:#0f172a;color:#fff;border-radius:5px;padding:2px 6px">블랙</span></span></div></div>
+              <div style="font-size:8.5px;color:#94a3b8;margin-top:6px">오늘 작성 41건 중 즉시 게시 39 · 보류 2 · 차단 0 — 판정 결과는 기준 데이터로 축적됩니다</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;flex:1">
+                <div style="font-size:11px;font-weight:900;color:#0f172a;margin-bottom:6px">사진 휴지통 — 30일 후 자동 영구 삭제</div>
+                <div style="display:flex;gap:7px;align-items:center;padding:4px 0;border-bottom:1px solid #f8fafc"><div style="width:26px;height:20px;border-radius:4px;background:linear-gradient(135deg,#fde68a,#fca5a5)"></div><div style="flex:1;font-size:9.5px;color:#0f172a">김○○ 추모관 · 1999 봄</div><span class="pill pill-a">D-23</span><span style="font-size:8.5px;color:#2563eb;font-weight:700">복구</span></div>
+                <div style="display:flex;gap:7px;align-items:center;padding:4px 0;border-bottom:1px solid #f8fafc"><div style="width:26px;height:20px;border-radius:4px;background:linear-gradient(135deg,#bfdbfe,#c7d2fe)"></div><div style="flex:1;font-size:9.5px;color:#0f172a">박○○ 추모관 · 생일</div><span class="pill pill-r">D-2</span><span style="font-size:8.5px;color:#2563eb;font-weight:700">복구</span></div>
+                <div style="display:flex;gap:7px;align-items:center;padding:4px 0"><div style="width:26px;height:20px;border-radius:4px;background:linear-gradient(135deg,#bbf7d0,#fde68a)"></div><div style="flex:1;font-size:9.5px;color:#0f172a">최○○ 추모관 · 소풍</div><span class="pill pill-s">미동의 · 즉시</span></div>
+              </div>
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;font-weight:900;color:#1e40af">다음 일괄 처리 · 금요일 10:00</div><div style="font-size:8.5px;color:#3b82f6">대기 12건 (사진 교체 7 · 문구 수정 4 · 배치 변경 1)</div></div><span style="background:#2563eb;color:#fff;border-radius:6px;padding:4px 9px;font-size:9px;font-weight:800">지금 처리</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">승인하면서 등급을 바로 지정</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">단계를 거치지 않고 지역 관리자·가족 회원·일반 관리자(위임 그룹 포함)를 한 번에 지정합니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">AI 보류 판정함</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">하루 수십 건 중 애매한 몇 건만 보입니다. 판정(게시·삭제·블랙)은 기록되어 협회의 기준 데이터가 됩니다.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">휴지통 · 일괄 처리</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">삭제 사진은 남은 날짜와 함께 보관(동의자만 복구). 수정 요청은 월·금 10시 대기열로 모아 한 번에.</div></div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px"><div style="font-size:12.5px;font-weight:800;color:#0f172a;margin-bottom:3px">공지·문구·계좌는 관리자가 직접</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">메인 문구, 공지, 기부 계좌, 안내문까지 코드 없이 수정. 개발사 호출 없이 운영이 자립합니다.</div></div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>일반 관리자 화면</b>은 같은 구성에서 위임받은 100명 그룹만 보이고, 최종 승인·삭제는 총괄 관리자에게 올라갑니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 23 권한 체계 ════ -->
+<div class="slide sw" data-sec="기능 설명">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-purple" style="margin-bottom:12px">기능 설명 · 권한 체계</div>
+    <h2 style="font-size:26px;margin-bottom:16px">5등급 권한 — 누가 무엇을 할 수 있는가</h2>
+    <table class="tbl" style="margin-bottom:14px">
+      <thead><tr><th style="width:140px">등급</th><th style="width:170px">누구</th><th>할 수 있는 것</th><th style="width:230px">가입 · 승인 경로</th><th style="width:150px">비고</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-d">총괄 관리자</span></td><td>김주선 사무총장 (1인)</td><td>가입 승인 · 등급 지정 · 사진 삭제 최종 승인 · AI 보류 판정 · 제재(블랙·강제 탈퇴) · 공지·문구·계좌 편집 · 모든 통계</td><td>시스템 초기 지정</td><td class="mute">문자 2단계 인증 필수</td></tr>
+        <tr><td><span class="pill pill-p">일반 관리자</span></td><td>협회 측 인력</td><td>위임받은 100명 단위 그룹의 회원·추모관·방명록 관리, 일괄 처리 대기열 처리</td><td>총괄 관리자가 지정 + 그룹 배정</td><td class="mute">최종 승인·삭제는 총괄에게 상신</td></tr>
+        <tr><td><span class="pill pill-a">지역 관리자</span></td><td>대표 유족 (가족당 1인)</td><td>개인 추모관 개설 · 사진 등록·수정·삭제(휴지통) · 배치·액자·공개 단계 설정 · 가족 초대 링크 발송 · 비공개 글 열람·답글</td><td>간편/문자 인증 → <b>가족관계증명서 첨부</b> → 총괄 승인</td><td class="mute">초대 발송 시 총괄에게 사전 보고 알림</td></tr>
+        <tr><td><span class="pill pill-b">가족 회원</span></td><td>유족 가족</td><td>비공개 방명록·사진 열람 · 가족끼리만 보는 한마디 · 기일 알림 수신(옵션)</td><td>지역 관리자 초대 링크 → 가입 → 총괄 승인</td><td class="mute">사진 등록은 지역 관리자 통해</td></tr>
+        <tr><td><span class="pill pill-g">일반 회원</span></td><td>누구나</td><td>공개 추모관 열람 · 공개 방명록(등불) 작성 · 마음 보내기</td><td>간편/문자 인증 즉시 자동 가입</td><td class="mute">AI 필터 제재 누적 시 블랙 · 강제 탈퇴 · 재가입 3일 제한</td></tr>
+      </tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:12px 16px"><div style="font-size:12px;font-weight:900;color:#5b21b6;margin-bottom:4px">바로 등급 지정</div><div style="font-size:12px;color:#4c1d95;line-height:1.5">승인 화면에서 단계 없이 원하는 등급을 즉시 부여. 이미 가입한 회원의 등급 변경도 같은 화면에서.</div></div>
+      <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:12px 16px"><div style="font-size:12px;font-weight:900;color:#5b21b6;margin-bottom:4px">100명 단위 그룹 위임</div><div style="font-size:12px;color:#4c1d95;line-height:1.5">회원이 늘면 그룹을 만들어 일반 관리자에게 배정. 한 화면에서 그룹별 현황과 대기 건수를 봅니다.</div></div>
+      <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:12px 16px"><div style="font-size:12px;font-weight:900;color:#5b21b6;margin-bottom:4px">권한은 화면에서 토글</div><div style="font-size:12px;color:#4c1d95;line-height:1.5">등급별로 어떤 메뉴·버튼이 보이는지 관리자가 켜고 끕니다. 운영하며 정책이 바뀌어도 코드 수정이 필요 없습니다.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 24 방명록 · AI 필터링 ════ -->
+<div class="slide sw" data-sec="기능 설명">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-purple" style="margin-bottom:12px">기능 설명 · 방명록과 AI 필터링</div>
+    <h2 style="font-size:26px;margin-bottom:6px">AI가 먼저 거르고, 사람은 애매한 것만 봅니다</h2>
+    <p style="font-size:13.5px;color:#64748b;margin-bottom:18px">방명록 한 줄이 등불이 되기까지의 흐름입니다. 운영자가 매일 모든 글을 읽지 않아도 되도록 설계했습니다.</p>
+    <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:16px">
+      <div class="step"><div class="n">1 작성</div><div class="t">한마디 쓰기</div><div class="d">공개 / 비공개를 작성자가 선택</div></div><div class="arr">→</div>
+      <div class="step"><div class="n">2 AI 1차 분류 (1초 이내)</div><div class="t">게시 · 보류 · 차단</div><div class="d">비방 · 명예훼손 · 광고 · 연락처 노출 감지</div></div><div class="arr">→</div>
+      <div class="step" style="border-top-color:#dc2626"><div class="n" style="color:#dc2626">3 보류 건만</div><div class="t">총괄 관리자 판정</div><div class="d">게시 · 삭제 · 블랙 — 하루 몇 건 수준</div></div><div class="arr">→</div>
+      <div class="step" style="border-top-color:#2563eb"><div class="n" style="color:#2563eb">4 기록</div><div class="t">판정 기준 데이터 축적</div><div class="d">어떤 글을 왜 어떻게 판단했는지 저장</div></div><div class="arr">→</div>
+      <div class="step" style="border-top-color:#7c3aed;background:#faf5ff"><div class="n" style="color:#7c3aed">5 옵션 · RAG</div><div class="t">협회 기준 학습</div><div class="d">다음 보류 건에 "과거 유사 사례 3건은 삭제" 근거 제시</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="card" style="padding:16px 18px">
+        <div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:8px">공개 · 비공개 규칙</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">· 공개 글만 메인 등불로 떠오르고 검색에 노출<br>· 비공개 글은 가족 회원과 관리자만 열람<br>· 작성 후에도 작성자가 공개 여부를 바꿀 수 있음<br>· 가족 회원은 답글 가능, 일반 회원은 '마음 보내기'만</div>
+      </div>
+      <div class="card" style="padding:16px 18px">
+        <div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:8px">AI 분류 기준 (초기 설정)</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">· <b>즉시 게시</b>: 추모·위로·안부 (대부분)<br>· <b>보류</b>: 특정인 비난 가능성, 사인(死因) 추궁, 종교·정치 권유<br>· <b>차단</b>: 욕설·광고·연락처·외부 링크<br>· 기준 문구는 관리자가 화면에서 수정 가능</div>
+      </div>
+      <div class="card" style="padding:16px 18px;border-top:3px solid #7c3aed">
+        <div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:8px">RAG는 왜 필요한가 (옵션)</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">관리자가 바뀌어도 협회의 판단 기준(평균값)이 유지되어야 한다는 회의 결론. 축적된 판정 사례와 운영 지침을 학습해 <b>판단 근거를 제시</b>합니다. 기본 구축은 4단계까지 포함하고, 5단계는 옵션 견적(O1)으로 분리했습니다.</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 16px;font-size:12.5px;color:#991b1b"><b>제재 흐름:</b> 차단 2회 또는 보류 판정에서 삭제 3회 누적 → 자동 경고 → 총괄 관리자 확인 후 블랙(작성 제한) 또는 강제 탈퇴 → 재가입 차단 목록 등록. 횟수는 관리자가 조정합니다.</div>
+  </div>
+</div>
+
+<!-- ════ 25 사진 · 동영상 · 휴지통 · 단계적 공개 ════ -->
+<div class="slide sw" data-sec="기능 설명">
+  <div class="top-bar bar-p"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-purple" style="margin-bottom:12px">기능 설명 · 사진 · 동영상 · 공개</div>
+    <h2 style="font-size:26px;margin-bottom:18px">홧김에 지워도 돌아오고, 준비된 만큼만 열립니다</h2>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:16px">
+      <div class="card" style="padding:18px 20px">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:12px">사진 휴지통 — 30일</div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;gap:12px;align-items:flex-start"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">1</div><div style="width:2px;height:28px;background:#fde68a"></div></div><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">유족이 삭제</div><div style="font-size:11.5px;color:#64748b">화면에서는 사라지지만 서버에는 남습니다</div></div></div>
+          <div style="display:flex;gap:12px;align-items:flex-start"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">2</div><div style="width:2px;height:28px;background:#fde68a"></div></div><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">30일 보관 · 복구 가능</div><div style="font-size:11.5px;color:#64748b">유족 스스로 또는 관리자 요청으로 복구. 남은 날짜 표시</div></div></div>
+          <div style="display:flex;gap:12px;align-items:flex-start"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:#dc2626;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">3</div></div><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">자동 영구 삭제</div><div style="font-size:11.5px;color:#64748b">매일 새벽 예약 작업이 기한 지난 사진을 저장소에서 제거</div></div></div>
+        </div>
+        <div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 11px;font-size:11.5px;color:#78350f;line-height:1.5"><b>보관 동의:</b> 가입 시 동의한 회원만 2단계가 적용됩니다. 미동의 회원의 삭제는 즉시 영구 삭제 경로로 갑니다.</div>
+      </div>
+      <div class="card" style="padding:18px 20px">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:12px">사진 업로드 · 자동 최적화</div>
+        <div style="font-size:12px;color:#475569;line-height:1.65">· 휴대폰에서 바로 업로드(여러 장 한 번에)<br>· 원본은 보관, 화면용 3단계 크기(WebP) 자동 생성<br>· 회전 보정 · 위치 정보(EXIF) 자동 제거<br>· 장당 20MB · 추모관당 서브 10장 상한<br>· 저장소는 전송료 없는 구조라 열람이 늘어도 비용이 뛰지 않음</div>
+        <div style="margin-top:12px;border-top:1px dashed #e2e8f0;padding-top:10px">
+          <div style="font-size:12.5px;font-weight:900;color:#b45309;margin-bottom:5px">동영상 (옵션 O3)</div>
+          <div style="font-size:12px;color:#475569;line-height:1.6">10~15초 · 추모관당 2개 · 720p 변환 · 50MB 상한 필터. 업로드 즉시 변환해 휴대폰에서도 바로 재생.<br><b>대안(O3-b):</b> 사진 3~4장이 부드럽게 넘어가는 효과 — 저장소 비용 없이 비슷한 감성.</div>
+        </div>
+      </div>
+      <div class="card" style="padding:18px 20px;border-top:3px solid #7c3aed">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:12px">단계적 공개 — 마음의 준비만큼</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px"><div style="font-size:12px;font-weight:900;color:#5b21b6">1단계 · 방명록만 공개</div><div style="font-size:11.5px;color:#4c1d95">이름과 한 문장, 방명록만. 사진은 가족에게만.</div></div>
+          <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px"><div style="font-size:12px;font-weight:900;color:#5b21b6">2단계 · 대표 사진 공개</div><div style="font-size:11.5px;color:#4c1d95">액자 사진이 검색 결과와 추모관에 보입니다.</div></div>
+          <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px"><div style="font-size:12px;font-weight:900;color:#5b21b6">3단계 · 서브 사진 공개</div><div style="font-size:11.5px;color:#4c1d95">기억의 사진 10장까지 모두에게.</div></div>
+        </div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">처음 개설 시 1단계가 기본값. 단계는 올리기도 내리기도 자유롭고, 변경 즉시 반영됩니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 26 기술 스택 · 구성도 ════ -->
+<div class="slide sw" data-sec="기술 사양">
+  <div class="top-bar bar-g"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px">
+      <div><div class="tag tag-green" style="margin-bottom:10px">기술 사양 · 시스템 구성도</div><h2 style="font-size:26px">어떤 기술로 어떻게 만드는가</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right;line-height:1.5">서버를 직접 운영하지 않는 서버리스 구성 —<br>교사유가족협의회 플랫폼에서 2년간 검증된 조합입니다</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#64748b;letter-spacing:.06em;margin-bottom:3px">사용자</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">PC · 모바일 브라우저 · 홈 화면 설치(PWA)</div><div style="font-size:11px;color:#64748b">별도 앱 설치 없이, 한 벌의 반응형 웹으로 모든 기기</div></div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#64748b;letter-spacing:.06em;margin-bottom:3px">전송 · 보안</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">전 세계 CDN + 전 구간 HTTPS</div><div style="font-size:11px;color:#64748b">사진·화면을 가까운 서버에서 전달, 명절 트래픽 자동 흡수</div></div>
+        </div>
+        <div style="text-align:center;color:#94a3b8;font-size:14px;line-height:1">▼</div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#2563eb;letter-spacing:.06em;margin-bottom:3px">프론트엔드 (화면)</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">HTML5 · CSS3 · JavaScript 반응형 웹 — 프레임워크 없이 가볍게</div><div style="font-size:11px;color:#475569">글씨 크기 3단계 · 이미지 지연 로딩 · 등불 애니메이션은 CSS/Canvas로 저사양 휴대폰에서도 부드럽게 · 접근성(ARIA) 라벨</div></div>
+        <div style="text-align:center;color:#94a3b8;font-size:14px;line-height:1">▼</div>
+        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:8px">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#16a34a;letter-spacing:.06em;margin-bottom:3px">백엔드 (API 서버)</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">Node.js 20 + TypeScript 서버리스 함수 (Netlify Functions)</div><div style="font-size:11px;color:#475569">REST API · 요청 검증 · 역할 기반 권한 검사 · 감사 로그. 서버 1대를 켜 두는 방식이 아니라 요청이 올 때만 실행되어 유휴 비용 0</div></div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:800;color:#16a34a;letter-spacing:.06em;margin-bottom:3px">예약 작업 (Scheduled)</div><div style="font-size:12.5px;font-weight:800;color:#0f172a">새벽 자동 실행</div><div style="font-size:11px;color:#475569">휴지통 30일 영구 삭제 · 월·금 10시 일괄 처리 알림 · 기일 알림(옵션) · 백업 점검</div></div>
+        </div>
+        <div style="text-align:center;color:#94a3b8;font-size:14px;line-height:1">▼</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#b45309;letter-spacing:.06em;margin-bottom:3px">데이터베이스</div><div style="font-size:12px;font-weight:800;color:#0f172a">PostgreSQL (Neon 서버리스)</div><div style="font-size:10.5px;color:#475569">Drizzle ORM · 마이그레이션 이력 관리 · 자동 백업 · 7일 시점 복구 · 유휴 시 자동 절전</div></div>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#b45309;letter-spacing:.06em;margin-bottom:3px">파일 저장소</div><div style="font-size:12px;font-weight:800;color:#0f172a">Cloudflare R2 (S3 호환)</div><div style="font-size:10.5px;color:#475569">사진·증명서·동영상. 서명 URL로 휴대폰에서 직접 업로드 · 전송료 0원 · WebP 변환 파이프라인</div></div>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#b45309;letter-spacing:.06em;margin-bottom:3px">외부 연동</div><div style="font-size:12px;font-weight:800;color:#0f172a">카카오 · 네이버 OAuth 2.0</div><div style="font-size:10.5px;color:#475569">솔라피 문자·알림톡(인증번호·승인·초대) · Google Gemini 텍스트 분류 API(필터링) · 옵션: pgvector(RAG)</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:8px">배포 · 운영 방식</div>
+          <div style="font-size:11.5px;color:#475569;line-height:1.6">· 소스 저장소(GitHub) → 자동 빌드·배포(Netlify CI)<br>· 스테이징(검수용) / 운영 환경 분리<br>· 배포 실패 시 이전 버전 자동 유지, 1분 내 되돌리기<br>· 오류 로그·접근 로그 수집, 월간 운영 리포트<br>· 도메인·SSL 인증서 자동 갱신</div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:8px">왜 이 조합인가</div>
+          <div style="font-size:11.5px;color:#475569;line-height:1.6">· <b>서버 관리 인력 불필요</b> — 운영비가 월 수만 원 수준<br>· <b>사용한 만큼 과금</b> — 회원 100명일 때와 1,000명일 때 비용이 비례<br>· <b>명절·기일 트래픽</b> 급증을 자동 확장으로 흡수<br>· <b>한 사람이 전체를 파악</b>할 수 있는 단순한 구조 — 담당자 교체 시 인계 용이<br>· 교사유가족협의회 플랫폼(56+ 테이블·170+ API)을 같은 구성으로 2년 운영</div>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#166534;line-height:1.5"><b>소스코드 100% 양도.</b> 특정 업체·특정 서버에 묶이지 않는 범용 기술만 씁니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 27 보안 · 성능 · 접근성 · 개발 방식 ════ -->
+<div class="slide sw" data-sec="기술 사양">
+  <div class="top-bar bar-g"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-green" style="margin-bottom:12px">기술 사양 · 구현 기준</div>
+    <h2 style="font-size:26px;margin-bottom:16px">보안 · 성능 · 접근성 · 개발 방식 — 검수 기준으로 삼는 수치</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+      <div class="card" style="padding:16px 16px;border-top:4px solid #dc2626">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="shield"></span> 보안 · 개인정보</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.65">· 전송 구간 TLS 1.3, 전 페이지 HTTPS<br>· 연락처·증명서 등 민감 필드 AES-256 암호화 저장<br>· 로그인 토큰은 httpOnly 쿠키(스크립트 접근 불가)<br>· 역할 기반 접근 제어 5등급, 관리자 문자 2단계 인증<br>· 요청 속도 제한 · 봇 차단 · 업로드 파일 검사<br>· 가족관계증명서 승인 완료 시 자동 파기<br>· 감사 로그 1년 보관, 일일 백업, 7일 시점 복구<br>· 개인정보 최소 수집, 처리방침·약관 적용</div>
+      </div>
+      <div class="card" style="padding:16px 16px;border-top:4px solid #2563eb">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="zap"></span> 성능 목표</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.65">· 모바일 Lighthouse 성능 90점 이상<br>· 첫 화면 표시 2초 이내 (4G 기준)<br>· 메인 사진벽 1장 150KB 이하로 최적화<br>· 사진 WebP 자동 변환 · 3단계 크기 · 지연 로딩<br>· CDN 캐시로 반복 방문 시 즉시 표시<br>· 동시 접속 급증(명절) 자동 확장, 상한 없음<br>· 등불 애니메이션 60fps, 저사양 기기 자동 간소화</div>
+      </div>
+      <div class="card" style="padding:16px 16px;border-top:4px solid #f59e0b">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="hand"></span> 접근성 · 사용성</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.65">· 글씨 크기 3단계, 고대비 색 조합 (WCAG 2.1 AA 지향)<br>· 터치 영역 48px 이상, 버튼 간격 확보<br>· 핵심 동선 3번 이내 터치<br>· 키보드만으로 조작 가능, 화면 낭독기 라벨<br>· PC · 태블릿 · 모바일 한 벌 반응형<br>· 고령 사용자 시나리오로 검수 (실제 유족 2~3명 참여 권장)</div>
+      </div>
+      <div class="card" style="padding:16px 16px;border-top:4px solid #16a34a">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin-bottom:8px"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 개발 방식 · 산출물</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.65">· 5단계: 분석 → 설계 → 개발 → 검수 → 운영 전환<br>· 매주 진행 보고 (완료·다음 주·이슈)<br>· 스테이징에서 협회가 직접 검수 후 운영 반영<br>· 산출물: 요구사항정의서 · 화면 설계서 · DB 설계서 · 검수확인서 · 운영 매뉴얼 · 관리자 교육 2회<br>· 소스코드 100% 양도 · 6개월 무상 하자보증</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 16px;font-size:12px;color:#475569;line-height:1.5"><b style="color:#0f172a">데이터 소유권:</b> 모든 데이터(회원·사진·방명록)는 협회 소유. 요청 시 전체 데이터를 표준 형식(CSV·원본 파일)으로 즉시 내보내기.</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 16px;font-size:12px;color:#475569;line-height:1.5"><b style="color:#0f172a">장애 대응:</b> 운영 기간 중 서비스 중단급 장애는 24시간 내 조치. 배포 전 자동 검사와 1분 내 되돌리기로 운영 중단을 최소화합니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 28 섹션 표지 · 견적 ════ -->
+<div class="slide sec-cov" data-sec="견적 제안" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:80px 100px">
+  <div class="cov-lan" style="width:22px;height:30px;right:200px;top:140px;left:auto;animation-delay:-1.6s"></div>
+  <div class="cov-lan" style="width:14px;height:19px;right:130px;top:330px;left:auto;animation-delay:-.4s;opacity:.6"></div>
+  <div class="tag tag-white" style="margin-bottom:22px">PART 3 · 견적 제안</div>
+  <h1 style="font-size:50px;font-weight:900;line-height:1.12;color:#fff;margin-bottom:22px">정가 기준, 기능별 금액과 기간,<br><span style="color:#fcd34d">운영비와 실비까지 숨김 없이</span></h1>
+  <p style="font-size:17px;color:rgba(255,255,255,.75);max-width:780px;line-height:1.7">협회 요청대로 할인가가 아닌 정가로 산정했습니다. 소규모 SI 기업 기준 시장 단가를 적용해 기본 구축 14개 항목과 옵션 7종을 라인별로 나누었고, 월 운영비(인프라 실비 + 유지보수)와 일회성 실비, 12주 일정, 그리고 추모관이 자라날 방향까지 담았습니다.</p>
+  <div style="margin-top:36px;display:flex;gap:14px">
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">기본 구축 (VAT 별도)</div><div style="font-size:22px;font-weight:900;color:#fff">59,291,000원 · 12주</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">옵션 7종 합계</div><div style="font-size:22px;font-weight:900;color:#fff">55,824,000원 · 취사선택</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 22px"><div style="font-size:12px;color:rgba(255,255,255,.6)">월 운영 실비</div><div style="font-size:22px;font-weight:900;color:#fff">약 8만 원 ~</div></div>
+  </div>
+</div>
+
+<!-- ════ 29 견적 기준 ════ -->
+<div class="slide sw" data-sec="견적 제안">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-amber" style="margin-bottom:12px">견적 기준</div>
+    <h2 style="font-size:26px;margin-bottom:16px">산정 단가와 원칙</h2>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:20px">
+      <div>
+        <table class="tbl">
+          <thead><tr><th>역할</th><th>등급</th><th class="num">월 단가 (M/M)</th><th class="num">일 단가 (M/D)</th><th>투입 영역</th></tr></thead>
+          <tbody>
+            <tr><td><b>기획 · PM</b></td><td>고급</td><td class="num">8,000,000</td><td class="num">380,000</td><td class="mute">요구사항 · 정책 · 설계 · 관리 · 교육</td></tr>
+            <tr><td><b>UI/UX 디자이너</b></td><td>중급</td><td class="num">5,500,000</td><td class="num">262,000</td><td class="mute">화면 디자인 · 사진벽 제작 · 등불 모션</td></tr>
+            <tr><td><b>풀스택 개발</b></td><td>고급</td><td class="num">7,500,000</td><td class="num">357,000</td><td class="mute">화면 · API · DB · 인프라 · AI 연동</td></tr>
+            <tr><td><b>QA · 검수</b></td><td>중급</td><td class="num">4,500,000</td><td class="num">214,000</td><td class="mute">시나리오 테스트 · 기기 테스트</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.55">· 일 단가 = 월 단가 ÷ 21일(월 근무일). 금액은 M/D × 일 단가, 천 원 단위로 표기.<br>· 소규모 SI 기업의 2026년 시장 단가를 기준으로 하되, 소프트웨어 기술자 평균임금 공표 수준보다 낮게 적용했습니다.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">1</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">정가 — 할인 미적용</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">협회 요청에 따라 정가 그대로. 비영리 지원 단가는 협회가 범위를 확정한 뒤 별도 협의.</div></div></div>
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">2</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">라인별 견적 · 라인별 청구</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">기능 단위로 금액·공수·기간을 분리. 항목을 빼면 그 금액만큼 줄어듭니다.</div></div></div>
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">3</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">범위 밖은 별도 견적, 숨김 청구 0원</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">기능사항정의서(F-01~F-34) 밖의 요청은 사전 합의 후에만 진행.</div></div></div>
+        <div class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="pill pill-a" style="height:18px">4</span><div><div style="font-size:12.5px;font-weight:800;color:#0f172a">부가세 별도 · 유효기간 60일</div><div style="font-size:11.5px;color:#64748b;line-height:1.5">모든 금액은 VAT 별도. 견적일로부터 60일간 유효. 지급 조건: 계약 30% · 디자인 확정 30% · 검수 완료 40%.</div></div></div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#78350f;line-height:1.5"><b>포함:</b> 산출물 6종 · 관리자 교육 2회 · 6개월 무상 하자보증 · 소스코드 양도. <b>불포함:</b> 월 운영 실비(별도 슬라이드) · 외부 법률 검토 실비 · 협회 측 콘텐츠(사진·문구) 준비.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 30 기본 구축 견적 1/2 ════ -->
+<div class="slide sw" data-sec="견적 제안">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-amber" style="margin-bottom:10px">기본 구축 견적 1 / 2</div><h2 style="font-size:26px">설계 · 디자인 · 메인 · 개인 추모관 · 회원</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도 · 기간은 다른 항목과 병행 진행</div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th style="width:34px">#</th><th style="width:190px">항목</th><th>포함 내용</th><th style="width:110px">투입</th><th style="width:60px" class="c">기간</th><th style="width:100px" class="num">금액</th></tr></thead>
+      <tbody>
+        <tr><td class="mute">1</td><td><b>요구사항 분석 · 정책 · 화면 설계</b></td><td>회의록 → 요구사항정의서 확정, 정보구조, 화면 설계서(와이어프레임), 권한·공개·휴지통 정책 정의, DB 설계서</td><td class="mute">PM 15 M/D</td><td class="c">2주</td><td class="num">5,700,000</td></tr>
+        <tr><td class="mute">2</td><td><b>UI/UX 디자인 (PC · 모바일)</b></td><td>메인·개인 추모관·가입·설정·관리자 전 화면 디자인, 큰 글씨 모드, 안개 사진벽 1장 제작, 등불 모션, 액자 스타일 3종, 시안 2회 검토</td><td class="mute">디자인 25 M/D</td><td class="c">3주</td><td class="num">6,550,000</td></tr>
+        <tr><td class="mute">3</td><td><b>메인 페이지</b></td><td>사진벽 배경, 중앙 검색바, 공지·협회 소개·기부 계좌 영역, 로고 영역, 반응형 (F-01 · 03 · 07 · 09 · 11)</td><td class="mute">개발 8 M/D</td><td class="c">1주</td><td class="num">2,856,000</td></tr>
+        <tr><td class="mute">4</td><td><b>등불 방명록</b></td><td>떠오르는 등불 애니메이션, 작성자명 표시·클릭 열람 카드, 한마디 쓰기, 공개/비공개 선택, 마음 보내기, 오늘·누적 등불 수 (F-04 · 05)</td><td class="mute">개발 12 M/D</td><td class="c">1.5주</td><td class="num">4,284,000</td></tr>
+        <tr><td class="mute">5</td><td><b>고인 검색 · 공유 링크</b></td><td>이름 검색(동명이인 목록), 비공개 제외, 개인 추모관 고유 주소, 공유 링크 메인 경유 진입 (F-02 · 06)</td><td class="mute">개발 6 M/D</td><td class="c">1주</td><td class="num">2,142,000</td></tr>
+        <tr><td class="mute">6</td><td><b>개인 추모관</b></td><td>대표 사진 액자 3종, 이름·생몰년·한 문장, 서브 사진 10장·배치 선택(2×2·1×4·3+1), 개인 방명록·답글, 단계적 공개 설정, 내 추모관 관리 화면 (F-12~15)</td><td class="mute">개발 18 M/D</td><td class="c">2.5주</td><td class="num">6,426,000</td></tr>
+        <tr><td class="mute">7</td><td><b>회원 가입 · 인증</b></td><td>카카오·네이버 간편 인증, 문자 인증, 문자 단독 전환 설정, 대표 유족 가입(가족관계증명서 첨부·암호화·자동 파기), 초대 링크 가입, 보관 동의, 재가입 3일 제한 (F-17~21)</td><td class="mute">개발 15 M/D</td><td class="c">2주</td><td class="num">5,355,000</td></tr>
+        <tr class="sum"><td></td><td colspan="4">1 ~ 7 소계</td><td class="num">33,313,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ 31 기본 구축 견적 2/2 ════ -->
+<div class="slide sw" data-sec="견적 제안">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-amber" style="margin-bottom:10px">기본 구축 견적 2 / 2</div><h2 style="font-size:26px">권한 · 사진 · 관리자 · AI 필터 · 인프라 · 검수 · 관리</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도</div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th style="width:34px">#</th><th style="width:190px">항목</th><th>포함 내용</th><th style="width:110px">투입</th><th style="width:60px" class="c">기간</th><th style="width:100px" class="num">금액</th></tr></thead>
+      <tbody>
+        <tr><td class="mute">8</td><td><b>권한 체계 · 승인 워크플로</b></td><td>5등급 권한, 승인 시 바로 등급 지정, 100명 단위 그룹 위임, 초대 발송 사전 보고 알림, 권한 토글 화면 (F-22 · 23)</td><td class="mute">개발 12 M/D</td><td class="c">1.5주</td><td class="num">4,284,000</td></tr>
+        <tr><td class="mute">9</td><td><b>사진 관리</b></td><td>다중 업로드, WebP 3단계 변환, 회전 보정·위치 정보 제거, 순서 변경, 휴지통 30일·자동 영구 삭제 예약 작업, 동의자 복구 (F-24~26)</td><td class="mute">개발 10 M/D</td><td class="c">1.5주</td><td class="num">3,570,000</td></tr>
+        <tr><td class="mute">10</td><td><b>관리자 콘솔</b></td><td>대시보드, 회원 승인·등급, 사진 삭제 승인, 방명록 관리, 공지·문구·계좌 편집, 일괄 처리 대기열(월·금 10시), 제재·블랙리스트, 통계, 감사 로그 (F-27~29)</td><td class="mute">개발 18 M/D</td><td class="c">2.5주</td><td class="num">6,426,000</td></tr>
+        <tr><td class="mute">11</td><td><b>AI 1차 필터링</b></td><td>작성 즉시 분류(게시·보류·차단), 기준 문구 관리 화면, 보류 판정함, 판정 기록 축적, 제재 누적 자동 경고 (F-30)</td><td class="mute">개발 8 M/D</td><td class="c">1주</td><td class="num">2,856,000</td></tr>
+        <tr><td class="mute">12</td><td><b>인프라 · 보안 · 배포</b></td><td>클라우드·DB·저장소 구성, 도메인·SSL, 스테이징/운영 분리, 자동 배포, 암호화·속도 제한·접근 로그, 백업·복구 점검</td><td class="mute">개발 6 M/D</td><td class="c">1주</td><td class="num">2,142,000</td></tr>
+        <tr><td class="mute">13</td><td><b>통합 테스트 · 검수 · 오픈</b></td><td>PC·모바일 기기별 시나리오 테스트, 고령 사용자 시나리오, 협회 검수 지원, 오픈 당일 모니터링</td><td class="mute">QA 10 M/D</td><td class="c">2주</td><td class="num">2,140,000</td></tr>
+        <tr><td class="mute">14</td><td><b>프로젝트 관리 · 매뉴얼 · 교육</b></td><td>주간 보고, 이슈 관리, 운영 매뉴얼, 관리자 교육 2회, 산출물 인도, 하자보증 운영</td><td class="mute">PM 12 M/D</td><td class="c">전 기간</td><td class="num">4,560,000</td></tr>
+        <tr><td></td><td colspan="4" style="color:#64748b">8 ~ 14 소계</td><td class="num" style="color:#64748b">25,978,000</td></tr>
+        <tr class="sum"><td></td><td colspan="2">기본 구축 합계 (1 ~ 14) · 총 175 M/D (PM 27 · 디자인 25 · 개발 113 · QA 10)</td><td colspan="2" class="c">12주</td><td class="num">59,291,000</td></tr>
+        <tr><td></td><td colspan="4" class="mute">VAT 포함 시</td><td class="num mute">65,220,100</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ 32 옵션 견적 ════ -->
+<div class="slide sw" data-sec="견적 제안">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-amber" style="margin-bottom:10px">옵션 견적 — 협회가 취사선택</div><h2 style="font-size:26px">RAG · AI 상담 · 동영상 · 심사 대응 · 등급 마크 · BI · 기일 알림</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right">단위: 원 · VAT 별도 · 기본 구축과 병행 또는 오픈 후 추가 가능</div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th style="width:44px">코드</th><th style="width:180px">항목</th><th>포함 내용</th><th style="width:150px">투입</th><th style="width:70px" class="c">기간</th><th style="width:100px" class="num">금액</th><th style="width:64px" class="c">추천</th></tr></thead>
+      <tbody>
+        <tr><td class="mute">O1</td><td><b>RAG 판단 기준 엔진</b></td><td>판정 사례·운영 지침 수집 도구, 벡터 검색(pgvector), 보류 건에 유사 사례·근거 제시, 기준 튜닝 2회, 관리자 교체 대비 기준 문서화 (F-31)</td><td class="mute">개발 50 · PM 10 M/D</td><td class="c">5주</td><td class="num">21,650,000</td><td class="c"><span class="pill pill-s">2차</span></td></tr>
+        <tr><td class="mute">O2</td><td><b>AI 상담 에이전트</b></td><td>QnA 버튼 10개 필수 노출, 자연어 응대, 상담 시간 안내, 총괄 관리자 핸드오프(문자·대기열), 대화 기록·개선 화면 (F-32)</td><td class="mute">개발 38 · 디자인 5 · PM 5 M/D</td><td class="c">4주</td><td class="num">16,776,000</td><td class="c"><span class="pill pill-s">2차</span></td></tr>
+        <tr><td class="mute">O3</td><td><b>동영상 업로드</b></td><td>10~15초·추모관당 2개·720p·50MB 제한 필터, 업로드 즉시 변환, 모바일 재생, 저장소 설계 (F-16)</td><td class="mute">개발 16 · 디자인 2 M/D</td><td class="c">2주</td><td class="num">6,236,000</td><td class="c"><span class="pill pill-s">선택</span></td></tr>
+        <tr><td class="mute">O3-b</td><td><b>사진 플래시 효과 (동영상 대안)</b></td><td>사진 3~4장이 부드럽게 넘어가는 효과. 저장소 추가 비용 없음. O3와 택일</td><td class="mute">개발 4 · 디자인 2 M/D</td><td class="c">3일</td><td class="num">1,952,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
+        <tr><td class="mute">O4</td><td><b>간편 인증 심사 대응</b></td><td>카카오·네이버 개발자 등록, 검수 서류 작성, '자살' 키워드 심사 소명, 탈락 시 문자 단독 전환 설정</td><td class="mute">PM 4 M/D</td><td class="c">외부 2~4주</td><td class="num">1,520,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
+        <tr><td class="mute">O5</td><td><b>등급 마크 · 방문 기록</b></td><td>일반·열심·우수 회원 마크, 방문 기록, 사행성 요소 배제 설계 (F-33)</td><td class="mute">개발 8 · 디자인 3 M/D</td><td class="c">1.5주</td><td class="num">3,642,000</td><td class="c"><span class="pill pill-s">선택</span></td></tr>
+        <tr><td class="mute">O6</td><td><b>추모관 BI · 서비스명</b></td><td>서비스명 후보 제안, 심볼·로고(협회 홈페이지 배너용), 등불 모션 아이덴티티, 사용 가이드</td><td class="mute">디자인 12 M/D</td><td class="c">2주</td><td class="num">3,144,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
+        <tr><td class="mute">O7</td><td><b>기일 · 생일 알림</b></td><td>고인 기일·생일 등록, 가족에게 문자·카카오 알림(발송 실비 별도), 방문 유도 문구 관리 (F-34)</td><td class="mute">개발 8 M/D</td><td class="c">1주</td><td class="num">2,856,000</td><td class="c"><span class="pill pill-g">추천</span></td></tr>
+        <tr class="sum"><td></td><td colspan="4">옵션 전체 합계 (O3 선택 · O3-b 제외)</td><td class="num">55,824,000</td><td></td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:12px;color:#64748b;line-height:1.5"><b style="color:#0f172a">추천 기준:</b> 오픈 시점에 효과가 크고 비용이 작은 것(O3-b · O4 · O6 · O7)을 1차 추천. RAG와 AI 상담(O1 · O2)은 회의 결론대로 1차 범위에서 제외하고, 판정 기록이 쌓인 뒤 2차 도입 시 효과가 가장 큽니다.</div>
+  </div>
+</div>
+
+<!-- ════ 33 운영비 · 실비 ════ -->
+<div class="slide sw" data-sec="견적 제안">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+      <div><div class="tag tag-amber" style="margin-bottom:10px">운영비 · 실비</div><h2 style="font-size:26px">매달 드는 돈과 한 번만 드는 돈</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right">인프라는 실사용량 청구 · 환율 1,400원/USD 가정 · VAT 별도</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:16px">
+      <div>
+        <table class="tbl">
+          <thead><tr><th>월 운영 실비 (인프라)</th><th>산정 기준 (회원 100가족 · 사진 3,000장)</th><th class="num">월</th><th class="num">연</th></tr></thead>
+          <tbody>
+            <tr><td><b>호스팅 · 서버리스 함수</b></td><td class="mute">Netlify Pro, 자동 확장·CDN 포함</td><td class="num">28,000</td><td class="num">336,000</td></tr>
+            <tr><td><b>데이터베이스</b></td><td class="mute">Neon PostgreSQL, 자동 백업·시점 복구</td><td class="num">27,000</td><td class="num">324,000</td></tr>
+            <tr><td><b>파일 저장소</b></td><td class="mute">Cloudflare R2, 전송료 0 (동영상 도입 시 약 3만 원)</td><td class="num">5,000</td><td class="num">60,000</td></tr>
+            <tr><td><b>문자 인증 · 알림</b></td><td class="mute">솔라피, 건당 약 20원 × 월 500건</td><td class="num">10,000</td><td class="num">120,000</td></tr>
+            <tr><td><b>AI 분류 API</b></td><td class="mute">방명록 월 3,000건 분류 (AI 상담 도입 시 5~10만 원)</td><td class="num">5,000</td><td class="num">60,000</td></tr>
+            <tr><td><b>도메인</b></td><td class="mute">.or.kr 또는 .kr 연 단위, SSL 무료</td><td class="num">2,500</td><td class="num">30,000</td></tr>
+            <tr><td><b>카카오 · 네이버 간편 인증</b></td><td class="mute">무료</td><td class="num">0</td><td class="num">0</td></tr>
+            <tr class="sum"><td colspan="2">인프라 실비 합계</td><td class="num">약 78,000</td><td class="num">약 930,000</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:8px;font-size:11.5px;color:#64748b;line-height:1.5">회원이 1,000가족으로 늘어도 월 15만 원 안팎으로 예상됩니다. 사용량만큼만 과금되는 구조라 초기에 큰 서버를 사 둘 필요가 없습니다.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="padding:14px 16px;border:2px solid #f59e0b">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div style="font-size:11px;font-weight:800;color:#b45309">유지보수 정액 (선택)</div><div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:2px">월 600,000원</div></div><span class="tag tag-amber">하자보증 6개월 후</span></div>
+          <div style="font-size:11.5px;color:#475569;line-height:1.55">· 장애 24시간 내 대응 · 보안 패치·라이브러리 갱신<br>· 경미한 수정 월 8시간 (문구·화면 조정)<br>· 월·금 일괄 처리 기술 지원 · 월간 운영 리포트<br>· 담당자 교체 시 무상 재교육</div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>일회성 실비</th><th class="num">금액</th></tr></thead>
+          <tbody>
+            <tr><td>개인정보처리방침 · 이용약관 법률 검토 (외부 법무, 실비 청구)</td><td class="num">약 500,000</td></tr>
+            <tr><td>도메인 최초 등록 (1년)</td><td class="num">약 30,000</td></tr>
+            <tr><td>문자 발신번호 등록 · 카카오 비즈니스 채널 개설 (대행 포함)</td><td class="num">0</td></tr>
+            <tr><td>간편 인증 심사 수수료 (심사 자체 무료 · 대응 공수는 O4)</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#1e40af;line-height:1.5"><b>연간 운영비 요약:</b> 인프라 실비 약 93만 원 + 유지보수(선택) 720만 원 = <b>약 813만 원/년</b>. 유지보수 미계약 시 약 93만 원/년.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 34 총괄 요약 ════ -->
+<div class="slide sw" data-sec="견적 제안">
+  <div class="top-bar bar-a"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-amber" style="margin-bottom:12px">견적 총괄</div>
+    <h2 style="font-size:26px;margin-bottom:16px">세 가지 구성안 — 협회가 고르고, 저희는 그대로 만듭니다</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="card" style="padding:20px 22px;border-top:4px solid #475569">
+        <div style="font-size:12px;font-weight:800;color:#475569;margin-bottom:4px">A안 · 기본 구축</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a">59,291,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 65,220,100 · 12주</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">기능사항정의서의 기본 28개 + 제안 1개 (옵션 F-16 · F-31~34 제외). 회의에서 확정한 1차 범위 그대로.</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 6,022만 원</div>
+      </div>
+      <div class="card" style="padding:20px 22px;border:2px solid #f59e0b;background:#fffdf7;position:relative">
+        <div style="position:absolute;top:-11px;left:18px;background:#f59e0b;color:#fff;font-size:10px;font-weight:900;padding:3px 10px;border-radius:100px;letter-spacing:.06em">추천</div>
+        <div style="font-size:12px;font-weight:800;color:#b45309;margin-bottom:4px">B안 · 기본 + 추천 옵션 4종</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a">68,763,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 75,639,300 · 13주</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">A안 + 사진 플래시 효과(O3-b) + 간편 인증 심사 대응(O4) + 추모관 BI(O6) + 기일·생일 알림(O7). 오픈 시점 완성도가 가장 높은 구성.</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 6,969만 원</div>
+      </div>
+      <div class="card" style="padding:20px 22px;border-top:4px solid #7c3aed">
+        <div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:4px">C안 · 전체 옵션 포함</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a">115,115,000<span style="font-size:13px;color:#64748b;font-weight:700"> 원</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">VAT 포함 126,626,500 · 18주</div>
+        <div style="font-size:12px;color:#475569;line-height:1.6">A안 + O1~O7 전부(동영상은 O3). RAG와 AI 상담까지 처음부터. 판정 사례가 적은 초기에는 RAG 효과가 제한적이라 2단계 도입을 권합니다.</div>
+        <div style="margin-top:10px;font-size:11.5px;color:#64748b;line-height:1.5">1년 총비용(실비만): 약 1억 1,605만 원</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:3px">지급 조건</div><div style="font-size:13px;font-weight:800;color:#0f172a">계약 30% · 디자인 확정 30% · 검수 완료 40%</div></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:3px">하자보증</div><div style="font-size:13px;font-weight:800;color:#0f172a">검수 완료 후 6개월 무상</div></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:3px">산출물 · 소유권</div><div style="font-size:13px;font-weight:800;color:#0f172a">산출물 6종 · 소스코드 100% 양도</div></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:3px">견적 유효기간</div><div style="font-size:13px;font-weight:800;color:#0f172a">2026.10.06 기준 60일</div></div>
+    </div>
+    <div style="margin-top:12px;font-size:11.5px;color:#64748b">1년 총비용 = 구축비 + 인프라 실비 약 93만 원. 유지보수 정액(월 60만 원)은 하자보증 종료 후 선택 계약으로 별도.</div>
+  </div>
+</div>
+
+<!-- ════ 35 일정 ════ -->
+<div class="slide sw" data-sec="일정 · 발전">
+  <div class="top-bar bar-g"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px">
+      <div><div class="tag tag-green" style="margin-bottom:10px">일정 · 12주</div><h2 style="font-size:26px">계약부터 오픈까지 — 매 단계 산출물로 확인합니다</h2></div>
+      <div style="font-size:12px;color:#64748b;text-align:right">옵션 포함 시 +1~6주 (병행 가능) · 간편 인증 외부 심사는 1주차에 신청</div>
+    </div>
+    <div class="gantt" style="margin-bottom:14px">
+      <div></div><div class="wk">W1</div><div class="wk">W2</div><div class="wk">W3</div><div class="wk">W4</div><div class="wk">W5</div><div class="wk">W6</div><div class="wk">W7</div><div class="wk">W8</div><div class="wk">W9</div><div class="wk">W10</div><div class="wk">W11</div><div class="wk">W12</div>
+      <div class="lbl" style="grid-row:2">1 요구사항 분석 · 설계</div><div class="gbar" style="grid-row:2;grid-column:2/4;background:#f59e0b">정의서 · 화면 설계 · DB 설계</div>
+      <div class="lbl" style="grid-row:3">2 UI/UX 디자인</div><div class="gbar" style="grid-row:3;grid-column:3/7;background:#fb7185">시안 1차 → 2차 → 확정</div>
+      <div class="lbl" style="grid-row:4">3·4·5 메인 · 등불 · 검색</div><div class="gbar" style="grid-row:4;grid-column:5/8;background:#2563eb">개발</div>
+      <div class="lbl" style="grid-row:5">6·7·8 개인 추모관 · 회원 · 권한</div><div class="gbar" style="grid-row:5;grid-column:7/11;background:#2563eb">개발</div>
+      <div class="lbl" style="grid-row:6">9·10·11 사진 · 관리자 · AI 필터</div><div class="gbar" style="grid-row:6;grid-column:9/12;background:#2563eb">개발</div>
+      <div class="lbl" style="grid-row:7">12 인프라 · 보안 · 배포</div><div class="gbar" style="grid-row:7;grid-column:4/5;background:#16a34a">구성</div><div class="gbar" style="grid-row:7;grid-column:11/12;background:#16a34a">운영 전환</div>
+      <div class="lbl" style="grid-row:8">13 통합 테스트 · 검수</div><div class="gbar" style="grid-row:8;grid-column:11/13;background:#7c3aed">기기 테스트 · 협회 검수</div>
+      <div class="lbl" style="grid-row:9">14 오픈 · 교육 · 인도</div><div class="gbar" style="grid-row:9;grid-column:13/14;background:#0f172a">오픈</div>
+      <div class="lbl" style="grid-row:10;color:#b45309">마일스톤</div><div style="grid-row:10;grid-column:3/4;text-align:center;font-size:9.5px;font-weight:900;color:#b45309">M1 설계 확정</div><div style="grid-row:10;grid-column:6/7;text-align:center;font-size:9.5px;font-weight:900;color:#b45309">M2 디자인 확정</div><div style="grid-row:10;grid-column:11/12;text-align:center;font-size:9.5px;font-weight:900;color:#b45309">M3 기능 완료</div><div style="grid-row:10;grid-column:13/14;text-align:center;font-size:9.5px;font-weight:900;color:#b45309">M4 오픈</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="card" style="padding:14px 16px"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:6px">협회가 준비할 것 (W3까지)</div><div style="font-size:11.5px;color:#475569;line-height:1.6">· 메인 사진벽용 동의 사진 100장<br>· 공지·협회 소개·기부 계좌 문구<br>· 운영 규칙 확정(등급 명칭·일괄 처리 시간·재가입 제한)<br>· 총괄·일반 관리자 지정, 간편 인증 심사용 단체 서류</div></div>
+      <div class="card" style="padding:14px 16px"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:6px">검토 시점 (협회 참여)</div><div style="font-size:11.5px;color:#475569;line-height:1.6">· W2 말: 요구사항정의서·화면 설계 확인<br>· W4·W5: 디자인 시안 2회 검토<br>· W8: 스테이징에서 중간 시연<br>· W11: 검수 (실제 유족 2~3명 참여 권장)</div></div>
+      <div class="card" style="padding:14px 16px"><div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:6px">오픈 후 (하자보증 6개월)</div><div style="font-size:11.5px;color:#475569;line-height:1.6">· 오픈 1주 집중 모니터링<br>· 관리자 교육 2회(오픈 전·오픈 2주 후)<br>· 월간 운영 리포트<br>· 판정 기록이 쌓이면 RAG(O1) 도입 시점 협의</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 36 추후 디벨롭 방안 ════ -->
+<div class="slide sw" data-sec="일정 · 발전">
+  <div class="top-bar bar-g"></div>
+  <div class="mpad" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+    <div class="tag tag-green" style="margin-bottom:12px">추후 발전 방안 · 로드맵</div>
+    <h2 style="font-size:26px;margin-bottom:6px">추모관에서 시작해, 유족을 지키는 기금까지</h2>
+    <p style="font-size:13.5px;color:#64748b;margin-bottom:16px">회의에서 나온 장기 비전(유산 기부·기금 조성·법인 전환·모범 사례)을 단계별 기능으로 풀었습니다. 모두 기본 구축 구조 위에 덧붙일 수 있도록 설계합니다.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+      <div class="card" style="padding:16px 16px;border-top:4px solid #f59e0b">
+        <div style="font-size:10px;font-weight:800;color:#b45309;letter-spacing:.06em;margin-bottom:4px">1단계 · 오픈 (12주)</div>
+        <div style="font-size:14px;font-weight:900;color:#0f172a;margin-bottom:8px">기억의 자리를 만든다</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.6">· 사진벽 · 등불 방명록 · 개인 추모관<br>· 5등급 권한 · 휴지통 · AI 1차 필터<br>· 추천 옵션: BI · 기일 알림 · 심사 대응<br>· 협회 홈페이지 배너 연결</div>
+      </div>
+      <div class="card" style="padding:16px 16px;border-top:4px solid #2563eb">
+        <div style="font-size:10px;font-weight:800;color:#2563eb;letter-spacing:.06em;margin-bottom:4px">2단계 · 오픈 후 3~6개월</div>
+        <div style="font-size:14px;font-weight:900;color:#0f172a;margin-bottom:8px">마음을 더한다</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.6">· RAG 판단 기준 엔진 (판정 기록 축적 후)<br>· AI 상담 에이전트 (QnA 10개 · 핸드오프)<br>· 동영상 또는 플래시 효과<br>· 명절 특별 등불 테마, 합동 추모 행사 페이지<br>· 등급 마크 (사행성 배제)</div>
+      </div>
+      <div class="card" style="padding:16px 16px;border-top:4px solid #7c3aed">
+        <div style="font-size:10px;font-weight:800;color:#7c3aed;letter-spacing:.06em;margin-bottom:4px">3단계 · 6~12개월</div>
+        <div style="font-size:14px;font-weight:900;color:#0f172a;margin-bottom:8px">함께 지키는 기금</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.6">· 유산 기부 · 기금 조성 안내와 약정 접수<br>· 기부금 영수증 · 정기 후원 모듈 (교사유가족협의회 후원 시스템 이식)<br>· 협동조합 · 공익법인 전환에 맞춘 기부금 처리<br>· 유족 긴급 지원 신청 창구</div>
+      </div>
+      <div class="card" style="padding:16px 16px;border-top:4px solid #16a34a">
+        <div style="font-size:10px;font-weight:800;color:#16a34a;letter-spacing:.06em;margin-bottom:4px">4단계 · 12개월 이후</div>
+        <div style="font-size:14px;font-weight:900;color:#0f172a;margin-bottom:8px">업계 표준 모델로</div>
+        <div style="font-size:11.5px;color:#475569;line-height:1.6">· 보건복지부 등 보고용 통계 · 보고서 자동화<br>· 다른 유족 단체도 쓰는 공용 모델(화이트라벨)<br>· 심리상담 · 법률 지원 연계<br>· 유족 소모임(비공개 커뮤니티) · 다국어<br>· 음성 안내 등 접근성 고도화</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 16px;font-size:12px;color:#78350f;line-height:1.5"><b>데이터가 쌓일수록 좋아지는 구조:</b> 판정 기록 → RAG 정확도, 방문 기록 → 기일 알림 최적 시점, 방명록 → 명절 캠페인 문구. 1단계부터 이 데이터를 남기도록 설계합니다.</div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 16px;font-size:12px;color:#1e40af;line-height:1.5"><b>확장 비용 원칙:</b> 각 단계는 별도 견적으로 사전 합의. 1단계 구조(권한·DB·저장소)를 그대로 쓰므로 다시 짓는 비용이 들지 않습니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 37 마무리 · 다음 단계 ════ -->
+<div class="slide cov" data-sec="마무리" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:50px 60px">
+  <div class="cov-lan" style="width:26px;height:35px;left:110px;top:130px;animation-delay:-1s"></div>
+  <div class="cov-lan" style="width:16px;height:22px;left:210px;top:460px;animation-delay:-2.4s;opacity:.6"></div>
+  <div class="cov-lan" style="width:22px;height:30px;right:120px;top:180px;left:auto;animation-delay:-.7s"></div>
+  <div class="cov-lan" style="width:14px;height:19px;right:200px;top:520px;left:auto;animation-delay:-3s;opacity:.5"></div>
+  <img src="img/logo.jpg" alt="함께워크_SI" style="height:66px;margin-bottom:22px;filter:drop-shadow(0 4px 20px rgba(0,0,0,.3))">
+  <h1 style="font-size:42px;font-weight:900;line-height:1.15;color:#fff;margin-bottom:14px">명절에, 생일에,<br><span style="color:#fcd34d">한 줄 남기러 오는 곳</span>을 함께 만들겠습니다</h1>
+  <p style="font-size:15px;color:rgba(255,255,255,.75);max-width:700px;line-height:1.65;margin-bottom:26px">견적 수령 후 임원 보고와 예산 확보가 끝나면, 디자인·설계 착수 전 한 번 더 만나 범위를 확정하겠습니다.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;width:100%;max-width:980px;margin-bottom:24px">
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 16px;text-align:left"><div style="font-size:11px;font-weight:800;color:#fcd34d;margin-bottom:5px">개발사 (함께워크_SI)</div><div style="font-size:12.5px;color:#fff;line-height:1.6">✓ 정가 기준 견적 — 본 제안서<br>✓ 메인·개인 추모관 시안 — 본 제안서 목업<br>· 계약 후 2주 내 요구사항정의서 확정</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 16px;text-align:left"><div style="font-size:11px;font-weight:800;color:#fcd34d;margin-bottom:5px">협회</div><div style="font-size:12.5px;color:#fff;line-height:1.6">· 견적 검토 → 임원 보고 → 예산 확보<br>· A·B·C안 또는 옵션 개별 선택<br>· 메인 사진 100장 사전 동의 확보</div></div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 16px;text-align:left"><div style="font-size:11px;font-weight:800;color:#fcd34d;margin-bottom:5px">공동</div><div style="font-size:12.5px;color:#fff;line-height:1.6">· 간편 인증(카카오·네이버) 심사 신청<br>· 탈락 시 문자 인증 단독 운영 확정<br>· 서비스명 · BI 방향 협의</div></div>
+  </div>
+  <div style="display:flex;gap:36px;justify-content:center;align-items:center">
+    <div style="text-align:center"><div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:3px">담당</div><div style="font-size:15px;font-weight:700;color:#fff">박두용 대표 · 함께워크_SI</div></div>
+    <div style="width:1px;height:34px;background:rgba(255,255,255,.2)"></div>
+    <div style="text-align:center"><div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:3px">이메일</div><div style="font-size:15px;font-weight:600;color:#fff">endy0718@naver.com</div></div>
+    <div style="width:1px;height:34px;background:rgba(255,255,255,.2)"></div>
+    <div style="text-align:center"><div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:3px">전화</div><div style="font-size:15px;font-weight:600;color:#fff">010-2807-5242</div></div>
+    <div style="width:1px;height:34px;background:rgba(255,255,255,.2)"></div>
+    <div style="text-align:center"><div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:3px">실 운영 참고</div><div style="font-size:15px;font-weight:600;color:#fff">tbfa.co.kr</div></div>
+  </div>
+  <div style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.4)">함께워크_SI · 자살유족협회 온라인 추모관 도입 제안서 및 견적 · 2026.10.06 · 견적 유효기간 60일</div>
+</div>
+
+</div><!-- /viewport -->
+</div><!-- /deck -->
+
+<!-- 네비게이션 -->
+<button class="nav-arr" id="aPrev" onclick="nav(-1)">&#8592;</button>
+<button class="nav-arr" id="aNext" onclick="nav(1)">&#8594;</button>
+<div class="dots-bar" id="dotsBar"></div>
+<div class="ctr" id="ctr">1 / 37</div>
+<div class="sec-ind" id="secInd">개요</div>
+
+<!-- 내보내기 툴바 -->
+<div class="exptools">
+  <button class="expbtn" id="btnPdf" onclick="exportDeck('pdf')"><span class="siren-icon-wrap" data-icon="arrow-down"></span> PDF 내보내기</button>
+  <button class="expbtn" id="btnPpt" onclick="exportDeck('ppt')"><span class="siren-icon-wrap" data-icon="arrow-down"></span> PPT 내보내기</button>
+</div>
+<div class="exp-overlay" id="expOverlay">
+  <div class="exp-spin"></div>
+  <div class="exp-msg" id="expMsg">내보내는 중…</div>
+  <div class="exp-sub" id="expSub">잠시만 기다려 주세요</div>
+</div>
+
+<script>
+// ── 안개 사진벽: 얼굴을 연상시키는 부드러운 타일을 결정적으로 생성 (실제 사진 아님) ──
+(function(){
+  var skin=['#e6d3c3','#dcc6b4','#d2bba8','#eadbcc','#cdb6a2','#e1cbb8'];
+  var cloth=['#9aa5b1','#b7a99a','#8e9aa6','#a3b1a0','#b9a8b8','#a7b6c2','#c2b49e','#8fa3a3','#b5a3a3','#9fb0b5'];
+  document.querySelectorAll('.wall').forEach(function(w){
+    var cols=+w.getAttribute('data-cols')||16, rows=+w.getAttribute('data-rows')||6, n=cols*rows, seed=11;
+    function rnd(){ seed=(seed*9301+49297)%233280; return seed/233280; }
+    for(var i=0;i<n;i++){
+      var s=skin[Math.floor(rnd()*skin.length)], c=cloth[Math.floor(rnd()*cloth.length)];
+      var fx=42+Math.floor(rnd()*16), fy=30+Math.floor(rnd()*10), fr=18+Math.floor(rnd()*8);
+      var bg=['#f3ece3','#e9e2d8','#eee6da','#f1e9df'][Math.floor(rnd()*4)];
+      var t=document.createElement('i');
+      t.style.background='radial-gradient(circle at '+fx+'% '+fy+'%, '+s+' 0 '+fr+'%, transparent '+(fr+1)+'%), radial-gradient(ellipse at 50% 108%, '+c+' 0 46%, transparent 47%), '+bg;
+      w.appendChild(t);
+    }
+  });
+})();
+
+// ── 섹션 라벨 · 점 색상: 각 슬라이드의 data-sec 속성에서 읽는다 ──
+const secColor = {'개요':'sc-a','회사·레퍼런스':'sc-b','기능 정의':'sc-c','화면 목업':'sc-c','기능 설명':'sc-c','기술 사양':'sc-d','견적 제안':'sc-e','일정 · 발전':'sc-d','마무리':'sc-a'};
+
+let cur = 0;
+const slides = Array.from(document.querySelectorAll('.slide'));
+const total = slides.length;
+const dotsBar = document.getElementById('dotsBar');
+
+slides.forEach((s,i) => {
+  const d = document.createElement('button');
+  d.className = 'dot ' + (secColor[s.getAttribute('data-sec')]||'sc-a');
+  if (i===0) d.classList.add('active');
+  d.onclick = () => goTo(i);
+  dotsBar.appendChild(d);
+});
+
+function goTo(n) {
+  if (n < 0 || n >= total || n === cur) return;
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('out');
+  const prev = cur;
+  cur = n;
+  slides[cur].classList.add('active');
+  setTimeout(() => slides[prev].classList.remove('out'), 400);
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===cur));
+  document.getElementById('ctr').textContent = (cur+1) + ' / ' + total;
+  document.getElementById('secInd').textContent = slides[cur].getAttribute('data-sec') || '';
+  try { history.replaceState(null, '', '#' + (cur+1)); } catch (e) {}
+}
+function nav(d) { goTo(cur+d); }
+
+document.addEventListener('keydown', e => {
+  if (['ArrowRight','ArrowDown',' '].includes(e.key)) nav(1);
+  if (['ArrowLeft','ArrowUp'].includes(e.key)) nav(-1);
+});
+
+slides[0].classList.add('active');
+document.getElementById('ctr').textContent = '1 / ' + total;
+// 주소창 #번호 로 특정 슬라이드 바로 열기 (예: /3#17)
+(function(){ var h=parseInt((location.hash||'').replace('#',''),10); if(h>1&&h<=total) goTo(h-1); })();
+
+// 뷰포트 스케일링
+function scaleVP() {
+  const vp = document.getElementById('vp');
+  const sw = window.innerWidth, sh = window.innerHeight;
+  const s = Math.min((sw-40)/1280, (sh-40)/720);
+  vp.style.transform = 'scale(' + s + ')';
+}
+scaleVP();
+window.addEventListener('resize', scaleVP);
+</script>
+
+<!-- ── PDF / PPT 내보내기 (라이브러리 지연 로드) ── -->
+<script>
+var _libs={
+  h2c:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  jspdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  pptx:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'
+};
+function _load(src){return new Promise(function(res,rej){
+  if([].some.call(document.scripts,function(s){return s.src===src})) return res();
+  var sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=function(){rej(new Error('라이브러리 로드 실패'));};document.head.appendChild(sc);
+});}
+function _ov(on,msg,sub){var o=document.getElementById('expOverlay');o.classList.toggle('on',on);if(msg!=null)document.getElementById('expMsg').textContent=msg;if(sub!=null)document.getElementById('expSub').textContent=sub;}
+function _stamp(canvas,idx,total){
+  var ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,txt=idx+' / '+total;
+  ctx.save();ctx.font='600 24px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  var tw=ctx.measureText(txt).width,padX=18,padY=10,bw=tw+padX*2,bh=24+padY*2,x=w-bw-28,y=h-bh-22,r=14;
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+bw,y,x+bw,y+bh,r);ctx.arcTo(x+bw,y+bh,x,y+bh,r);ctx.arcTo(x,y+bh,x,y,r);ctx.arcTo(x,y,x+bw,y,r);ctx.closePath();
+  ctx.fillStyle='rgba(15,23,42,0.55)';ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.92)';ctx.textBaseline='middle';ctx.fillText(txt,x+padX,y+bh/2+1);ctx.restore();
+}
+async function _capture(onProg){
+  var vp=document.getElementById('vp'),vpT=vp.style.transform;vp.style.transform='none';
+  var ss=Array.from(document.querySelectorAll('.slide')),shots=[];
+  for(var i=0;i<ss.length;i++){
+    var s=ss[i],pst=s.getAttribute('style')||'';
+    s.style.opacity='1';s.style.transform='none';s.style.pointerEvents='auto';
+    onProg(i+1,ss.length);
+    var canvas=await html2canvas(s,{width:1280,height:720,windowWidth:1280,windowHeight:720,scale:2,backgroundColor:null,logging:false,useCORS:true,
+      onclone:function(doc){
+        doc.querySelectorAll('.grad,.grad2').forEach(function(el){el.style.background='none';el.style.webkitTextFillColor='';el.style.color=el.classList.contains('grad2')?'#60a5fa':'#fbbf24';});
+        doc.querySelectorAll('.lan,.cov-lan').forEach(function(el){el.style.animation='none';});
+      }});
+    _stamp(canvas,i+1,ss.length);
+    shots.push(canvas.toDataURL('image/jpeg',0.92));
+    s.setAttribute('style',pst);
+  }
+  vp.style.transform=vpT;scaleVP();
+  return shots;
+}
+async function exportDeck(kind){
+  var bP=document.getElementById('btnPdf'),bT=document.getElementById('btnPpt');bP.disabled=true;bT.disabled=true;
+  var name='자살유족협회_온라인추모관_도입제안서_견적';
+  try{
+    _ov(true,(kind==='pdf'?'PDF':'PPT')+' 생성 준비 중…','라이브러리 불러오는 중');
+    await _load(_libs.h2c);await _load(kind==='pdf'?_libs.jspdf:_libs.pptx);
+    var shots=await _capture(function(n,t){_ov(true,(kind==='pdf'?'PDF':'PPT')+' 생성 중…','슬라이드 캡처 '+n+' / '+t);});
+    _ov(true,'파일 저장 중…','거의 다 됐습니다');
+    if(kind==='pdf'){
+      var jsPDF=window.jspdf.jsPDF,pdf=new jsPDF({orientation:'landscape',unit:'px',format:[1280,720]});
+      shots.forEach(function(img,i){if(i>0)pdf.addPage([1280,720],'landscape');pdf.addImage(img,'JPEG',0,0,1280,720);});
+      pdf.save(name+'.pdf');
+    }else{
+      var pptx=new PptxGenJS();pptx.defineLayout({name:'W16',width:13.333,height:7.5});pptx.layout='W16';
+      shots.forEach(function(img){pptx.addSlide().addImage({data:img,x:0,y:0,w:13.333,h:7.5});});
+      await pptx.writeFile({fileName:name+'.pptx'});
+    }
+    _ov(false);
+  }catch(e){_ov(false);alert('내보내기 실패: '+(e&&e.message||e));}
+  finally{bP.disabled=false;bT.disabled=false;}
+}
+</script>
+</body>
+</html>
