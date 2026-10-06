@@ -89,7 +89,14 @@ export default async (req: Request) => {
       views: activityPosts.views,
       publishedAt: activityPosts.publishedAt,
     }).from(activityPosts).where(where)
-      .orderBy(desc(activityPosts.isPinned), desc(activityPosts.publishedAt))
+      /* ★ 2026-10-07 정책국장 요청 — 쓴 순서가 아니라 활동의 연도·월 순으로 놓는다.
+         (월을 안 적은 글은 그 해의 맨 뒤) 같은 달이면 발행일 최신순. 상단 고정은 그대로 맨 위. */
+      .orderBy(
+        desc(activityPosts.isPinned),
+        desc(activityPosts.year),
+        sqlExp`${activityPosts.month} DESC NULLS LAST`,
+        desc(activityPosts.publishedAt),
+      )
       .limit(limit).offset((page - 1) * limit);
 
     /* 연도별 카운트 (필터 UI용) */

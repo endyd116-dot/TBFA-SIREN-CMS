@@ -1,7 +1,7 @@
 // netlify/functions/admin-activity-posts.ts
 // M-11: 주요 활동 게시글 CRUD (어드민)
 
-import { eq, and, desc, count, or, like } from "drizzle-orm";
+import { eq, and, desc, count, or, like, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { activityPosts } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -84,7 +84,14 @@ export default async (req: Request) => {
         createdAt: activityPosts.createdAt,
         updatedAt: activityPosts.updatedAt,
       }).from(activityPosts).where(where as any)
-        .orderBy(desc(activityPosts.isPinned), desc(activityPosts.publishedAt), desc(activityPosts.createdAt))
+        /* ★ 2026-10-07 정책국장 요청 — 공개 화면과 같은 기준: 연도·월 순(월 없음은 그 해 맨 뒤) → 발행일 → 작성일 */
+        .orderBy(
+          desc(activityPosts.isPinned),
+          desc(activityPosts.year),
+          sql`${activityPosts.month} DESC NULLS LAST`,
+          desc(activityPosts.publishedAt),
+          desc(activityPosts.createdAt),
+        )
         .limit(limit).offset((page - 1) * limit);
 
       return ok({

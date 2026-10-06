@@ -744,4 +744,11 @@
     if (typeof prevInit === 'function') prevInit();
     init();
   };
+
+  /* ★ 2026-10-07: 공용 스크립트가 페이지 초기화를 이미 끝낸 뒤라면(순서가 어긋난 경우) 직접 시작한다.
+     2026-08-20~10-07 사이 메인 화면 편집(히어로·퀵메뉴)이 라이브에 반영되지 않던 원인이
+     바로 이 순서 어긋남이었다(common.js 쪽 수정이 근본 조치, 여기는 안전망). */
+  if (window.SIREN && typeof window.SIREN.pageInitDone === 'function' && window.SIREN.pageInitDone()) {
+    init();
+  }
 })();

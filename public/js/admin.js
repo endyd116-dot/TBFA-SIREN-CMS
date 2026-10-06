@@ -1530,6 +1530,45 @@ const OPERATOR_CATEGORIES = [
   }
 
   /* ===== 공지 모달 열기 ===== */
+  /* ★ 2026-10-07 정책국장 요청 — 공지 본문 편집기(썬에디터). 사진·글자 크기·색·정렬·표가 된다.
+     포스터·카드뉴스 공지에 쓴다. 편집기를 못 불러오면(차단망 등) 숨겨 둔 입력칸을 다시 보여
+     글만이라도 쓸 수 있게 한다. 편집기는 창이 보일 때 만들어야 폭이 제대로 잡힌다. */
+  let _noticeEditor = null;
+  async function ensureNoticeEditor() {
+    const host = document.getElementById('noticeEditEditor');
+    const ta = document.getElementById('noticeEditContent');
+    if (_noticeEditor) return _noticeEditor;
+    if (!host || !window.SirenPageEditor) { if (ta) ta.style.display = ''; return null; }
+    try {
+      _noticeEditor = await window.SirenPageEditor.create({
+        el: host,
+        height: '420px',
+        uploadContext: 'notice',
+        placeholder: '내용을 입력하세요. 포스터·카드뉴스 사진은 끌어다 놓으면 올라갑니다.',
+      });
+    } catch (e) {
+      console.error('[notice editor]', e);
+      if (ta) ta.style.display = '';
+    }
+    return _noticeEditor;
+  }
+  function setNoticeContent(html) {
+    const ta = document.getElementById('noticeEditContent');
+    if (ta) ta.value = html || '';
+    if (_noticeEditor) _noticeEditor.setHTML(html || '');
+  }
+  function getNoticeContent() {
+    const ta = document.getElementById('noticeEditContent');
+    const raw = _noticeEditor ? _noticeEditor.getHTML() : (ta ? ta.value : '');
+    /* 빈 편집기는 <p><br></p> 같은 껍데기를 돌려준다 — 글자도 사진도 없으면 빈 것으로 본다 */
+    const plain = String(raw || '')
+      .replace(/<(img|video|iframe)[^>]*>/gi, '[media]')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+    return plain ? String(raw).trim() : '';
+  }
+
   async function openNoticeEditModal(id) {
     const modal = document.getElementById('noticeEditModal');
     if (!modal) return;
@@ -1561,6 +1600,9 @@ const OPERATOR_CATEGORIES = [
       if (pinEl) pinEl.checked = false;
       if (pubEl) pubEl.checked = true;
       modal.classList.add('show');
+      /* 편집기는 창이 보인 뒤에 만든다(폭 계산) — 그다음 비운다 */
+      await ensureNoticeEditor();
+      setNoticeContent('');
       setTimeout(() => tEl?.focus(), 100);
       return;
     }
@@ -1592,7 +1634,8 @@ const OPERATOR_CATEGORIES = [
     if (thumbEl) thumbEl.value = n.thumbnailUrl || '';
     if (tEl) tEl.value = n.title || '';
     if (exEl) exEl.value = n.excerpt || '';
-    if (cEl) cEl.value = n.content || '';
+    await ensureNoticeEditor();
+    setNoticeContent(n.content || '');
     if (pinEl) pinEl.checked = !!n.isPinned;
     if (pubEl) pubEl.checked = n.isPublished !== false;
   }
@@ -1652,7 +1695,7 @@ const OPERATOR_CATEGORIES = [
       const body = {
         category: document.getElementById('noticeEditCategory').value || 'general',
         title: document.getElementById('noticeEditTitle').value.trim(),
-        content: document.getElementById('noticeEditContent').value.trim(),
+        content: getNoticeContent(),
         excerpt: document.getElementById('noticeEditExcerpt').value.trim() || undefined,
         thumbnailUrl: document.getElementById('noticeEditThumb').value.trim() || undefined,
         isPinned: document.getElementById('noticeEditPinned').checked,

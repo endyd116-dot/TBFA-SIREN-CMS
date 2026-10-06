@@ -5083,7 +5083,12 @@
           </div>
           <div class="fg">
             <label>본문 <span style="color:var(--danger)">*</span></label>
-            <textarea id="noticeEditContent" required rows="12" placeholder="HTML 태그 사용 가능"></textarea>
+            <!-- ★ 2026-10-07 정책국장 요청 — 글만 되던 본문을 사진·글자 서식이 되는 편집기로.
+                 포스터·카드뉴스 공지는 사진을 끌어다 놓으면 올라간다.
+                 편집기를 못 불러오면(차단망 등) 아래 입력칸이 대신 나타난다. -->
+            <div id="noticeEditEditor"></div>
+            <textarea id="noticeEditContent" rows="12" placeholder="HTML 태그 사용 가능" style="display:none"></textarea>
+            <div style="font-size:12px;color:var(--text-3);margin-top:6px">사진은 끌어다 놓거나 툴바의 사진 단추로 올립니다(자동 압축). 글자 크기·색·정렬·표는 툴바에서 바꿉니다.</div>
           </div>
           <div class="toggle-row">
             <label><input type="checkbox" id="noticeEditPinned"> <span class="siren-icon-wrap" data-icon="pin"></span> 상단 고정</label>
@@ -5870,10 +5875,12 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20260813-nofla"></script>
+  <script src="/js/admin.js?v=20261007-notice"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
   <script src="/js/editor.js?v=20260819-popup"></script>
+  <!-- ★ 2026-10-07: 공지 본문용 리치 편집기(썬에디터 래퍼) — 페이지 통 편집과 같은 것 -->
+  <script src="/js/editor-page.js?v=20261007-notice"></script>
   <script src="/js/attachment.js?v=2027-05"></script>
   <script src="/js/admin-content.js?v=20260712-noemoji"></script>
   <script src="/js/admin-signup-sources.js?v=20260712-noemoji"></script>

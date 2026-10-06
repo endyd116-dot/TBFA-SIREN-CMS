@@ -36,6 +36,11 @@
 
   const IS_PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
 
+  /* ★ 2026-10-07: 지연(defer) 스크립트가 **모두** 실행된 뒤인지 — DOMContentLoaded가 그 기준이다.
+     페이지 전용 초기화(SIREN_PAGE_INIT)는 이 시점 이후에만 부른다(§14 schedulePageInit 참고). */
+  let DOM_READY = document.readyState === 'complete';
+  document.addEventListener('DOMContentLoaded', function () { DOM_READY = true; }, { once: true });
+
   /* 저장해 둔 값 읽기/쓰기 — 저장 공간이 막혀 있어도 그냥 넘어간다(비공개 모드 등) */
   function storeGet(key) {
     if (IS_PREVIEW) return null;   // 미리보기는 항상 최신값만
@@ -765,9 +770,30 @@
     setupCommonForms();
     setupPreviewBanner();
     /* 로고·협회명은 위에서 이미 시작·반영했다 (예전엔 여기서 시작해 한 박자 늦게 바뀌었음) */
+    schedulePageInit();
+  }
+
+  /* ★ 2026-10-07 — 페이지 전용 초기화는 **모든 지연 스크립트가 등록을 마친 뒤** 부른다.
+     2026-08-20부터 서버가 머리말·꼬리말을 미리 채워 보내면서 조각 로딩이 기다림 없이 끝났고,
+     그 바람에 이 호출이 home.js 등 **뒤에 오는 스크립트가 SIREN_PAGE_INIT을 등록하기도 전에**
+     실행돼 버렸다(그 시점엔 등록된 함수가 없어 아무 일도 안 일어남).
+     → 메인 화면 편집(히어로 슬라이드·퀵메뉴)이 라이브에 한 번도 반영되지 않고 코드에 박힌
+       기본값만 보이던 원인. 미리보기 주소(?preview=1)에서만 정상으로 보여 혼란을 줬다.
+     DOMContentLoaded는 defer 스크립트가 전부 실행된 뒤에 발생하므로 그때를 기준으로 삼는다.
+     조각을 네트워크로 받아 오는 경우(이미 그 뒤)는 예전처럼 즉시 부른다. */
+  let pageInitFired = false;
+  function firePageInit() {
+    if (pageInitFired) return;
+    pageInitFired = true;
     if (typeof window.SIREN_PAGE_INIT === 'function') {
-      window.SIREN_PAGE_INIT();
+      try { window.SIREN_PAGE_INIT(); } catch (e) { console.error('[SIREN] 페이지 초기화 실패', e); }
     }
+  }
+  function schedulePageInit() {
+    if (DOM_READY) { firePageInit(); return; }
+    document.addEventListener('DOMContentLoaded', firePageInit, { once: true });
+    /* DOMContentLoaded를 이미 지난 뒤에 이 스크립트가 끼어든 경우의 안전망 */
+    window.addEventListener('load', firePageInit, { once: true });
   }
 
   if (document.readyState === 'loading') {
@@ -808,6 +834,8 @@
     loadWithCache,
     cache: { get: storeGet, set: storeSet },
     isPreview: IS_PREVIEW,
+    /* ★ 2026-10-07: 페이지 초기화가 이미 지나갔는지 — 늦게 등록한 화면 스크립트가 스스로 시작할 때 쓴다 */
+    pageInitDone: () => pageInitFired,
   };
 
 })();
