@@ -15,11 +15,17 @@ export function rowsOf(r: any): any[] {
   return Array.isArray(r) ? r : (r.rows ?? []);
 }
 
-let _ready: boolean | null = null;
+let _ready = false;
+let _lastMiss = 0;
+const RECHECK_MS = 30 * 1000;
 
-/** 표가 준비됐는지 — 한 번 확인하면 함수가 사는 동안 기억한다 */
+/** 표가 준비됐는지.
+ *  ★ "있음"만 기억한다. "없음"을 함수가 사는 동안 기억하면, 운영자가 마이그를 호출한 뒤에도
+ *  살아 있는 함수 인스턴스가 계속 "없음"이라 답해 기능이 늦게 켜진다(2026-10-07 실측 — 배포나
+ *  인스턴스 교체 때까지 징검다리가 ready:false). 없음일 때는 30초마다 다시 본다. */
 export async function timelineTableReady(): Promise<boolean> {
-  if (_ready !== null) return _ready;
+  if (_ready) return true;
+  if (Date.now() - _lastMiss < RECHECK_MS) return false;
   try {
     const t = rowsOf(await db.execute(sql`
       SELECT table_name FROM information_schema.tables
@@ -29,6 +35,7 @@ export async function timelineTableReady(): Promise<boolean> {
   } catch {
     _ready = false;
   }
+  if (!_ready) _lastMiss = Date.now();
   return _ready;
 }
 

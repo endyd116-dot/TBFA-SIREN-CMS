@@ -19,11 +19,16 @@ function rowsOf(r: any): any[] {
   return Array.isArray(r) ? r : (r.rows ?? []);
 }
 
-let _ready: boolean | null = null;
+let _ready = false;
+let _lastMiss = 0;
+const RECHECK_MS = 30 * 1000;
 
-/** 더해진 칸이 모두 준비됐는지 — 한 번 확인하면 함수가 사는 동안 기억한다 */
+/** 더해진 칸이 모두 준비됐는지.
+ *  ★ "있음"만 기억한다. "없음"을 함수가 사는 동안 기억하면 운영자가 마이그를 호출한 뒤에도
+ *  살아 있는 인스턴스가 계속 건너뛰어 출판 동의가 저장되지 않는다. 없음일 때는 30초마다 다시 본다. */
 export async function letterExtrasReady(): Promise<boolean> {
-  if (_ready !== null) return _ready;
+  if (_ready) return true;
+  if (Date.now() - _lastMiss < RECHECK_MS) return false;
   try {
     const rows = rowsOf(await db.execute(sql`
       SELECT column_name FROM information_schema.columns
@@ -34,6 +39,7 @@ export async function letterExtrasReady(): Promise<boolean> {
   } catch {
     _ready = false;
   }
+  if (!_ready) _lastMiss = Date.now();
   return _ready;
 }
 
