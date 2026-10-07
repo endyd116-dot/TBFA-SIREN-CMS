@@ -5081,11 +5081,15 @@
             <label>요약 <span style="font-weight:400;color:var(--text-3)">(목록에 표시될 짧은 설명)</span></label>
             <input type="text" id="noticeEditExcerpt" maxlength="300" placeholder="(선택) 짧은 요약">
           </div>
+        </form>
+        <!-- ★ 2026-10-07 정책국장 요청 — 글만 되던 본문을 사진·글자 서식이 되는 편집기(썬에디터)로.
+             포스터·카드뉴스 공지는 사진을 끌어다 놓으면 올라간다. 편집기를 못 불러오면(차단망 등) 아래 입력칸이 대신 나타난다.
+             ※ 편집기는 공지 폼(form) **밖**에 둔다 — 편집기 안의 사진·링크 대화상자가 자기 폼을 갖고 있어
+                폼 안에 넣으면 폼이 겹치고, 제목 칸에서 Enter로 제출될 때 대화상자 단추가 먼저 눌려 저장이 안 된다(10-07 실측).
+                그래서 저장 단추는 type=button 으로 저장 함수를 직접 부른다. -->
+        <div class="cm-modal-form" id="noticeEditBodyWrap">
           <div class="fg">
             <label>본문 <span style="color:var(--danger)">*</span></label>
-            <!-- ★ 2026-10-07 정책국장 요청 — 글만 되던 본문을 사진·글자 서식이 되는 편집기로.
-                 포스터·카드뉴스 공지는 사진을 끌어다 놓으면 올라간다.
-                 편집기를 못 불러오면(차단망 등) 아래 입력칸이 대신 나타난다. -->
             <div id="noticeEditEditor"></div>
             <textarea id="noticeEditContent" rows="12" placeholder="HTML 태그 사용 가능" style="display:none"></textarea>
             <div style="font-size:12px;color:var(--text-3);margin-top:6px">사진은 끌어다 놓거나 툴바의 사진 단추로 올립니다(자동 압축). 글자 크기·색·정렬·표는 툴바에서 바꿉니다.</div>
@@ -5095,10 +5099,10 @@
             <label><input type="checkbox" id="noticeEditPublished" checked> <span class="siren-icon-wrap" data-icon="globe"></span> 공개</label>
           </div>
           <div style="display:flex;gap:10px;margin-top:18px">
-            <button type="submit" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
+            <button type="button" id="noticeEditSaveBtn" class="btn btn-primary" style="flex:1"><span class="siren-icon-wrap" data-icon="save"></span> 저장</button>
             <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </div>
@@ -5875,7 +5879,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20261007-notice"></script>
+  <script src="/js/admin.js?v=20261007-notice2"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
   <script src="/js/editor.js?v=20260819-popup"></script>

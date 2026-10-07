@@ -1689,8 +1689,14 @@ const OPERATOR_CATEGORIES = [
     const form = document.getElementById('noticeEditForm');
     if (!form) return;
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    /* ★ 2026-10-07: 편집기가 폼 밖으로 나가면서 저장 단추(type=button)가 저장 함수를 직접 부른다.
+       폼 자체의 제출(제목 칸 Enter 등)도 같은 함수로 받는다. */
+    const saveBtn = document.getElementById('noticeEditSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', (e) => saveNotice(e));
+    form.addEventListener('submit', (e) => saveNotice(e));
+
+    async function saveNotice(e) {
+      if (e && e.preventDefault) e.preventDefault();
       const id = document.getElementById('noticeEditId').value;
       const body = {
         category: document.getElementById('noticeEditCategory').value || 'general',
@@ -1706,7 +1712,7 @@ const OPERATOR_CATEGORIES = [
         return toast('제목과 본문을 입력해 주세요');
       }
 
-      const submitBtn = form.querySelector('button[type="submit"]');
+      const submitBtn = saveBtn || form.querySelector('button[type="submit"]');
       const oldText = submitBtn ? submitBtn.textContent : '';
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '저장 중...'; }
 
@@ -1731,7 +1737,7 @@ const OPERATOR_CATEGORIES = [
       } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = oldText; }
       }
-    });
+    }
   }
 
   /* ===== FAQ 폼 제출 ===== */
