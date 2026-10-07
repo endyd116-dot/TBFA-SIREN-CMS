@@ -208,11 +208,29 @@ export function revealHomePending(html: string): string {
 
 /** 목록 자리를 통째로 교체한다. 못 찾으면 원본 그대로(안전). */
 export function replaceById(html: string, id: string, inner: string): string {
-  const re = new RegExp(`(<(\\w+)\\b[^>]*\\bid="${id}"[^>]*>)([\\s\\S]*?)(</\\2>)`);
-  if (!re.test(html)) return html;
-  return html.replace(re, (_m, open: string, _tag: string, _old: string, close: string) =>
-    open + inner + close
-  );
+  const openRe = new RegExp(`<(\\w+)\\b[^>]*\\bid="${id}"[^>]*>`);
+  const m = openRe.exec(html);
+  if (!m) return html;
+  const tag = m[1];
+  const start = m.index + m[0].length;
+
+  /* ★ 2026-10-07: 안에 같은 태그가 겹쳐 있으면(예: 자리표시 <div class="act-empty"><div class="icon">…)
+     예전 정규식은 **첫 닫는 태그**에서 멈춰 자리표시의 꼬리("불러오는 중...")를 요소 밖으로 밀어냈다
+     → 활동·소식 등 서버가 미리 채우는 목록 페이지 아래에 "불러오는 중..."이 남아 보이던 원인.
+     같은 태그의 여닫음을 세어 짝이 맞는 닫는 태그까지를 바꾼다. */
+  const tokenRe = new RegExp(`<(/?)${tag}\\b[^>]*>`, "gi");
+  tokenRe.lastIndex = start;
+  let depth = 1;
+  let t: RegExpExecArray | null;
+  while ((t = tokenRe.exec(html))) {
+    if (t[1] === "/") {
+      depth -= 1;
+      if (depth === 0) return html.slice(0, start) + inner + html.slice(t.index);
+    } else if (!t[0].endsWith("/>")) {
+      depth += 1;
+    }
+  }
+  return html;
 }
 
 /** 지정 id 요소의 여는 태그에 속성 하나를 덧붙인다(이미 있으면 값을 바꾼다). 못 찾으면 원본 그대로. */
