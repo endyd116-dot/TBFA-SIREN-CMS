@@ -56,6 +56,21 @@
   function days(n) {
     return (Math.round(Number(n || 0) * 100) / 100).toString();
   }
+  /* 일람의 '지급일' 칸 — 급여가 실제로 계산되는 일수(출근 + 유급휴가). 출근일수와 다르면 내역을 작게 붙인다.
+     2026-10-08: 유급 반차·반반차로 쉰 몫이 지급에 더해지면서 출근일수(16.25)와 지급일수(17)가 달라질 수 있게 됐는데,
+     일람은 출근일수·상세는 지급일수를 보여 혼동(Swain 지적). 일람도 지급일수를 앞세운다. */
+  function payDaysCell(r) {
+    var snap = r.calculationSnapshot || {};
+    var dv = snap.derived || {};
+    var worked = Number(r.workingDays || 0);
+    var pay = (dv.paidDays != null) ? Number(dv.paidDays) : worked + Number(r.paidLeaveDays || 0);
+    var leavePart = Math.round((pay - worked) * 100) / 100;
+    var html = '<b>' + days(pay) + '</b>';
+    if (Math.abs(leavePart) >= 0.005) {
+      html += '<div style="font-size:11px;color:#6b7280;white-space:nowrap">출근 ' + days(worked) + ' + 유급 ' + days(leavePart) + '</div>';
+    }
+    return html;
+  }
 
   function statusBadge(s) {
     return '<span class="status-badge s-' + esc(s) + '">' + esc(s) + '</span>';
@@ -206,7 +221,7 @@
       return '<tr>' +
         '<td>' + name + editMark + '</td>' +
         '<td>' + role + '</td>' +
-        '<td class="r">' + days(r.workingDays) + '</td>' +
+        '<td class="r">' + payDaysCell(r) + '</td>' +
         '<td class="r">' + won(r.baseSalaryMonth) + '</td>' +
         '<td class="r">' + won(r.performanceBonus) + '</td>' +
         '<td class="r" style="font-weight:700">' + won(r.grossPay) + '</td>' +
