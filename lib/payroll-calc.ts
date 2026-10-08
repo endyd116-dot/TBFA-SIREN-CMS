@@ -141,6 +141,26 @@ const PERIOD_TEXT: Record<string, string> = {
   LATE_IN: "반반차(늦게 출근)", EARLY_OUT: "반반차(일찍 퇴근)",
 };
 
+/** 출근으로 기록된 상태값 */
+const ATTENDED_STATUSES = ["NORMAL", "LATE", "EARLY_LEAVE", "PARTIAL_LEAVE"];
+
+/**
+ * '출근으로 기록된 날' SQL 판정 — 집계 쿼리의 attended·unrecognized·counts_for_pay 세 곳이 같은 식을 쓴다.
+ * (ar = att_records, hol = 그날의 att_holidays 조인)
+ *
+ * 2026-10-08 fix: 공휴일 여부의 기준은 '지금의 공휴일 설정표(att_holidays)' 하나뿐이다.
+ *   출근을 찍을 때 그날이 공휴일이면 근태 기록에 상태 'HOLIDAY'가 찍히는데, 운영자가 나중에
+ *   그 공휴일을 설정에서 지워도 이 도장은 남는다. 예전엔 도장이 남은 날을 '출근 안 한 날'로 봐서
+ *   공휴일을 지우고 재집계해도 그날이 계속 미지급으로 남았다
+ *   (실측 2026-09-28: 잘못 등록된 '추석 대체공휴일'을 지웠는데 8시간 근무한 직원이 계속 미지급).
+ *   → 'HOLIDAY' 도장이 있어도 그날이 더 이상 공휴일이 아니고 출근 시각이 있으면 보통 출근으로 본다.
+ *   (반대로 나중에 공휴일로 추가된 날은 hol 조인으로 이미 지급에서 빠진다 — 도장과 무관.)
+ */
+const ATTENDED_SQL = sql`(
+  COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+  OR (COALESCE(ar.status, '') = 'HOLIDAY' AND hol.id IS NULL AND ar.check_in_time IS NOT NULL)
+)`;
+
 /**
  * 영업일 한 줄씩 훑어 '못 받은 날 + 이유'를 만든다.
  * 지급일수 집계 쿼리와 같은 판정 순서를 쓴다 — 둘이 어긋나면 합계가 안 맞아 신뢰를 잃는다.
@@ -157,7 +177,9 @@ function buildUnpaidDetail(
     if (!date) continue;
 
     const status = String(r.status ?? "");
-    const attended = ["NORMAL", "LATE", "EARLY_LEAVE", "PARTIAL_LEAVE"].includes(status);
+    /* ATTENDED_SQL 과 같은 규칙 — 공휴일 도장(HOLIDAY)이 남은 날도 지금 공휴일이 아니고 출근 시각이 있으면 출근 */
+    const attended = ATTENDED_STATUSES.includes(status)
+      || (status === "HOLIDAY" && !r.is_holiday && r.has_checkin === true);
     const mins = r.working_mins == null ? null : Number(r.working_mins);
     const leaveDays = r.leave_days == null ? null : Number(r.leave_days);
     const leavePaid = r.leave_paid === true;
@@ -343,8 +365,8 @@ export async function calculatePayrollForMonth(
         FROM (
           SELECT
             ar.status, ar.working_mins, ar.overtime_mins,
-            /* 출근으로 기록된 날 */
-            (COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')) AS attended,
+            /* 출근으로 기록된 날 (ATTENDED_SQL — 공휴일 도장이 남은 날의 처리 포함) */
+            ${ATTENDED_SQL} AS attended,
             /* 근무일이 아닌 날 (주말 · 공휴일) */
             (EXTRACT(DOW FROM ar.date) IN (0, 6) OR hol.id IS NOT NULL) AS is_off_day,
             /* 재택보고서 미제출 → 근무 불인정.
@@ -354,10 +376,10 @@ export async function calculatePayrollForMonth(
                (실측: 2026-08 근무형태 없는 이틀이 지급에서 누락 — 빠진 날 목록에는 뜨지도 않음). */
             (COALESCE(ar.work_mode, '') = 'REMOTE'
               AND ar.date >= ${REMOTE_REPORT_REQUIRED_FROM}::date
-              AND COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+              AND ${ATTENDED_SQL}
               AND rep.id IS NULL) AS unrecognized,
             /* 급여 지급일수로 셀 수 있는 날 */
-            (COALESCE(ar.status, '') IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE')
+            (${ATTENDED_SQL}
               AND EXTRACT(DOW FROM ar.date) NOT IN (0, 6)
               AND hol.id IS NULL
               AND ar.working_mins IS NOT NULL
@@ -420,6 +442,7 @@ export async function calculatePayrollForMonth(
             d::date::text AS date,
             (hol.id IS NOT NULL) AS is_holiday,
             ar.status, ar.work_mode, ar.working_mins,
+            (ar.check_in_time IS NOT NULL) AS has_checkin,
             (rep.id IS NOT NULL) AS has_report,
             lv.leave_name, lv.leave_paid, lv.leave_days, lv.half_day_period
           FROM generate_series(${first}::date, ${last}::date, interval '1 day') d

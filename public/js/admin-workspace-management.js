@@ -946,10 +946,13 @@
   }
 
   window.awmDeleteHoliday = async (id) => {
-    if (!confirm('이 공휴일을 삭제하시겠습니까?')) return;
+    if (!confirm('이 공휴일을 삭제하시겠습니까?\n\n그날 공휴일로 표시돼 있던 근태 기록은 평일 기준으로 다시 판정됩니다.\n급여는 급여관리에서 [재집계]를 눌러야 반영됩니다.')) return;
     const res = await api(`/api/admin-att-holidays?id=${id}`, { method: 'DELETE' });
     if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || '')); return; }
-    toast('삭제되었습니다');
+    /* 2026-10-08: 서버가 그날 '공휴일'로 찍힌 근태 기록을 평일 기준으로 재판정한 건수를 함께 준다 */
+    const d = res.data?.data || res.data || {};
+    const n = Number(d.rejudged || 0);
+    toast('삭제되었습니다' + (n ? ' · 그날 근태 기록 ' + n + '건을 평일 기준으로 다시 판정했습니다 (급여는 [재집계] 후 반영)' : ''));
     await loadHolidays();
   };
 
@@ -969,7 +972,10 @@
       if (btn) btn.disabled = false;
       return;
     }
-    toast('공휴일이 추가되었습니다');
+    /* 2026-10-08: 그날 이미 찍힌 출근·결근 기록을 공휴일로 표시한 건수를 함께 안내 */
+    const d = res.data?.data || res.data || {};
+    const n = Number(d.stamped || 0);
+    toast('공휴일이 추가되었습니다' + (n ? ' · 그날 근태 기록 ' + n + '건을 공휴일로 표시했습니다 (급여는 [재집계] 후 반영)' : ''));
     if (btn) btn.disabled = false;
     hideEl('awmHolidayForm');
     await loadHolidays();
