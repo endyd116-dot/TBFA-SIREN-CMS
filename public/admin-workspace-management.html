@@ -666,6 +666,9 @@
         <p style="color:#64748b;font-size:13px;margin:0 0 14px;line-height:1.5">
           직원 연차를 어떤 방식으로 적립할지 선택합니다. 5인 이하 사업장은 <b>월 만근 적립</b>, 5인 이상은 <b>근속 기반</b>을 권장합니다. 한 번에 한 방식만 적용됩니다.
         </p>
+        <p style="color:#b45309;font-size:12.5px;margin:-6px 0 14px;line-height:1.5;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 10px">
+          <b>2026-10-08 운영 정책</b> — 유급휴가는 <b>전월 만근</b>일 때만 자동으로 부여됩니다. 그 밖의 월별·자동 부여(근속 기반 등)는 선택해도 적용되지 않으며, 추가 부여가 필요하면 아래 <b>휴가 잔여 관리</b>에서 사유를 적어 직접 조정합니다.
+        </p>
         <div class="att-form-row">
           <div class="att-form-group" style="flex:1">
             <label>산정 방식</label>
@@ -673,8 +676,8 @@
               <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
                 <input type="radio" name="awmLeaveMode" value="A"> 월 만근 적립 (5인 이하)
               </label>
-              <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
-                <input type="radio" name="awmLeaveMode" value="B"> 근속 기반 (5인 이상)
+              <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:not-allowed;color:#94a3b8" title="2026-10-08 정책: 만근 외 자동 부여 없음 — 선택해도 적용되지 않습니다">
+                <input type="radio" name="awmLeaveMode" value="B" disabled> 근속 기반 (5인 이상) — 비활성
               </label>
             </div>
           </div>

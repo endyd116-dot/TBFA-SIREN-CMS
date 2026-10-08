@@ -95,7 +95,12 @@ export default async function handler(req: Request) {
 
     try {
       const existing = await getOrSeedDefault();
-      const mode = body.leaveAccrualMode === "B" ? "B" : "A";
+      /* Swain 정책(2026-10-08): 유급휴가 자동 부여는 '만근 보너스'(모드 A)만. 근속 기반(모드 B)은 저장 자체를 막는다
+         (크론도 B를 무시하지만, 설정값이 B로 남아 혼동되지 않도록 여기서도 A 고정). */
+      const mode = "A";
+      if (body.leaveAccrualMode === "B") {
+        console.warn("[admin-att-leave-policy] 모드 B 저장 요청 무시 — 2026-10-08 정책(만근 외 자동 부여 금지)");
+      }
       const next = {
         leaveAccrualMode:     mode,
         annualBaseDays:       String(toNum(body.annualBaseDays,       Number(existing.annualBaseDays),       0, 365)),

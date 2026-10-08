@@ -72,6 +72,13 @@ export default async (_req: Request, _ctx: Context) => {
     } catch (err: any) {
       console.warn("[cron-att-leave-auto] 정책 로드 실패 — 기본값(모드 A) 사용:", err?.message);
     }
+    /* Swain 정책(2026-10-08): 유급휴가는 '전월 만근'일 때만 자동 부여한다. 그 밖의 어떤 자동·월별 부여도 없다.
+       근속 기반(모드 B·입사 기념일 연차) 자동 부여는 설정 화면에서 B를 골라도 실행하지 않는다 — 여기서 A로 고정.
+       (5인 미만 사업장이라 근로기준법 연차 조항 미적용·내규는 만근 보너스만) */
+    if (policy.mode === "B") {
+      console.warn("[cron-att-leave-auto] 모드 B(근속 기반 자동 부여)는 2026-10-08 정책으로 비활성 — 만근 보너스만 적용");
+      policy.mode = "A";
+    }
     console.info(`[cron-att-leave-auto] 정책 모드=${policy.mode} base=${policy.baseDays} inc=${policy.incDays}/${policy.incYears}y cap=${policy.capDays} bonus=${policy.perfectBonus}`);
 
     // "연차" 휴가 타입 조회 (is_paid=true, 이름에 "연차" 포함 우선)
@@ -172,7 +179,9 @@ export default async (_req: Request, _ctx: Context) => {
     //   입사월 == 당월 && 1주년 이상. 입사일 = hire_date ?? createdAt(가입일 폴백).
     //   days = base + floor((근속년수-1)/incYears)*incDays, 상한 cap.
     //   ON CONFLICT 시 GREATEST 로 기존 잔여 보존(P1-14: 적립분 손실 방지).
-    for (const op of (policy.mode === "B" ? activeOps : [])) {
+    //   2026-10-08 Swain 정책: 근속 기반 자동 부여 영구 비활성(만근 보너스만) — 위에서 모드를 A로 고정했으므로 이 구간은 돌지 않는다.
+    const MODE_B_AUTO_GRANT_ENABLED = false;
+    for (const op of (MODE_B_AUTO_GRANT_ENABLED ? activeOps : [])) {
       try {
         const hireRaw = op.hireDate ?? op.createdAt;
         if (!hireRaw) continue;

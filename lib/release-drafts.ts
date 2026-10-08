@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-10-08.3";
+export const APP_VERSION = "2026-10-08.4";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-10-08-leave-grant-perfect-only",
+    title: "유급휴가 자동 부여는 '전월 만근'일 때만 — 그 밖의 월별·자동 부여 없음 (운영 정책)",
+    items: [
+      { text: "유급휴가(연차)는 전월 만근인 직원에게만 매월 1일 자동으로 1일이 부여됩니다. 근속 기반(입사 기념일) 자동 부여 방식은 설정에서 선택해도 적용되지 않도록 막았습니다. 추가 부여가 필요하면 운영자가 휴가 잔여 관리에서 사유를 적어 직접 조정합니다", link: "/cms-tbfa.html#att-config" },
+      { text: "현재 운영 방식(월 만근 적립)은 이미 이 정책과 같으므로 직원분들의 잔여 일수에는 변화가 없습니다" },
+    ],
+  },
   {
     key: "2026-10-08-paid-partial-leave",
     title: "유급 반차·반반차(연차)로 쉰 시간이 급여에서 빠지던 문제",
