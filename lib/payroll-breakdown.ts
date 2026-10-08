@@ -121,7 +121,7 @@ export function buildPayrollBreakdown(slip: any): PayrollBreakdown {
   const attendance: Array<{ label: string; value: string; hint?: string; warn?: boolean }> = [
     { label: "근무 일수", value: `${workingDays}일`,
       hint: `실제 근무시간 기준 (소정 ${stdHours}시간 = 1일 · 반차 0.5일 · 반반차 0.75일)` },
-    { label: "유급 휴가", value: `${paidLeaveDays}일`, hint: "하루를 통째로 쉰 유급휴가 (지급 대상 포함)" },
+    { label: "유급 휴가", value: `${paidLeaveDays}일`, hint: "전일 유급휴가 + 유급 반차·반반차로 쉰 몫 (지급 대상 포함)" },
     { label: "지급 대상일", value: `${paidDays}일`, hint: "근무일수 + 유급휴가일" },
   ];
   if (monthBusinessDays > 0) {
