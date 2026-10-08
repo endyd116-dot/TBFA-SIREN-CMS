@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-10-08.1";
+export const APP_VERSION = "2026-10-08.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-10-08-break-deduction-continuous",
+    title: "반차 날 4시간을 조금 넘겨 퇴근하면 오히려 0.25일만 지급되던 문제 — 휴게시간을 넘긴 만큼만 빼도록",
+    items: [
+      { text: "머문 시간이 4시간을 1분이라도 넘기면 법정 휴게 30분을 통째로 빼서, 4시간 07분 머문 날이 근무 3시간 37분으로 기록되고 반차 지급 기준(3시간 50분)에 못 미쳐 0.25일이 되던 문제를 고쳤습니다. 정확히 4시간에 퇴근하면 0.5일인데 더 오래 있으면 덜 받는 역전이 있었습니다", link: "/cms-tbfa.html#att-ops" },
+      { text: "이제 휴게는 4시간을 넘긴 만큼만(최대 30분), 8시간을 넘긴 만큼 추가로(최대 설정값 60분) 뺍니다. 머문 시간이 늘면 근무시간이 절대 줄지 않습니다. 4시간~4시간 30분 체류는 근무 4시간, 8시간~8시간 30분 체류는 7시간 30분으로 봅니다. 참고로 유연출근 하한(08:00) 이전 출근분을 근무시간에 넣지 않는 규칙은 그대로입니다" },
+      { text: "9월 1일 이후 근태 기록 중 이 구간에 걸린 날은 새 규칙으로 다시 계산했습니다(근무시간·야근시간). 9월 급여는 급여관리에서 [재집계]를 누르면 반영됩니다", link: "/cms-tbfa.html#payroll" },
+    ],
+  },
   {
     key: "2026-10-08-holiday-payroll-sync",
     title: "공휴일 설정을 지워도 급여에 그날이 계속 미지급으로 남던 문제 + 9월 28일 '추석 대체공휴일' 오등록 정정",

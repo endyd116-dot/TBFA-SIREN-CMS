@@ -172,6 +172,15 @@ export function flexStartFloor(firstIn: Date, checkInTimeHHMM: string, flexRange
  * 과거엔 "4시간만 넘으면 무조건 60분"이라, 반차(4시간)를 쓴 날의 근무시간이
  * 3시간으로 기록돼 실제보다 1시간 짧게 남았다. 급여를 근무시간으로 산정하게 되면서
  * 이 오차가 그대로 지급액 오류로 이어지므로 바로잡는다.
+ *
+ * 2026-10-08 개정(Swain A안) — 경계를 '넘긴 만큼만' 뺀다 (연속 방식):
+ *   7/12 규칙은 4시간을 1분만 넘겨도 30분을 통째로 빼서, 4시간 07분 머문 사람(→3시간 37분)이
+ *   4시간 정각에 퇴근한 사람(→4시간)보다 반차 지급에서 손해를 봤다(0.25일 vs 0.5일 —
+ *   실측 2026-09-23 김광일·9/1 김주안). 더 오래 있었는데 덜 받는 역전 구간(4:01~4:19)이 있었던 것.
+ *   이제 4시간을 넘긴 분만큼을 휴게로 보되 30분까지, 8시간을 넘긴 분만큼을 추가로 보되
+ *   설정값(60분)까지 뺀다 → 근무시간은 머문 시간이 늘수록 절대 줄지 않는다
+ *   (4:00~4:30 체류는 근무 4시간으로 평평, 8:00~8:30 체류는 7시간 30분으로 평평).
+ *   8시간 구간의 지급 결과(0.75/1.0 경계)는 예전과 같고, 4시간 구간의 역전만 사라진다.
  */
 export function breakMinsFor(
   totalMins: number,
@@ -179,10 +188,11 @@ export function breakMinsFor(
 ): number {
   const fullMins = Number(policy.dailyHours) * 60;            // 8시간
   const halfMins = Number(policy.breakThresholdHours) * 60;   // 4시간
-  const full = Number(policy.breakMins) || 0;
-  if (totalMins >= fullMins) return full;                     // 8시간 이상 → 설정값(60분)
-  if (totalMins > halfMins) return Math.min(full, 30);        // 4시간 초과 ~ 8시간 미만 → 30분
-  return 0;                                                   // 4시간 이하 → 휴게 차감 없음
+  const full = Math.max(0, Number(policy.breakMins) || 0);    // 설정값(기본 60분)
+  const half = Math.min(full, 30);                            // 4시간 구간 법정 최소
+  if (totalMins <= halfMins) return 0;                                      // 4시간 이하 → 휴게 차감 없음
+  if (totalMins <= fullMins) return Math.min(half, totalMins - halfMins);   // 4시간 초과분만, 30분까지
+  return Math.min(full, half + (totalMins - fullMins));                    // 8시간 초과분 추가, 설정값까지
 }
 
 export function calcWorkingMins(

@@ -93,6 +93,7 @@ export function recomputeSummary(
   total = Math.round(total);
   // Q3-026 fix(P-4): 단일 세션과 동일하게 휴게 차감 — 세션 분할 여부로 근무시간이 달라지지 않게 일관화.
   // 2026-07-12: 휴게 단계화(4시간 이하 0분 / 4~8시간 30분 / 8시간 이상 60분)를 단일 세션과 공유.
+  // 2026-10-08: 경계를 넘긴 만큼만 빼는 연속 방식(breakMinsFor 주석) — 규칙은 여전히 한 곳.
   total = Math.max(0, total - breakMinsFor(total, {
     dailyHours: Number(policy.dailyHours),
     breakMins: Number(policy.breakMins || 0),
