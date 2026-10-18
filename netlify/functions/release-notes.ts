@@ -15,6 +15,7 @@ import { db } from "../../db";
 import { releaseNotes } from "../../db/schema";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { PENDING_DRAFTS } from "../../lib/release-drafts";
+import { autoPublishReleaseDrafts } from "../../lib/release-autopublish";
 import {
   ok, badRequest, forbidden, notFound, methodNotAllowed, serverError, parseJson,
 } from "../../lib/response";
@@ -76,6 +77,8 @@ export default async (req: Request, _ctx: Context) => {
       }
 
       step = "list";
+      /* 2026-10-19 자동 발행: 배포본의 시드 소식을 목록을 읽는 순간 발행(인스턴스당 APP_VERSION 기준 1회·실패 무시) */
+      await autoPublishReleaseDrafts();
       const publishedOnly = url.searchParams.get("published") === "1";
       const limit = Math.min(Number(url.searchParams.get("limit") || 30), 100);
       if (!publishedOnly && !isManager) return forbidden("관리 권한이 필요합니다");
