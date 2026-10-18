@@ -3072,6 +3072,18 @@ function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
 
+/* 2026-10-18 핫픽스: IIFE 밖(모듈 스코프) 표 그리기 코드가 formatDate를 쓰는데 정의는 IIFE 안(41줄)에만 있어
+   ReferenceError → 잠재 후원자 표가 '불러오는 중…'에 멈춤(3155줄·3677줄). 데이터 0건일 땐 그 줄이 실행되지 않아
+   제주 후원자 182명이 처음 들어온 날 드러남. escapeHtml과 같은 방식으로 모듈 스코프에 같은 함수를 둔다. */
+function formatDate(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  return d.getFullYear() + '.' +
+    String(d.getMonth() + 1).padStart(2, '0') + '.' +
+    String(d.getDate()).padStart(2, '0');
+}
+
 function setupTossBilling() {
   document.querySelectorAll('.tb-tab').forEach(t => {
     t.addEventListener('click', () => switchTbTab(t.dataset.tbTab));
