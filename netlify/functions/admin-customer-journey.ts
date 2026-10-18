@@ -23,6 +23,8 @@ const iso = (v: any): string | null => { if (!v) return null; const d = new Date
 const num = (v: any): number => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const str = (v: any): string | null => (v == null || v === "" ? null : String(v));
 
+const DONATION_STATUS_KO: Record<string, string> = { completed: "완료", pending: "대기", pending_hyosung: "효성 대기", failed: "실패", cancelled: "취소", refunded: "환불" };
+
 interface TimelineItem { at: string; kind: string; title: string; detail?: string | null; amount?: number | null; status?: string | null; refId?: number | string | null }
 
 export default async (req: Request, _ctx: Context) => {
@@ -252,7 +254,7 @@ export default async (req: Request, _ctx: Context) => {
     }
     for (const d of donationList) {
       const at = iso(d.paid_at || d.created_at); if (!at) continue;
-      tl.push({ at, kind: "donation", title: `${d.type === "regular" ? "정기" : "일시"} 후원 ${d.status === "completed" ? "완료" : d.status === "pending" ? "대기" : d.status === "failed" ? "실패" : d.status === "cancelled" ? "취소" : d.status === "refunded" ? "환불" : d.status}`,
+      tl.push({ at, kind: "donation", title: `${d.type === "regular" ? "정기" : "일시"} 후원 ${DONATION_STATUS_KO[String(d.status)] || d.status}`,
         detail: [d.pay_method, d.pg_provider, d.campaign_title || d.campaign_tag, d.hyosung_billing_month ? `효성 ${d.hyosung_billing_month}` : null, d.bank_depositor_name ? `입금자 ${d.bank_depositor_name}` : null, d.failure_reason].filter(Boolean).join(" · ") || null,
         amount: num(d.amount), status: d.status, refId: d.id });
       if (d.receipt_issued && d.receipt_issued_at) tl.push({ at: iso(d.receipt_issued_at)!, kind: "receipt", title: `납부 확인서 발급 ${d.receipt_number || ""}`.trim(), amount: num(d.amount), refId: d.id });
