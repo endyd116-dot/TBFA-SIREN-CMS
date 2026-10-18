@@ -226,7 +226,7 @@ export default async (req: Request, _ctx: Context) => {
     const originSteps: { key: string; label: string; at: string | null; detail?: string | null }[] = [];
     const firstPotential = potential.length ? potential.reduce((a, b) => ((a.participatedAt || a.createdAt || "") <= (b.participatedAt || b.createdAt || "") ? a : b)) : null;
     if (firstPotential) originSteps.push({ key: "potential", label: "잠재 후원자 등록", at: firstPotential.participatedAt || firstPotential.createdAt, detail: [firstPotential.eventName, firstPotential.entryPath].filter(Boolean).join(" · ") || null });
-    if (m) originSteps.push({ key: "signup", label: m.is_lead_shell ? "리드 회원 생성(자동 동기화)" : "회원 가입", at: iso(m.created_at), detail: [m.source_label || m.source_code, m.prospect_entry_path, m.prospect_event_name].filter(Boolean).join(" · ") || null });
+    if (m) originSteps.push({ key: "signup", label: m.is_lead_shell ? `회원 기록 자동 생성${m.source_label ? `(${m.source_label})` : m.prospect_entry_path === "potential_lead" ? "(잠재 동기화)" : ""}` : "회원 가입", at: iso(m.created_at), detail: [m.source_label || m.source_code, m.prospect_entry_path, m.prospect_event_name].filter(Boolean).join(" · ") || null });
     if (donationTotals?.first_paid) originSteps.push({ key: "first_donation", label: "첫 후원", at: iso(donationTotals.first_paid), detail: `${num(donationTotals.completed_count)}건 · 합계 ₩${num(donationTotals.completed_amount).toLocaleString()}` });
     const firstRegular = donationList.filter((d) => d.type === "regular" && d.status === "completed").map((d) => iso(d.paid_at || d.created_at)).filter(Boolean).sort()[0]
       || (contracts.length ? iso(contracts.map((c) => c.billing_start).filter(Boolean).sort()[0]) : null);
@@ -239,7 +239,7 @@ export default async (req: Request, _ctx: Context) => {
     /* ── 10. 통합 타임라인 ── */
     const tl: TimelineItem[] = [];
     for (const p of potential) if (p.participatedAt || p.createdAt) tl.push({ at: p.participatedAt || p.createdAt!, kind: "potential", title: `잠재 후원자 등록 — ${p.eventName || "이벤트 미상"}`, detail: [p.entryPath ? `경로 ${p.entryPath}` : null, p.memo].filter(Boolean).join(" · ") || null, refId: p.id });
-    if (m?.created_at) tl.push({ at: iso(m.created_at)!, kind: "signup", title: m.is_lead_shell ? "리드 회원 자동 생성" : "회원 가입", detail: [m.source_label || m.source_code, m.member_category, m.prospect_entry_path].filter(Boolean).join(" · ") || null, refId: m.id });
+    if (m?.created_at) tl.push({ at: iso(m.created_at)!, kind: "signup", title: m.is_lead_shell ? "회원 기록 자동 생성" : "회원 가입", detail: [m.source_label || m.source_code, m.member_category, m.prospect_entry_path].filter(Boolean).join(" · ") || null, refId: m.id });
     if (stageEvents.length) {
       for (const e of stageEvents) if (e.created_at) tl.push({
         at: iso(e.created_at)!, kind: "stage",
@@ -266,7 +266,7 @@ export default async (req: Request, _ctx: Context) => {
     }
     for (const c of contracts) {
       if (c.billing_start) tl.push({ at: iso(c.billing_start)!, kind: "contract", title: `효성 약정 시작 — ${c.product_name || ""} ₩${num(c.product_amount).toLocaleString()}`.trim(), detail: [c.payment_method, c.payment_tool, c.payment_info, c.account_holder ? `예금주 ${c.account_holder}` : null, c.promise_day ? `매월 ${c.promise_day}일` : null].filter(Boolean).join(" · ") || null, refId: c.id });
-      if (c.billing_end) tl.push({ at: iso(c.billing_end)!, kind: "contract", title: `효성 약정 종료 (${c.contract_status || ""})`, refId: c.id });
+      if (c.billing_end && new Date(c.billing_end).getFullYear() < 2999) tl.push({ at: iso(c.billing_end)!, kind: "contract", title: `효성 약정 종료 (${c.contract_status || ""})`, refId: c.id }); // 9999-12-31 = 무기한 약정 → 타임라인 제외
     }
     for (const b of billingKeys) {
       if (b.created_at) tl.push({ at: iso(b.created_at)!, kind: "card", title: `카드 등록 — ${b.card_company || b.pg_provider || ""} ${b.card_number_masked || ""}`.trim(), detail: b.amount ? `정기 ₩${num(b.amount).toLocaleString()}` : null, refId: b.id });

@@ -33,7 +33,9 @@
     etc: ['support']
   };
   var FILTERS = [['all', '전체'], ['donation', '후원'], ['pay', '결제·약정'], ['comm', '발송'], ['stage', '단계'], ['note', '메모·관리'], ['etc', '기타']];
-  var STATUS_KO = { completed: '완료', pending: '대기', failed: '실패', cancelled: '취소', refunded: '환불', success: '성공', received: '수납', unpaid: '미납', active: '활성', sent: '발송', opened: '열람', confirmed: '확정', matched: '매칭' };
+  var STATUS_KO = { completed: '완료', pending: '대기', pending_hyosung: '효성 대기', failed: '실패', cancelled: '취소', refunded: '환불', success: '성공', received: '수납', unpaid: '미납', active: '활성', deactivated: '해지', sent: '발송', opened: '열람', confirmed: '확정', matched: '매칭', suspended: '정지', expired: '만료', terminated: '종료' };
+  var FAR_FUTURE = '2999-01-01';
+  function isOpenEnded(iso) { return !!iso && String(iso) >= FAR_FUTURE; }
 
   var state = { subject: null, data: null, filter: 'all', tlLimit: 60, lastFocus: null, busy: false, reqId: 0, showAll: {} };
 
@@ -197,7 +199,7 @@
     });
     rail += '</div>';
     var info = '';
-    if (si.auto && si.auto !== cur) info += '<div class="cj-muted">자동 판정은 <b>' + esc(si.autoLabel || si.auto) + '</b>' + (ov ? ' — 운영자 수동 지정(' + esc(ov.changedByName || '') + ' · ' + fmtDate(ov.createdAt) + (ov.reason ? ' · ' + esc(ov.reason) : '') + ')이 우선 적용 중입니다. 실제 약정·해지·후원이 생기면 자동으로 풀립니다.' : '') + '</div>';
+    if (si.auto && si.auto !== cur) info += '<div class="cj-muted">자동 판정은 <b>' + esc(si.autoLabel || si.auto) + '</b>' + (ov ? ' — 운영자 수동 지정(' + esc(ov.changedByName || '') + ' · ' + fmtDate(ov.createdAt) + (ov.reason ? ' · ' + esc(ov.reason) : '') + ')이 우선 적용 중입니다. 실제 약정·해지·후원이 생기면 자동으로 풀립니다.' : ' — 다음 재평가(후원·해지가 생길 때 또는 매일 새벽 3시) 때 <b>' + esc(si.autoLabel || si.auto) + '</b>(으)로 바뀝니다.') + '</div>';
     else if (ov) info += '<div class="cj-muted">운영자 수동 지정(' + esc(ov.changedByName || '') + ' · ' + fmtDate(ov.createdAt) + (ov.reason ? ' · ' + esc(ov.reason) : '') + ')</div>';
     var sig = si.autoSignals;
     if (sig) {
@@ -236,7 +238,7 @@
     var p = d.profile; var pot = d.potential || [];
     var rows = [];
     if (p) {
-      rows.push(['회원 상태', esc([p.type, p.status].filter(Boolean).join(' · ')) + (p.isLeadShell ? ' <span class="cj-chip">로그인 없는 리드 기록</span>' : '')]);
+      rows.push(['회원 상태', esc([p.type, p.status].filter(Boolean).join(' · ')) + (p.isLeadShell ? ' <span class="cj-chip" title="효성 등록·잠재 동기화 등으로 시스템이 만든 회원 기록(본인 로그인 없음)">자동 생성 기록 · 로그인 없음</span>' : '')]);
       rows.push(['분류', esc([p.memberCategory, p.memberSubtype].filter(Boolean).join(' · ') || '-')]);
       rows.push(['가입', fmtDate(p.createdAt) + (p.signupSource ? ' · ' + esc(p.signupSource.label || p.signupSource.code) : '')]);
       if (p.prospectEventName || p.prospectEntryPath) rows.push(['유입', esc([p.prospectEventName, p.prospectEntryPath].filter(Boolean).join(' · '))]);
@@ -273,7 +275,7 @@
       + '<div class="cj-tile"><div class="l">후원 합계</div><div class="v">' + won(s.completedAmount) + '</div><div class="s">완료 ' + (s.completedCount || 0) + '건</div></div>'
       + '<div class="cj-tile"><div class="l">첫 후원</div><div class="v" style="font-size:13px">' + fmtDate(s.firstPaidAt) + '</div><div class="s">마지막 ' + fmtDate(s.lastPaidAt) + '</div></div>'
       + '<div class="cj-tile"><div class="l">정기 / 일시</div><div class="v">' + (s.regularCount || 0) + ' / ' + (s.onetimeCount || 0) + '</div><div class="s">평균 ' + won(s.avgAmount) + '</div></div>'
-      + '<div class="cj-tile"><div class="l">' + (r.isActive ? '월 정기' : '정기 상태') + '</div><div class="v">' + (r.monthlyAmount ? won(r.monthlyAmount) : (r.isActive ? '금액 미상' : '없음')) + '</div><div class="s">' + (r.nextBillingDate ? '다음 ' + fmtDate(r.nextBillingDate) : (r.regularMonthsCount ? '누적 ' + r.regularMonthsCount + '개월' : '')) + '</div></div>'
+      + '<div class="cj-tile"><div class="l">' + (r.isActive ? '월 정기' : '정기 상태') + '</div><div class="v">' + (r.isActive ? (r.monthlyAmount ? won(r.monthlyAmount) : '금액 미상') : (d.stage === 'prospect_cancelled' ? '해지' : '없음')) + '</div><div class="s">' + (r.isActive ? (r.nextBillingDate ? '다음 ' + fmtDate(r.nextBillingDate) : (r.regularMonthsCount ? '누적 ' + r.regularMonthsCount + '개월' : '')) : (r.monthlyAmount ? '약정 ' + won(r.monthlyAmount) : '')) + '</div></div>'
       + '</div>';
     if ((s.pendingCount || 0) + (s.failedCount || 0) > 0) tiles += '<div class="cj-muted" style="margin-bottom:8px">대기 ' + (s.pendingCount || 0) + '건 · 실패/취소/환불 ' + (s.failedCount || 0) + '건</div>';
     var bars = '';
@@ -310,7 +312,7 @@
         + kv([
           ['효성 회원번호', esc(c.memberNo)], ['결제 수단', esc([c.paymentMethod, c.paymentTool].filter(Boolean).join(' · '))],
           ['계좌·카드', esc(c.paymentInfo)], ['예금주', esc(c.accountHolder)], ['상품', esc(c.productName)],
-          ['약정 기간', (c.billingStart ? fmtDate(c.billingStart) : '-') + ' ~ ' + (c.billingEnd ? fmtDate(c.billingEnd) : '')],
+          ['약정 기간', (c.billingStart ? fmtDate(c.billingStart) : '-') + ' ~ ' + (c.billingEnd ? (isOpenEnded(c.billingEnd) ? '무기한' : fmtDate(c.billingEnd)) : '')],
           ['등록·동의', esc([c.registrationStatus, c.agreementStatus, c.electronicContract].filter(Boolean).join(' · '))],
           ['회원 상태', esc([c.memberStatus, c.memberType].filter(Boolean).join(' · '))], ['담당', esc(c.managerName)], ['갱신', c.updatedAt ? fmtDate(c.updatedAt) : null]
         ]) + '</div>';
