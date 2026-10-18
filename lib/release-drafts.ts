@@ -7,7 +7,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-10-08.5";
+export const APP_VERSION = "2026-10-18.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -16,6 +16,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-10-18-jeju-potential-donors",
+    title: "제주 캠페인 후원 참여자 182명을 잠재 후원자 관리에 추가 — 이벤트명 '제주후원자'",
+    items: [
+      { text: "2025년 12월~2026년 5월 제주 캠페인 사이트(tbfa-jeju.com) 후원 신청폼으로 들어온 331건을 정리해 182명을 잠재 후원자에 넣었습니다. 시험 입력 41건은 뺐고, 같은 전화번호로 여러 번 신청한 분은 한 사람으로 합쳤습니다(신청 횟수·다른 이름은 메모에 남김)", link: "/cms-tbfa.html#donor-potential" },
+      { text: "소속 학교·소속 단체·고인과의 관계는 메모에, 접속 경로는 유입 경로 칸에 들어 있습니다. 전화번호가 없는 2명은 연락처 칸이 비어 있고 입력 원문이 메모에 있습니다. 잠재 후원자 화면의 이벤트명 검색에 '제주후원자'를 넣으면 이 명단만 볼 수 있습니다" },
+    ],
+  },
   {
     key: "2026-10-08-leave-grant-perfect-only",
     title: "유급휴가 자동 부여는 '전월 만근'일 때만 — 그 밖의 월별·자동 부여 없음 (운영 정책)",
