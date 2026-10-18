@@ -25,13 +25,13 @@
 
 > ⚠️ 아래 R45 이하(2026-05-29)는 **archive**. 2026-06~09 트랙은 본 절 상단 블록들이 최신.
 
-### 🧭 고객 여정 패널 + 후원자 단계 자동·수동 전환 — **구현·배포 완료 · 마이그 Swain 클릭 대기** (2026-10-18·★최신)
+### 🧭 고객 여정 패널 + 후원자 단계 자동·수동 전환 — **구현·배포·마이그 완료(00dfec3b) · 눈검증 대기** (2026-10-18·★최신)
 Swain 요청: 「잠재 표의 수동 회원연결은 무의미 → 이름·연락처 일치로 자동 전환. 잠재·예비·정기 어디서든 고객을 누르면 AM 리드관리처럼 옆에서 여정(시작 경로·후원·효성 계좌·카드·입금·발송)과 관리자 메모. 수동 단계 이동+기록, 정기→예비·잠재 역방향 자동」. 설계·결정 = [`docs/active/2026-10-18-customer-journey-design.md`](docs/active/2026-10-18-customer-journey-design.md) §0 D1~D11.
 - **단계 단일 출처 `lib/donor-stage.ts`**: 잠재(none+잠재 행) / 예비·일시 / 예비·해지 / 정기 / 회원(미후원). 자동 판정 = 실데이터(활성 빌링키·효성 active → 정기 / 해지 이력 → 낸 적 있고 24개월 안이면 예비·해지, 아니면 **잠재(자동 역방향)** / 완료 일시 후원 → 예비·일시). `lib/donor-status.ts` 단건·일괄(cron 03:00) 재평가가 같은 규칙 + **수동 지정 우선권**(donor_stage_events source=manual·auto_baseline — 지정 당시 자동 판정이 바뀔 때까지 유지, 바뀌면 해제·이력) + 잠재로 내려가면 잠재 행 자동 생성.
 - **자동 연결 `lib/potential-donor-link.ts`**: 전화(숫자만)·이메일 일치. 훅 7곳(홈 가입·관리자 등록·일괄 등록·등불 가입·효성 자동 생성·일시후원 예비 생성·후원 상태 재평가 끝) + 「자동 매칭」 버튼(`admin-potential-donor-automatch`). 너처링 일일 동기화(리드 회원 생성)는 그대로.
 - **API**: `admin-customer-journey`(GET member|potential — profile·stageInfo·potential·origin·donations·regular(효성 약정/수납·카드·청구·입금)·comms·support·notes·activity·timeline) · `admin-customer-notes`(CRUD) · `admin-donor-stage-move`(POST 수동 이동) · `admin-potential-donor-list`(전환 상태 필드·필터·KPI).
 - **화면**: `public/js/cms-customer-journey.js` + `css/cms-customer-journey.css`(오른쪽 슬라이드·단계 레일+이동·후원 타일·결제수단 카드·통합 타임라인 필터·메모). 잠재·정기·예비 표 이름 클릭. 잠재 표 «전환 상태» 열·KPI(전환됨/미전환)·필터·「자동 매칭」. 수동 회원연결 버튼 제거.
-- **Swain 몫**: ① `https://tbfa.co.kr/api/migrate-customer-journey?run=1`(customer_notes·donor_stage_events 생성) → 메모 저장·단계 이동 활성 ② 라이브 눈검증(Q1~Q6 설계서 §4) ③ 성공 알리면 메인이 마이그 파일 삭제. 마이그 전에도 패널·자동 연결·자동 판정은 동작(이력·메모만 비활성).
+- **마이그 완료(2026-10-18 Swain 실행·표 2개 생성·1회용 파일 삭제 00dfec3b)** → 메모 저장·단계 이동 활성. **Swain 잔여**: 라이브 눈검증(설계서 §4 Q1~Q6: 잠재/정기 이름 클릭·메모 저장·단계 이동·자동 매칭). 첫 일괄 재평가(다음 KST 03:00)가 새 규칙(미납 해지·24개월 무후원→잠재)을 전체 회원에 처음 적용 — 결과 분포 확인 권장.
 - 교훈: 너처링 엔진이 이미 잠재→리드 회원을 매일 만들어 연결하고 있었음(수동 버튼은 유물). 단계 수동 지정은 «실데이터 변화까지 유지» 규칙 없이는 다음 재평가에 조용히 덮임.
 
 ### 📥 제주 캠페인 후원 참여자 182명 → 잠재 후원자 이관 — **완료** (2026-10-18·★최신)

@@ -98,5 +98,5 @@ meta{generatedAt,warnings[]}
 - [x] 캐시버스터: cms-tbfa.js·cms-tbfa.html 신규 2파일
 - [x] 업데이트 소식 초안 + APP_VERSION
 - [x] PROJECT_STATE·메모리
-- [ ] 마이그 `migrate-customer-notes?run=1` Swain 클릭 → 파일 삭제
+- [x] 마이그 `migrate-customer-journey?run=1` Swain 실행(2026-10-18) → 표 2개 생성 → 파일 삭제(00dfec3b)
 - [ ] AI 비서 도구(고객 여정 요약)·메뉴얼 보강 — 후속(선택)
