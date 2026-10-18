@@ -5195,3 +5195,54 @@ export const memorialTeacherPhotos = pgTable("memorial_teacher_photos", {
 }));
 export type MemorialTeacherPhoto    = typeof memorialTeacherPhotos.$inferSelect;
 export type NewMemorialTeacherPhoto = typeof memorialTeacherPhotos.$inferInsert;
+
+/* =========================================================
+   === 2026-10-18 고객 여정 메모 (customer_notes) ===
+   회원(member_id) 또는 잠재 후원자(potential_donor_id)에 매달리는 관리자 메모 로그.
+   마이그레이션: migrate-customer-notes (CREATE TABLE IF NOT EXISTS)
+   ========================================================= */
+export const customerNotes = pgTable("customer_notes", {
+  id:               serial("id").primaryKey(),
+  memberId:         integer("member_id").references(() => members.id, { onDelete: "cascade" }),
+  potentialDonorId: integer("potential_donor_id").references(() => potentialDonors.id, { onDelete: "cascade" }),
+  body:             text("body").notNull(),
+  pinned:           boolean("pinned").default(false).notNull(),
+  createdBy:        integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdByName:    varchar("created_by_name", { length: 50 }),
+  createdAt:        timestamp("created_at").defaultNow().notNull(),
+  updatedAt:        timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx:    index("customer_notes_member_idx").on(t.memberId),
+  potentialIdx: index("customer_notes_potential_idx").on(t.potentialDonorId),
+  createdIdx:   index("customer_notes_created_idx").on(t.createdAt),
+}));
+
+export type CustomerNote    = typeof customerNotes.$inferSelect;
+export type NewCustomerNote = typeof customerNotes.$inferInsert;
+
+/* =========================================================
+   === 2026-10-18 후원자 단계 이력 (donor_stage_events) ===
+   잠재/예비·일시/예비·해지/정기 단계 변화 기록 + 수동 지정 우선권(auto_baseline·is_override·released_at)
+   마이그레이션: migrate-customer-journey (CREATE TABLE IF NOT EXISTS) · 규칙: lib/donor-stage.ts
+   ========================================================= */
+export const donorStageEvents = pgTable("donor_stage_events", {
+  id:               serial("id").primaryKey(),
+  memberId:         integer("member_id").references(() => members.id, { onDelete: "cascade" }),
+  potentialDonorId: integer("potential_donor_id").references(() => potentialDonors.id, { onDelete: "set null" }),
+  fromStage:        varchar("from_stage", { length: 30 }),
+  toStage:          varchar("to_stage", { length: 30 }).notNull(),
+  source:           varchar("source", { length: 20 }).default("auto").notNull(),   // manual | auto | system
+  reason:           text("reason"),
+  autoBaseline:     varchar("auto_baseline", { length: 30 }),
+  isOverride:       boolean("is_override").default(false).notNull(),
+  releasedAt:       timestamp("released_at"),
+  releaseReason:    varchar("release_reason", { length: 100 }),
+  changedBy:        integer("changed_by").references(() => members.id, { onDelete: "set null" }),
+  changedByName:    varchar("changed_by_name", { length: 50 }),
+  createdAt:        timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("donor_stage_events_member_idx").on(t.memberId, t.id),
+}));
+
+export type DonorStageEvent    = typeof donorStageEvents.$inferSelect;
+export type NewDonorStageEvent = typeof donorStageEvents.$inferInsert;

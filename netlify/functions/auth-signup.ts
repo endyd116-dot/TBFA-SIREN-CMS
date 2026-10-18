@@ -28,6 +28,7 @@ import { db } from "../../db";
 import { members, blobUploads, emailVerificationTokens } from "../../db/schema";
 import { signUserToken, buildCookie } from "../../lib/auth";
 import { notifyAllOperators } from "../../lib/notify";
+import { safeLinkPotentialDonors } from "../../lib/potential-donor-link";
 import { logAudit } from "../../lib/audit";
 import { sendEmail, tplEmailVerify } from "../../lib/email";
 import {
@@ -385,6 +386,8 @@ export default async (req: Request, _ctx: Context) => {
         createdAt: members.createdAt,
       });
       created = inserted;
+      /* 2026-10-18: 같은 전화·이메일의 잠재 후원자를 새 회원에 즉시 연결(실패 무시) */
+      await safeLinkPotentialDonors(inserted.id, "signup", { phone: (insertData as any)?.phone, email: inserted.email });
     }
 
     /* 9. blob_uploads에 reference 연결 */

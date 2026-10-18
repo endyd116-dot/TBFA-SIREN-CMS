@@ -18,6 +18,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { safeReevaluate } from "./donor-status";
+import { safeLinkPotentialDonors } from "./potential-donor-link";
 
 export interface ProspectDonationInput {
   donationId: number;
@@ -118,6 +119,8 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
         UPDATE donations SET member_id = ${newId}, updated_at = NOW()
         WHERE id = ${input.donationId} AND member_id IS NULL
       `);
+      /* 2026-10-18: 같은 전화·이메일의 잠재 후원자를 새 예비 회원에 즉시 연결(실패 무시) */
+      await safeLinkPotentialDonors(newId, "prospect-create", { phone, email });
     }
   } catch (e: any) {
     console.warn("[prospect-from-donation] 예비후원자 등록 실패(무시):", e?.message || e);

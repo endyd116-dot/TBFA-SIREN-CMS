@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { db, members, donations } from "../db";
 import { hashPassword } from "./auth";
+import { safeLinkPotentialDonors } from "./potential-donor-link";
 
 /* ───────── 분류 카테고리 ───────── */
 export type MemberCategory = "sponsor" | "regular" | "family" | "etc";
@@ -262,6 +263,9 @@ export async function createHyosungMember(
       .insert(members)
       .values(insertPayload)
       .returning({ id: members.id, email: members.email });
+
+    /* 2026-10-18: 같은 전화·이메일의 잠재 후원자를 즉시 연결(실패 무시) */
+    await safeLinkPotentialDonors(inserted.id, "hyosung-auto-create", { phone: (insertPayload as any)?.phone, email: inserted.email });
 
     return {
       ok: true,

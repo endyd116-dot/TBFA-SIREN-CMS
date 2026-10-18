@@ -2222,7 +2222,7 @@
     tbody.innerHTML = rows.map(d => `
       <tr>
         <td>M-${String(d.id).padStart(5,'0')}</td>
-        <td><strong>${escapeHtml(d.name || '')}</strong></td>
+        <td><strong class="cj-link" title="고객 여정 보기" onclick="openCustomerJourney({memberId:${d.id}})">${escapeHtml(d.name || '')}</strong></td>
         <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
         <td>${renderChannelBadges(d.channels)}</td>
         <td style="text-align:right;font-weight:600">${d.regularAmount != null ? '₩' + Number(d.regularAmount).toLocaleString() : '—'}</td>
@@ -2357,7 +2357,7 @@
     tbody.innerHTML = rows.map(d => `
       <tr>
         <td>M-${String(d.id).padStart(5,'0')}</td>
-        <td><strong>${escapeHtml(d.name || '')}</strong></td>
+        <td><strong class="cj-link" title="고객 여정 보기" onclick="openCustomerJourney({memberId:${d.id}})">${escapeHtml(d.name || '')}</strong></td>
         <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
         <td style="font-size:12px">${escapeHtml(d.eventName || '—')}</td>
         <td>${channelBadge(d.donorChannel)}</td>
@@ -2673,7 +2673,9 @@
   window._cmsToast  = toast;
   window._cmsEsc    = escapeHtml;
   window._cmsFmt    = formatDate;
-  window._cmsUnwrap = unwrap;   // 버그픽스 20260515-2차 (#4): IIFE 바깥 모듈 스코프 코드가 참조
+  window._cmsUnwrap = unwrap;
+  window.renderDonorRegular = renderDonorRegular;     // 2026-10-18 고객 여정 패널 → 단계 이동 뒤 표 새로고침
+  window.renderDonorProspect = renderDonorProspect;   // 버그픽스 20260515-2차 (#4): IIFE 바깥 모듈 스코프 코드가 참조
   /* 버그픽스 3차 (#3): 검증 대시보드 서브탭 진입 시 cms-tbfa.html이
      window.CMS_TBFA_DASHBOARD.load() 를 호출하나 노출이 누락돼 무한로딩.
      renderDonationDashboard 를 노출해 탭 진입 시 데이터 로드되게 함. */
@@ -3141,8 +3143,13 @@ async function renderPotentialDonor() {
   const kpi = resp.kpi || {};
   const set = function(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('pdKpiTotal', (kpi.total != null ? kpi.total : 0).toLocaleString() + '명');
-  set('pdKpiLinked', (kpi.linked != null ? kpi.linked : 0).toLocaleString() + '명');
-  set('pdKpiUnlinked', (kpi.unlinked != null ? kpi.unlinked : 0).toLocaleString() + '명');
+  /* 2026-10-18: «연결됨» → «예비·정기로 전환됨» / «미연결» → «미전환» (연결된 회원의 후원 단계 기준) */
+  var pdConverted = kpi.converted != null ? kpi.converted : (kpi.linked != null ? kpi.linked : 0);
+  var pdTotal = kpi.total != null ? kpi.total : 0;
+  set('pdKpiLinked', pdConverted.toLocaleString() + '명');
+  set('pdKpiLinkedSub', '정기 ' + (kpi.regular || 0) + ' · 예비 일시 ' + (kpi.prospectOnetime || 0) + ' · 예비 해지 ' + (kpi.prospectCancelled || 0));
+  set('pdKpiUnlinked', Math.max(0, pdTotal - pdConverted).toLocaleString() + '명');
+  set('pdKpiUnlinkedSub', '회원 연결됨 ' + (kpi.lead || 0) + ' · 미연결 ' + (kpi.unlinked != null ? kpi.unlinked : 0));
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>';
@@ -3151,28 +3158,38 @@ async function renderPotentialDonor() {
   }
 
   tbody.innerHTML = rows.map(function(d) {
-    const linkedBadge = d.linkedMemberId
-      ? '<span class="cms-badge cms-b-success">M-' + String(d.linkedMemberId).padStart(5,'0') + ' ' + escapeHtml(d.linkedMemberName || '') + '</span>'
-      : '<span class="cms-badge cms-b-mute">미연결</span>';
-    const mapBtn = d.linkedMemberId
-      ? '<button class="cms-btn-link" style="color:#888" onclick="pdUnmap(' + d.id + ')">연결해제</button>'
-      : '<button class="cms-btn-link" style="color:#1a5ec4" onclick="pdMapMember(' + d.id + ', \'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\')">회원연결</button>';
+    /* 2026-10-18: «정식 회원 연결»(수동) → «전환 상태»(자동) + 이름 클릭 = 고객 여정 패널 */
+    const stageBadge = pdStageBadge(d);
     return '<tr>'
       + '<td style="font-family:Inter;font-size:11.5px">PD-' + String(d.id).padStart(5,'0') + '</td>'
-      + '<td><strong>' + escapeHtml(d.name || '') + '</strong></td>'
+      + '<td><strong class="cj-link" title="고객 여정 보기" onclick="openCustomerJourney({potentialId:' + d.id + ', name:\'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\'})">' + escapeHtml(d.name || '') + '</strong></td>'
       + '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.phone || '—') + '</td>'
       + '<td style="font-size:12px;color:#444">' + escapeHtml(d.email || '—') + '</td>'
       + '<td style="font-size:12px;color:#666;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.address || '') + '">' + escapeHtml(d.address || '—') + '</td>'
       + '<td style="font-size:12px">' + escapeHtml(d.eventName || '—') + '</td>'
       + '<td style="font-family:Inter;font-size:11.5px">' + formatDate(d.participatedAt) + '</td>'
       + '<td style="font-size:12px;color:#666">' + escapeHtml(d.entryPath || '—') + '</td>'
-      + '<td>' + linkedBadge + '</td>'
+      + '<td>' + stageBadge + '</td>'
       + '<td style="font-size:12px;color:#666;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.memo || '') + '">' + escapeHtml(d.memo || '—') + '</td>'
-      + '<td><button class="cms-btn-link" onclick="pdEditRow(' + d.id + ')">수정</button> ' + mapBtn + ' <button class="cms-btn-link" style="color:#c5293a" onclick="pdDeleteRow(' + d.id + ', \'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\')">삭제</button></td>'
+      + '<td><button class="cms-btn-link" style="color:#1a5ec4" onclick="openCustomerJourney({potentialId:' + d.id + '})">여정</button> <button class="cms-btn-link" onclick="pdEditRow(' + d.id + ')">수정</button> <button class="cms-btn-link" style="color:#c5293a" onclick="pdDeleteRow(' + d.id + ', \'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\')">삭제</button></td>'
       + '</tr>';
   }).join('');
 
   renderPotentialDonorPagination(total);
+}
+
+/* 2026-10-18: 전환 상태 배지 — 연결된 회원의 후원 단계(lib/donor-stage.ts와 같은 어휘) */
+function pdStageBadge(d) {
+  var map = { potential: ['cms-b-mute', '잠재'], prospect_onetime: ['cms-b-info', '예비 · 일시'], prospect_cancelled: ['cms-b-warn', '예비 · 해지'], regular: ['cms-b-success', '정기'], member: ['cms-b-mute', '회원'] };
+  var stage = d.stage || (d.linkedMemberId
+    ? (d.linkedDonorType === 'regular' ? 'regular' : d.linkedDonorType === 'prospect' ? (d.linkedProspectSubtype === 'cancelled' ? 'prospect_cancelled' : 'prospect_onetime') : 'potential')
+    : 'potential');
+  var m = map[stage] || map.potential;
+  var html = '<span class="cms-badge ' + m[0] + '">' + m[1] + '</span>';
+  if (d.linkedOverride) html += ' <span class="cms-badge" style="background:#ede7f6;color:#5e35b1" title="운영자 수동 지정 — 실제 약정·해지·후원이 생기면 자동 해제">수동</span>';
+  if (d.linkedMemberId) html += '<div style="font-size:10.5px;color:#888;margin-top:2px">M-' + String(d.linkedMemberId).padStart(5,'0') + ' ' + escapeHtml(d.linkedMemberName || '') + (d.linkMethod === 'manual' ? ' · 수동 연결' : '') + '</div>';
+  else html += '<div style="font-size:10.5px;color:#aaa;margin-top:2px">미연결</div>';
+  return html;
 }
 
 function renderPotentialDonorPagination(total) {
@@ -3223,6 +3240,17 @@ function pdUnmap(id) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  /* 2026-10-18: 미연결 잠재 일괄 자동 매칭(평소엔 가입·후원 순간 자동 — 과거 데이터 정리용) */
+  document.getElementById('pdBtnAutomatch')?.addEventListener('click', async function() {
+    var btn = this; btn.disabled = true;
+    try {
+      var res = await api('/api/admin/potential-donor-automatch', { method: 'POST', body: {} });
+      if (!res.ok) { toast('자동 매칭 실패: ' + (res.data?.error || res.data?.detail || res.status)); return; }
+      var r = unwrap(res.data, ['scanned', 'linked']);
+      toast('자동 매칭 완료 — 대상 ' + (r.scanned != null ? r.scanned : '?') + '명 중 ' + (r.linked || 0) + '명 연결');
+      renderPotentialDonor();
+    } finally { btn.disabled = false; }
+  });
   document.getElementById('pdFilterSearch')?.addEventListener('input', function(e) {
     clearTimeout(potentialDonorSearchTimer);
     potentialDonorSearchTimer = setTimeout(function() { potentialDonorQuery.q = e.target.value.trim(); potentialDonorPage = 1; renderPotentialDonor(); }, 300);

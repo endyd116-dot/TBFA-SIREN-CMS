@@ -25,6 +25,15 @@
 
 > ⚠️ 아래 R45 이하(2026-05-29)는 **archive**. 2026-06~09 트랙은 본 절 상단 블록들이 최신.
 
+### 🧭 고객 여정 패널 + 후원자 단계 자동·수동 전환 — **구현·배포 완료 · 마이그 Swain 클릭 대기** (2026-10-18·★최신)
+Swain 요청: 「잠재 표의 수동 회원연결은 무의미 → 이름·연락처 일치로 자동 전환. 잠재·예비·정기 어디서든 고객을 누르면 AM 리드관리처럼 옆에서 여정(시작 경로·후원·효성 계좌·카드·입금·발송)과 관리자 메모. 수동 단계 이동+기록, 정기→예비·잠재 역방향 자동」. 설계·결정 = [`docs/active/2026-10-18-customer-journey-design.md`](docs/active/2026-10-18-customer-journey-design.md) §0 D1~D11.
+- **단계 단일 출처 `lib/donor-stage.ts`**: 잠재(none+잠재 행) / 예비·일시 / 예비·해지 / 정기 / 회원(미후원). 자동 판정 = 실데이터(활성 빌링키·효성 active → 정기 / 해지 이력 → 낸 적 있고 24개월 안이면 예비·해지, 아니면 **잠재(자동 역방향)** / 완료 일시 후원 → 예비·일시). `lib/donor-status.ts` 단건·일괄(cron 03:00) 재평가가 같은 규칙 + **수동 지정 우선권**(donor_stage_events source=manual·auto_baseline — 지정 당시 자동 판정이 바뀔 때까지 유지, 바뀌면 해제·이력) + 잠재로 내려가면 잠재 행 자동 생성.
+- **자동 연결 `lib/potential-donor-link.ts`**: 전화(숫자만)·이메일 일치. 훅 7곳(홈 가입·관리자 등록·일괄 등록·등불 가입·효성 자동 생성·일시후원 예비 생성·후원 상태 재평가 끝) + 「자동 매칭」 버튼(`admin-potential-donor-automatch`). 너처링 일일 동기화(리드 회원 생성)는 그대로.
+- **API**: `admin-customer-journey`(GET member|potential — profile·stageInfo·potential·origin·donations·regular(효성 약정/수납·카드·청구·입금)·comms·support·notes·activity·timeline) · `admin-customer-notes`(CRUD) · `admin-donor-stage-move`(POST 수동 이동) · `admin-potential-donor-list`(전환 상태 필드·필터·KPI).
+- **화면**: `public/js/cms-customer-journey.js` + `css/cms-customer-journey.css`(오른쪽 슬라이드·단계 레일+이동·후원 타일·결제수단 카드·통합 타임라인 필터·메모). 잠재·정기·예비 표 이름 클릭. 잠재 표 «전환 상태» 열·KPI(전환됨/미전환)·필터·「자동 매칭」. 수동 회원연결 버튼 제거.
+- **Swain 몫**: ① `https://tbfa.co.kr/api/migrate-customer-journey?run=1`(customer_notes·donor_stage_events 생성) → 메모 저장·단계 이동 활성 ② 라이브 눈검증(Q1~Q6 설계서 §4) ③ 성공 알리면 메인이 마이그 파일 삭제. 마이그 전에도 패널·자동 연결·자동 판정은 동작(이력·메모만 비활성).
+- 교훈: 너처링 엔진이 이미 잠재→리드 회원을 매일 만들어 연결하고 있었음(수동 버튼은 유물). 단계 수동 지정은 «실데이터 변화까지 유지» 규칙 없이는 다음 재평가에 조용히 덮임.
+
 ### 📥 제주 캠페인 후원 참여자 182명 → 잠재 후원자 이관 — **완료** (2026-10-18·★최신)
 Swain 요청 「TBFA-JEJU 후원자 명단(학교·전화)을 어드민 후원관리 › 잠재후원관리로 '제주후원자' 네이밍으로 복사」. 원본은 제주 사이트(tbfa-jeju.com) DB의 후원폼 제출 331건(저장소 코드엔 없음·그 사이트 데이터 API가 인증 없이 반환). 제출 건별 라벨 스냅샷으로 학교·단체·고인과의 관계·성함·접속 경로·연락처 해석 → 시험 입력 41건 제외 → 같은 전화 병합 108건 → **182명**(전화 180·없음 2) 삽입. 이벤트명 `제주후원자` · 메모 `[제주 후원폼] · 소속 학교 … · 제출 N회` · 유입 경로 = 접속 경로 원문 · 참여일 = 첫 제출. 마이그 `migrate-jeju-potential-donors`(원본 실시간 수집·멱등·?undo=1)를 Swain 어드민 세션으로 실행(inserted 182) → 재진단 toInsert 0 → 1회용 파일 삭제. 이름·금액만 있는 공개 후원자 명단 735건은 **이관 안 함**(Swain: 너처링 불가). 교훈: `INTERNAL_TRIGGER_SECRET`은 Netlify 비밀값 유형이라 CLI에 가려져 메인 자체 실행 불가 → 어드민 URL 클릭이 유일 경로. 제주 사이트 데이터 API 개인정보 무인증 노출·저장소 `.env` 커밋 → Swain에게 알림. 메모리 `project_jeju_campaign_donors`. **후속 핫픽스(4b853787)**: 잠재 후원자 표가 «불러오는 중…»에 멈춤 — IIFE 밖 표 코드가 `formatDate`(IIFE 안에만 정의)를 호출해 ReferenceError, 0건 동안 숨어 있다가 첫 실데이터에서 발견 → 모듈 스코프 `formatDate` 추가(3677줄 표도 같이 해결)·캐시버스터 `v=20261018-pd`.
 

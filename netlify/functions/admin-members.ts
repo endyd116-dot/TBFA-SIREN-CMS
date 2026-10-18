@@ -26,6 +26,7 @@ import crypto from "crypto";
 import { db, members, donations } from "../../db";
 import { signupSources, memberGrades } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
+import { safeLinkPotentialDonors } from "../../lib/potential-donor-link";
 import { hashPassword, checkPasswordStrength } from "../../lib/auth";
 import { classifyForSignup, getSignupSourceId, type SignupSourceCode } from "../../lib/member-classifier";
 import { setMemberGradeManual } from "../../lib/grade-calculator";
@@ -642,6 +643,9 @@ export default async (req: Request) => {
           type: members.type,
           status: members.status,
         });
+
+      /* 2026-10-18: 같은 전화·이메일의 잠재 후원자를 새 회원에 즉시 연결(실패 무시) */
+      await safeLinkPotentialDonors(inserted.id, "admin-create", { phone: (insertPayload as any)?.phone, email: inserted.email });
 
       await logAdminAction(req, admin.uid, admin.name, "member_create", {
         target: `M-${inserted.id}`,

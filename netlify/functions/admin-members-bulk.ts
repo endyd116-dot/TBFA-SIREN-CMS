@@ -13,6 +13,7 @@ import { eq, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { db, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { safeLinkPotentialDonors } from "../../lib/potential-donor-link";
 import { canAccess } from "../../lib/role-permission-check";
 import { hashPassword } from "../../lib/auth";
 import { classifyForSignup } from "../../lib/member-classifier";
@@ -131,6 +132,8 @@ export default async (req: Request) => {
         } as any).returning({ id: members.id });
         created++;
         createdIds.push(ins.id);
+        /* 2026-10-18: 같은 전화·이메일의 잠재 후원자를 즉시 연결(실패 무시) */
+        await safeLinkPotentialDonors(ins.id, "bulk-import", { phone: p.phone, email });
       } catch (e: any) {
         errors.push({ row: p.row, error: String(e?.message || e).slice(0, 200) });
       }

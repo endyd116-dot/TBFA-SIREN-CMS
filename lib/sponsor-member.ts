@@ -13,6 +13,7 @@ import { members, passwordResetTokens } from "../db/schema";
 import { notifyAllOperators } from "./notify";
 import { sendEmail, baseLayout } from "./email";
 import { getSignupSourceId } from "./member-classifier";
+import { safeLinkPotentialDonors } from "./potential-donor-link";
 import { RECEIPT_NOTICE } from "./campaign-extras";
 import { sendSponsorWelcomeNotice } from "./sponsor-welcome-notice";
 
@@ -191,6 +192,8 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
   } as any).returning({ id: members.id, email: members.email, name: members.name, phone: members.phone, type: members.type, status: members.status });
 
   await saveSponsorFields(created.id, schoolName, true);
+  /* 2026-10-18: 같은 전화·이메일의 잠재 후원자를 즉시 연결(실패 무시) */
+  await safeLinkPotentialDonors(created.id, "lantern-signup", { phone: created.phone, email: created.email });
 
   try {
     await notifyAllOperators({
