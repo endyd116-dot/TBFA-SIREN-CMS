@@ -11,6 +11,7 @@
 
 import { sql } from "drizzle-orm";
 import { db } from "../db";
+import { ensureLeadMembersForEvents } from "./potential-donor-link";
 
 /* =========================================================
    타입
@@ -27,7 +28,8 @@ export type FilterField =
   | "donationStatus"
   | "blacklisted"
   | "donorType"
-  | "donorChannels";
+  | "donorChannels"
+  | "potentialEvent";
 
 export type FilterOp = "eq" | "ne" | "in" | "notIn" | "lte" | "gte";
 
@@ -134,6 +136,7 @@ const FIELD_SPECS: Record<FilterField, FieldSpec> = {
   blacklisted:                { ops: ["eq"],                  valueType: "boolean" },
   donorType:                  { ops: ["eq", "in", "ne"],     valueType: "stringEnum", enumValues: VALID_DONOR_TYPES },
   donorChannels:              { ops: ["eq", "in"],            valueType: "stringEnum", enumValues: VALID_DONOR_CHANNELS },
+  potentialEvent:             { ops: ["eq", "in"],            valueType: "string" },   // 2026-10-20 잠재 이벤트 참여(potential_donors.event_name)
 };
 
 /* =========================================================
@@ -242,6 +245,7 @@ const FIELD_LABEL: Record<FilterField, string> = {
   blacklisted: "블랙 처리 여부",
   donorType: "후원자 분류",
   donorChannels: "후원 채널",
+  potentialEvent: "잠재 이벤트 참여",
 };
 
 const OP_LABEL: Record<FilterOp, string> = {
@@ -327,6 +331,15 @@ export async function resolveRecipients(
         status: r.status,
       })),
     };
+  }
+
+  /* 2026-10-20 잠재 이벤트 참여자: 아직 회원 기록이 없는 참여자를 연락 가능한 리드 회원으로 만들어 연결(멱등·실패 무시) */
+  const eventValues = (criteria.filters || [])
+    .filter((f) => f.field === "potentialEvent")
+    .flatMap((f) => (f.op === "in" ? (f.values || []) : [f.value]))
+    .map((v) => String(v || "").trim()).filter(Boolean);
+  if (eventValues.length) {
+    try { await ensureLeadMembersForEvents(eventValues); } catch (e: any) { console.warn("[recipient-resolve] 이벤트 리드 준비 실패(무시):", e?.message || e); }
   }
 
   /* filter 분기 */
@@ -487,6 +500,12 @@ function filterClauseToSql(f: FilterClause): ReturnType<typeof sql> | null {
         const parts = (f.values as string[]).map(v => sql`donor_channels @> ${JSON.stringify([v])}::jsonb`);
         return parts.reduce((a, b) => sql`${a} OR ${b}`);
       }
+      return null;
+    }
+    case "potentialEvent": {
+      /* 2026-10-20: 잠재 후원자 이벤트 참여자 — 잠재 행이 연결된 회원(resolveRecipients가 미리 리드 회원을 준비) */
+      if (f.op === "eq") return sql`id IN (SELECT linked_member_id FROM potential_donors WHERE linked_member_id IS NOT NULL AND event_name = ${f.value})`;
+      if (f.op === "in") return sql`id IN (SELECT linked_member_id FROM potential_donors WHERE linked_member_id IS NOT NULL AND event_name = ANY(${f.values}::text[]))`;
       return null;
     }
     default:

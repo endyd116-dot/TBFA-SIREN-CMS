@@ -16,6 +16,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { STAGE_LABEL, stageFromMemberRow } from "../../lib/donor-stage";
+import { loadPotentialEvents } from "../../lib/potential-donor-events";
 
 export const config = { path: "/api/admin/potential-donor-list" };
 const rowsOf = (r: any): any[] => (r?.rows ?? r ?? []) as any[];
@@ -39,6 +40,8 @@ export default async (req: Request, _ctx: Context) => {
   const q = url.searchParams.get("q")?.trim() || "";
   const eventName = url.searchParams.get("eventName")?.trim() || "";
   const linked = url.searchParams.get("linked") || "all"; // all|no|yes|converted|regular|prospect|lead
+  const event = url.searchParams.get("event")?.trim() || "";      // 2026-10-20 이벤트 정확 일치
+  const sort = url.searchParams.get("sort") || "recent";          // recent|event|participated|name|stage
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const pageSize = Math.min(200, Math.max(1, parseInt(url.searchParams.get("pageSize") || "50", 10)));
   const offset = (page - 1) * pageSize;
@@ -57,6 +60,13 @@ export default async (req: Request, _ctx: Context) => {
     : linked === "prospect" ? sql`AND m.donor_type = 'prospect'`
     : linked === "lead" ? sql`AND pd.linked_member_id IS NOT NULL AND COALESCE(m.donor_type, 'none') = 'none'`
     : sql``;
+  const eventFilter = event ? sql`AND pd.event_name = ${event}` : sql``;
+  const orderBy =
+    sort === "event" ? sql`ORDER BY pd.event_name ASC NULLS LAST, pd.participated_at DESC NULLS LAST, pd.id DESC`
+    : sort === "participated" ? sql`ORDER BY pd.participated_at DESC NULLS LAST, pd.id DESC`
+    : sort === "name" ? sql`ORDER BY pd.name ASC, pd.id DESC`
+    : sort === "stage" ? sql`ORDER BY CASE m.donor_type WHEN 'regular' THEN 0 WHEN 'prospect' THEN 1 ELSE 2 END, (pd.linked_member_id IS NULL) ASC, pd.created_at DESC`
+    : sql`ORDER BY pd.created_at DESC`;
 
   try {
     const dataRs: any = await db.execute(sql`
@@ -74,7 +84,8 @@ export default async (req: Request, _ctx: Context) => {
         ${qLike ? sql`AND (pd.name ILIKE ${qLike} OR pd.phone ILIKE ${qLike})` : sql``}
         ${evLike ? sql`AND pd.event_name ILIKE ${evLike}` : sql``}
         ${stageFilter}
-      ORDER BY pd.created_at DESC
+        ${eventFilter}
+      ${orderBy}
       LIMIT ${pageSize} OFFSET ${offset}
     `);
     rows = rowsOf(dataRs);
@@ -86,11 +97,16 @@ export default async (req: Request, _ctx: Context) => {
         ${qLike ? sql`AND (pd.name ILIKE ${qLike} OR pd.phone ILIKE ${qLike})` : sql``}
         ${evLike ? sql`AND pd.event_name ILIKE ${evLike}` : sql``}
         ${stageFilter}
+        ${eventFilter}
     `);
     total = Number(rowsOf(totalRs)[0]?.total) || 0;
   } catch (err) {
     return jsonError("select", err);
   }
+
+  /* 이벤트별 집계(선택지·묶음 제목용) — 실패해도 빈 배열 */
+  let events: any[] = [];
+  try { events = await loadPotentialEvents(); } catch { /* 무시 */ }
 
   /* 수동 단계 지정 여부(표 없으면 전부 false) */
   const overrideSet = new Set<number>();
@@ -161,6 +177,6 @@ export default async (req: Request, _ctx: Context) => {
 
   return new Response(jsonKST({
     ok: true, message: null,
-    data: { ok: true, data, page, pageSize, total, kpi },
+    data: { ok: true, data, page, pageSize, total, kpi, events, sort, event },
   }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
 };

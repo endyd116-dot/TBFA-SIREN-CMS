@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-10-19.1";
+export const APP_VERSION = "2026-10-20.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-10-20-potential-event-send",
+    title: "잠재 후원자를 이벤트별로 보고, 그 이벤트 참여자에게 바로 문자·카톡·메일을 보냅니다",
+    items: [
+      { text: "잠재 후원자 표에 «이벤트: 전체/제주후원자/…» 선택과 정렬(최근 등록·이벤트별·참여일·이름·전환 상태)이 생겼습니다. 이벤트별 정렬을 고르면 이벤트마다 묶음 제목과 인원이 함께 보입니다", link: "/cms-tbfa.html#donor-potential" },
+      { text: "이벤트를 고르고 「✉ 이 이벤트 참여자에게 발송」을 누르면 수신자 그룹 «[이벤트] 이벤트명»이 자동으로 준비되고, 발송 작업 만들기 화면이 그 그룹이 선택된 채로 열립니다. 아직 회원 기록이 없던 참여자는 연락 가능한 기록으로 만들어 연결합니다(너처링과 같은 규칙·문자/카톡 동의는 수집 시 동의 전제)" },
+      { text: "수신자 그룹 편집에도 «잠재 이벤트 참여» 조건이 추가돼 다른 조건(후원자 분류·등급 등)과 조합할 수 있습니다", link: "/cms-tbfa.html#recipient-groups" },
+    ],
+  },
   {
     key: "2026-10-19-release-notes-autopublish",
     title: "업데이트 소식이 배포와 함께 자동으로 올라옵니다 — 8월 3일 이후 밀렸던 소식도 한 번에 정리",

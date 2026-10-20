@@ -1880,7 +1880,16 @@ if (window.self !== window.top) {
         <!-- 필터 + 등록 버튼 -->
         <div class="cms-filter-bar" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <input type="text" id="pdFilterSearch" class="cms-input" placeholder="이름·연락처 검색" style="width:200px">
-          <input type="text" id="pdFilterEvent" class="cms-input" placeholder="이벤트명 검색" style="width:180px">
+          <select id="pdFilterEvent" class="cms-input" style="width:230px" title="이벤트별 보기">
+            <option value="">이벤트: 전체</option>
+          </select>
+          <select id="pdSort" class="cms-input" style="width:140px" title="정렬">
+            <option value="recent">최근 등록순</option>
+            <option value="event">이벤트별</option>
+            <option value="participated">참여일순</option>
+            <option value="name">이름순</option>
+            <option value="stage">전환 상태순</option>
+          </select>
           <select id="pdFilterLinked" class="cms-input" style="width:150px" title="전환 상태">
             <option value="all">전환 상태: 전체</option>
             <option value="no">잠재 · 미연결</option>
@@ -1892,6 +1901,7 @@ if (window.self !== window.top) {
           <button class="cms-btn cms-btn-ghost" id="pdBtnExportCsv" type="button"><span class="siren-icon-wrap" data-icon="inbox"></span> CSV</button>
           <button class="cms-btn cms-btn-ghost" id="pdBtnExportXlsx" type="button"><span class="siren-icon-wrap" data-icon="bar-chart-3"></span> 엑셀</button>
           <button class="cms-btn cms-btn-ghost" id="pdBtnAutomatch" type="button" title="전화번호·이메일이 같은 회원과 자동 연결(평소엔 가입·후원 순간 자동)">⟲ 자동 매칭</button>
+          <button class="cms-btn cms-btn-ghost" id="pdBtnSendEvent" type="button" disabled title="위에서 이벤트를 고르면 그 참여자를 수신자 그룹으로 준비해 발송 작업 만들기로 이동합니다">✉ 이 이벤트 참여자에게 발송</button>
           <button class="cms-btn cms-btn-ghost" id="pdBtnRefresh">새로고침</button>
           <button class="cms-btn cms-btn-primary" id="pdBtnAdd" style="margin-left:auto">＋ 등록</button>
         </div>
@@ -2574,7 +2584,7 @@ if (window.self !== window.top) {
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20261018-cj1"></script>
+  <script src="/js/cms-tbfa.js?v=20261020-ev1"></script>
   <script src="/js/cms-customer-journey.js?v=20261018-cj2"></script>
   <script src="/js/admin-session-timer.js?v=20260802-session7d"></script>
   <script src="/js/admin-notif-bell.js?v=20260802-idlepoll"></script>

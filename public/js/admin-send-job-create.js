@@ -98,6 +98,14 @@
       })
     );
     $("fGroup").innerHTML = opts.join("");
+    /* 2026-10-20: 잠재 표 「이 이벤트 참여자에게 발송」에서 넘어오면 그 그룹을 미리 선택 */
+    try {
+      const pre = new URLSearchParams(location.search).get("group");
+      if (pre && Array.from($("fGroup").options).some(o => o.value === String(pre))) {
+        $("fGroup").value = String(pre);
+        $("fGroup").dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    } catch (e) { /* 무시 */ }
   }
 
   /* ── 템플릿 선택 → 본문 편집 영역 렌더 (이미 list에서 받은 데이터 사용) ── */

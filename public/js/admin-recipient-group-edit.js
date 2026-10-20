@@ -88,7 +88,27 @@
       ops: ["eq"],
       valueType: "bool",
     },
+    /* 2026-10-20: 잠재 후원자 이벤트 참여자(선택지는 init 때 서버에서 채움) */
+    potentialEvent: {
+      label: "잠재 이벤트 참여",
+      ops: ["eq", "in"],
+      valueType: "selectMulti",
+      options: [{ value: "", label: "(이벤트 불러오는 중…)" }],
+    },
   };
+
+  async function loadPotentialEventOptions() {
+    try {
+      const res = await api({ method: "GET", url: "/api/admin/potential-donor-events" });
+      const payload = res.data?.data ?? res.data ?? {};
+      const evs = (payload.events || []).filter(e => e && e.name);
+      FIELDS.potentialEvent.options = evs.length
+        ? evs.map(e => ({ value: e.name, label: `${e.name} (${e.count}명)` }))
+        : [{ value: "", label: "(등록된 이벤트 없음)" }];
+    } catch (e) {
+      FIELDS.potentialEvent.options = [{ value: "", label: "(이벤트 조회 실패)" }];
+    }
+  }
 
   const OP_LABEL = {
     eq:    "같음",
@@ -733,7 +753,8 @@
     });
   }
 
-  function init() {
+  async function init() {
+    await loadPotentialEventOptions();   /* 2026-10-20 잠재 이벤트 선택지 */
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     if (id) {

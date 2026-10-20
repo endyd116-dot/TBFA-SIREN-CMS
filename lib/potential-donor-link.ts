@@ -124,3 +124,55 @@ export async function autoLinkAllPotentialDonors(limit = 2000): Promise<AutoLink
   }
   return { scanned, linked, details };
 }
+
+export interface EnsureLeadsResult { scanned: number; linked: number; created: number }
+
+/** 이벤트 참여 잠재 중 회원 기록이 없는 사람을 연락 가능한 리드 회원으로 만들어 연결(멱등) — 발송 수신자 준비용.
+ *  너처링 syncPotentialLeads와 같은 규칙(전화·이메일로 기존 회원 매칭 → 없으면 로그인 없는 리드 회원 생성·문자/카톡 동의 ON). */
+export async function ensureLeadMembersForEvents(eventNames: string[]): Promise<EnsureLeadsResult> {
+  const names = [...new Set(eventNames.map((s) => String(s || "").trim()).filter(Boolean))];
+  const out: EnsureLeadsResult = { scanned: 0, linked: 0, created: 0 };
+  if (!names.length) return out;
+  const rows = rowsOf(await db.execute(sql`
+    SELECT id, name, phone, email, event_name FROM potential_donors
+     WHERE linked_member_id IS NULL AND event_name = ANY(${names}::text[])
+       AND (COALESCE(phone, '') <> '' OR COALESCE(email, '') <> '')
+     ORDER BY id ASC LIMIT 3000`));
+  out.scanned = rows.length;
+  for (const pd of rows) {
+    try {
+      const realEmail = String(pd.email || "").trim();
+      const phone = String(pd.phone || "").trim();
+      const digits = phoneDigits(phone);
+      const email = realEmail && !isPlaceholderEmail(realEmail) ? realEmail : "";
+      if (!digits && !email) continue;
+      let memberId = Number(rowsOf(await db.execute(sql`
+        SELECT id FROM members
+         WHERE status <> 'withdrawn' AND (
+           (${email}::text <> '' AND LOWER(email) = LOWER(${email}))
+           OR (${digits}::text <> '' AND regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g') = ${digits}))
+         ORDER BY CASE donor_type WHEN 'regular' THEN 0 WHEN 'prospect' THEN 1 ELSE 2 END,
+                  (COALESCE(email, '') ILIKE '%@noemail.%') ASC, id ASC
+         LIMIT 1`))[0]?.id) || 0;
+      if (!memberId) {
+        const ins = rowsOf(await db.execute(sql`
+          INSERT INTO members (name, email, phone, password_hash, type, status, donor_type, prospect_entry_path, prospect_event_name,
+                               agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at, donor_evaluated_at, memo, created_at, updated_at)
+          VALUES (${(String(pd.name || "").trim() || "후원자").slice(0, 100)}, ${email || `lead-${pd.id}@noemail.tbfa.local`}, ${phone || null}, ${"!nurture-lead-no-login"},
+                  'regular', 'active', 'none', 'potential_lead', ${String(pd.event_name || "").slice(0, 150) || null},
+                  ${!!email}, true, ${digits ? sql`NOW()` : sql`NULL`}, ${digits ? sql`NOW()` : sql`NULL`}, NOW(),
+                  ${`[잠재 이벤트 참여] ${pd.event_name || ""} — 발송 수신자 준비로 자동 생성(로그인 없음)`}, NOW(), NOW())
+          RETURNING id`));
+        memberId = Number(ins[0]?.id) || 0;
+        if (memberId) out.created++;
+      }
+      if (memberId) {
+        const u = rowsOf(await db.execute(sql`
+          UPDATE potential_donors SET linked_member_id = ${memberId}, linked_at = NOW(), linked_by = NULL, updated_at = NOW()
+           WHERE id = ${pd.id} AND linked_member_id IS NULL RETURNING id`));
+        if (u.length) out.linked++;
+      }
+    } catch (e: any) { console.warn(`[potential-link] 이벤트 리드 준비 실패 pd=${pd.id}: ${e?.message || e}`); }
+  }
+  return out;
+}

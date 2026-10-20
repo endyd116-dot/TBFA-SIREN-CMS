@@ -3111,7 +3111,7 @@ function setupTossBilling() {
    잠재 후원자 관리 (potential_donors) — 이벤트·활동 참여자
    ============================================================ */
 
-let potentialDonorQuery = { q: '', eventName: '', linked: 'all' };
+let potentialDonorQuery = { q: '', eventName: '', event: '', sort: 'recent', linked: 'all' };
 let potentialDonorPage = 1;
 const potentialDonorPageSize = 50;
 let potentialDonorSearchTimer = null;
@@ -3126,6 +3126,8 @@ async function renderPotentialDonor() {
     const qs = new URLSearchParams();
     if (potentialDonorQuery.q) qs.set('q', potentialDonorQuery.q);
     if (potentialDonorQuery.eventName) qs.set('eventName', potentialDonorQuery.eventName);
+    if (potentialDonorQuery.event) qs.set('event', potentialDonorQuery.event);
+    if (potentialDonorQuery.sort && potentialDonorQuery.sort !== 'recent') qs.set('sort', potentialDonorQuery.sort);
     if (potentialDonorQuery.linked !== 'all') qs.set('linked', potentialDonorQuery.linked);
     qs.set('page', String(potentialDonorPage));
     qs.set('pageSize', String(potentialDonorPageSize));
@@ -3141,6 +3143,7 @@ async function renderPotentialDonor() {
   const rows = resp.data || [];
   const total = resp.total != null ? resp.total : rows.length;
   const kpi = resp.kpi || {};
+  pdRenderEventOptions(resp.events || []);
   const set = function(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('pdKpiTotal', (kpi.total != null ? kpi.total : 0).toLocaleString() + '명');
   /* 2026-10-18: «연결됨» → «예비·정기로 전환됨» / «미연결» → «미전환» (연결된 회원의 후원 단계 기준) */
@@ -3157,10 +3160,17 @@ async function renderPotentialDonor() {
     return;
   }
 
+  var pdCurEv = null;
   tbody.innerHTML = rows.map(function(d) {
     /* 2026-10-18: «정식 회원 연결»(수동) → «전환 상태»(자동) + 이름 클릭 = 고객 여정 패널 */
     const stageBadge = pdStageBadge(d);
-    return '<tr>'
+    /* 2026-10-20: 이벤트별 정렬이면 이벤트마다 묶음 제목 행 */
+    var pdHead = '';
+    if (potentialDonorQuery.sort === 'event') {
+      var pdEv = d.eventName || '(이벤트 없음)';
+      if (pdEv !== pdCurEv) { pdCurEv = pdEv; pdHead = pdEventHeaderRow(pdEv); }
+    }
+    return pdHead + '<tr>'
       + '<td style="font-family:Inter;font-size:11.5px">PD-' + String(d.id).padStart(5,'0') + '</td>'
       + '<td><strong class="cj-link" title="고객 여정 보기" onclick="openCustomerJourney({potentialId:' + d.id + ', name:\'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\'})">' + escapeHtml(d.name || '') + '</strong></td>'
       + '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.phone || '—') + '</td>'
@@ -3176,6 +3186,52 @@ async function renderPotentialDonor() {
   }).join('');
 
   renderPotentialDonorPagination(total);
+}
+
+/* 2026-10-20: 이벤트 선택지(건수 포함) — 목록 응답의 events로 채우고 선택값은 유지 */
+var _pdEvents = [];
+function pdRenderEventOptions(events) {
+  _pdEvents = events || [];
+  var sel = document.getElementById('pdFilterEvent');
+  if (!sel) return;
+  var cur = potentialDonorQuery.event || '';
+  var html = '<option value="">이벤트: 전체</option>';
+  _pdEvents.forEach(function(e) {
+    var name = e.name || '';
+    if (!name) return;
+    var label = name + ' (' + (e.count || 0) + '명' + (e.converted ? ' · 전환 ' + e.converted : '') + ')';
+    html += '<option value="' + escapeHtml(name) + '"' + (name === cur ? ' selected' : '') + '>' + escapeHtml(label) + '</option>';
+  });
+  sel.innerHTML = html;
+  pdUpdateSendBtn();
+}
+function pdEventHeaderRow(name) {
+  var ev = _pdEvents.find(function(e) { return (e.name || '(이벤트 없음)') === name; }) || {};
+  var meta = ev.count != null ? ev.count + '명' + (ev.converted ? ' · 예비·정기 전환 ' + ev.converted : '') + (ev.linked != null ? ' · 회원 연결 ' + ev.linked : '') : '';
+  return '<tr class="pd-group-row"><td colspan="11" style="background:#f7f7f4;font-weight:700;padding:7px 10px;border-top:2px solid #e3e3df">🗂 ' + escapeHtml(name) + ' <span style="color:#888;font-weight:500;font-size:12px">' + escapeHtml(meta) + '</span></td></tr>';
+}
+function pdUpdateSendBtn() {
+  var btn = document.getElementById('pdBtnSendEvent');
+  if (!btn) return;
+  btn.disabled = !potentialDonorQuery.event;
+  btn.textContent = potentialDonorQuery.event ? '✉ «' + potentialDonorQuery.event + '» 참여자에게 발송' : '✉ 이 이벤트 참여자에게 발송';
+}
+/* 선택한 이벤트 참여자를 수신자 그룹으로 준비 → 발송 작업 만들기(그룹 선택된 채로) */
+async function pdSendToEvent() {
+  var ev = potentialDonorQuery.event;
+  if (!ev) { toast('먼저 이벤트를 고르세요'); return; }
+  var btn = document.getElementById('pdBtnSendEvent'); if (btn) btn.disabled = true;
+  try {
+    var res = await api('/api/admin/potential-donor-event-group', { method: 'POST', body: { eventName: ev } });
+    if (!res.ok) { toast('수신자 그룹 준비 실패: ' + (res.data?.error || res.data?.detail || res.status)); return; }
+    var r = unwrap(res.data, ['groupId', 'counts']);
+    var c = r.counts || {};
+    toast('수신자 그룹 «' + (r.groupName || ev) + '» 준비 — 문자 ' + (c.sms || 0) + ' · 카톡 ' + (c.kakao || 0) + ' · 이메일 ' + (c.email || 0) + '명 발송 가능');
+    var sec = document.getElementById('page-send-jobs');
+    var ifr = sec && sec.querySelector('iframe.nf-iframe');
+    if (ifr) ifr.src = '/admin-send-job-create.html?group=' + encodeURIComponent(r.groupId);
+    location.hash = '#send-jobs';
+  } finally { pdUpdateSendBtn(); }
 }
 
 /* 2026-10-18: 전환 상태 배지 — 연결된 회원의 후원 단계(lib/donor-stage.ts와 같은 어휘) */
@@ -3255,10 +3311,14 @@ document.addEventListener('DOMContentLoaded', function() {
     clearTimeout(potentialDonorSearchTimer);
     potentialDonorSearchTimer = setTimeout(function() { potentialDonorQuery.q = e.target.value.trim(); potentialDonorPage = 1; renderPotentialDonor(); }, 300);
   });
-  document.getElementById('pdFilterEvent')?.addEventListener('input', function(e) {
-    clearTimeout(potentialDonorSearchTimer);
-    potentialDonorSearchTimer = setTimeout(function() { potentialDonorQuery.eventName = e.target.value.trim(); potentialDonorPage = 1; renderPotentialDonor(); }, 300);
+  /* 2026-10-20: 이벤트 선택(정확 일치)·정렬·이벤트 참여자 발송 */
+  document.getElementById('pdFilterEvent')?.addEventListener('change', function(e) {
+    potentialDonorQuery.event = e.target.value; potentialDonorPage = 1; pdUpdateSendBtn(); renderPotentialDonor();
   });
+  document.getElementById('pdSort')?.addEventListener('change', function(e) {
+    potentialDonorQuery.sort = e.target.value; potentialDonorPage = 1; renderPotentialDonor();
+  });
+  document.getElementById('pdBtnSendEvent')?.addEventListener('click', pdSendToEvent);
   document.getElementById('pdFilterLinked')?.addEventListener('change', function(e) {
     potentialDonorQuery.linked = e.target.value; potentialDonorPage = 1; renderPotentialDonor();
   });
@@ -3987,7 +4047,7 @@ async function loadNotifyJobs() {
       var q = (document.getElementById('pdFilterSearch')?.value || '').trim();
       if (q) qs.q = q;
       var ev = (document.getElementById('pdFilterEvent')?.value || '').trim();
-      if (ev) qs.eventName = ev;
+      if (ev) qs.event = ev;
       var lk = document.getElementById('pdFilterLinked')?.value || 'all';
       if (lk && lk !== 'all') qs.linked = lk;
       _toast('잠재 후원자 데이터 추출 중...');
