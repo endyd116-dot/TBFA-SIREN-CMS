@@ -135,7 +135,7 @@ export async function ensureLeadMembersForEvents(eventNames: string[]): Promise<
   if (!names.length) return out;
   const rows = rowsOf(await db.execute(sql`
     SELECT id, name, phone, email, event_name FROM potential_donors
-     WHERE linked_member_id IS NULL AND event_name = ANY(${names}::text[])
+     WHERE linked_member_id IS NULL AND event_name IN (${sql.join(names.map((n) => sql`${n}`), sql`, `)})
        AND (COALESCE(phone, '') <> '' OR COALESCE(email, '') <> '')
      ORDER BY id ASC LIMIT 3000`));
   out.scanned = rows.length;

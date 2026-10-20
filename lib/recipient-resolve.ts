@@ -505,7 +505,7 @@ function filterClauseToSql(f: FilterClause): ReturnType<typeof sql> | null {
     case "potentialEvent": {
       /* 2026-10-20: 잠재 후원자 이벤트 참여자 — 잠재 행이 연결된 회원(resolveRecipients가 미리 리드 회원을 준비) */
       if (f.op === "eq") return sql`id IN (SELECT linked_member_id FROM potential_donors WHERE linked_member_id IS NOT NULL AND event_name = ${f.value})`;
-      if (f.op === "in") return sql`id IN (SELECT linked_member_id FROM potential_donors WHERE linked_member_id IS NOT NULL AND event_name = ANY(${f.values}::text[]))`;
+      if (f.op === "in") return sql`id IN (SELECT linked_member_id FROM potential_donors WHERE linked_member_id IS NOT NULL AND event_name IN (${sql.join((f.values || []).map((v: any) => sql`${String(v)}`), sql`, `)}))`;
       return null;
     }
     default:
