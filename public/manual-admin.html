@@ -360,6 +360,9 @@
       <a href="#e-receipt" class="lvl-2">영수증·기부금 영수증</a>
       <a href="#e-send" class="lvl-2"><span class="siren-icon-wrap" data-icon="upload"></span> 발송 운영</a>
       <a href="#e-trigger" class="lvl-2"><span class="siren-icon-wrap" data-icon="bot"></span> AI 자동 트리거</a>
+
+      <div class="toc-section">F. 응답폼·신청폼</div>
+      <a href="#f-forms" class="lvl-2">폼 만들기 · 공유 · 응답 확인</a>
       <a href="#e-stats" class="lvl-2">통계·KPI</a>
       <a href="#e-member-action" class="lvl-2">회원 상세 작업</a>
       <a href="#e-payroll" class="lvl-2">급여 관리(R37)</a>
@@ -1603,6 +1606,25 @@
         </tbody>
       </table>
       <p>헌화는 비회원도 가능(닉네임), 메시지·편지 작성은 회원만. 영정·실명·약력은 <strong>유가족 동의 범위</strong>에서 운영하세요.</p>
+    </section>
+
+    <!-- ===================== F. 응답폼·신청폼 빌더 (2026-10-28) ===================== -->
+    <section id="f-forms">
+      <h2><span class="badge-area"><span class="siren-icon-wrap" data-icon="clipboard-list"></span></span>F. 응답폼·신청폼 빌더 — 행사 신청·설문을 구글폼처럼</h2>
+      <p>통합 CMS <strong>콘텐츠 관리 &gt; 응답폼·신청폼 관리</strong>(<code>#forms-builder</code>)에서 코드 없이 폼을 만들고, 공개 주소 <code>tbfa.co.kr/form.html?slug=폼주소</code>를 공유해 응답을 받습니다. 응답은 우리 DB에 쌓이고 회원이 응답하면 회원 정보가 함께 남습니다.</p>
+      <table>
+        <thead><tr><th>단계</th><th>어디서</th><th>어떻게</th></tr></thead>
+        <tbody>
+          <tr><td>1. 만들기</td><td>[+ 새 폼 만들기]</td><td>제목·<strong>slug</strong>(영문/숫자/_/- · 공개 주소가 됨 · 공유 뒤 변경 금지)·설명·안내 문구 입력 → 필드 추가(텍스트·긴 텍스트·이메일·전화·숫자·날짜·드롭다운·단일 선택·다중 선택·파일 업로드). 나중에 연락하려면 이름·연락처 필드는 필수로.</td></tr>
+          <tr><td>2. 접근·정원·알림</td><td>폼 편집 하단</td><td>접근 = 누구나 / 제한(링크 가진 사람만) / 회원만(로그인 필수). «중복 응답 허용» 안 켜면 회원 1인 1회. 응답 정원과 마감 안내 메시지(선택). 응답 도착 시 인앱 알림(기본) + 알림 이메일(선택).</td></tr>
+          <tr><td>3. 열기</td><td>저장 후 토글 2개</td><td><strong>활성</strong>(응답 받음) + <strong>발행</strong>(공개 주소 열림)을 둘 다 켜야 접수 시작. 공개 주소 상자에서 복사.</td></tr>
+          <tr><td>4. 공유</td><td>문자·카톡·SNS·캠페인 글</td><td>복사한 주소를 붙여 넣기. «제한» 접근이면 주소를 아는 사람만 들어오고 어디에도 노출되지 않음.</td></tr>
+          <tr><td>5. 응답 확인</td><td>목록의 «응답 N»</td><td>응답자(회원이면 이름·이메일·전화 자동)·제출 시각·답변 표 → <strong>[CSV 다운로드]</strong>로 엑셀 정리, 시험 응답은 [삭제].</td></tr>
+          <tr><td>6. 마감</td><td>폼 편집</td><td>«활성» 끄기(주소에 마감 안내 표시) 또는 정원 도달 시 자동 마감. «발행»까지 끄면 주소 자체가 닫힘.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>신청자에게 문자·카톡 보내기(현재)</strong>: 폼 응답은 응답 조회에만 쌓이고 잠재 후원자·발송 수신자 그룹에 자동으로 들어가지 않습니다. 응답 CSV → 후원자 관리 &gt; 잠재 후원자 [+ 등록] 또는 AI 추출(붙여넣기)로 이벤트명과 함께 넣은 뒤 → 잠재 표에서 그 이벤트를 골라 「✉ 이 이벤트 참여자에게 발송」. 폼 설정에서 «응답자를 잠재 후원자로 자동 등록»하는 기능은 제안 단계(2026-10-28)입니다.</p>
+      <p>자주 하는 실수: «발행»만 켜고 «활성»을 안 켜면 주소는 열리지만 «접수 중이 아님»으로 보임 · slug를 나중에 바꾸면 공유한 링크가 깨짐 · 접근 «회원만»인데 비회원에게 공유하면 로그인 화면으로 감.</p>
     </section>
 
     <!-- ===================== 딥릴리프 (순직 인정 지원) ===================== -->

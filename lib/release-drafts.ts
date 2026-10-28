@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-10-20.1";
+export const APP_VERSION = "2026-10-28.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-10-28-forms-manual",
+    title: "응답폼·신청폼 빌더 사용법 메뉴얼 — 행사 신청·설문을 구글폼처럼 받는 방법",
+    items: [
+      { text: "이미 있던 응답폼·신청폼 빌더(콘텐츠 관리 › 응답폼·신청폼 관리)의 사용법이 메뉴얼에 없어 추가했습니다. 폼 만들기(필드 10종·접근·정원·알림) → 활성+발행 → 공개 주소 공유 → 응답 조회·CSV 내려받기 → 마감까지 한 표로 정리했고, 자주 하는 실수도 적었습니다", link: "/manual-admin.html#f-forms" },
+      { text: "신청자에게 문자·카톡을 보내려면 지금은 응답 CSV를 잠재 후원자에 이벤트명과 함께 등록한 뒤 「이 이벤트 참여자에게 발송」을 쓰면 됩니다. 폼 응답자를 잠재 후원자로 자동 등록하는 기능은 제안 중입니다" },
+    ],
+  },
   {
     key: "2026-10-20-potential-event-send",
     title: "잠재 후원자를 이벤트별로 보고, 그 이벤트 참여자에게 바로 문자·카톡·메일을 보냅니다",
