@@ -149,7 +149,8 @@ export default async (req: Request) => {
     try {
       await notifyOperatorsDonationCanceled({
         kind: "regular", memberId: auth.uid, memberName: auth.name, amount: Number(updated.amount) || null,
-        reason: reason || null, refTable: "donations", refId: donationId, channel: String((donation as any).payMethod || "") || null,
+        reason: reason || null, refTable: "donations", refId: donationId,
+        channel: ({ card: "카드 자동결제", cms: "효성 CMS", bank: "계좌이체" } as Record<string, string>)[String((donation as any).payMethod || "")] || String((donation as any).payMethod || "") || null,
       });
     } catch (e) { console.warn("[donations-cancel] 운영자 알림 실패(무시):", e); }
 
