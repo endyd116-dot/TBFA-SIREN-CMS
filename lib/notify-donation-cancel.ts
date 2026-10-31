@@ -58,22 +58,27 @@ export async function notifyOperatorsDonationCanceled(n: DonationCancelNotice): 
     console.warn("[notify-donation-cancel] 알림함 실패:", e?.message || e);
   }
 
-  /* ② 운영자 알림톡(승인 템플릿 있을 때만) */
-  sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.DONATION_CANCELED, {
+  /* ② 운영자 알림톡(승인 템플릿 있을 때만) — 호출부가 응답을 돌려주기 전에 끝나야 하므로 기다린다
+     (Netlify 함수는 응답 뒤 남은 비동기 작업이 끊길 수 있음 — 2026-11-01 라이브 검증에서 fire-and-forget 알림이 유실됨) */
+  await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.DONATION_CANCELED, {
     이름: name,
     금액: amt || "-",
     구분: kindKo,
     사유: reason || "-",
-  }).catch(() => {});
+  });
 
   /* ③ 운영자 메일 */
   const to = (process.env.ADMIN_NOTIFY_EMAIL || "").trim();
   if (to) {
     const site = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
-    sendEmail({
-      to,
-      subject: `[SIREN] ${kindKo} — ${name}${amt ? ` ${amt}` : ""}`,
-      html: `<p>${esc(message)}</p><p style="color:#666;font-size:13px">회원 번호 ${n.memberId ?? "-"} · ${new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p><p><a href="${site}${link}">후원 관리에서 확인</a></p>`,
-    }).catch((e: any) => console.warn("[notify-donation-cancel] 메일 실패:", e?.message || e));
+    try {
+      await sendEmail({
+        to,
+        subject: `[SIREN] ${kindKo} — ${name}${amt ? ` ${amt}` : ""}`,
+        html: `<p>${esc(message)}</p><p style="color:#666;font-size:13px">회원 번호 ${n.memberId ?? "-"} · ${new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p><p><a href="${site}${link}">후원 관리에서 확인</a></p>`,
+      });
+    } catch (e: any) {
+      console.warn("[notify-donation-cancel] 메일 실패:", e?.message || e);
+    }
   }
 }

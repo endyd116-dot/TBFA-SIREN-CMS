@@ -297,6 +297,13 @@
     const submit = document.getElementById('sjSubmit');
     const bylawsLink = document.getElementById('sjBylawsLink');
     if (bylawsLink) bylawsLink.href = (_lantern && _lantern.bylawsUrl) || (_policyCache && _policyCache.bylawsUrl) || '/resources.html';
+    /* 등불 캠페인이 아닌 일반 가입(홈·메뉴)이면 등불 전용 문구(함께워크 안내·«등불 보고»·초 아이콘)를 감추거나 일반 문구로 */
+    const orgNote = document.getElementById('sjNoticeOrg');
+    if (orgNote) orgNote.hidden = !_lantern;
+    const smsLbl = document.getElementById('sjSmsLabel');
+    if (smsLbl && smsLbl.firstChild && smsLbl.dataset) smsLbl.firstChild.textContent = (_lantern ? smsLbl.dataset.lantern : smsLbl.dataset.general) + ' ';
+    const sjBadge = document.getElementById('sjBadge');
+    if (sjBadge) sjBadge.textContent = _lantern ? '🕯️ 후원회원 가입' : '🤝 후원회원 가입';
     const privacyLine = document.getElementById('sjPrivacy')?.closest('label');
     const bylaws = document.getElementById('sjBylaws');
     const privacy = document.getElementById('sjPrivacy');
@@ -475,7 +482,7 @@
       if (_lantern && _lantern.notices && _lantern.notices.NOTICE_PAY) noticePay.textContent = _lantern.notices.NOTICE_PAY;
     }
     if (_lantern) {
-      if (badge) { badge.textContent = '🕯️ ' + (_lantern.certificate?.campaignLabel || _campaignInfo?.title || '캠페인') + ' · 후원회원 회비'; badge.hidden = false; }
+      if (badge) { badge.textContent = '🕯️ ' + (_lantern.certificate?.campaignLabel || _campaignInfo?.title || '캠페인') + ' · 후원회원 회비'; badge.hidden = false; badge.style.display = ''; }
       if (h2) h2.textContent = (_campaignInfo?.title || '등불의 기적') + ' — 후원회원으로 함께하기';
       if (sub) sub.textContent = _lantern.headline || '';
       /* 정기(월 자동결제)가 첫 번째·기본 */
@@ -484,7 +491,8 @@
       /* 캠페인이 정해져 있으니 캠페인 선택 칸은 숨긴다(열린 뒤 뒤늦게 나타나 흔들리지 않게) */
       if (campaignWrap) campaignWrap.style.display = 'none';
     } else {
-      if (badge) badge.hidden = true;
+      /* hidden 속성만으로는 배지 CSS(display 지정)가 이겨 «등불의 기적» 기본 글자가 일반 창에도 보였다(2026-11-01 라이브 검증) → display도 끈다 */
+      if (badge) { badge.hidden = true; badge.style.display = 'none'; }
       if (h2 && _policyCache && _policyCache.modalTitle) h2.textContent = _policyCache.modalTitle;
       if (sub && _policyCache && _policyCache.modalSubtitle) sub.textContent = _policyCache.modalSubtitle;
     }
@@ -590,9 +598,12 @@
       const mismatch = !!_status && (!!_status.loggedIn !== userLoggedIn());
       if (mismatch) routeSteps(true);
       else if (!_status) routeSteps(false);
+    }
+    if (_lantern) {
       /* 등불 캠페인은 캠페인이 정해져 있다 — 선택 칸 없음 */
       try { sessionStorage.removeItem('siren_preselect_campaign'); } catch (_) {}
     } else {
+      /* 일반 후원 창 — 가입 필수 스위치와 무관하게 캠페인 선택칸은 채운다 (2026-11-01 회귀 fix) */
       loadCampaignsForDonate();
     }
   }

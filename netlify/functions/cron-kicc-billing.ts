@@ -334,10 +334,12 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
     });
 
     /* 2026-10-31: 자동 해지도 운영자에게(알림함·알림톡(승인 시)·메일) */
-    notifyOperatorsDonationCanceled({
-      kind: "auto", memberId: target.memberId, memberName: target.memberName, amount: target.amount,
-      reason: `${newRetryCount}회 연속 실패: ${result.errorCode}`, refTable: "billing_keys", refId: target.billingKeyId,
-    }).catch(() => {});
+    try {
+      await notifyOperatorsDonationCanceled({
+        kind: "auto", memberId: target.memberId, memberName: target.memberName, amount: target.amount,
+        reason: `${newRetryCount}회 연속 실패: ${result.errorCode}`, refTable: "billing_keys", refId: target.billingKeyId,
+      });
+    } catch (e) { console.warn("[cron-kicc-billing] 운영자 해지 알림 실패(무시):", e); }
 
     await safeReevaluate(target.memberId, "cron-kicc-billing/auto-cancel");
     return true;

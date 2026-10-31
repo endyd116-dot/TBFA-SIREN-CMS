@@ -134,10 +134,12 @@ export default async (req: Request) => {
     await safeReevaluate(user.id, "billing-cancel");
 
     /* 2026-10-31: 운영자에게도 알린다(알림함·알림톡(승인 시)·메일) — 지금까지 해지는 운영자가 몰랐다 */
-    notifyOperatorsDonationCanceled({
-      kind: "regular", memberId: user.id, memberName: user.name, amount: Number(updated.amount) || null,
-      reason: reason || null, refTable: "billing_keys", refId: updated.id, channel: "카드 자동결제",
-    }).catch(() => {});
+    try {
+      await notifyOperatorsDonationCanceled({
+        kind: "regular", memberId: user.id, memberName: user.name, amount: Number(updated.amount) || null,
+        reason: reason || null, refTable: "billing_keys", refId: updated.id, channel: "카드 자동결제",
+      });
+    } catch (e) { console.warn("[billing-cancel] 운영자 알림 실패(무시):", e); }
 
     return ok(
       { billingKeyId: updated.id },

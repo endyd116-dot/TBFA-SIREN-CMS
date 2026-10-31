@@ -313,7 +313,7 @@
         </label>
         <label class="checkbox-line" style="margin:6px 0 14px">
           <input type="checkbox" name="agreeSms" id="sjSms">
-          <span>협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다. <span style="color:var(--text-3)">(선택)</span></span>
+          <span id="sjSmsLabel" data-lantern="협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다." data-general="협의회 소식·활동 보고를 문자·카카오톡으로 받겠습니다.">협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다. <span style="color:var(--text-3)">(선택)</span></span>
         </label>
 
         <div class="sj-existing" id="sjExisting" hidden>
@@ -764,6 +764,8 @@
   #donateModal .sj-existing { margin: 0 0 14px; padding: 12px 14px; background: #fff8ec; border: 1px solid #f0e3c4; border-radius: 8px; font-size: 13px; color: #8a6a00; line-height: 1.6; }
   #donateModal .sj-foot { margin: 12px 0 0; font-size: 12px; color: var(--text-3); text-align: center; }
   #donateModal .lt-modal-badge { display: inline-block; font-size: 12px; font-weight: 700; color: #181206; background: #d9a441; padding: 4px 10px; border-radius: 12px; margin-bottom: 14px; }
+  /* 2026-11-01: hidden 속성이 위 display 지정에 밀려 일반 후원 창에도 «등불의 기적» 배지가 보이던 문제 */
+  #donateModal .lt-modal-badge[hidden] { display: none; }
   #donateModal .amt.amt-ladder { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; line-height: 1.35; }
   #donateModal .amt.amt-ladder small { font-weight: 400; font-size: 11px; color: var(--text-3); white-space: normal; word-break: keep-all; }
   #donateModal .amt.amt-ladder.on small { color: rgba(255,255,255,.85); }

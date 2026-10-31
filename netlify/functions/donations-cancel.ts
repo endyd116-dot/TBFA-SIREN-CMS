@@ -146,10 +146,12 @@ export default async (req: Request) => {
     await safeReevaluate(auth.uid, "donations-cancel");
 
     /* 2026-10-31: 운영자에게도 알린다(알림함·알림톡(승인 시)·메일) */
-    notifyOperatorsDonationCanceled({
-      kind: "regular", memberId: auth.uid, memberName: auth.name, amount: Number(updated.amount) || null,
-      reason: reason || null, refTable: "donations", refId: donationId, channel: String((donation as any).payMethod || "") || null,
-    }).catch(() => {});
+    try {
+      await notifyOperatorsDonationCanceled({
+        kind: "regular", memberId: auth.uid, memberName: auth.name, amount: Number(updated.amount) || null,
+        reason: reason || null, refTable: "donations", refId: donationId, channel: String((donation as any).payMethod || "") || null,
+      });
+    } catch (e) { console.warn("[donations-cancel] 운영자 알림 실패(무시):", e); }
 
     /* 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(완료분만 집계 → 취소분 차감 반영) */
     await recalcCampaignStatsSafe((donation as any).campaignId);
