@@ -103,7 +103,7 @@ export async function readSponsorFields(memberId: number): Promise<{ schoolName:
 }
 
 /** 환영 메일 — «비밀번호 설정하기» 링크(7일) 포함 */
-export async function sendSponsorWelcomeMail(member: { id: number; email: string; name: string }, campaignTitle: string): Promise<void> {
+export async function sendSponsorWelcomeMail(member: { id: number; email: string; name: string }, campaignTitle: string, generic = false): Promise<void> {
   let setPwUrl = `${SITE_URL}/password-reset.html`;
   try {
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -123,8 +123,8 @@ export async function sendSponsorWelcomeMail(member: { id: number; email: string
       <strong>${esc(member.name)}</strong> 님, 후원회원이 되어 주셔서 감사합니다.
     </p>
     <p style="margin:0 0 20px;color:#525252;line-height:1.8;">
-      「${esc(campaignTitle)}」 후원회원 가입이 완료되었습니다.<br />
-      회칙에 따라 후원회원으로 등록되었으며, 회비 납부 내역·정기 회비 해지·등불 증서는 마이페이지에서 언제든 확인하실 수 있습니다.
+      ${generic ? "사단법인 교사유가족협의회" : `「${esc(campaignTitle)}」`} 후원회원 가입이 완료되었습니다.<br />
+      회칙에 따라 후원회원으로 등록되었으며, 회비 납부 내역·정기 회비 해지${generic ? "" : "·등불 증서"}는 마이페이지에서 언제든 확인하실 수 있습니다.
     </p>
     <div style="margin:20px 0;padding:16px 20px;background:#fef9f5;border:1px solid #f0e0d4;border-radius:8px;font-size:13px;color:#525252;line-height:1.8;">
       <strong style="color:#0f0f0f;">마이페이지 비밀번호 설정</strong><br />
@@ -161,6 +161,8 @@ export interface CreateSponsorInput {
   agreeSms?: boolean;
   campaignTitle: string;  // 메모·알림·메일 제목용
   source: "siren_modal" | "am_modal";
+  /** 캠페인 맥락 없는 일반 가입(홈·메뉴의 «후원회원 되기») — 환영 안내·메일을 등불 문구 대신 일반 문구로 */
+  generic?: boolean;
 }
 
 /** 신규 후원회원 생성 — 호출 측이 중복(findExistingSponsor)을 먼저 확인했다고 가정 */
@@ -199,7 +201,7 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
     await notifyAllOperators({
       category: "member",
       severity: "info",
-      title: `🕯️ 후원회원 가입 — ${input.campaignTitle}`,
+      title: input.generic ? `🤝 후원회원 가입 — 홈페이지` : `🕯️ 후원회원 가입 — ${input.campaignTitle}`,
       message: `${created.name}님이 후원회원으로 가입했어요.${schoolName ? ` (${schoolName})` : ""}${input.source === "am_modal" ? " — 랜딩 모달" : ""}`,
       link: "/admin.html#members",
       refTable: "members",
@@ -207,11 +209,11 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
     }, { category: "all" });
   } catch (e) { console.warn("[sponsor-member] 운영자 알림 실패:", e); }
 
-  try { await sendSponsorWelcomeMail({ id: created.id, email: created.email, name: created.name }, input.campaignTitle); } catch {}
+  try { await sendSponsorWelcomeMail({ id: created.id, email: created.email, name: created.name }, input.campaignTitle, !!input.generic); } catch {}
 
   /* ★ 2026-09-06 가입 직후 «후원회원 등록 안내» 카톡(검수 전엔 문자) 1통 — 시험 회원(@lantern.invalid)은 안에서 제외 */
   sendSponsorWelcomeNotice({
-    memberId: created.id, name: created.name, phone: created.phone, email: created.email, campaignTitle: input.campaignTitle,
+    memberId: created.id, name: created.name, phone: created.phone, email: created.email, campaignTitle: input.campaignTitle, generic: !!input.generic,
   }).catch((e) => console.warn("[sponsor-member] 등록 안내 발송 실패:", (e as any)?.message));
 
   return created as any;

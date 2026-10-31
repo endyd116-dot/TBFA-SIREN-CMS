@@ -322,7 +322,17 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-block" id="sjSubmit">가입하고 이어서 진행하기</button>
-        <p class="sj-foot">이미 후원회원이신가요? <button type="button" class="link-btn" id="sjLoginLink" style="color:var(--brand);text-decoration:underline;background:none;border:0;cursor:pointer;font:inherit;padding:0">로그인</button> 후 바로 후원하실 수 있습니다.</p>
+        <p class="sj-foot">이미 후원회원이신가요? <button type="button" class="link-btn" id="sjLoginLink" style="color:var(--brand);text-decoration:underline;background:none;border:0;cursor:pointer;font:inherit;padding:0">로그인</button> 후 바로 이어서 진행하실 수 있습니다.</p>
+        <div class="bank-quick" style="margin-top:14px;padding-top:12px;border-top:1px dashed #e5e7eb;text-align:center;font-size:12.5px;color:var(--text-3)">
+          후원회원 가입 없이 계좌이체로만 마음을 보내시려면
+          <button type="button" class="link-btn bank-quick-toggle" data-target="sjBankQuick" style="color:var(--brand);text-decoration:underline;background:none;border:0;cursor:pointer;font:inherit;padding:0">후원 계좌 보기</button>
+          <div class="bank-quick-box" id="sjBankQuick" hidden style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;text-align:left;color:var(--text-2);font-size:13px;line-height:1.6">
+            <div><strong class="bq-bank">-</strong> <strong class="bq-account" style="font-family:'Inter',system-ui,sans-serif;letter-spacing:0.5px">-</strong></div>
+            <div>예금주 <span class="bq-holder">-</span></div>
+            <div class="bq-guide" style="margin-top:4px;font-size:12px;color:var(--text-3)"></div>
+            <button type="button" class="btn btn-outline bank-quick-copy" style="margin-top:8px;padding:6px 12px;font-size:12px">계좌번호 복사</button>
+          </div>
+        </div>
       </form>
     </div>
 
@@ -490,6 +500,16 @@
         <p style="margin-top:8px;font-size:12px;color:var(--text-3);text-align:center;line-height:1.7" id="donateNoticePay" hidden>
           회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.
         </p>
+        <div class="bank-quick" style="margin-top:14px;padding-top:12px;border-top:1px dashed #e5e7eb;text-align:center;font-size:12.5px;color:var(--text-3)">
+          후원회원 가입 없이 계좌이체로만 마음을 보내시려면
+          <button type="button" class="link-btn bank-quick-toggle" data-target="donateBankQuick" style="color:var(--brand);text-decoration:underline;background:none;border:0;cursor:pointer;font:inherit;padding:0">후원 계좌 보기</button>
+          <div class="bank-quick-box" id="donateBankQuick" hidden style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;text-align:left;color:var(--text-2);font-size:13px;line-height:1.6">
+            <div><strong class="bq-bank">-</strong> <strong class="bq-account" style="font-family:'Inter',system-ui,sans-serif;letter-spacing:0.5px">-</strong></div>
+            <div>예금주 <span class="bq-holder">-</span></div>
+            <div class="bq-guide" style="margin-top:4px;font-size:12px;color:var(--text-3)"></div>
+            <button type="button" class="btn btn-outline bank-quick-copy" style="margin-top:8px;padding:6px 12px;font-size:12px">계좌번호 복사</button>
+          </div>
+        </div>
       </form>
     </div>
 

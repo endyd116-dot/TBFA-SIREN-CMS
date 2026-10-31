@@ -24,6 +24,7 @@
         { key: 'home.quickMenu',     label: '퀵메뉴 (6개 박스)' },
         { key: 'home.sections',      label: '섹션 제목 (캠페인/공지/FAQ)' },
         { key: 'home.specialBanner', label: '특별 캠페인 배너 (하단)' },
+        { key: 'home.bankBanner',    label: '후원 계좌 안내 배너' },
         { key: 'home.effects',       label: '효과 / 애니메이션' },
       ],
     },
@@ -290,6 +291,15 @@
       } else {
         const inner = $('#sbContentInner');
         inner.innerHTML = '<div class="sb-placeholder"><p>배너 편집 모듈 로드 실패 — admin-home-banner.js 스크립트 태그 확인</p></div>';
+      }
+    },
+        /* 2026-10-31: 후원 계좌 안내 배너 편집 */
+    'home.bankBanner': function () {
+      if (window.SIREN_HOME_BANKBANNER && window.SIREN_HOME_BANKBANNER.render) {
+        window.SIREN_HOME_BANKBANNER.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>계좌 안내 배너 편집 모듈 로드 실패 — admin-home-bankbanner.js 스크립트 태그 확인</p></div>';
       }
     },
         /* Step 6-H: 효과/애니메이션 편집 */
@@ -975,6 +985,11 @@
       icon: '',
       desc: '하단 "기억의 약속" 특별 캠페인 배너 (제목/본문/모금액/CTA)',
       keys: ['home.specialBanner.visible/tag/title/lead/goalAmount/raisedAmount/cta'],
+    },
+    'home.bankBanner': {
+      icon: '',
+      desc: '후원회원 가입 없이 계좌이체로 보내려는 분을 위한 계좌 안내(노출·제목·문구). 은행·계좌번호는 후원 정책에서',
+      keys: ['home.bankBanner.visible', 'home.bankBanner.title', 'home.bankBanner.lead'],
     },
     'home.effects': {
       icon: '',

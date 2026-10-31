@@ -1166,6 +1166,8 @@ const OPERATOR_CATEGORIES = [
     setVal('dpBankAccountNo', p.bankAccountNo);
     setVal('dpBankAccountHolder', p.bankAccountHolder);
     setVal('dpBankGuideText', p.bankGuideText);
+    const rmEl = document.getElementById('dpRequireMembership');
+    if (rmEl) rmEl.checked = p.requireMembership !== false;
     setVal('dpHyosungUrl', p.hyosungUrl);
     setVal('dpHyosungGuideText', p.hyosungGuideText);
     setVal('dpHyosungCountdownMessage', p.hyosungCountdownMessage);
@@ -1236,6 +1238,7 @@ const OPERATOR_CATEGORIES = [
       bankAccountNo: document.getElementById('dpBankAccountNo').value.trim(),
       bankAccountHolder: document.getElementById('dpBankAccountHolder').value.trim(),
       bankGuideText: document.getElementById('dpBankGuideText').value.trim(),
+      requireMembership: !!(document.getElementById('dpRequireMembership') && document.getElementById('dpRequireMembership').checked),
       hyosungUrl: document.getElementById('dpHyosungUrl').value.trim(),
       hyosungGuideText: document.getElementById('dpHyosungGuideText').value.trim(),
       hyosungCountdownMessage: document.getElementById('dpHyosungCountdownMessage').value.trim(),

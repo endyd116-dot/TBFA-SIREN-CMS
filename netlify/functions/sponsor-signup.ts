@@ -72,7 +72,7 @@ export default async (req: Request) => {
     const schoolName = String(body.schoolName || "").trim().slice(0, 150) || null;
     const campaignSlug = String(body.campaignSlug || "").trim();
     const extras = await resolveCampaignExtras({ slug: campaignSlug });
-    const campaignTitle = extras ? extras.certificate.campaignLabel : "후원";
+    const campaignTitle = extras ? extras.certificate.campaignLabel : "홈페이지 후원회원 가입";
 
     if (!agreeBylaws) return badRequest("회칙(정관)에 동의해 주세요");
 
@@ -119,7 +119,7 @@ export default async (req: Request) => {
     }
 
     const created = await createSponsorMember({
-      name, email, phone, schoolName, agreeSms: body.agreeSms === true, campaignTitle, source: "siren_modal",
+      name, email, phone, schoolName, agreeSms: body.agreeSms === true, campaignTitle, source: "siren_modal", generic: !extras,
     });
     await ensureMemberHash(created.id);
 

@@ -53,6 +53,8 @@ function validateUrl(v: any): { ok: true; url: string | null } | { ok: false; re
   return { ok: true, url: s };
 }
 
+import { isMembershipRequired, setMembershipRequired } from "../../lib/donation-membership";
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
@@ -86,6 +88,7 @@ export default async (req: Request) => {
             hyosungCountdownSeconds: 5,
             modalTitle: "",
             modalSubtitle: "",
+            requireMembership: await isMembershipRequired(),
             stampBlobId: null,
             updatedAt: null,
             updatedBy: null,
@@ -111,6 +114,7 @@ export default async (req: Request) => {
           hyosungCountdownSeconds: (row as any).hyosungCountdownSeconds ?? 5,
           modalTitle: (row as any).modalTitle,
           modalSubtitle: (row as any).modalSubtitle,
+          requireMembership: await isMembershipRequired(),
           stampBlobId: (row as any).stampBlobId,
           updatedAt: (row as any).updatedAt,
           updatedBy: (row as any).updatedBy,
@@ -177,6 +181,14 @@ export default async (req: Request) => {
       if (body.modalTitle !== undefined) updateData.modalTitle = clipString(body.modalTitle, 200);
       if (body.modalSubtitle !== undefined) updateData.modalSubtitle = clipString(body.modalSubtitle, 500);
 
+      /* 2026-10-31 A안: «후원회원 가입 필수» 스위치 — 정책 행과 별도(site_settings) 저장·즉시 반영 */
+      let membershipChanged: boolean | null = null;
+      if (body.requireMembership !== undefined) {
+        const v = body.requireMembership === true || body.requireMembership === "true";
+        await setMembershipRequired(v, admin.uid);
+        membershipChanged = v;
+      }
+
       if (body.hyosungUrl !== undefined) {
         const u: any = validateUrl(body.hyosungUrl);
         if (!u.ok) return badRequest(`효성 URL 오류: ${u.reason}`);
@@ -229,7 +241,7 @@ export default async (req: Request) => {
       const changedKeys = Object.keys(updateData).filter(k => k !== "updatedAt" && k !== "updatedBy");
       await logAdminAction(req, admin.uid, admin.name, "donation_policy_update", {
         target: "donation_policies#1",
-        detail: { changedFields: changedKeys, minAmount: updateData.minAmount, maxAmount: updateData.maxAmount },
+        detail: { changedFields: changedKeys, minAmount: updateData.minAmount, maxAmount: updateData.maxAmount, requireMembership: membershipChanged },
       });
 
       return ok({
@@ -249,6 +261,7 @@ export default async (req: Request) => {
           hyosungCountdownSeconds: result.hyosungCountdownSeconds,
           modalTitle: result.modalTitle,
           modalSubtitle: result.modalSubtitle,
+          requireMembership: membershipChanged ?? (await isMembershipRequired()),
           stampBlobId: result.stampBlobId,
           updatedAt: result.updatedAt,
           updatedBy: result.updatedBy,

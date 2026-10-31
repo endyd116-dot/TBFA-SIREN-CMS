@@ -4783,6 +4783,16 @@
                 <textarea id="dpBankGuideText" maxlength="1000" placeholder="입금 확인까지 1~3일 이내 소요될 수 있습니다."></textarea>
               </div>
 
+              <!-- 후원회원 가입 필수 (2026-10-31 A안) -->
+              <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="ribbon"></span> 후원회원 가입</div>
+              <div class="dp-form-grid">
+                <label for="dpRequireMembership">가입 필수</label>
+                <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;line-height:1.6">
+                  <input type="checkbox" id="dpRequireMembership" style="margin-top:4px">
+                  <span>모든 «후원회원 되기» 입구(홈·메뉴·캠페인·추모관)에서 결제 전에 회칙 동의 가입(또는 로그인)을 먼저 받습니다. 카드·효성 CMS·계좌이체 신청 모두 가입 뒤에만 열리고, 서버도 비회원 결제 요청을 거절합니다.<br />끄면 「등불의 기적」 캠페인만 가입 필수로 남고, 다른 입구는 결제 뒤 이름·연락처로 회원 기록에 자동 연결만 합니다.</span>
+                </label>
+              </div>
+
               <!-- 효성 CMS+ -->
               <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="atm"></span> 효성 CMS+ 정기 후원</div>
               <div class="dp-form-grid">
@@ -5879,7 +5889,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20261007-notice2"></script>
+  <script src="/js/admin.js?v=20261101-join"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
   <script src="/js/editor.js?v=20260819-popup"></script>

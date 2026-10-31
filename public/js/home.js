@@ -530,6 +530,46 @@
         }
       }
 
+      /* ---- 2-6b. 후원 계좌 안내 배너 (2026-10-31) — 가입 없이 계좌로 보내려는 분 안내. 노출·문구는 메인 편집, 계좌는 후원 정책 ---- */
+      {
+        const esc2 = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const slot = document.getElementById('bankBannerSlot');
+        const bb = d.bankBanner;
+        if (slot) {
+          if (!bb || bb.visible !== true || !bb.bank) {
+            slot.innerHTML = '';
+          } else {
+            const b = bb.bank;
+            const copyText = (b.bankName || '') + ' ' + (b.accountNo || '') + ' (' + (b.holder || '') + ')';
+            slot.innerHTML = `
+              <section class="block bank-banner-sec" aria-label="후원 계좌 안내">
+                <div class="container">
+                  <div class="bank-banner">
+                    <div class="bank-banner-text">
+                      <span class="bank-banner-tag">계좌이체</span>
+                      <h3>${esc2(bb.title)}</h3>
+                      <p>${esc2(bb.lead)}</p>
+                    </div>
+                    <div class="bank-banner-account">
+                      <div class="bank-banner-no"><span class="bank-banner-bank">${esc2(b.bankName)}</span> <strong id="bankBannerAccountNo">${esc2(b.accountNo)}</strong></div>
+                      <div class="bank-banner-holder">예금주 ${esc2(b.holder)}</div>
+                      <div class="bank-banner-guide">${esc2(b.guide)}</div>
+                      <button type="button" class="btn btn-outline bank-banner-copy">계좌번호 복사</button>
+                    </div>
+                  </div>
+                </div>
+              </section>`;
+            const copyBtn = slot.querySelector('.bank-banner-copy');
+            if (copyBtn) copyBtn.addEventListener('click', () => {
+              const done = () => { if (window.SIREN && window.SIREN.toast) window.SIREN.toast('계좌번호가 복사되었습니다'); else alert('계좌번호: ' + copyText); };
+              const fail = () => alert('계좌번호: ' + copyText);
+              if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(copyText).then(done, fail);
+              else fail();
+            });
+          }
+        }
+      }
+
       /* ---- 2-7. 효과 속도 (CSS 변수 + 모듈 변수) ---- */
       if (d.effects) {
         if (typeof d.effects.counterDuration === 'number') {

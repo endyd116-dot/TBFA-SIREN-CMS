@@ -9,6 +9,7 @@ import { db, donations, generateTransactionId } from "../../db";
 import { eq } from "drizzle-orm";
 import { donationPolicies, pointRules, memberPointLogs } from "../../db/schema";
 import { authenticateUser } from "../../lib/auth";
+import { isMembershipRequired } from "../../lib/donation-membership";
 import { checkAndAwardBadges } from "../../lib/badge-checker";
 import {
   created, badRequest, serverError,
@@ -68,6 +69,11 @@ export default async (req: Request) => {
       if (campaignExtras?.requireMembership && !memberId) {
         return badRequest("후원회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
       }
+    }
+
+    /* 2026-10-31 A안: 후원 정책 «후원회원 가입 필수»(기본 켬) — 입구와 무관하게 비회원 요청은 받지 않는다 */
+    if (!memberId && (await isMembershipRequired())) {
+      return badRequest("후원회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
     }
 
     /* DB 저장 (pending_hyosung 상태) */

@@ -18,6 +18,8 @@ import { createNotification } from "./notify";
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
 export const SPONSOR_WELCOME_EVENT_KEY = "SPONSOR_WELCOME";
+/** 캠페인 맥락 없는 일반 가입(홈·메뉴 «후원회원 되기»)용 — 템플릿 관리에서 이 event_key로 등록·승인하면 알림톡, 그 전엔 문자 */
+export const SPONSOR_WELCOME_GENERAL_EVENT_KEY = "SPONSOR_WELCOME_GENERAL";
 /** 문자·알림톡 버튼이 여는 주소 — 홈 화면이 가입 창(휴대폰 인증)을 바로 연다(public/index.html) */
 export const SPONSOR_WELCOME_JOIN_URL = `${SITE_URL}/?signup=1`;
 
@@ -35,6 +37,23 @@ export const SPONSOR_WELCOME_TEMPLATE = {
   ],
 };
 
+/** 일반 가입용 알림톡 템플릿(정보성) — #{이름}만 쓴다. 등불 증서·등불 보고 문구 없음 (2026-10-31) */
+export const SPONSOR_WELCOME_GENERAL_TEMPLATE = {
+  name: "후원회원 등록 안내(일반)",
+  content:
+    "[교사유가족협의회] #{이름}님, 후원회원 등록을 안내드려요\n\n" +
+    "사단법인 교사유가족협의회 후원회원으로 등록되셨습니다. 함께해 주셔서 감사합니다.\n\n" +
+    "▪ 홈페이지(tbfa.co.kr)에서 같은 휴대폰 번호로 인증하시면 회원가입이 바로 완료되고, 마이페이지에서 회비 납부 내역·정기 회비 해지를 직접 관리하실 수 있어요.\n" +
+    "▪ 협의회 소식과 활동 보고도 받아보실 수 있습니다.\n\n" +
+    "※ 저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다.",
+  buttons: [
+    { buttonType: "WL", buttonName: "홈페이지에서 가입 완료하기", linkMo: SPONSOR_WELCOME_JOIN_URL, linkPc: SPONSOR_WELCOME_JOIN_URL },
+  ],
+};
+export function renderSponsorWelcomeGeneralText(name: string): string {
+  return SPONSOR_WELCOME_GENERAL_TEMPLATE.content.split("#{이름}").join(name) + `\n\n▶ 가입 완료하기: ${SPONSOR_WELCOME_JOIN_URL}`;
+}
+
 /** 문자(LMS)·알림톡 대체발송 본문 — 템플릿과 같은 글자 + 링크 한 줄 */
 export function renderSponsorWelcomeText(name: string, campaignTitle: string): string {
   return SPONSOR_WELCOME_TEMPLATE.content
@@ -44,12 +63,12 @@ export function renderSponsorWelcomeText(name: string, campaignTitle: string): s
 }
 
 /** 승인된 알림톡 템플릿 — 없으면 null(→ 문자) */
-async function loadApprovedTemplate(): Promise<{ templateId: string; pfId: string } | null> {
+async function loadApprovedTemplate(eventKey: string = SPONSOR_WELCOME_EVENT_KEY): Promise<{ templateId: string; pfId: string } | null> {
   try {
     const r: any = await db.execute(sql`
       SELECT solapi_template_id AS tid, pf_id AS pfid
         FROM kakao_alimtalk_templates
-       WHERE event_key = ${SPONSOR_WELCOME_EVENT_KEY} AND status = 'approved' AND is_active = true
+       WHERE event_key = ${eventKey} AND status = 'approved' AND is_active = true
          AND solapi_template_id IS NOT NULL
        ORDER BY approved_at DESC NULLS LAST, id DESC
        LIMIT 1`);
@@ -69,6 +88,8 @@ export interface SponsorWelcomeInput {
   phone: string | null | undefined;
   email?: string | null;
   campaignTitle: string;
+  /** 일반 가입(캠페인 맥락 없음) — 일반 템플릿/문구 사용 */
+  generic?: boolean;
 }
 
 export interface SponsorWelcomeResult {
@@ -86,18 +107,19 @@ export async function sendSponsorWelcomeNotice(input: SponsorWelcomeInput): Prom
 
     const name = String(input.name || "후원자").trim().slice(0, 40) || "후원자";
     const campaign = String(input.campaignTitle || "등불의 기적").trim().slice(0, 60);
-    const text = renderSponsorWelcomeText(name, campaign);
+    const generic = input.generic === true;
+    const text = generic ? renderSponsorWelcomeGeneralText(name) : renderSponsorWelcomeText(name, campaign);
 
     let via: SponsorWelcomeResult["via"] = "sms";
     let res: { ok: boolean; error?: string };
-    const tpl = await loadApprovedTemplate();
+    const tpl = await loadApprovedTemplate(generic ? SPONSOR_WELCOME_GENERAL_EVENT_KEY : SPONSOR_WELCOME_EVENT_KEY);
     if (tpl) {
       via = "alimtalk";
       res = await solapiSendAlimtalk({
         receiver: phone,
         pfId: tpl.pfId,
         templateId: tpl.templateId,
-        variables: { "#{이름}": name, "#{캠페인}": campaign },
+        variables: generic ? { "#{이름}": name } : { "#{이름}": name, "#{캠페인}": campaign },
         disableSms: false,
         text,
       });

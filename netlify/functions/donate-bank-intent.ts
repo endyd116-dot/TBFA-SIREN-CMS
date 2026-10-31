@@ -8,6 +8,7 @@ import { db, donations, generateTransactionId } from "../../db";
 import { eq } from "drizzle-orm";
 import { donationPolicies } from "../../db/schema";
 import { authenticateUser } from "../../lib/auth";
+import { isMembershipRequired } from "../../lib/donation-membership";
 import {
   created, badRequest, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -45,6 +46,11 @@ export default async (req: Request) => {
     /* 로그인 사용자면 연결 */
     const auth = authenticateUser(req);
     const memberId = auth?.uid ?? null;
+
+    /* 2026-10-31 A안: 후원 정책 «후원회원 가입 필수»(기본 켬) — 입구와 무관하게 비회원 요청은 받지 않는다 */
+    if (!memberId && (await isMembershipRequired())) {
+      return badRequest("후원회원 가입(회칙 동의) 후 계좌이체를 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+    }
 
     /* 계좌 정책 조회 */
     const [policy] = await db.select().from(donationPolicies).where(eq(donationPolicies.id, 1)).limit(1);

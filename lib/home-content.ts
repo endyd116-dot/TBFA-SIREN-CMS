@@ -77,6 +77,22 @@ export async function buildHomeContent(useDraft: boolean): Promise<any> {
   const tree: any = {};
   for (const row of rows) setNested(tree, row.key, pickValue(row, useDraft));
 
+  /* 2026-10-31 후원 계좌 안내 배너 — 노출·문구는 home.bankBanner.* 설정(없으면 기본 켬),
+     은행·계좌·예금주·입금 안내는 후원 정책(lib/donation-bank) 단일 출처 */
+  try {
+    const { getDonationBankInfo } = await import("./donation-bank");
+    const bb = tree.bankBanner && typeof tree.bankBanner === "object" ? tree.bankBanner : {};
+    const bank = await getDonationBankInfo();
+    tree.bankBanner = {
+      visible: bb.visible === undefined || bb.visible === null || bb.visible === "" ? true : bb.visible === true,
+      title: bb.title || "후원 계좌 안내",
+      lead: bb.lead || "후원회원 가입 없이 계좌이체로 함께하실 수도 있습니다. 입금자명을 남겨 주시면 확인 후 안내드립니다.",
+      bank,
+    };
+  } catch (e) {
+    console.warn("[home-content] 계좌 안내 배너 구성 실패", e);
+  }
+
   /* 특별 배너가 캠페인에 연결돼 있으면 캠페인의 제목·목표·모금액으로 덮어쓴다 */
   try {
     const linkedId = tree.specialBanner?.linkedCampaignId;

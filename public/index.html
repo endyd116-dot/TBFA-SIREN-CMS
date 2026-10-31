@@ -44,7 +44,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
-<link rel="stylesheet" href="/css/home.css?v=20260904-contrast">
+<link rel="stylesheet" href="/css/home.css?v=20261101-bank">
 
 <!-- R42-A: JSON-LD 구조화 데이터 (Organization + WebSite) -->
 <script type="application/ld+json">
@@ -200,6 +200,10 @@
       </div>
     </div>
 
+    <!-- 2026-10-31 후원 계좌 안내 배너 — 노출·제목·문구는 어드민 메인 편집 › 후원 계좌 안내 배너, 계좌는 후원 정책에서 관리.
+         home.js가 /api/public/home-content 의 bankBanner 로 아래 자리에 그린다(꺼져 있으면 비움). -->
+    <div id="bankBannerSlot"></div>
+
     <!-- ★ 2026-09-03 미션 소개 구역 (광고그랜트 4차 반려 대응)
          구글 정책: "방문자가 조직의 목적과 비영리 상태를 빠르게 이해해야 한다".
          지금까지 홈에는 회전 배너의 한 줄뿐이라 미션이 불명확했다.
@@ -332,8 +336,8 @@
   <script src="/js/auth.js?v=20261031-member" defer></script>
   <script src="/js/news.js?v=20260712-noemoji" defer></script>
   <script src="/js/support.js?v=2" defer></script>
-  <script src="/js/home.js?v=20261007-init" defer></script>
-  <script src="/js/donate.js?v=20261031-member" defer></script>
+  <script src="/js/home.js?v=20261101-bank" defer></script>
+  <script src="/js/donate.js?v=20261101-join" defer></script>
   <script src="/js/home-campaigns.js?v=2027-05" defer></script>
   <script src="/js/site-popup.js?v=20260517r1" defer></script>
   <script>/* 2026-09-06: 문자·카톡의 「홈페이지에서 가입 완료하기」 링크(/?signup=1) — 가입 창(휴대폰 인증)을 바로 연다. 이미 로그인돼 있으면 열지 않는다 */

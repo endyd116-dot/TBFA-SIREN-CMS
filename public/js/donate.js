@@ -33,6 +33,14 @@
   let _policyCache = null;
   let _policyLoading = null;
 
+  /* 2026-10-31 A안: 후원회원 가입 필수 — 등불 캠페인 설정 또는 후원 정책 전역 스위치(기본 켬).
+     정책을 아직 못 읽었으면 안전하게 가입 단계부터(정책이 오면 다시 준비한다) */
+  function membershipRequired() {
+    if (_lantern && _lantern.requireMembership) return true;
+    if (!_policyCache) return true;
+    return _policyCache.requireMembership !== false;
+  }
+
   async function loadPolicy() {
     if (_policyCache) return _policyCache;
     if (_policyLoading) return _policyLoading;
@@ -176,6 +184,40 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  /* ───────── 가입 없이 계좌로 보내기 — 후원 정책의 계좌 정보를 창 안에서 바로 보여 준다 (2026-10-31) ───────── */
+  function fillBankQuick(box) {
+    const p = _policyCache || {};
+    const set = (cls, v) => { const el = box.querySelector(cls); if (el) el.textContent = v || '-'; };
+    set('.bq-bank', p.bankName); set('.bq-account', p.bankAccountNo); set('.bq-holder', p.bankAccountHolder);
+    const g = box.querySelector('.bq-guide'); if (g) g.textContent = p.bankGuideText || '';
+  }
+  function setupBankQuick() {
+    document.addEventListener('click', (e) => {
+      const toggle = e.target.closest('.bank-quick-toggle');
+      if (toggle) {
+        e.preventDefault();
+        const box = document.getElementById(toggle.dataset.target);
+        if (!box) return;
+        const open = box.hidden;
+        if (open) { fillBankQuick(box); loadPolicy().then(() => fillBankQuick(box)).catch(() => {}); }
+        box.hidden = !open;
+        toggle.textContent = open ? '계좌 안내 닫기' : '후원 계좌 보기';
+        return;
+      }
+      const copy = e.target.closest('.bank-quick-copy');
+      if (copy) {
+        e.preventDefault();
+        const p = _policyCache || {};
+        const text = ((p.bankName || '') + ' ' + (p.bankAccountNo || '') + ' (' + (p.bankAccountHolder || '') + ')').trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => window.SIREN.toast('계좌번호가 복사되었습니다'), () => window.SIREN.toast('복사 실패. 직접 선택해 주세요'));
+        } else {
+          window.SIREN.toast('계좌번호: ' + text, 5000);
+        }
+      }
+    });
+  }
+
   /* ───────── 단계 전환 ───────── */
   function showStep(n) {
     document.querySelectorAll('#donateModal .donate-step').forEach(el => {
@@ -209,13 +251,13 @@
 
   /* 등불 캠페인이면 회원 상태에 따라 0단계(가입/회칙 동의) 또는 1단계로 */
   async function routeSteps(force) {
-    if (!_lantern || !_lantern.requireMembership) { setPending(false); showStep(1); return; }
+    if (!membershipRequired()) { setPending(false); showStep(1); return; }
     let st = _status;
     const fresh = !!st && Date.now() - _statusAt < 5 * 60 * 1000;
     if (force || !fresh) {
       setPending(true);
       st = await getMemberStatus(!!force);
-      if (!_lantern || !_lantern.requireMembership) { setPending(false); showStep(1); return; }
+      if (!membershipRequired()) { setPending(false); showStep(1); return; }
     }
     applyRoute(st);
   }
@@ -254,7 +296,7 @@
     const modeNote = document.getElementById('sjModeNote');
     const submit = document.getElementById('sjSubmit');
     const bylawsLink = document.getElementById('sjBylawsLink');
-    if (bylawsLink && _lantern && _lantern.bylawsUrl) bylawsLink.href = _lantern.bylawsUrl;
+    if (bylawsLink) bylawsLink.href = (_lantern && _lantern.bylawsUrl) || (_policyCache && _policyCache.bylawsUrl) || '/resources.html';
     const privacyLine = document.getElementById('sjPrivacy')?.closest('label');
     const bylaws = document.getElementById('sjBylaws');
     const privacy = document.getElementById('sjPrivacy');
@@ -496,11 +538,11 @@
     _campaignInfo = info && info.id ? info : null;
     _lantern = _campaignInfo && _campaignInfo.extras && _campaignInfo.extras.theme === 'lantern' ? _campaignInfo.extras : null;
     _prepared = false;
-    if (_lantern && _lantern.requireMembership) {
+    if (membershipRequired()) {
       /* 회원 상태를 미리 읽어 두고, 도착하면 (창이 닫혀 있는 동안) 단계를 미리 정해 둔다 */
       getMemberStatus(false).then((st) => {
         const modal = document.getElementById('donateModal');
-        if (_lantern && _lantern.requireMembership && modal && !modal.classList.contains('show')) applyRoute(st);
+        if (membershipRequired() && modal && !modal.classList.contains('show')) applyRoute(st);
       }).catch(() => {});
     }
     prepareModal();
@@ -513,7 +555,7 @@
     if (modal.classList.contains('show')) return true;
     applyLanternUi();
     fillIdentityFromAuth();
-    if (_lantern && _lantern.requireMembership) {
+    if (membershipRequired()) {
       const fresh = !!_status && Date.now() - _statusAt < 5 * 60 * 1000;
       if (fresh) {
         applyRoute(_status);
@@ -521,7 +563,7 @@
         setPending(true);
         getMemberStatus(false).then((st) => {
           const m = document.getElementById('donateModal');
-          if (_lantern && _lantern.requireMembership && m && !m.classList.contains('show')) applyRoute(st);
+          if (membershipRequired() && m && !m.classList.contains('show')) applyRoute(st);
         }).catch(() => {});
       }
     } else {
@@ -543,7 +585,7 @@
     if (!_prepared) prepareModal();
     else fillIdentityFromAuth();
 
-    if (_lantern && _lantern.requireMembership) {
+    if (membershipRequired()) {
       /* 미리 읽은 상태와 지금 로그인 상태가 다르면(그새 로그인·로그아웃) 새로 읽는다 */
       const mismatch = !!_status && (!!_status.loggedIn !== userLoggedIn());
       if (mismatch) routeSteps(true);
@@ -670,7 +712,7 @@
       const isLoggedIn = !!(auth && auth.isLoggedIn());
 
       /* 등불 캠페인(S5): 후원회원 가입(회칙 동의)이 먼저 */
-      if (_lantern && _lantern.requireMembership && !isLoggedIn && !_member) {
+      if (membershipRequired() && !isLoggedIn && !_member) {
         window.SIREN.toast('후원회원 가입을 먼저 완료해 주세요');
         await routeSteps();
         return;
@@ -785,7 +827,10 @@
     });
     const result = await res.json().catch(() => ({}));
 
-    if (!res.ok || !result.ok) throw new Error(result.error || '신청 처리 실패');
+    if (!res.ok || !result.ok) {
+      if (result.detail && result.detail.needMembership) { await routeSteps(true); }
+      throw new Error(result.error || '신청 처리 실패');
+    }
 
     const info = result.data?.bankInfo || {};
     showDonateSuccess(result.data?.donationId || generateLocalId(), {
@@ -816,7 +861,10 @@
     });
     const result = await res.json().catch(() => ({}));
 
-    if (!res.ok || !result.ok) throw new Error(result.error || '신청 처리 실패');
+    if (!res.ok || !result.ok) {
+      if (result.detail && result.detail.needMembership) { await routeSteps(true); }
+      throw new Error(result.error || '신청 처리 실패');
+    }
 
     const policy = _policyCache || {};
     const hyosungUrl = result.data?.hyosungUrl
@@ -1110,6 +1158,7 @@
       const seed = readSeedCampaign();
       if (seed) setCampaign(seed);
       /* 정책(어드민 설정값)은 미리 받아 두고, 오면 열리기 전에 창에 반영한다 */
+      setupBankQuick();
       loadPolicy().then(() => { _prepared = false; prepareModal(); }).catch(() => {});
     }
     /* 창 DOM 은 서버 렌더 페이지면 처음부터, 아니면 partials 로드 뒤에 생긴다 — 있을 때마다 완성해 둔다 */

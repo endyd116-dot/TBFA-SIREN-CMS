@@ -367,6 +367,7 @@
       <a href="#e-member-action" class="lvl-2">회원 상세 작업</a>
       <a href="#e-payroll" class="lvl-2">급여 관리(R37)</a>
       <a href="#e-ai-ops" class="lvl-2"><span class="siren-icon-wrap" data-icon="shield"></span> AI 운영·비용</a>
+      <a href="#e-membership-first" class="lvl-2">후원회원 가입 필수·계좌 안내·해지 알림</a>
       <a href="#e-emergency" class="lvl-2">비상·예외 처리</a>
       <a href="#admin-memorial"><span class="siren-icon-wrap" data-icon="candle"></span> 추모관 운영</a>
 
@@ -1553,6 +1554,11 @@
       <p><code>/admin-ai-logs-list.html</code>에서 모든 AI 호출(누가·어떤 도구·어떤 결과)을 시간순 조회. 비서 대화 단위로 보고 싶으면 <code>/admin-ai-conversations-list.html</code>.</p>
 
       <!-- E-10 비상 -->
+      <h3 id="e-membership-first">E-9b. 후원회원 가입 필수 · 홈 계좌 안내 배너 · 해지 운영자 알림 <span class="badge brand">2026-11-01</span></h3>
+      <p><strong>후원회원 가입 필수 스위치</strong>(후원 관리 › 후원 정책 › 「후원회원 가입」, 기본 켬) — 홈·메뉴·캠페인·추모관 어디서 «후원회원 되기»를 눌러도 결제 전에 후원회원 가입(회칙 동의) 단계가 먼저 나옵니다. 기존 회원은 로그인·회칙 동의만 하고 결제로 넘어가고, 카드·효성 CMS·계좌이체 신청은 가입 뒤에만 열립니다. 끄면 「등불의 기적」 캠페인만 가입 필수로 남습니다.</p>
+      <p><strong>홈 «후원 계좌 안내» 배너</strong>(메인 편집 › 후원 계좌 안내 배너) — 가입 없이 계좌이체로 보내려는 분을 위해 퀵메뉴 아래에 은행·계좌번호·예금주·입금 안내와 «계좌번호 복사» 버튼을 보여 줍니다. 노출·제목·문구는 여기서(임시저장 → 배포), 은행·계좌번호·예금주는 <strong>후원 정책</strong>에서 고치면 배너·후원 창·계좌이체 안내가 한 번에 바뀝니다.</p>
+      <p><strong>해지 운영자 알림</strong> — 회원이 정기 회비를 해지하거나 자동결제 연속 실패로 자동 해지되면 운영자 알림함 + 운영자 알림 메일로 바로 알립니다. 카카오 알림톡으로도 받으려면 템플릿 관리에서 이벤트 <code>operator.donation_canceled</code> 템플릿을 등록·승인하세요.</p>
+
       <h3 id="e-emergency">E-10. 비상 · 예외 처리</h3>
       <table>
         <thead><tr><th width="220">상황</th><th>대응</th></tr></thead>

@@ -24,6 +24,7 @@ import { db, donations, billingKeys } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import { removeBillingKey } from "../../lib/kicc";
 import { safeReevaluate } from "../../lib/donor-status";
+import { notifyOperatorsDonationCanceled } from "../../lib/notify-donation-cancel";
 import { safeValidate } from "../../lib/validation";
 import {
   ok, badRequest, unauthorized, forbidden, notFound, serverError,
@@ -143,6 +144,12 @@ export default async (req: Request) => {
       console.warn("[donations-cancel] 빌키 해지 예외(무시):", e);
     }
     await safeReevaluate(auth.uid, "donations-cancel");
+
+    /* 2026-10-31: 운영자에게도 알린다(알림함·알림톡(승인 시)·메일) */
+    notifyOperatorsDonationCanceled({
+      kind: "regular", memberId: auth.uid, memberName: auth.name, amount: Number(updated.amount) || null,
+      reason: reason || null, refTable: "donations", refId: donationId, channel: String((donation as any).payMethod || "") || null,
+    }).catch(() => {});
 
     /* 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(완료분만 집계 → 취소분 차감 반영) */
     await recalcCampaignStatsSafe((donation as any).campaignId);

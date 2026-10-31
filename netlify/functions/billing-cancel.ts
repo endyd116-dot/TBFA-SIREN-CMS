@@ -21,6 +21,7 @@ import {
 import { logUserAction } from "../../lib/audit";
 // Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
 import { safeReevaluate } from "../../lib/donor-status";
+import { notifyOperatorsDonationCanceled } from "../../lib/notify-donation-cancel";
 // R40: KICC 빌키 삭제
 import { removeBillingKey } from "../../lib/kicc";
 
@@ -131,6 +132,12 @@ export default async (req: Request) => {
     /* Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
      * 토스 채널 제거 → 다른 채널(효성) 있으면 regular 유지, 없으면 prospect/cancelled */
     await safeReevaluate(user.id, "billing-cancel");
+
+    /* 2026-10-31: 운영자에게도 알린다(알림함·알림톡(승인 시)·메일) — 지금까지 해지는 운영자가 몰랐다 */
+    notifyOperatorsDonationCanceled({
+      kind: "regular", memberId: user.id, memberName: user.name, amount: Number(updated.amount) || null,
+      reason: reason || null, refTable: "billing_keys", refId: updated.id, channel: "카드 자동결제",
+    }).catch(() => {});
 
     return ok(
       { billingKeyId: updated.id },

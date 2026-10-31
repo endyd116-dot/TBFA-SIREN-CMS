@@ -20,6 +20,8 @@ const FALLBACK_POLICY = {
   /* 2026-05 신규 */
   hyosungCountdownMessage: "자동이체를 위해 외부페이지로 이동합니다.",
   hyosungCountdownSeconds: 5,
+  requireMembership: true,
+  bylawsUrl: process.env.LANTERN_BYLAWS_URL || "/resources.html",
   modalTitle: "후원회원 되기",
   modalSubtitle: "여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.",
 };
@@ -53,6 +55,15 @@ export default async (req: Request, _ctx: Context) => {
       return ok(FALLBACK_POLICY, "기본 정책 (시스템 일시 점검 중)");
     }
 
+    /* 2026-10-31 A안: 후원회원 가입 필수 스위치(site_settings) — 조회 실패 시 기본값(켬) */
+    let requireMembership = true;
+    try {
+      const m = await import("../../lib/donation-membership");
+      requireMembership = await m.isMembershipRequired();
+    } catch (e: any) {
+      console.warn("[donation-policy] 가입 필수 스위치 조회 실패(기본 켬):", e?.message);
+    }
+
     let row: any = null;
     try {
       const result = await db
@@ -67,7 +78,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     if (!row) {
-      return ok(FALLBACK_POLICY, "기본 정책 (미설정)");
+      return ok({ ...FALLBACK_POLICY, requireMembership }, "기본 정책 (미설정)");
     }
 
     /* 카운트다운 초수 안전 검증 (1~30 범위) */
@@ -88,6 +99,8 @@ export default async (req: Request, _ctx: Context) => {
       /* 2026-05 신규 */
       hyosungCountdownMessage: row.hyosungCountdownMessage || FALLBACK_POLICY.hyosungCountdownMessage,
       hyosungCountdownSeconds: safeCdSec,
+      requireMembership,
+      bylawsUrl: FALLBACK_POLICY.bylawsUrl,
       modalTitle: row.modalTitle || FALLBACK_POLICY.modalTitle,
       modalSubtitle: row.modalSubtitle || FALLBACK_POLICY.modalSubtitle,
     });

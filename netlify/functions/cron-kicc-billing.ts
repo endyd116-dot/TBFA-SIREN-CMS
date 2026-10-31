@@ -20,6 +20,7 @@ import {
   type ChargeResult,
 } from "../../lib/kicc";
 import { safeReevaluate } from "../../lib/donor-status";
+import { notifyOperatorsDonationCanceled } from "../../lib/notify-donation-cancel";
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
 
@@ -331,6 +332,12 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
         severity: "warning",
       },
     });
+
+    /* 2026-10-31: 자동 해지도 운영자에게(알림함·알림톡(승인 시)·메일) */
+    notifyOperatorsDonationCanceled({
+      kind: "auto", memberId: target.memberId, memberName: target.memberName, amount: target.amount,
+      reason: `${newRetryCount}회 연속 실패: ${result.errorCode}`, refTable: "billing_keys", refId: target.billingKeyId,
+    }).catch(() => {});
 
     await safeReevaluate(target.memberId, "cron-kicc-billing/auto-cancel");
     return true;

@@ -27,6 +27,7 @@ export const OPERATOR_KAKAO_EVENT_KEYS = {
   DONATION: "operator.donation",          // 새 후원(정기·일시) 접수
   SIREN_REPORT: "operator.siren_report",  // SIREN 신고(사건·괴롭힘·법률) 접수
   SUPPORT_SIGNUP: "operator.support_signup", // 유족지원 신청·신규 가입
+  DONATION_CANCELED: "operator.donation_canceled", // 정기 회비 해지·후원 취소(회원 본인·자동 해지) — 2026-10-31
 } as const;
 
 interface ApprovedTemplate {
