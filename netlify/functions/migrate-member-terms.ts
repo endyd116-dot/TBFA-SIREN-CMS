@@ -17,7 +17,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
-import { convertMemberTerms, convertMemberTermsTraced, MEMBER_TERM_RX } from "../../lib/member-terms";
+import { convertMemberTerms, convertMemberTermsTraced, MEMBER_TERM_RX, MEMBER_TERM_RULES } from "../../lib/member-terms";
 
 export const config = { path: "/api/migrate-member-terms" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
@@ -111,7 +111,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
     if (!run) {
       return new Response(jsonKST({
-        ok: true, mode: "diagnose", totalChanges: total, tables: summary,
+        ok: true, mode: "diagnose", rules: MEMBER_TERM_RULES.length, totalChanges: total, tables: summary,
         samples: plans.filter((p) => !p.skipReason).slice(0, 12).map((p) => ({ table: p.table, id: p.id, label: p.label, fields: Object.keys(p.after) })),
         hint: total ? `?run=1 로 실행하면 ${total}건이 후원회원·회비 어휘로 바뀝니다(재실행 안전·페이지는 리비전 백업).` : "바꿀 항목이 없습니다.",
       }, null, 2), { headers: JSON_HEADER });
