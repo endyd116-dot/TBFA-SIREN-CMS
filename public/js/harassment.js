@@ -352,7 +352,7 @@
       '</div>' +
       '<a href="' + escapeHtml(notice.ctaUrl || '/support.html') + '" ' +
          'style="display:inline-block;padding:14px 32px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">' +
-        escapeHtml(notice.ctaText || '후원하러 가기') + ' →' +
+        escapeHtml(notice.ctaText || '후원회원 되기') + ' →' +
       '</a>';
   }
 

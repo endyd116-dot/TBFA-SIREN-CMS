@@ -267,7 +267,7 @@
       if (privacyLine) privacyLine.style.display = 'none';
       if (privacy) privacy.checked = true;
       if (bylaws) bylaws.checked = false;
-      if (submit) submit.textContent = '회칙 동의하고 후원 계속하기';
+      if (submit) submit.textContent = '회칙 동의하고 이어서 진행하기';
       form.dataset.mode = 'agree';
     } else {
       lock('sjName', false); lock('sjPhone', false); lock('sjEmail', false);
@@ -276,7 +276,7 @@
       if (privacyLine) privacyLine.style.display = '';
       if (privacy) privacy.checked = false;
       if (bylaws) bylaws.checked = false;
-      if (submit) submit.textContent = '가입하고 후원 계속하기';
+      if (submit) submit.textContent = '가입하고 이어서 진행하기';
       form.dataset.mode = 'new';
       /* 후원 폼에 이미 적힌 이름·연락처가 있으면 가져온다 */
       const donateForm = document.querySelector('#donateModal form[data-form="donate"]');

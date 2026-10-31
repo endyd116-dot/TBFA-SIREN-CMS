@@ -69,7 +69,7 @@ export function getNonDonorPremiumNotice(category: "incident" | "harassment" | "
       `운영진의 검토 후 답변을 받으실 수 있습니다.\n\n` +
       `1회 이상 후원하시면 즉시 AI 분석 결과를 받아보실 수 있습니다. ` +
       `여러분의 따뜻한 마음이 더 많은 교사 가족에게 도움이 됩니다.`,
-    ctaText: "후원하러 가기",
+    ctaText: "후원회원 되기",
     ctaUrl: "/support.html",
   };
 }
