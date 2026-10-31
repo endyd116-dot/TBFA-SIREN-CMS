@@ -2,13 +2,13 @@
  * POST /api/donations/cancel
  * Body: { id }
  *
- * 정기 후원 해지 (사용자가 자기 본인의 정기 후원만 취소 가능)
+ * 정기 회비 해지 (사용자가 자기 본인의 정기 후원회원만 취소 가능)
  *
  * 보안 흐름:
  * 1. 로그인 검증
  * 2. 후원 ID 검증
  * 3. 본인 소유 확인 (memberId === auth.uid)
- * 4. 정기 후원만 취소 가능 (type='regular')
+ * 4. 정기 후원회원만 취소 가능 (type='regular')
  * 5. 이미 취소/환불된 건 차단
  * 6. status='cancelled' + memo 기록
  * 7. 감사 로그
@@ -63,7 +63,7 @@ export default async (req: Request) => {
       .where(eq(donations.id, donationId))
       .limit(1);
 
-    if (!donation) return notFound("후원 내역을 찾을 수 없습니다");
+    if (!donation) return notFound("회비 납부 내역을 찾을 수 없습니다");
 
     /* 4. 본인 소유 확인 */
     if (donation.memberId !== auth.uid) {
@@ -75,9 +75,9 @@ export default async (req: Request) => {
       return forbidden("본인의 후원만 해지할 수 있습니다");
     }
 
-    /* 5. 정기 후원만 취소 가능 */
+    /* 5. 정기 후원회원만 취소 가능 */
     if (donation.type !== "regular") {
-      return badRequest("정기 후원만 해지할 수 있습니다 (일시 후원은 환불 문의를 이용해 주세요)");
+      return badRequest("정기 회비만 해지할 수 있습니다 (일시 회비는 환불 문의를 이용해 주세요)");
     }
 
     /* 6. 이미 취소/환불된 건 차단 */
@@ -121,7 +121,7 @@ export default async (req: Request) => {
         amount: donations.amount,
       });
 
-    /* 7-B. R41 Q1-005 FIX: 정기 후원 '해지'는 빌링키도 비활성화해야 실제 자동청구가 멈춤.
+    /* 7-B. R41 Q1-005 FIX: 정기 후원회원 '해지'는 빌링키도 비활성화해야 실제 자동청구가 멈춤.
        이전엔 후원 레코드만 cancelled로 바꿔 "해지되었습니다" 안내를 띄우면서도 빌링키가 살아있어
        다음 달 자동청구가 계속될 수 있었음. 본인 활성 빌링키 해지 + KICC 빌키 삭제 + 다음청구일 해제. */
     try {
@@ -159,11 +159,11 @@ export default async (req: Request) => {
 
     return ok(
       { donation: updated },
-      "정기 후원이 해지되었습니다. 그동안 함께해 주셔서 감사합니다.",
+      "정기 회비가 해지되었습니다. 그동안 함께해 주셔서 감사합니다.",
     );
   } catch (err) {
     console.error("[donations-cancel]", err);
-    return serverError("정기 후원 해지 중 오류가 발생했습니다", err);
+    return serverError("정기 회비 해지 중 오류가 발생했습니다", err);
   }
 };
 

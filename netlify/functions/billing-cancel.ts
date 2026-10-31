@@ -1,7 +1,7 @@
 /**
  * POST /api/billing-cancel
  *
- * 정기 후원 해지 (빌링키 비활성화)
+ * 정기 회비 해지 (빌링키 비활성화)
  * - 회원 본인만 호출 가능
  * - billingKeys.isActive = false + deactivatedAt
  * - KICC 빌키(batchKey)는 removeBatchKey로 삭제 (실패해도 DB 해지는 유지)
@@ -66,7 +66,7 @@ export default async (req: Request) => {
       .where(eq(billingKeys.id, billingKeyId))
       .limit(1);
 
-    if (!billing) return notFound("정기 후원 정보를 찾을 수 없습니다");
+    if (!billing) return notFound("정기 회비 정보를 찾을 수 없습니다");
 
     /* 5. 본인 소유 검증 */
     if (billing.memberId !== user.id) {
@@ -75,12 +75,12 @@ export default async (req: Request) => {
         detail: { reason: "not_owner" },
         success: false,
       });
-      return forbidden("본인의 정기 후원만 해지할 수 있습니다");
+      return forbidden("본인의 정기 후원회원만 해지할 수 있습니다");
     }
 
     /* 6. 이미 해지됨 차단 */
     if (!billing.isActive) {
-      return badRequest("이미 해지된 정기 후원입니다");
+      return badRequest("이미 해지된 정기 후원회원입니다");
     }
 
     /* 7. 해지 처리 */
@@ -134,11 +134,11 @@ export default async (req: Request) => {
 
     return ok(
       { billingKeyId: updated.id },
-      "정기 후원이 해지되었습니다. 그동안 함께해 주셔서 감사합니다.",
+      "정기 회비가 해지되었습니다. 그동안 함께해 주셔서 감사합니다.",
     );
   } catch (err) {
     console.error("[billing-cancel]", err);
-    return serverError("정기 후원 해지 중 오류가 발생했습니다", err);
+    return serverError("정기 회비 해지 중 오류가 발생했습니다", err);
   }
 };
 

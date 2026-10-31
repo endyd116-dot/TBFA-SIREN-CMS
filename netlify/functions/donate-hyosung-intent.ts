@@ -1,5 +1,5 @@
 // netlify/functions/donate-hyosung-intent.ts
-// Phase M-4: 효성 CMS+ 정기후원 신청 의향 기록
+// Phase M-4: 효성 CMS+ 정기 후원회원 신청 의향 기록
 // - 사용자가 "효성 CMS+ 선택 → 제출" 시 호출
 // - donations.status = 'pending_hyosung'
 // - 실제 등록은 사용자가 효성 외부 사이트에서 진행
@@ -110,7 +110,7 @@ export default async (req: Request) => {
         category: "donation",
         severity: "info",
         title: "효성 CMS+ 신청 의향 접수",
-        message: `${name}님이 월 ${amount.toLocaleString()}원 효성 CMS+ 정기후원 신청 의향을 보였습니다.`,
+        message: `${name}님이 월 ${amount.toLocaleString()}원 효성 CMS+ 정기 후원회원 신청 의향을 보였습니다.`,
         link: "/admin.html#hyosung",
         refTable: "donations",
         refId: (record as any).id,

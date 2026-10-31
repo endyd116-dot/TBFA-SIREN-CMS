@@ -1,5 +1,5 @@
 // netlify/functions/cron-billing-upcoming.ts
-// 정기 후원금 자동 출금 "예정" 사전 안내 — 출금 3일 전 알림톡(BILLING_UPCOMING).
+// 정기 회비 자동 출금 "예정" 사전 안내 — 출금 3일 전 알림톡(BILLING_UPCOMING).
 // 매일 KST 10:00 (UTC 01:00) 실행. members.next_billing_date = 오늘+3 인 활성 회원 대상.
 // 솔라피 알림톡 SOLAPI_TPL_BILLING_UPCOMING (어댑터 처리). env 미설정 시 placeholder(미발송).
 
@@ -44,7 +44,7 @@ export default async (_req: Request) => {
           amount: Number(r.amount) || 0,
           chargeDate: ymd,
           paymentMethod: card,
-          title: "정기 후원금 자동 출금 예정 안내",
+          title: "정기 회비 자동 출금 예정 안내",
           message: `${Number(r.amount).toLocaleString()}원이 ${ymd}에 자동 출금될 예정입니다.`,
           link: "/mypage.html",
           category: "billing",

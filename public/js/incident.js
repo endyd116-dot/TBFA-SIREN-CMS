@@ -347,7 +347,7 @@
         const notice = document.getElementById('irPremiumNotice');
         if (notice) notice.style.display = 'none';
       } else if (data.premiumNotice) {
-        /* 비후원자 — 후원 회원 전용 안내 표시 */
+        /* 비후원자 — 후원회원 전용 안내 표시 */
         const sevBox = document.getElementById('irAiSeverity');
         if (sevBox) sevBox.style.display = 'none';
         document.getElementById('irAiSummary').textContent = '';
@@ -440,7 +440,7 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:18px;font-weight:700;color:#7a1f2b;margin-bottom:12px">' +
-        escapeHtml(notice.title || '사이렌 후원 회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 후원회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:18px">' +
         safeMessage +

@@ -15,7 +15,7 @@
 <script src="/js/pwa.js?v=3" defer></script>
 <title>마이페이지 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="나의 후원 내역과 후원회원 회비 납부 확인서를 관리하세요.">
+<meta name="description" content="나의 회비 납부 내역과 후원회원 회비 납부 확인서를 관리하세요.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -278,7 +278,7 @@
   background: #e8a8b0;
   cursor: not-allowed;
 }
-/* ===== ★ L-7: 정기 후원 카드 (mypage > 후원 내역 탭) ===== */
+/* ===== ★ L-7: 정기 후원회원 카드 (mypage > 회비 납부 내역 탭) ===== */
 .mp-billing-card {
   background: linear-gradient(135deg, #fff, var(--brand-soft, #fef9f5));
   border: 2px solid var(--brand);
@@ -460,7 +460,7 @@
   font-weight: 600;
 }
 
-/* 정기 후원 해지 모달 */
+/* 정기 회비 해지 모달 */
 #billingCancelModal {
   display: none !important;
   position: fixed;
@@ -818,12 +818,12 @@
     <section class="page-hero">
       <div class="container">
         <h1>마이페이지</h1>
-        <p>나의 후원 내역 및 증명서를 관리하세요</p>
+        <p>나의 회비 납부 내역 및 확인서를 관리하세요</p>
       </div>
     </section>
 
     <div class="container breadcrumb">
-      <a href="/index.html">홈</a> &nbsp;›&nbsp; 마이페이지 &nbsp;›&nbsp; <span id="mpCrumb">내 후원 내역</span>
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; 마이페이지 &nbsp;›&nbsp; <span id="mpCrumb">내 회비 납부 내역</span>
     </div>
 
     <section class="block">
@@ -837,7 +837,7 @@
               <span>로딩 중...</span>
             </div>
             <ul id="mpMenu">
-              <li class="on" data-mp="donations">내 후원 내역</li>
+              <li class="on" data-mp="donations">내 회비 납부 내역</li>
               <li data-mp="receipts">증명서 발급</li>
               <li data-mp="support"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 신청 내역</li>
               <li data-mp="consult"><span class="siren-icon-wrap" data-icon="message-circle"></span> 1:1 상담 내역</li>
@@ -855,17 +855,17 @@
 
           <div class="mp-content">
 
-          <!-- 1. 내 후원 내역 -->
+          <!-- 1. 내 회비 납부 내역 -->
             <div class="mp-panel" data-mp-panel="donations">
-                 <h3 class="serif">내 후원 내역</h3>
+                 <h3 class="serif">내 회비 납부 내역</h3>
                  <p class="sub">최근 1년간의 후원 기록을 확인하실 수 있습니다.</p>
 
             <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-             <div class="kpi"><div class="kpi-label">누적 후원금</div><div class="kpi-value">0원</div></div>
-             <div class="kpi"><div class="kpi-label">정기 후원 회차</div><div class="kpi-value">0회</div></div>
-            <div class="kpi"><div class="kpi-label">후원 내역 확인</div><div class="kpi-value" style="font-size:20px;color:var(--text-3)">내역 없음</div></div>
+             <div class="kpi"><div class="kpi-label">누적 회비</div><div class="kpi-value">0원</div></div>
+             <div class="kpi"><div class="kpi-label">정기 회비 납부 회차</div><div class="kpi-value">0회</div></div>
+            <div class="kpi"><div class="kpi-label">회비 납부 내역 확인</div><div class="kpi-value" style="font-size:20px;color:var(--text-3)">내역 없음</div></div>
              </div>
-            <!-- ★ L-7: 정기 후원 카드 (auth.js가 동적 렌더) -->
+            <!-- ★ L-7: 정기 후원회원 카드 (auth.js가 동적 렌더) -->
             <div id="mpBillingContainer"></div>
             <div style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">>
                 <div style="display:flex;gap:6px">
@@ -873,10 +873,10 @@
                     <option>최근 1년</option><option>최근 6개월</option><option>최근 3개월</option>
                   </select>
                   <select style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">
-                    <option>전체 유형</option><option>정기 후원</option><option>일시 후원</option>
+                    <option>전체 유형</option><option>정기 회비</option><option>일시 회비</option>
                   </select>
                 </div>
-                <button class="btn-sm btn-sm-ghost" id="btnCancelRegular" type="button" style="white-space:nowrap">정기 후원 해지 안내</button>
+                <button class="btn-sm btn-sm-ghost" id="btnCancelRegular" type="button" style="white-space:nowrap">정기 회비 해지 안내</button>
               </div>
 
               <table class="tbl" style="margin-top:14px">
@@ -884,7 +884,7 @@
                 <tbody>
                   <tr>
                     <td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">
-                      후원 내역을 불러오는 중... <span class="siren-icon-wrap" data-icon="ribbon"></span>
+                      회비 납부 내역을 불러오는 중... <span class="siren-icon-wrap" data-icon="ribbon"></span>
                     </td>
                   </tr>
                 </tbody>
@@ -903,13 +903,13 @@
                     <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 후원회원 회비 납부 확인서</div>
                     <div style="font-size:13px;color:var(--text-2)">총 납부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
                   </div>
-                  <button type="button" class="btn btn-primary" onclick="var li=document.querySelector('#mpMenu li[data-mp=donations]'); if (li) li.click();">후원 내역에서 건별 발급</button>
+                  <button type="button" class="btn btn-primary" onclick="var li=document.querySelector('#mpMenu li[data-mp=donations]'); if (li) li.click();">회비 납부 내역에서 건별 발급</button>
                 </div>
               </div>
 
               <p style="font-size:12.5px;color:var(--text-3);line-height:1.85;padding:14px 18px;background:var(--bg-soft);border-radius:8px">
                 <span class="siren-icon-wrap" data-icon="lightbulb"></span> 협의회가 공익법인(지정기부금단체)으로 지정되면 그때부터 세액공제용 기부금영수증을 발급하고, 국세청 연말정산 간소화 서비스 등재도 안내해 드리겠습니다.<br />
-                납부 확인서 PDF는 후원 내역 확인용 서류이며(후원 내역 표의 «발급»), 현재는 세액공제 자료로 쓰이지 않습니다. 연간 합산 확인서는 준비 중입니다.
+                납부 확인서 PDF는 회비 납부 내역 확인용 서류이며(회비 납부 내역 표의 «발급»), 현재는 세액공제 자료로 쓰이지 않습니다. 연간 합산 확인서는 준비 중입니다.
               </p>
             </div>
 
@@ -1040,7 +1040,7 @@
                     <ul class="warn-list">
                       <li>탈퇴 시 즉시 로그아웃되며, 다시 로그인할 수 없습니다</li>
                       <li>회원 정보(이름·연락처)는 즉시 익명화 처리됩니다</li>
-                      <li>후원 내역은 <strong>관련 법령에 따라 5년간 보관</strong> 후 자동 삭제됩니다</li>
+                      <li>회비 납부 내역은 <strong>관련 법령에 따라 5년간 보관</strong> 후 자동 삭제됩니다</li>
                       <li>채팅 기록과 지원 신청 내역은 익명 처리되어 보존됩니다</li>
                       <li>탈퇴 후 동일 이메일로 다시 가입하실 수 있습니다 (이전 활동 내역은 새 계정에 연결되지 않습니다)</li>
                     </ul>
@@ -1164,7 +1164,7 @@
       <div style="padding:24px">
         <button class="chat-cat-btn" data-cat="support_donation">
           <span class="emoji"><span class="siren-icon-wrap" data-icon="gift"></span></span>
-          <span class="label">후원 관련 문의<div class="desc">정기/일시 후원, 영수증 발급, 후원 변경 등</div></span>
+          <span class="label">후원회원 관련 문의<div class="desc">정기/일시 회비, 납부 확인서 발급, 회원 정보 변경 등</div></span>
         </button>
         <button class="chat-cat-btn" data-cat="support_homepage">
           <span class="emoji"><span class="siren-icon-wrap" data-icon="globe"></span></span>
@@ -1203,11 +1203,11 @@
       </div>
     </div>
   </div>
-<!-- ★ L-7: 정기 후원 해지 확인 모달 -->
+<!-- ★ L-7: 정기 회비 해지 확인 모달 -->
 <div id="billingCancelModal">
   <div class="bcm-content">
     <div class="bcm-header">
-      <h3><span class="siren-icon-wrap" data-icon="octagon-x"></span> 정기 후원 해지</h3>
+      <h3><span class="siren-icon-wrap" data-icon="octagon-x"></span> 정기 회비 해지</h3>
       <button type="button" class="bcm-close" data-bcm-close aria-label="닫기">&times;</button>
     </div>
     <div class="bcm-body">
@@ -1233,11 +1233,11 @@
   </div>
 </div>
 
-  <!-- ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 -->
+  <!-- ★ v11 묶음 B-1: 정기 회비 해지 안내 모달 -->
   <div id="cancelGuideModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
     <div style="background:#fff;border-radius:12px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">
       <div style="padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef9f5,#fff)">
-        <h3 id="cgmTitle" style="margin:0;font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:var(--brand)"><span class="siren-icon-wrap" data-icon="ribbon"></span> 정기 후원 해지 안내</h3>
+        <h3 id="cgmTitle" style="margin:0;font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:var(--brand)"><span class="siren-icon-wrap" data-icon="ribbon"></span> 정기 회비 해지 안내</h3>
         <button type="button" data-cgm-close style="background:transparent;border:none;font-size:24px;cursor:pointer;color:var(--text-3);line-height:1" aria-label="닫기">&times;</button>
       </div>
       <div style="padding:24px 28px;max-height:calc(100vh - 200px);overflow-y:auto">
@@ -1280,10 +1280,10 @@
   </div>
 
   <script src="/js/common.js?v=20261007-init"></script>
-  <script src="/js/auth.js?v=20260906-receipt"></script>
+  <script src="/js/auth.js?v=20261031-member"></script>
   <script src="/js/support.js?v=5"></script>
-  <script src="/js/donate.js?v=20260906-lantern3"></script>
-  <script src="/js/mypage-lantern.js?v=20260906-1" defer></script>
+  <script src="/js/donate.js?v=20261031-member"></script>
+  <script src="/js/mypage-lantern.js?v=20261031-member" defer></script>
   <script src="/js/chat-user.js?v=20260712-noemoji"></script>
   <script src="/js/mypage-applications.js?v=20260712-noemoji"></script>
   <script src="/js/mypage-eligibility.js?v=20260712-noemoji"></script>

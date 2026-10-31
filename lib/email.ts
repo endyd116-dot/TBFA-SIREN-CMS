@@ -505,7 +505,7 @@ export function tplDonationThanks(opts: {
   const { donorName, amount, donationType, payMethod, donationId, donationDate, isMember, lantern } = opts;
 
   /* 한글 라벨 */
-  const typeKr = donationType === "regular" ? "정기 후원" : "일시 후원";
+  const typeKr = donationType === "regular" ? "정기 회비" : "일시 회비";
   const payKr =
     payMethod === "card" ? "신용카드" :
     payMethod === "simplepay" ? "간편결제" :
@@ -530,13 +530,13 @@ export function tplDonationThanks(opts: {
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:${isMember ? "14px" : "0"};">
         ${esc(RECEIPT_NOTICE)}<br />
-        후원 내역은 ${isMember ? "마이페이지에서" : "회원가입 후 마이페이지에서"} 언제든 확인하실 수 있습니다.
+        회비 납부 내역은 ${isMember ? "마이페이지에서" : "회원가입 후 마이페이지에서"} 언제든 확인하실 수 있습니다.
       </div>
       ${isMember ? `
       <a href="${SITE_URL}/mypage.html#donations" target="_blank"
          style="display:inline-block;padding:10px 18px;background:#0f0f0f;color:#ffffff;
                 text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
-        후원 내역 보기 →
+        회비 납부 내역 보기 →
       </a>` : ""}
     </div>`;
 
@@ -581,7 +581,7 @@ export function tplDonationThanks(opts: {
       <tr>
         <td style="padding:18px 20px;">
           <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
-            후원 내역
+            회비 납부 내역
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
@@ -627,7 +627,7 @@ export function tplDonationThanks(opts: {
                 border-radius:8px;">
       <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
                   font-family:'Noto Serif KR',serif;">
-        후원금은 이렇게 사용됩니다
+        회비는 이렇게 사용됩니다
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 유가족 심리 상담 지원<br />
@@ -636,7 +636,7 @@ export function tplDonationThanks(opts: {
         • 추모 사업 및 사회 인식 개선 캠페인
       </div>
       <div style="margin-top:12px;font-size:12.5px;color:#8a8a8a;line-height:1.6;">
-        모든 후원금의 사용 내역은 <strong>매년 투명하게 공개</strong>되며,<br />
+        모든 회비의 사용 내역은 <strong>매년 투명하게 공개</strong>되며,<br />
         협회 홈페이지의 "재정 보고"에서 확인하실 수 있습니다.
       </div>
     </div>
@@ -653,7 +653,7 @@ export function tplDonationThanks(opts: {
     html: baseLayout({
       title: "따뜻한 후원에 감사드립니다",
       bodyHtml,
-      ctaText: isMember ? "마이페이지에서 후원 내역 확인" : "협회 홈페이지 바로가기",
+      ctaText: isMember ? "마이페이지에서 회비 납부 내역 확인" : "협회 홈페이지 바로가기",
       ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
     }),
   };
@@ -1013,7 +1013,7 @@ export function tplWithdrawConfirm(opts: {
       </div>
       <div style="font-size:13px;color:#525252;line-height:1.85;">
         • 회원 정보는 즉시 비활성화되며, 더 이상 로그인하실 수 없습니다<br />
-        • 후원 내역은 <strong>관련 법령(후원금 납부 기록 보관)</strong>에 따라<br />
+        • 회비 납부 내역은 <strong>관련 법령(회비 납부 기록 보관)</strong>에 따라<br />
           &nbsp;&nbsp;5년간 보관 후 자동 삭제됩니다<br />
         • 그 외 개인정보는 <strong>30일 이내 완전 삭제</strong>됩니다<br />
         • 채팅 기록 및 지원 신청 내역은 익명 처리되어 보존됩니다
@@ -1037,7 +1037,7 @@ export function tplWithdrawConfirm(opts: {
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
       <strong>문의 안내</strong><br />
       • 탈퇴 즉시 이름·연락처·이메일은 영구 삭제되어 <strong>복구가 불가능</strong>합니다<br />
-      • 법령에 따라 보관 중인 후원 내역 등의 열람·정정·삭제 요청은<br />
+      • 법령에 따라 보관 중인 회비 납부 내역 등의 열람·정정·삭제 요청은<br />
         &nbsp;&nbsp;<strong>contact@siren-org.kr</strong>로 가능합니다
     </div>
   `;
@@ -1053,7 +1053,7 @@ export function tplWithdrawConfirm(opts: {
   };
 }
 /* ═══════════════════════════════════════════════════════
-   Phase L-5: 템플릿 8. 정기 후원 결제 성공 알림 (NEW)
+   Phase L-5: 템플릿 8. 정기 회비 결제 성공 알림 (NEW)
    - 매월 자동 결제 성공 시 발송
    ═══════════════════════════════════════════════════════ */
 export function tplBillingChargeSuccess(opts: {
@@ -1081,7 +1081,7 @@ export function tplBillingChargeSuccess(opts: {
       안녕하세요, <strong>${esc(donorName)}</strong> 님.
     </p>
     <p style="margin:0 0 20px;color:#525252;">
-      ${esc(donorName)} 님의 정기 후원 <strong style="color:#7a1f2b;">₩${amount.toLocaleString()}</strong>이<br />
+      ${esc(donorName)} 님의 정기 회비 <strong style="color:#7a1f2b;">₩${amount.toLocaleString()}</strong>이<br />
       정상적으로 결제되었습니다. 매월 보내주시는 따뜻한 마음에 깊이 감사드립니다.
     </p>
 
@@ -1132,16 +1132,16 @@ export function tplBillingChargeSuccess(opts: {
       <div style="font-size:13px;color:#525252;line-height:1.7;">
         ${esc(RECEIPT_NOTICE)}<br />
         ${isMember
-          ? "후원 내역은 마이페이지에서 언제든 확인하실 수 있습니다."
-          : "회원가입 후 마이페이지에서 후원 내역을 확인하실 수 있습니다."}
+          ? "회비 납부 내역은 마이페이지에서 언제든 확인하실 수 있습니다."
+          : "회원가입 후 마이페이지에서 회비 납부 내역을 확인하실 수 있습니다."}
       </div>
     </div>
 
     <div style="margin:20px 0;padding:14px 16px;background:#f0f5fc;
                 border:1px solid #cee0f2;border-radius:6px;
                 font-size:12.5px;color:#1a5ec4;line-height:1.7;">
-      <strong>정기 후원 관리 안내</strong><br />
-      • 결제 카드 변경/해지: 마이페이지 → 후원 내역에서 가능합니다<br />
+      <strong>정기 회비 관리 안내</strong><br />
+      • 결제 카드 변경/해지: 마이페이지 → 회비 납부 내역에서 가능합니다<br />
       • 카드 만료 등으로 결제 실패 시 별도 안내 메일을 보내드립니다<br />
       • 매월 자동 결제일 약 5~10일 전에 결제 예정 안내를 보내드립니다
     </div>
@@ -1154,18 +1154,18 @@ export function tplBillingChargeSuccess(opts: {
   `;
 
   return {
-    subject: `[SIREN] 정기 후원 결제 완료 안내 (₩${amount.toLocaleString()})`,
+    subject: `[SIREN] 정기 회비 결제 완료 안내 (₩${amount.toLocaleString()})`,
     html: baseLayout({
-      title: "정기 후원 결제 완료",
+      title: "정기 회비 결제 완료",
       bodyHtml,
-      ctaText: isMember ? "마이페이지에서 후원 내역 보기" : "협회 홈페이지로",
+      ctaText: isMember ? "마이페이지에서 회비 납부 내역 보기" : "협회 홈페이지로",
       ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
     }),
   };
 }
 
 /* ═══════════════════════════════════════════════════════
-   Phase L-5: 템플릿 9. 정기 후원 결제 실패 알림 (NEW)
+   Phase L-5: 템플릿 9. 정기 회비 결제 실패 알림 (NEW)
    - 매월 자동 결제 실패 시 발송
    - 1회/2회/3회(자동해지)별로 다른 메시지
    ═══════════════════════════════════════════════════════ */
@@ -1200,10 +1200,10 @@ export function tplBillingChargeFailed(opts: {
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:6px;">
-            정기 후원이 자동 해지되었습니다
+            정기 회비가 자동 해지되었습니다
           </div>
           <div style="font-size:13px;color:#a01e2c;line-height:1.6;">
-            연속 ${consecutiveFailCount}회 결제 실패로 정기 후원이 해지되었습니다.<br />
+            연속 ${consecutiveFailCount}회 결제 실패로 정기 회비가 해지되었습니다.<br />
             다시 시작하시려면 마이페이지에서 새 카드로 등록해 주세요.
           </div>
         </div>
@@ -1237,7 +1237,7 @@ export function tplBillingChargeFailed(opts: {
       안녕하세요, <strong>${esc(donorName)}</strong> 님.
     </p>
     <p style="margin:0 0 20px;color:#525252;">
-      정기 후원 결제 ₩${amount.toLocaleString()}이<br />
+      정기 회비 결제 ₩${amount.toLocaleString()}이<br />
       <strong style="color:#c5293a;">정상적으로 처리되지 않았습니다.</strong>
     </p>
 
@@ -1259,7 +1259,7 @@ export function tplBillingChargeFailed(opts: {
         • 카드 한도 또는 잔액을 확인해 주세요<br />
         • 카드 유효기간이 만료되었는지 확인해 주세요<br />
         • 해외 결제 차단이 활성화되어 있다면 해제해 주세요<br />
-        • 다른 카드로 변경하시려면 마이페이지에서 정기 후원을 해지 후 재등록해 주세요
+        • 다른 카드로 변경하시려면 마이페이지에서 정기 회비를 해지한 뒤 다시 등록해 주세요
       </div>
     </div>
 
@@ -1269,15 +1269,15 @@ export function tplBillingChargeFailed(opts: {
   `;
 
   const subjectPrefix = isFinal
-    ? "[SIREN] 정기 후원 자동 해지 안내"
+    ? "[SIREN] 정기 회비 자동 해지 안내"
     : isWarning
-    ? "[SIREN] 정기 후원 결제 실패 (2회 연속)"
-    : "[SIREN] 정기 후원 결제 실패 안내";
+    ? "[SIREN] 정기 회비 결제 실패 (2회 연속)"
+    : "[SIREN] 정기 회비 결제 실패 안내";
 
   return {
     subject: subjectPrefix,
     html: baseLayout({
-      title: isFinal ? "정기 후원 자동 해지" : "정기 후원 결제 실패",
+      title: isFinal ? "정기 회비 자동 해지" : "정기 회비 결제 실패",
       bodyHtml,
       ctaText: isMember ? "마이페이지에서 확인" : "협회 홈페이지로",
       ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
@@ -1638,14 +1638,14 @@ export function tplGradeUpgrade(opts: {
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
             <tr>
-              <td width="120" style="padding:5px 0;color:#8a8a8a;">누적 후원 금액</td>
+              <td width="120" style="padding:5px 0;color:#8a8a8a;">누적 회비</td>
               <td style="padding:5px 0;color:#0f0f0f;font-weight:700;">
                 ₩${totalAmount.toLocaleString()}
               </td>
             </tr>
             ${regularMonths > 0 ? `
             <tr>
-              <td style="padding:5px 0;color:#8a8a8a;">정기 후원 기간</td>
+              <td style="padding:5px 0;color:#8a8a8a;">정기 후원회원 기간</td>
               <td style="padding:5px 0;color:#0f0f0f;font-weight:700;">
                 ${regularMonths}개월
               </td>
@@ -1733,7 +1733,7 @@ export function tplChurnReengage(opts: {
         • 추모 사업 및 사회 인식 개선 캠페인
       </div>
       <div style="margin-top:12px;font-size:12.5px;color:#8a8a8a;line-height:1.6;">
-        모든 후원금은 <strong>매년 투명하게</strong> 사용 내역이 공개됩니다.<br />
+        모든 회비는 <strong>매년 투명하게</strong> 사용 내역이 공개됩니다.<br />
         협회 홈페이지의 "재정 보고"에서 언제든 확인하실 수 있습니다.
       </div>
     </div>
@@ -1741,7 +1741,7 @@ export function tplChurnReengage(opts: {
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
       <strong>이 메일을 받으신 이유</strong><br />
-      ${esc(memberName)} 님은 사이렌의 소중한 후원 회원이십니다.<br />
+      ${esc(memberName)} 님은 사이렌의 소중한 후원회원이십니다.<br />
       알림 메일을 받지 않으시려면 마이페이지 → 알림 설정에서 변경하실 수 있습니다.
     </div>
 
@@ -1879,7 +1879,7 @@ export function tplFirstDonation1Year(opts: { memberName: string }): { subject: 
       ${opts.memberName}님,
     </p>
     <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
-      ${opts.memberName}님께서 처음 후원해 주신 지 <strong style="color:#7a1f2b">1년</strong>이 되었습니다.<br /><br />
+      ${opts.memberName}님께서 후원회원이 되어 주신 지 <strong style="color:#7a1f2b">1년</strong>이 되었습니다.<br /><br />
       그때 보내주신 따뜻한 마음 하나가<br />
       지금까지 교사 유가족분들의 회복 여정에 큰 힘이 되고 있습니다.<br /><br />
       작은 시작이 이렇게 큰 변화를 만들어낸다는 것,<br />
@@ -1932,13 +1932,13 @@ export function tplDonationMilestone(opts: {
       heroTitle: `${milestoneText} 달성`,
       heroSubtitle: "누적 후원 마일스톤",
       bodyHtml,
-      ctaText: "후원 내역 보기",
+      ctaText: "회비 납부 내역 보기",
       ctaLink: `${SITE_URL}/mypage.html`,
     }),
   };
 }
 
-/* 5. 정기 후원 6개월/1년 */
+/* 5. 정기 후원회원 6개월/1년 */
 export function tplRegularDonationAnniversary(opts: {
   memberName: string;
   months: number; // 6 or 12
@@ -1950,7 +1950,7 @@ export function tplRegularDonationAnniversary(opts: {
       ${opts.memberName}님,
     </p>
     <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
-      정기 후원을 시작하신 지 <strong style="color:#7a1f2b">${monthsText}</strong>이 되었습니다.<br /><br />
+      정기 후원회원이 되신 지 <strong style="color:#7a1f2b">${monthsText}</strong>이 되었습니다.<br /><br />
       매달 변함없는 ${opts.memberName}님의 후원이<br />
       교사 유가족분들의 안정적인 지원에 중요한 역할을 하고 있습니다.<br /><br />
       ${opts.months === 12
@@ -1959,13 +1959,13 @@ export function tplRegularDonationAnniversary(opts: {
     </p>
   `;
   return {
-    subject: `${emoji} ${opts.memberName}님, 정기 후원 ${monthsText}을 함께 기념합니다`,
+    subject: `${emoji} ${opts.memberName}님, 정기 후원회원 ${monthsText}을 함께 기념합니다`,
     html: buildAnniversaryEmailShell({
       heroEmoji: emoji,
-      heroTitle: `정기 후원 ${monthsText} 기념`,
+      heroTitle: `정기 후원회원 ${monthsText} 기념`,
       heroSubtitle: `${monthsText}의 따뜻한 동행`,
       bodyHtml,
-      ctaText: "정기 후원 관리",
+      ctaText: "정기 회비 관리",
       ctaLink: `${SITE_URL}/mypage.html`,
     }),
   };
@@ -2187,7 +2187,7 @@ export function tplMemberRejected(opts: {
    - 2. 가입 1주년
    - 3. 첫 후원 1주년
    - 4. 누적 후원액 마일스톤 (10만/50만/100만/300만/500만/1000만)
-   - 5. 정기 후원 6개월/1년 (함수 1개로 통합)
+   - 5. 정기 후원회원 6개월/1년 (함수 1개로 통합)
    ============================================================ */
 
 const ANNIVERSARY_SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";

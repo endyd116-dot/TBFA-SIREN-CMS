@@ -18,7 +18,7 @@
 /** 본문에 넣을 수 있는 코드 목록 — 편집 화면 안내에도 그대로 쓴다 */
 export const SHORTCODE_HELP: Array<{ code: string; label: string; desc: string }> = [
   { code: "{{map:주소}}", label: "지도", desc: "입력한 주소로 지도를 표시합니다. 예) {{map:서울시 강서구 공항대로 426}}" },
-  { code: "{{donate}}", label: "후원 버튼", desc: "누르면 후원하기 창이 열립니다." },
+  { code: "{{donate}}", label: "후원회원 되기 버튼", desc: "누르면 후원회원 되기 창이 열립니다." },
   { code: "{{apply:support}}", label: "신청 버튼", desc: "누르면 유가족 지원 신청 창이 열립니다." },
   { code: "{{button:라벨|주소}}", label: "일반 버튼", desc: "원하는 곳으로 가는 버튼. 예) {{button:자료실 가기|/resources.html}}" },
   { code: "{{modal:창키|문구}}", label: "창 열기", desc: "후원·신청 외의 창을 엽니다. 예) {{modal:signupModal|회원가입 후 신청}}" },
@@ -75,10 +75,10 @@ export function renderShortcodes(html: string, opts: ShortcodeOptions = {}): str
         );
       }
 
-      /* 후원하기 — 기존 후원 창을 연다 */
+      /* 후원회원 되기 — 기존 후원 창을 연다 */
       case "donate":
         return `<p class="pw-btn-wrap"><button type="button" class="btn btn-primary pw-btn" ` +
-          `data-action="open-modal" data-target="donateModal">후원하기</button></p>`;
+          `data-action="open-modal" data-target="donateModal">후원회원 되기</button></p>`;
 
       /* 신청 — 지금은 유가족 지원 신청 하나. 종류가 늘면 여기에 추가한다. */
       case "apply": {

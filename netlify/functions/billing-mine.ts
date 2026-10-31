@@ -1,14 +1,14 @@
 /**
  * GET /api/billing-mine
  *
- * 로그인 회원의 정기 후원(빌링키) 조회
+ * 로그인 회원의 정기 후원회원(빌링키) 조회
  * - 본인 소유 빌링키만 반환
  * - 활성 + 비활성(최근 6개월) 모두 표시
  * - 카드 정보는 마스킹된 상태로 (PCI-DSS 준수)
  *
  * 응답:
  * {
- *   active: BillingKey | null,        // 현재 활성 정기 후원 (1개만)
+ *   active: BillingKey | null,        // 현재 활성 정기 후원회원 (1개만)
  *   history: BillingKey[],            // 과거 해지 이력 (최근 6개월)
  *   recentCharges: Donation[],        // 최근 결제 이력 (최근 12건)
  *   stats: { totalAmount, totalCount, monthsActive }
@@ -98,7 +98,7 @@ export default async (req: Request) => {
       .orderBy(desc(billingKeys.deactivatedAt))
       .limit(10);
 
-    /* 5. 최근 결제 이력 (최근 12건, 정기 후원만) */
+    /* 5. 최근 결제 이력 (최근 12건, 정기 후원회원만) */
     const recentCharges = await db
       .select({
         id: donations.id,
@@ -120,7 +120,7 @@ export default async (req: Request) => {
       .orderBy(desc(donations.createdAt))
       .limit(12);
 
-    /* 6. 통계 — 정기 후원 누적 (completed만) */
+    /* 6. 통계 — 정기 후원회원 누적 (completed만) */
     const [stats] = await db
       .select({
         totalAmount: sql<number>`COALESCE(SUM(${donations.amount}), 0)`,
@@ -158,7 +158,7 @@ export default async (req: Request) => {
     });
   } catch (err) {
     console.error("[billing-mine]", err);
-    return serverError("정기 후원 조회 중 오류가 발생했습니다", err);
+    return serverError("정기 회비 조회 중 오류가 발생했습니다", err);
   }
 };
 

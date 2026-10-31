@@ -124,7 +124,7 @@ export async function sendSponsorWelcomeMail(member: { id: number; email: string
     </p>
     <p style="margin:0 0 20px;color:#525252;line-height:1.8;">
       「${esc(campaignTitle)}」 후원회원 가입이 완료되었습니다.<br />
-      회칙에 따라 후원회원으로 등록되었으며, 후원 내역·정기 후원 해지·등불 증서는 마이페이지에서 언제든 확인하실 수 있습니다.
+      회칙에 따라 후원회원으로 등록되었으며, 회비 납부 내역·정기 회비 해지·등불 증서는 마이페이지에서 언제든 확인하실 수 있습니다.
     </p>
     <div style="margin:20px 0;padding:16px 20px;background:#fef9f5;border:1px solid #f0e0d4;border-radius:8px;font-size:13px;color:#525252;line-height:1.8;">
       <strong style="color:#0f0f0f;">마이페이지 비밀번호 설정</strong><br />
@@ -185,7 +185,7 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
     emailVerified: false,
     operatorActive: false,
     /* 2026-09-06: 가입 직후 안내 카톡/문자·후속 여정(sms 게이트 = 인증된 휴대폰)을 위해 본인이 적은 휴대폰을
-       인증된 번호로 둔다(일시 후원자와 같은 기준). 카톡 광고성 동의 시각은 «소식 수신» 체크 때만 */
+       인증된 번호로 둔다(일시 후원회원과 같은 기준). 카톡 광고성 동의 시각은 «소식 수신» 체크 때만 */
     phoneVerifiedAt: new Date(),
     kakaoMarketingConsentAt: input.agreeSms === true ? new Date() : null,
     memo: `후원회원 가입 — ${input.campaignTitle}${schoolName ? ` · ${schoolName}` : ""}${input.source === "am_modal" ? " · 랜딩 모달" : ""}`,

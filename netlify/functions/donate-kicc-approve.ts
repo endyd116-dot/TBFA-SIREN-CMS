@@ -223,7 +223,7 @@ export default async (req: Request) => {
     /* US-044: 캠페인 지정 후원이면 모금현황(모금액·후원자수) 즉시 재계산 */
     await recalcCampaignStatsSafe((donation as any).campaignId);
 
-    /* 2026-06-26: 일시후원 완료 → 예비 후원자로 자동 등록(회원 연결·또는 게스트는 매칭/생성).
+    /* 2026-06-26: 일시 회비 납부 완료 → 예비 후원자로 자동 등록(회원 연결·또는 게스트는 매칭/생성).
        fire-and-forget — 실패해도 결제 완료에 영향 0. */
     void ensureProspectFromDonation({
       donationId: updated.id,
@@ -239,8 +239,8 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "새 일시후원",
-        message: `방금 일시후원이 들어왔어요. ${updated.donorName}님 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
+        title: "새 일시 후원회원",
+        message: `방금 일시 후원회원 회비가 들어왔어요. ${updated.donorName}님 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
         link: "/admin.html#donations",
         refTable: "donations",
         refId: updated.id,

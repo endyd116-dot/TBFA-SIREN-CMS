@@ -60,7 +60,7 @@
         hyosungGuideText: '효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.',
         hyosungCountdownMessage: '자동이체를 위해 외부페이지로 이동합니다.',
         hyosungCountdownSeconds: 5,
-        modalTitle: '후원 동참하기',
+        modalTitle: '후원회원 되기',
         modalSubtitle: '여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.',
       };
       return _policyCache;
@@ -591,7 +591,7 @@
         const choice = modal.querySelector('input[name="payMethodChoice"]:checked')?.value;
         submitBtn.textContent = choice === 'hyosung_cms'
           ? '효성 CMS+ 등록하러 가기'
-          : '카드 등록하기 (정기 후원)';
+          : '카드 등록하기 (정기 회비)';
       }
     } else {
       if (regularBox) regularBox.style.display = 'none';
@@ -677,8 +677,8 @@
       }
 
       if (!data.name || !data.phone) return window.SIREN.toast('이름과 연락처를 입력해 주세요');
-      if (!amount || amount < 1000) return window.SIREN.toast('후원 금액은 1,000원 이상 입력해 주세요');
-      if (amount > 100000000) return window.SIREN.toast('1회 최대 후원 금액은 1억원입니다');
+      if (!amount || amount < 1000) return window.SIREN.toast('회비는 1,000원 이상 입력해 주세요');
+      if (amount > 100000000) return window.SIREN.toast('1회 최대 회비는 1억원입니다');
 
       const email = (data.email || '').trim() || (auth?.user?.email || '') || (_member?.email || '');
       if (!email) return window.SIREN.toast('이메일을 입력해 주세요 (후원 안내 발송용)');

@@ -1,7 +1,7 @@
 /**
  * POST|GET /api/billing-approve   ← KICC returnUrl 핸들러 (정기 빌키 등록 복귀 지점)
  *
- * KICC 정기 후원 2단계 — 빌키 발급(approval) + 1회차 즉시결제(approval/batch).
+ * KICC 정기 후원회원 2단계 — 빌키 발급(approval) + 1회차 즉시결제(approval/batch).
  * - KICC가 빌키 등록창 인증 후 이 URL로 POST 복귀(authorizationId·shopOrderNo)
  * - register 때 저장한 pending(type=regular) 로드 → 서버 금액 기준
  * - 발급 승인 → 빌키 회신 → billing_keys 저장 → 빌키로 1회차 청구
@@ -22,7 +22,7 @@ import { approveTrade, chargeWithBillingKey, calculateNextBillingDate } from "..
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
 import { notifyAllSuperAdmins, notifyAllOperators } from "../../lib/notify";
-/* 2026-09-06 「등불의 기적」: 정기 후원도 캠페인 현황 합산 + 등불 번호·withwork postback·랜딩 되돌아가기 */
+/* 2026-09-06 「등불의 기적」: 정기 후원회원도 캠페인 현황 합산 + 등불 번호·withwork postback·랜딩 되돌아가기 */
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 import { afterLanternCompletion, lanternRedirectParams } from "../../lib/lantern";
 
@@ -83,7 +83,7 @@ export default async (req: Request) => {
           .set({ status: "failed", failureReason: (p.resMsg || "빌키 등록 인증 실패").slice(0, 500), updatedAt: new Date() } as any)
           .where(eq(donations.pgOrderNo, pgOrderNo));
       }
-      return failRedirect(p.resMsg || "정기 후원 등록이 취소되었습니다");
+      return failRedirect(p.resMsg || "정기 후원회원 등록이 취소되었습니다");
     }
     if (!authorizationId || !pgOrderNo) return failRedirect("결제 정보가 누락되었습니다");
 
@@ -142,7 +142,7 @@ export default async (req: Request) => {
       billingKey: billKey,
       shopOrderNo: chargeOrderNo,
       amount,
-      goodsName: "교사유가족협의회 정기 후원 (1회차)",
+      goodsName: "교사유가족협의회 정기 회비 (1회차)",
       customerName: donation.donorName,
       customerEmail: donation.donorEmail || undefined,
     });
@@ -183,7 +183,7 @@ export default async (req: Request) => {
         success: false,
       });
       /* US-014: 첫 회차 결제 실패 시 후원자·운영진 알림 (기존엔 알림 0·후속 안내 없음).
-         후원자는 정기후원이 시작됐는지 알 수 없었고 협회도 실패를 인지 못했음. */
+         후원자는 정기 회비가 시작됐는지 알 수 없었고 협회도 실패를 인지 못했음. */
       if (memberId) {
         try {
           dispatch({
@@ -192,7 +192,7 @@ export default async (req: Request) => {
             params: {
               memberName: donation.donorName,
               amount,
-              title: "정기후원 첫 결제 실패",
+              title: "정기 회비 첫 결제 실패",
               message: "카드 등록은 완료되었으나 첫 회차 결제가 실패했습니다. 마이페이지에서 다시 등록을 시도해 주세요.",
               link: "/billing-register.html",
               category: "donation",
@@ -205,8 +205,8 @@ export default async (req: Request) => {
         await notifyAllSuperAdmins({
           category: "donation",
           severity: "warning",
-          title: "정기후원 첫 회차 결제 실패",
-          message: `${donation.donorName}님의 정기후원 첫 회차 결제가 실패했습니다 (${charge.errorMessage || "사유 미상"}).`,
+          title: "정기 회비 첫 회차 결제 실패",
+          message: `${donation.donorName}님의 정기 회비 첫 회차 결제가 실패했습니다 (${charge.errorMessage || "사유 미상"}).`,
           link: "/admin.html#donations",
           refTable: "donations",
           refId: donation.id,
@@ -285,7 +285,7 @@ export default async (req: Request) => {
       }
     }
 
-    /* 5-b) 캠페인 지정 정기 후원이면 모금현황 즉시 재계산 (그동안 정기 후원은 합산에서 빠져 있었다) */
+    /* 5-b) 캠페인 지정 정기 후원회원이면 모금현황 즉시 재계산 (그동안 정기 후원회원은 합산에서 빠져 있었다) */
     await recalcCampaignStatsSafe((donation as any).campaignId);
 
     /* 5-c) 등불 캠페인(S6-b·S8): 등불 번호 + withwork postback + 되돌아가기 주소. 실패해도 등록은 성공 */
@@ -330,8 +330,8 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "새 정기후원",
-        message: `방금 새 정기후원이 시작됐어요. ${updated.donorName}님 월 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
+        title: "새 정기 후원회원",
+        message: `방금 새 정기 후원회원이 등록됐어요. ${updated.donorName}님 월 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
         link: "/admin.html#donations",
         refTable: "donations",
         refId: updated.id,
@@ -383,7 +383,7 @@ export default async (req: Request) => {
     return successRedirect(updated.id, lanternRedirectParams(lantern));
   } catch (err) {
     console.error("[billing-approve]", err);
-    return failRedirect("정기 후원 등록 중 오류가 발생했습니다");
+    return failRedirect("정기 후원회원 등록 중 오류가 발생했습니다");
   }
 };
 

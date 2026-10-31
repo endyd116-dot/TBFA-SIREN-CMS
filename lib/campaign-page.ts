@@ -102,7 +102,7 @@ export function renderCampaignDefault(c: CampaignView): string {
       ${isClosed
         ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. </div>'
         : `<button class="cmp-cta" data-cmp-donate="${Number(c.id)}" data-cmp-slug="${esc(c.slug)}" data-cmp-title="${esc(c.title)}">
-            이 캠페인에 후원하기
+            이 캠페인의 후원회원 되기
           </button>
           <p class="cmp-receipt-note">${esc(RECEIPT_NOTICE)}</p>`
       }
@@ -182,7 +182,7 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
           <div class="lt-progress-lab"><span>모인 회비 <b id="ltRaised">${won(raised)}</b></span><span><span id="ltPct">${pct}</span>% · 목표 ${won(goal)}</span></div>` : ""}
           <div class="lt-cta-wrap">
             ${ctaBtn("월 1만 원부터 · 한 번의 후원도 환영합니다")}
-            <p class="lt-cta-sub">가입 즉시 등불 증서가 발급되고, 정기 후원은 마이페이지에서 언제든 한 번에 해지하실 수 있습니다.</p>
+            <p class="lt-cta-sub">가입 즉시 등불 증서가 발급되고, 정기 회비는 마이페이지에서 언제든 한 번에 해지하실 수 있습니다.</p>
           </div>
         </section>
 
@@ -192,8 +192,8 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
         <section class="lt-ladder">
           <h3>후원이 하는 일</h3>
           <div class="lt-ladder-grid">
-            ${ladderCol("정기 후원 (월)", x.ladder.monthlyHint || "", x.ladder.regular || [])}
-            ${ladderCol("일시 후원", "한 번만", x.ladder.onetime || [])}
+            ${ladderCol("정기 후원회원 (월 회비)", x.ladder.monthlyHint || "", x.ladder.regular || [])}
+            ${ladderCol("일시 후원회원", "한 번만", x.ladder.onetime || [])}
           </div>
           <p class="lt-ladder-note">${esc(x.ladder.minNote || "최소 1,000원부터 가능합니다")} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
         </section>` : ""}

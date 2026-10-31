@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="SIREN" />
 <script src="/js/pwa.js?v=3" defer></script>
-<title>정기 후원 카드 등록 | 교사유가족협의회</title>
+<title>정기 회비 카드 등록 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -217,7 +217,7 @@
       <!-- 메인 화면 -->
       <div id="brMain" class="br-card">
         <div class="br-icon"><span class="siren-icon-wrap" data-icon="credit-card"></span></div>
-        <h1 class="br-title">정기 후원 카드 등록</h1>
+        <h1 class="br-title">정기 회비 카드 등록</h1>
         <p class="br-subtitle">
           카드 정보를 1회만 등록하시면<br />
           매월 자동으로 후원이 진행됩니다.
@@ -229,11 +229,11 @@
         <div class="br-summary" id="brSummary" style="display:none">
           <div class="br-summary-title"><span class="siren-icon-wrap" data-icon="clipboard-list"></span> 후원 정보</div>
           <div class="br-summary-row">
-            <span class="br-summary-label">후원 유형</span>
-            <span class="br-summary-value">정기 후원 (월 자동)</span>
+            <span class="br-summary-label">후원회원 유형</span>
+            <span class="br-summary-value">정기 후원회원 (월 회비 자동)</span>
           </div>
           <div class="br-summary-row">
-            <span class="br-summary-label">월 후원 금액</span>
+            <span class="br-summary-label">월 회비</span>
             <span class="br-summary-value amount" id="brAmount">—</span>
           </div>
           <div class="br-summary-row">
@@ -286,7 +286,7 @@
         <p class="br-subtitle">
           이 페이지는 후원 모달에서만 접근할 수 있으며,<br />
           30분 이내에 진행해 주셔야 합니다.<br /><br />
-          홈으로 돌아가서 다시 후원해 주세요.
+          홈으로 돌아가서 다시 시도해 주세요.
         </p>
         <div class="br-actions" style="justify-content:center">
           <a href="/index.html" class="primary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">
@@ -301,7 +301,7 @@
   <div id="footer-slot"></div>
 
   <script src="/js/common.js?v=20261007-init"></script>
-  <script src="/js/auth.js?v=20260906-receipt"></script>
+  <script src="/js/auth.js?v=20261031-member"></script>
   <script>
   (function () {
     'use strict';
@@ -384,7 +384,7 @@
             email: intent.email,
             amount: intent.amount,
             isAnonymous: !!intent.isAnonymous,
-            /* 2026-09-06 「등불의 기적」: 정기 후원도 캠페인에 합산 + 랜딩 파라미터(am_lp·am_anon·gate) 동봉 */
+            /* 2026-09-06 「등불의 기적」: 정기 후원회원도 캠페인에 합산 + 랜딩 파라미터(am_lp·am_anon·gate) 동봉 */
             campaignId: intent.campaignId ? Number(intent.campaignId) : null,
             sourceMeta: intent.sourceMeta || undefined,
           }),

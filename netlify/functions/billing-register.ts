@@ -1,7 +1,7 @@
 /**
  * POST /api/billing-register
  *
- * KICC 정기 후원 1단계 — 빌키 등록창(webpay, clientTypeCode=81).
+ * KICC 정기 후원회원 1단계 — 빌키 등록창(webpay, clientTypeCode=81).
  * - 회원 1인당 활성 빌키 1개 (중복 차단)
  * - customerKey(KICC 비종속 내부 회원-스코프 식별자) 생성
  * - donations 에 pending(type=regular) 선저장 → 승인 시 서버 금액 기준
@@ -19,7 +19,7 @@ import { safeValidate } from "../../lib/validation";
 import { ok, badRequest, forbidden, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { registerTrade, generateShopOrderNo } from "../../lib/kicc";
-/* 2026-09-06 「등불의 기적」: 정기 후원도 캠페인에 합산(campaignId) + 랜딩 파라미터 보관 + 후원회원 가입 필수 */
+/* 2026-09-06 「등불의 기적」: 정기 후원회원도 캠페인에 합산(campaignId) + 랜딩 파라미터 보관 + 후원회원 가입 필수 */
 import { campaigns } from "../../db/schema";
 import { resolveCampaignExtras, type CampaignExtras } from "../../lib/campaign-extras";
 import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
@@ -74,7 +74,7 @@ export default async (req: Request) => {
           .limit(1);
         if (activeKey) {
           return forbidden(
-            `이미 활성화된 정기 후원이 있습니다 (월 ${activeKey.amount.toLocaleString()}원). ` +
+            `이미 정기 후원회원으로 등록되어 있습니다 (월 ${activeKey.amount.toLocaleString()}원). ` +
               "변경하려면 마이페이지에서 먼저 해지 후 다시 등록해 주세요.",
           );
         }
@@ -90,7 +90,7 @@ export default async (req: Request) => {
         campaignExtras = await resolveCampaignExtras({ id: campaignId, slug: cRow?.slug });
       } catch { /* 보조 조회 실패는 무시 */ }
       if (campaignExtras?.requireMembership && !memberId) {
-        return badRequest("후원회원 가입(회칙 동의) 후 정기 후원을 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+        return badRequest("후원회원 가입(회칙 동의) 후 정기 회비를 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
       }
     }
 
@@ -113,7 +113,7 @@ export default async (req: Request) => {
     }
 
     /* pending(type=regular) 선저장 — 승인 시 금액·기부자 서버 신뢰 기준
-       2026-09-06: campaignId 동봉 — 그동안 정기 후원은 캠페인 합산에서 빠져 있었다 */
+       2026-09-06: campaignId 동봉 — 그동안 정기 후원회원은 캠페인 합산에서 빠져 있었다 */
     const [pendingRow] = await db.insert(donations).values({
       memberId,
       donorName: data.name,
@@ -139,7 +139,7 @@ export default async (req: Request) => {
     const reg = await registerTrade({
       shopOrderNo: pgOrderNo,
       amount: data.amount,
-      goodsName: "교사유가족협의회 정기 후원",
+      goodsName: "교사유가족협의회 정기 후원회원 회비",
       returnUrl: `${SITE_URL}/api/billing-approve`,
       isBillingKey: true, // 정기 빌키 등록창 (payMethodTypeCode 81·amount 0·certType 0)
       customerName: data.name,
@@ -151,7 +151,7 @@ export default async (req: Request) => {
         .update(donations)
         .set({ status: "failed", failureReason: (reg.errorMessage || "빌키 등록 준비 실패").slice(0, 500), updatedAt: new Date() } as any)
         .where(eq(donations.pgOrderNo, pgOrderNo));
-      return badRequest(reg.errorMessage || "정기 후원 준비에 실패했습니다", { code: reg.errorCode });
+      return badRequest(reg.errorMessage || "정기 후원회원 등록 준비에 실패했습니다", { code: reg.errorCode });
     }
 
     await logUserAction(req, memberId, memberName, "billing_register", {
@@ -161,11 +161,11 @@ export default async (req: Request) => {
 
     return ok(
       { authPageUrl: reg.authPageUrl, pgOrderNo, customerKey, memberIdent: memberId ? `M-${memberId}` : "GUEST" },
-      "정기 후원 준비 완료",
+      "정기 후원회원 등록 준비 완료",
     );
   } catch (err) {
     console.error("[billing-register]", err);
-    return serverError("정기 후원 준비 중 오류가 발생했습니다", err);
+    return serverError("정기 후원회원 등록 준비 중 오류가 발생했습니다", err);
   }
 };
 

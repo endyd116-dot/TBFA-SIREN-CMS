@@ -19,7 +19,7 @@
   var amAnon = String(params.get('am_anon') || '').trim();
   var gate = String(params.get('gate') || '').trim();
   var intent = String(params.get('intent') || '').trim();   /* 통보문 ⑧ — AM 모달 결제 의도 id */
-  var NOTICE_DONE = '후원 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다.';
+  var NOTICE_DONE = '회비 납부 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다.';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -67,7 +67,7 @@
         '<div class="lc-name">' + esc(name) + ' 님</div>' +
         '<div class="lc-tag">' + esc((d.certificate && d.certificate.tagline) || '함께 지키는 사람') + '</div>' +
         '<div class="lc-foot">교사유가족협의회 · ' + esc((d.certificate && d.certificate.campaignLabel) || '등불의 기적') + '</div>' +
-        '<div class="lc-date">' + esc(fmtDate(d.at)) + (d.monthly ? ' · 정기 후원회원' : ' · 일시 후원') + '</div>' +
+        '<div class="lc-date">' + esc(fmtDate(d.at)) + (d.monthly ? ' · 정기 후원회원' : ' · 일시 후원회원') + '</div>' +
       '</div>'
     );
   }
@@ -197,7 +197,7 @@
     ctx.font = '400 28px "Noto Sans KR", sans-serif';
     ctx.fillText('교사유가족협의회 · ' + ((d.certificate && d.certificate.campaignLabel) || '등불의 기적'), W / 2, 1140);
     ctx.fillStyle = '#8b8880';
-    ctx.fillText(fmtDate(d.at) + (d.monthly ? ' · 정기 후원회원' : ' · 일시 후원'), W / 2, 1190);
+    ctx.fillText(fmtDate(d.at) + (d.monthly ? ' · 정기 후원회원' : ' · 일시 후원회원'), W / 2, 1190);
     ctx.fillStyle = '#5c5a55';
     ctx.font = '400 24px "Noto Sans KR", sans-serif';
     ctx.fillText('tbfa.co.kr', W / 2, 1250);
@@ -227,7 +227,7 @@
     box.innerHTML =
       '<div class="lt-complete">' +
         '<h2>당신의 등불이 켜졌습니다</h2>' +
-        '<p class="lt-complete-sub">' + esc(NOTICE_DONE) + '<br />등불 증서와 「선생님께 한마디」는 마이페이지 &gt; 후원 내역에서 볼 수 있습니다(비밀번호는 가입 메일의 링크로 설정).</p>' +
+        '<p class="lt-complete-sub">' + esc(NOTICE_DONE) + '<br />등불 증서와 「선생님께 한마디」는 마이페이지 &gt; 회비 납부 내역에서 볼 수 있습니다(비밀번호는 가입 메일의 링크로 설정).</p>' +
         (returnUrl ? '<div class="lt-tools"><a class="lt-btn gold" href="' + esc(returnUrl) + '">내 등불 보러 가기 →</a></div>' : '') +
       '</div>';
     box.hidden = false;

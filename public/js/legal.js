@@ -90,7 +90,7 @@
     if (modal) {
       modal.classList.add('show');
     } else {
-      alert('AI 분석은 후원 회원 전용 서비스입니다. 일반 상담은 가능합니다.');
+      alert('AI 분석은 후원회원 전용 서비스입니다. 일반 상담은 가능합니다.');
     }
   }
 
@@ -356,7 +356,7 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:19px;font-weight:700;color:#7a1f2b;margin-bottom:14px">' +
-        escapeHtml(notice.title || '사이렌 후원 회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 후원회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:20px">' +
         safeMessage +

@@ -255,7 +255,7 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
   if (monthly) {
     const [activeKey] = await db.select({ id: billingKeys.id, amount: billingKeys.amount })
       .from(billingKeys).where(and(eq(billingKeys.memberId, m.id), eq(billingKeys.isActive, true))).limit(1);
-    if (activeKey) throw new AmError(409, `이미 활성화된 정기 후원이 있습니다(월 ${Number(activeKey.amount).toLocaleString()}원). 변경은 마이페이지에서 해지 후 다시 등록해 주세요.`, "billing_active");
+    if (activeKey) throw new AmError(409, `이미 정기 후원회원으로 등록되어 있습니다(월 ${Number(activeKey.amount).toLocaleString()}원). 변경은 마이페이지에서 해지 후 다시 등록해 주세요.`, "billing_active");
   }
 
   if (portoneConfigured()) {
@@ -272,7 +272,7 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
     const customer = { customerId: body.memberId, fullName: m.name, phoneNumber: m.phone || undefined, email: m.email };
     const payMethod = method === "easy" ? "EASY_PAY" : method === "transfer" ? "TRANSFER" : "CARD";
     const payload = monthly
-      ? { storeId, channelKey, billingKeyMethod: payMethod === "EASY_PAY" ? "EASY_PAY" : "CARD", issueId: intentId, issueName: `${extras.certificate.campaignLabel} 정기 후원`, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` }
+      ? { storeId, channelKey, billingKeyMethod: payMethod === "EASY_PAY" ? "EASY_PAY" : "CARD", issueId: intentId, issueName: `${extras.certificate.campaignLabel} 정기 후원회원`, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` }
       : { storeId, channelKey, paymentId: intentId, orderName: `${extras.certificate.campaignLabel} 후원회원 회비`, totalAmount: amount, currency: "KRW", payMethod, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` };
     return { intentId, provider: "portone", donationId: rec.id, payload };
   }
@@ -338,7 +338,7 @@ export async function amStartKiccPayment(intentId: string): Promise<{ authPageUr
   const reg = await registerTrade({
     shopOrderNo: pgOrderNo,
     amount: row.amount,
-    goodsName: row.type === "regular" ? "교사유가족협의회 정기 후원" : "교사유가족협의회 후원",
+    goodsName: row.type === "regular" ? "교사유가족협의회 정기 후원회원 회비" : "교사유가족협의회 후원회원 회비",
     returnUrl: `${SITE_URL}/api/${row.type === "regular" ? "billing-approve" : "donate-kicc-approve"}`,
     isBillingKey: row.type === "regular",
     customerName: m?.name || row.donorName,

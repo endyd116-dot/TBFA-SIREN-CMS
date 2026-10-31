@@ -223,7 +223,7 @@
             <span class="ps-info-value" id="psDonorName">—</span>
           </div>
           <div class="ps-info-row" id="psRowAmount" style="display:none">
-            <span class="ps-info-label">후원 금액</span>
+            <span class="ps-info-label">회비 금액</span>
             <span class="ps-info-value amount" id="psAmount">—</span>
           </div>
           <div class="ps-info-row" id="psRowPaidAt" style="display:none">
@@ -239,11 +239,11 @@
         <div style="font-size:12.5px;color:var(--text-3);line-height:1.7;margin-bottom:18px;padding:12px 16px;background:var(--bg-soft);border-radius:6px">
           <span class="siren-icon-wrap" data-icon="mail"></span> 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다.<br />
           <span class="siren-icon-wrap" data-icon="file-text"></span> 저희는 사단법인으로, 아직 <strong>기부금영수증(세액공제)</strong> 발급이 되지 않습니다. 지정되는 날, 이 자리에서 바로 알려드리겠습니다.<br />
-          <span style="font-size:11.5px">※ 후원 내역은 로그인 후 마이페이지에서 확인하실 수 있습니다. 문의: <strong>info@tbfa.co.kr</strong></span>
+          <span style="font-size:11.5px">※ 회비 납부 내역은 로그인 후 마이페이지에서 확인하실 수 있습니다. 문의: <strong>info@tbfa.co.kr</strong></span>
         </div>
 
         <div class="ps-actions">
-          <a href="/mypage.html#donations" class="primary" id="psMyPageLink"><span class="siren-icon-wrap" data-icon="file-text"></span> 후원 내역 보기</a>
+          <a href="/mypage.html#donations" class="primary" id="psMyPageLink"><span class="siren-icon-wrap" data-icon="file-text"></span> 회비 납부 내역 보기</a>
           <a href="/index.html" class="ghost"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
         </div>
       </div>
@@ -281,7 +281,7 @@
         <h1 class="ps-title" style="color:var(--danger)">잘못된 접근입니다</h1>
         <p class="ps-message">
           결제 정보가 없거나 잘못된 경로로 접근하셨습니다.<br />
-          홈에서 다시 후원해 주세요.
+          홈에서 다시 시도해 주세요.
         </p>
         <div class="ps-actions">
           <a href="/index.html" class="primary"><span class="siren-icon-wrap" data-icon="home"></span> 홈으로 이동</a>
@@ -294,8 +294,8 @@
   <div id="footer-slot"></div>
 
   <script src="/js/common.js?v=20261007-init"></script>
-  <script src="/js/auth.js?v=20260906-receipt"></script>
-  <script src="/js/lantern-complete.js?v=20260906-1" defer></script>
+  <script src="/js/auth.js?v=20261031-member"></script>
+  <script src="/js/lantern-complete.js?v=20261031-member" defer></script>
   <script>
   (function () {
     'use strict';
@@ -353,7 +353,7 @@
 
     show('psSuccess');
 
-    /* sessionStorage 정리 (정기 후원 의도 데이터 잔존 제거) */
+    /* sessionStorage 정리 (정기 후원회원 의도 데이터 잔존 제거) */
     try {
       sessionStorage.removeItem('siren_billing_intent');
     } catch (e) {}

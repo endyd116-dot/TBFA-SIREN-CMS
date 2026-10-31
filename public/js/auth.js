@@ -1,7 +1,7 @@
 /* =========================================================
    SIREN — auth.js v6
    (★ K-1 비번재설정 + K-2 인증/탈퇴 + K-6 정보수정/비번변경/해지
-    + 세션 마커 + L-7 정기후원 카드/해지
+    + 세션 마커 + L-7 정기 후원회원 카드/해지
     + ★ Bug-9: pending_hyosung 라벨 4곳 패치)
    ========================================================= */
 (function () {
@@ -422,7 +422,7 @@ document.addEventListener('change', async function (e) {
           var sourceLabel = matched.isHyosung ? '효성으로' : '';
           setStatus(
             '' + escapeHtml(matched.name) + '님, 환영합니다!<br/>' +
-            '이미 ' + sourceLabel + ' 후원해 주시는 분이시군요 (' + matched.donationCount + '회). ' +
+            '이미 ' + sourceLabel + ' 회비를 납부해 주시는 후원회원이시군요 (' + matched.donationCount + '회). ' +
             '이메일·비밀번호를 추가하시면 마이페이지에서 후원 이력·납부 확인서를 직접 관리하실 수 있어요.',
             'var(--success)'
           );
@@ -564,7 +564,7 @@ document.addEventListener('change', async function (e) {
     if (nameEl) nameEl.textContent = `${Auth.user.name}님`;
     const typeEl = document.querySelector('.mp-user span');
     if (typeEl) {
-      const map = { regular:'정기 후원 회원', family:'유가족 회원', volunteer:'봉사자', admin:'관리자' };
+      const map = { regular:'정기 후원회원', family:'유가족 회원', volunteer:'봉사자', admin:'관리자' };
       typeEl.textContent = map[Auth.user.type] || '회원';
     }
 
@@ -577,7 +577,7 @@ document.addEventListener('change', async function (e) {
     await refreshDonations();
     await refreshSupport();
 
-    /* ★ L-7: 정기 후원 카드 로드 */
+    /* ★ L-7: 정기 후원회원 카드 로드 */
     await refreshBilling();
   }
 
@@ -810,7 +810,7 @@ document.addEventListener('change', async function (e) {
     });
   }
 
-  /* ------------ ★ K-6: 일시 후원 해지 (행 단위, 기존) ------------ */
+  /* ------------ ★ K-6: 일시 후원회원 해지 (행 단위, 기존) ------------ */
   function setupDonationCancelHandler() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-cancel-donation]');
@@ -821,7 +821,7 @@ document.addEventListener('change', async function (e) {
       if (!id) return;
 
       const confirmed = confirm(
-        '이 정기 후원을 해지하시겠습니까?\n\n' +
+        '이 정기 회비를 해지하시겠습니까?\n\n' +
         '• 다음 결제부터 자동 청구가 중단됩니다\n' +
         '• 이미 처리된 결제분은 영향을 받지 않습니다\n' +
         '• 납부 확인서 발급은 그대로 가능합니다\n\n' +
@@ -840,7 +840,7 @@ document.addEventListener('change', async function (e) {
         });
 
         if (res.ok) {
-          window.SIREN.toast(res.data?.message || '정기 후원이 해지되었습니다');
+          window.SIREN.toast(res.data?.message || '정기 회비가 해지되었습니다');
           await refreshDonations();
           await refreshBilling();
         } else {
@@ -855,9 +855,9 @@ document.addEventListener('change', async function (e) {
       }
     });
 
-    /* ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 오픈 */
+    /* ★ v11 묶음 B-1: 정기 회비 해지 안내 모달 오픈 */
 
-  /* ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 제어 */
+  /* ★ v11 묶음 B-1: 정기 회비 해지 안내 모달 제어 */
   let _cgmCache = null;
 
   async function openCancelGuideModal() {
@@ -903,7 +903,7 @@ document.addEventListener('change', async function (e) {
 
     function applyCgmContent() {
       const c = _cgmCache || {};
-      if (titleEl) titleEl.textContent = c.modalTitle || '정기 후원 해지 안내';
+      if (titleEl) titleEl.textContent = c.modalTitle || '정기 회비 해지 안내';
       if (greetingEl) greetingEl.textContent = c.greeting || '';
       if (procedureEl) procedureEl.textContent = c.procedure || '';
       if (warningsEl) warningsEl.textContent = c.warnings || '';
@@ -939,7 +939,7 @@ document.addEventListener('change', async function (e) {
   }
 
   /* ============================================================
-     ★ L-7: 정기 후원 카드 렌더링
+     ★ L-7: 정기 후원회원 카드 렌더링
      ============================================================ */
   async function refreshBilling() {
     const container = document.getElementById('mpBillingContainer');
@@ -998,7 +998,7 @@ document.addEventListener('change', async function (e) {
       <div class="${cardClass}">
         <div class="mp-billing-header">
           <div>
-            <div class="mp-billing-title">정기 후원</div>
+            <div class="mp-billing-title">정기 후원회원</div>
             <div class="mp-billing-subtitle">
               ${stats.monthsActive}개월간 함께해 주셔서 감사합니다 · 누적 ₩${(stats.totalAmount || 0).toLocaleString()}
             </div>
@@ -1010,7 +1010,7 @@ document.addEventListener('change', async function (e) {
 
         <div class="mp-billing-info-grid">
           <div class="mp-billing-info-row">
-            <span class="mp-billing-info-label">월 후원 금액</span>
+            <span class="mp-billing-info-label">월 회비</span>
             <span class="mp-billing-info-value amount">₩${(b.amount || 0).toLocaleString()}</span>
           </div>
           <div class="mp-billing-info-row">
@@ -1028,7 +1028,7 @@ document.addEventListener('change', async function (e) {
         </div>
 
         <div class="mp-billing-actions">
-          <button type="button" class="btn-cancel" data-billing-cancel="${b.id}">정기 후원 해지</button>
+          <button type="button" class="btn-cancel" data-billing-cancel="${b.id}">정기 회비 해지</button>
         </div>
       </div>
     `;
@@ -1040,14 +1040,14 @@ document.addEventListener('change', async function (e) {
       <div class="mp-billing-empty">
         <div class="icon"></div>
         <div class="title">
-          ${hasHistory ? '현재 활성 정기 후원이 없습니다' : '정기 후원을 시작해 보세요'}
+          ${hasHistory ? '현재 활성화된 정기 회비가 없습니다' : '정기 후원회원이 되어 보세요'}
         </div>
         <div class="desc">
           ${hasHistory
-            ? '새로 정기 후원을 시작하시려면 홈에서 후원 버튼을 눌러주세요.'
+            ? '새로 정기 후원회원이 되시려면 홈에서 «후원회원 되기» 버튼을 눌러주세요.'
             : '매월 자동 결제로 유가족 지원에 꾸준히 동참해 주세요.<br />언제든 해지 가능합니다.'}
         </div>
-        <a href="/index.html" class="btn-start">정기 후원 시작하기</a>
+        <a href="/index.html" class="btn-start">정기 후원회원 되기</a>
       </div>
     `;
   }
@@ -1093,7 +1093,7 @@ document.addEventListener('change', async function (e) {
     `;
   }
 
-  /* ★ L-7: 정기 후원 해지 모달 + 핸들러 */
+  /* ★ L-7: 정기 회비 해지 모달 + 핸들러 */
   function setupBillingCancelHandler() {
     /* 해지 버튼 클릭 → 모달 오픈 */
     document.addEventListener('click', (e) => {
@@ -1151,7 +1151,7 @@ document.addEventListener('change', async function (e) {
       if (!id) return;
 
       const finalConfirm = confirm(
-        '정말 정기 후원을 해지하시겠습니까?\n\n' +
+        '정말 정기 회비를 해지하시겠습니까?\n\n' +
         '• 다음 결제일부터 자동 청구가 중단됩니다\n' +
         '• 되돌릴 수 없으며, 재시작 시 새 카드 등록이 필요합니다\n\n' +
         '계속하시려면 [확인]을 눌러주세요.'
@@ -1169,7 +1169,7 @@ document.addEventListener('change', async function (e) {
         });
 
         if (res.ok) {
-          window.SIREN.toast(res.data?.message || '정기 후원이 해지되었습니다');
+          window.SIREN.toast(res.data?.message || '정기 회비가 해지되었습니다');
           /* 모달 닫기 */
           const modal = document.getElementById('billingCancelModal');
           if (modal) {
@@ -1190,7 +1190,7 @@ document.addEventListener('change', async function (e) {
     });
   }
 
-  /* ------------ 후원 내역 새로고침 ------------ */
+  /* ------------ 회비 납부 내역 새로고침 ------------ */
   async function refreshDonations() {
     const res = await api('/api/donations/mine');
     if (!res.ok || !res.data?.data) return;
@@ -1211,9 +1211,9 @@ document.addEventListener('change', async function (e) {
     const tbody = panel?.querySelector('table.tbl tbody');
     if (tbody) {
       if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">아직 후원 내역이 없습니다 </td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">아직 회비 납부 내역이 없습니다 </td></tr>`;
       } else {
-        const typeMap = { regular: '정기 후원', onetime: '일시 후원' };
+        const typeMap = { regular: '정기 회비', onetime: '일시 회비' };
         const payMap = { cms: 'CMS', card: '카드', bank: '계좌이체' };
         /* ★ Bug-9 패치: pending_hyosung 라벨 추가 */
         const statusMap = {
