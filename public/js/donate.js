@@ -1171,6 +1171,19 @@
       /* 정책(어드민 설정값)은 미리 받아 두고, 오면 열리기 전에 창에 반영한다 */
       setupBankQuick();
       loadPolicy().then(() => { _prepared = false; prepareModal(); }).catch(() => {});
+      /* 2026-11-01: 주소에 ?donate=1 이 있으면 후원회원 되기 창을 바로 연다 — PG 심사·안내 링크용
+         (예: /campaign.html?slug=등불의-기적&donate=1). 창 DOM(파셜)이 늦게 생겨도 생길 때까지 기다린다 */
+      try {
+        if (new URLSearchParams(location.search).get('donate') === '1') {
+          let tries = 0;
+          const tryOpen = () => {
+            const m = document.getElementById('donateModal');
+            if (m && window.SIREN && typeof window.SIREN.openModal === 'function') { openDonate(); return; }
+            if (++tries < 40) setTimeout(tryOpen, 300);
+          };
+          setTimeout(tryOpen, 800);
+        }
+      } catch (_) { /* 무시 */ }
     }
     /* 창 DOM 은 서버 렌더 페이지면 처음부터, 아니면 partials 로드 뒤에 생긴다 — 있을 때마다 완성해 둔다 */
     if (!_prepared) prepareModal();
