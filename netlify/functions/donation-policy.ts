@@ -20,7 +20,7 @@ const FALLBACK_POLICY = {
   /* 2026-05 신규 */
   hyosungCountdownMessage: "자동이체를 위해 외부페이지로 이동합니다.",
   hyosungCountdownSeconds: 5,
-  modalTitle: "후원 동참하기",
+  modalTitle: "후원회원 되기",
   modalSubtitle: "여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.",
 };
 
