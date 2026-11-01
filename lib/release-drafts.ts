@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-01.1";
+export const APP_VERSION = "2026-11-01.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-01-donate-link-favicon",
+    title: "«후원회원 되기» 창을 바로 여는 주소 · 탭 아이콘(파비콘)을 로고 심벌로 · 일반 후원 창 표시 오류 수정",
+    items: [
+      { text: "페이지 주소 끝에 «donate=1»을 붙이면 들어오자마자 «후원회원 되기» 창이 열립니다. 결제대행사 심사·문자·SNS 안내처럼 창을 바로 보여 줘야 할 때 쓰세요. 예: 등불의 기적 캠페인은 tbfa.co.kr/campaign.html?slug=등불의-기적&donate=1, 홈은 tbfa.co.kr/?donate=1", link: "/campaign.html?slug=등불의-기적&donate=1" },
+      { text: "브라우저 탭 아이콘(파비콘)을 로고 앞의 불꽃·리본 심벌만으로 바꿨습니다. 전에는 «사단법인 교사유가족협의회» 글자까지 든 가로 로고가 작은 칸에 찌그러져 보였습니다. 다시 바꾸려면 메인 화면 편집 › 로고·파비콘·타이틀에서 정사각 이미지를 올리면 됩니다(브라우저가 예전 아이콘을 기억하면 새로고침 한두 번 뒤에 바뀝니다)", link: "/admin-site-builder.html" },
+      { text: "홈·메뉴에서 여는 일반 후원 창의 결제 단계에 «등불의 기적 · 후원회원 회비» 배지가 잘못 보이던 문제를 고쳤습니다. 일반 가입 단계에서는 등불 캠페인 전용 안내(함께워크 안내·«등불 보고»)를 감추고 «협의회 소식·활동 보고» 같은 일반 문구를 보여 줍니다. 캠페인 선택칸도 다시 나옵니다", link: "/?donate=1" },
+      { text: "[관리자] 해지 운영자 알림·메일에 결제 경로를 «효성 CMS·카드 자동결제·계좌이체»처럼 한글로 표시합니다" },
+    ],
+  },
   {
     key: "2026-11-01-membership-first",
     title: "«후원회원 되기»는 어디서 눌러도 회칙 가입부터 — 가입 필수 스위치 · 해지 운영자 알림 · 홈 후원 계좌 안내 배너",
