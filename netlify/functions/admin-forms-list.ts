@@ -67,14 +67,15 @@ export default async (req: Request, _ctx: Context) => {
       SELECT f.id, f.title, f.slug, f.access_level, f.is_active, f.is_published,
              f.max_responses, f.created_at, f.published_at,
              COALESCE((SELECT COUNT(*)::int FROM form_submissions s WHERE s.form_id = f.id), 0) AS response_count,
-             COALESCE((SELECT COUNT(*)::int FROM form_fields ff WHERE ff.form_id = f.id), 0) AS field_count
+             COALESCE((SELECT COUNT(*)::int FROM form_fields ff WHERE ff.form_id = f.id AND ff.type NOT IN ('image', 'attachment')), 0) AS field_count,
+             COALESCE((SELECT COUNT(*)::int FROM form_fields ff WHERE ff.form_id = f.id AND ff.type IN ('image', 'attachment')), 0) AS block_count
         FROM forms f ORDER BY f.created_at DESC LIMIT 200
     `);
     const rows = (r?.rows ?? r ?? []).map((f: any) => ({
       id: Number(f.id), title: f.title, slug: f.slug,
       accessLevel: f.access_level, isActive: f.is_active, isPublished: f.is_published,
       maxResponses: f.max_responses, responseCount: Number(f.response_count),
-      fieldCount: Number(f.field_count), createdAt: isoUTC(f.created_at), publishedAt: isoUTC(f.published_at),
+      fieldCount: Number(f.field_count), blockCount: Number(f.block_count), createdAt: isoUTC(f.created_at), publishedAt: isoUTC(f.published_at),
     }));
     return new Response(jsonKST({ ok: true, forms: rows }, null, 2),
       { status: 200, headers: JSON_HEADER });

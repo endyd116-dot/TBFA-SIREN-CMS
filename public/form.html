@@ -55,6 +55,30 @@
 
   .meta { font-size: 0.78rem; color: #94a3b8; margin-top: 14px; text-align: right; }
   .meta b { color: #525252; }
+
+  /* 2026-11-01 관리자가 올린 이미지·자료 블록 */
+  .fb-block { margin: 4px 0 24px; }
+  .fb-title { font-size: 1rem; font-weight: 600; color: #0f0f0f; margin-bottom: 8px; }
+  .fb-desc { font-size: 0.85rem; color: #64748b; margin: 8px 0 0; white-space: pre-wrap; }
+  .fb-attach .fb-desc { margin: 0 0 10px; }
+  .fb-imgs { display: grid; gap: 10px; }
+  .fb-imgs.multi { grid-template-columns: 1fr 1fr; }
+  .fb-image.size-medium .fb-imgs.single { max-width: 70%; margin: 0 auto; }
+  .fb-image.size-small .fb-imgs.single { max-width: 42%; margin: 0 auto; }
+  .fb-imgs a { display: block; }
+  .fb-imgs img { width: 100%; height: auto; display: block; border-radius: 8px; background: #f1f5f9; }
+  .fb-files { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .fb-files a { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #0f0f0f; background: #fafafa; }
+  .fb-files a:hover { border-color: #7a1f2b; background: #fff; }
+  .fb-ext { flex: 0 0 auto; font-size: 0.7rem; font-weight: 700; color: #fff; background: #7a1f2b; border-radius: 4px; padding: 3px 7px; letter-spacing: .5px; }
+  .fb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+  .fb-size { flex: 0 0 auto; color: #94a3b8; font-size: 0.78rem; }
+  .fb-dl { flex: 0 0 auto; color: #7a1f2b; font-size: 0.82rem; font-weight: 600; }
+  @media (max-width: 560px) {
+    .fb-imgs.multi { grid-template-columns: 1fr; }
+    .fb-image.size-small .fb-imgs.single { max-width: 70%; }
+    .fb-size { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -95,7 +119,34 @@ function renderSuccess(msg) {
     `<div class="status success"><div class="icon"></div><div class="title">제출 완료</div><div class="msg">${esc(msg)}</div></div>`;
 }
 
+/* ───── 2026-11-01 관리자가 올린 이미지·자료 블록 (응답을 받지 않는 안내용 칸) ───── */
+function isBlock(t) { return t === 'image' || t === 'attachment'; }
+function fmtSize(b) { b = Number(b) || 0; if (b >= 1048576) return (b / 1048576).toFixed(1) + 'MB'; if (b >= 1024) return Math.round(b / 1024) + 'KB'; return b ? b + 'B' : ''; }
+function extOf(it) { const m = String(it.name || '').match(/\.([a-z0-9]{1,5})$/i); return m ? m[1].toUpperCase() : 'FILE'; }
+function renderBlock(f) {
+  const o = (f.options && !Array.isArray(f.options)) ? f.options : { items: Array.isArray(f.options) ? f.options : [] };
+  const items = Array.isArray(o.items) ? o.items : [];
+  if (!items.length) return '';
+  const title = f.label ? `<div class="fb-title">${esc(f.label)}</div>` : '';
+  const desc = f.helpText ? `<p class="fb-desc">${esc(f.helpText)}</p>` : '';
+  if (f.type === 'image') {
+    const size = ['full', 'medium', 'small'].indexOf(o.size) !== -1 ? o.size : 'full';
+    const alt = f.label || f.helpText || '안내 이미지';
+    const imgs = items.map(it => {
+      const u = '/api/blob-image?id=' + Number(it.blobId);
+      return `<a href="${u}" target="_blank" rel="noopener" title="크게 보기"><img src="${u}" alt="${esc(alt)}" loading="lazy"></a>`;
+    }).join('');
+    return `<figure class="fb-block fb-image size-${size}">${title}<div class="fb-imgs ${items.length > 1 ? 'multi' : 'single'}">${imgs}</div>${desc}</figure>`;
+  }
+  const lis = items.map(it => {
+    const u = '/api/blob-image?id=' + Number(it.blobId) + '&download=1';
+    return `<li><a href="${u}" rel="noopener"><span class="fb-ext">${esc(extOf(it))}</span><span class="fb-name">${esc(it.name || '자료')}</span><span class="fb-size">${esc(fmtSize(it.size))}</span><span class="fb-dl">내려받기</span></a></li>`;
+  }).join('');
+  return `<div class="fb-block fb-attach">${title}${desc}<ul class="fb-files">${lis}</ul></div>`;
+}
+
 function renderField(f) {
+  if (isBlock(f.type)) return renderBlock(f);
   const req = f.required ? '<span class="req">*</span>' : '';
   const help = f.helpText ? `<div class="help">${esc(f.helpText)}</div>` : '';
   let input = '';
@@ -190,6 +241,7 @@ async function load() {
     formData.delete("__memberPhone");
 
     for (const f of form.fields) {
+      if (isBlock(f.type)) continue;   /* 이미지·자료 블록은 응답 칸이 아니다 */
       if (f.type === "checkbox") {
         data[f.fieldKey] = formData.getAll(f.fieldKey);
       } else {

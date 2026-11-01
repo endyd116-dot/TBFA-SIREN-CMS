@@ -25,6 +25,7 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
+import { isContentBlock } from "../../lib/form-blocks";
 import { authenticateUser } from "../../lib/auth";
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
@@ -115,6 +116,8 @@ export default async (req: Request, _ctx: Context) => {
     for (const f of fields) {
       /* US-025: 파일 첨부는 미지원이라 필수/패턴 검증에서 제외 — 막다른 길(required 파일로 제출 영구 차단) 방지 */
       if (f.type === "file") continue;
+      /* 2026-11-01: 관리자가 올린 이미지·자료 블록은 응답 칸이 아니다 */
+      if (isContentBlock(f.type)) { delete data[f.field_key]; continue; }
       const v = data[f.field_key];
       const isEmpty = v === undefined || v === null || String(v).trim() === "" || (Array.isArray(v) && v.length === 0);
 

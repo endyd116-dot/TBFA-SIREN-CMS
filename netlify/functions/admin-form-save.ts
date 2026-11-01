@@ -11,6 +11,10 @@
  *         fields: [{ fieldKey, type, label, placeholder?, helpText?, options?,
  *                    required, pattern?, minLength?, maxLength?,
  *                    acceptFileTypes?, maxFileSize?, sortOrder, isVisible }] }
+ *
+ * 2026-11-01: 관리자가 올려 배치하는 «이미지»(type image)·«자료»(type attachment) 블록 — lib/form-blocks.ts.
+ *   제목(label)·설명(helpText)은 선택, options = { size?, items: [{ blobId }] } — 파일 이름·형식·크기는
+ *   업로드 기록(blob_uploads)에서 다시 읽어 저장한다(화면이 보낸 값은 믿지 않음). 공개·업로드 완료 파일만.
  */
 
 import { jsonKST } from "../../lib/kst";
@@ -18,12 +22,13 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { isContentBlock, sanitizeBlockOptions, type BlockOptions } from "../../lib/form-blocks";
 
 export const config = { path: "/api/admin-form-save" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
 const VALID_ACCESS = new Set(["public", "members_only", "limited"]);
-const VALID_TYPES = new Set(["text", "email", "tel", "number", "textarea", "select", "checkbox", "radio", "date", "file"]);
+const VALID_TYPES = new Set(["text", "email", "tel", "number", "textarea", "select", "checkbox", "radio", "date", "file", "image", "attachment"]);
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST" && req.method !== "PATCH") {
@@ -60,10 +65,59 @@ export default async (req: Request, _ctx: Context) => {
       return new Response(jsonKST({ ok: false, error: `필드 타입 '${f.type}' 유효하지 않음` }),
         { status: 400, headers: JSON_HEADER });
     }
-    if (!f.label) {
+    if (!f.label && !isContentBlock(f.type)) {
       return new Response(jsonKST({ ok: false, error: `필드 '${f.fieldKey}' 라벨 필수` }),
         { status: 400, headers: JSON_HEADER });
     }
+  }
+
+  /* 이미지·자료 블록 — 올린 파일을 업로드 기록과 맞춰 본다 (공개·업로드 완료 파일만, 이름·형식·크기는 기록 값으로) */
+  const blockOpts = new Map<string, BlockOptions>();
+  try {
+    const wantIds = new Set<number>();
+    for (const f of fields) {
+      if (!isContentBlock(f.type)) continue;
+      const o = sanitizeBlockOptions(f.type, f.options);
+      blockOpts.set(f.fieldKey, o);
+      for (const it of o.items) wantIds.add(it.blobId);
+    }
+    if (wantIds.size > 0) {
+      const ids = [...wantIds];
+      const br: any = await db.execute(sql`
+        SELECT id, original_name, mime_type, size_bytes, is_public, upload_status
+          FROM blob_uploads WHERE id IN (${sql.join(ids.map((n) => sql`${n}`), sql`, `)})
+      `);
+      const byId = new Map<number, any>();
+      for (const r of (br?.rows ?? br ?? [])) byId.set(Number(r.id), r);
+      for (const f of fields) {
+        if (!isContentBlock(f.type)) continue;
+        const o = blockOpts.get(f.fieldKey)!;
+        const kept = [];
+        for (const it of o.items) {
+          const r = byId.get(it.blobId);
+          if (!r || r.is_public === false || r.upload_status !== "completed") continue;
+          const mime = String(r.mime_type || it.mime || "");
+          if (f.type === "image" && !/^image\/(jpeg|png|gif|webp)$/.test(mime)) continue;
+          kept.push({ blobId: it.blobId, name: String(r.original_name || it.name || "").slice(0, 200), mime, size: Number(r.size_bytes) || it.size || 0 });
+        }
+        o.items = kept;
+      }
+    }
+    for (const f of fields) {
+      if (!isContentBlock(f.type)) continue;
+      const o = blockOpts.get(f.fieldKey)!;
+      if (o.items.length === 0) {
+        const what = f.type === "image" ? "이미지" : "자료 파일";
+        return new Response(jsonKST({ ok: false, error: `«${f.label || (f.type === "image" ? "이미지" : "자료")}» 블록에 ${what}을 하나 이상 올려 주세요 (올리지 않을 거면 블록을 삭제하세요)` }),
+          { status: 400, headers: JSON_HEADER });
+      }
+    }
+  } catch (e: any) {
+    return new Response(jsonKST({
+      ok: false, error: "이미지·자료 확인 실패", step: "blocks",
+      detail: String(e?.message || e).slice(0, 500),
+      stack: String(e?.stack || "").slice(0, 1000),
+    }), { status: 500, headers: JSON_HEADER });
   }
 
   /* fieldKey 중복 체크 */
@@ -130,13 +184,15 @@ export default async (req: Request, _ctx: Context) => {
     await db.execute(sql`DELETE FROM form_fields WHERE form_id = ${formId}`);
     for (let i = 0; i < fields.length; i++) {
       const f = fields[i];
+      const isBlock = isContentBlock(f.type);
+      const opts = isBlock ? blockOpts.get(f.fieldKey) : (f.options || []);
       await db.execute(sql`
         INSERT INTO form_fields (form_id, field_key, type, label, placeholder, help_text,
           options, required, pattern, min_length, max_length, accept_file_types, max_file_size,
           sort_order, is_visible)
-        VALUES (${formId}, ${f.fieldKey}, ${f.type}, ${f.label},
-          ${f.placeholder ?? null}, ${f.helpText ?? null},
-          ${JSON.stringify(f.options || [])}::jsonb, ${f.required === true},
+        VALUES (${formId}, ${f.fieldKey}, ${f.type}, ${String(f.label || "").slice(0, 200)},
+          ${isBlock ? null : (f.placeholder ?? null)}, ${f.helpText ?? null},
+          ${JSON.stringify(opts)}::jsonb, ${isBlock ? false : f.required === true},
           ${f.pattern ?? null}, ${f.minLength ?? null}, ${f.maxLength ?? null},
           ${f.acceptFileTypes ?? null}, ${f.maxFileSize ?? null},
           ${f.sortOrder ?? i}, ${f.isVisible !== false})

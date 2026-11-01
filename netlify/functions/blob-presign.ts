@@ -34,6 +34,12 @@ const FILE_MIME = [
   "application/vnd.hancom.hwp",
   "text/plain",
   "application/zip",
+  /* 2026-11-01: 폼 «자료» 블록 — 행사 안내 자료로 자주 쓰는 형식 */
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.hancom.hwpx",
+  "application/haansofthwpx",
+  "application/hwp+zip",
 ];
 
 export default async (req: Request, _ctx: Context) => {

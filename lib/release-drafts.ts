@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-01.2";
+export const APP_VERSION = "2026-11-01.3";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-01-form-image-attachment-blocks",
+    title: "응답폼·신청폼에 이미지·자료를 직접 올려 배치할 수 있습니다 — 포스터·안내 사진·안내문 파일",
+    items: [
+      { text: "폼 만들기 › 질문·이미지·자료 탭에 «+ 이미지·자료 넣기» 줄이 생겼습니다. «이미지» 블록에는 포스터·안내 사진을(JPG·PNG·GIF·WEBP, 12장까지, 크기 크게·중간·작게), «자료(파일)» 블록에는 안내문·신청서 양식 같은 파일을(PDF·한글·워드·엑셀·파워포인트·TXT·ZIP, 10개까지) 올립니다. 큰 사진은 자동으로 줄여 올라가 응답 화면이 빨리 열립니다", link: "/cms-tbfa.html#forms-builder" },
+      { text: "블록은 ↑↓로 질문 사이 원하는 자리에 둘 수 있고(맨 위로 올리면 폼 첫머리 포스터), 응답자 화면에서는 이미지가 크기대로 보이고 누르면 원본이 열리며, 자료는 파일 이름·크기와 «내려받기» 버튼으로 나옵니다. 응답을 받지 않는 칸이라 응답 표·CSV에는 들어가지 않습니다" },
+      { text: "[관리자] 질문을 지웠다가 다시 추가하면 칸 이름(key)이 겹쳐 저장이 막히던 문제도 고쳤습니다. 응답자가 파일을 올리는 «응답자 파일 첨부» 질문은 아직 준비 중이라 버튼 이름에 «준비 중»을 붙였습니다(응답 화면에는 안내 문구만 나옵니다)" },
+    ],
+  },
   {
     key: "2026-11-01-donate-link-favicon",
     title: "«후원회원 되기» 창을 바로 여는 주소 · 탭 아이콘(파비콘)을 로고 심벌로 · 일반 후원 창 표시 오류 수정",

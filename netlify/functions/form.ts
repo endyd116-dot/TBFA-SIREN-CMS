@@ -13,6 +13,7 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
+import { isContentBlock, toPublicBlockOptions } from "../../lib/form-blocks";
 
 export const config = { path: "/api/form" };
 
@@ -72,7 +73,7 @@ export default async (req: Request, _ctx: Context) => {
       label:           f.label,
       placeholder:     f.placeholder,
       helpText:        f.help_text,
-      options:         f.options || [],
+      options:         isContentBlock(f.type) ? toPublicBlockOptions(f.type, f.options) : (f.options || []),
       required:        f.required,
       pattern:         f.pattern,
       minLength:       f.min_length,

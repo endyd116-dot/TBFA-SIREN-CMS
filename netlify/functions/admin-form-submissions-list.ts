@@ -34,7 +34,8 @@ export default async (req: Request, _ctx: Context) => {
 
     const ffr: any = await db.execute(sql`
       SELECT field_key, label, type FROM form_fields
-       WHERE form_id = ${formId} ORDER BY sort_order ASC, id ASC
+       WHERE form_id = ${formId} AND type NOT IN ('image', 'attachment')
+       ORDER BY sort_order ASC, id ASC
     `);
     const fields = (ffr?.rows ?? ffr ?? []).map((r: any) => ({
       fieldKey: r.field_key, label: r.label, type: r.type,
