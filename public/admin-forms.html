@@ -53,6 +53,7 @@
   .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-family: inherit; }
   .form-row textarea { min-height: 70px; resize: vertical; }
   .form-row .hint { font-size: 0.74rem; color: #94a3b8; margin-top: 3px; }
+  .form-row input[type="checkbox"] { width: auto; margin: 0 6px 0 0; vertical-align: middle; }
 
   .field-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
   .field-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -493,7 +494,7 @@ function renderBlockCard(f, i) {
     <label class="blk-upload"><input type="file" accept="${accept}" multiple onchange="uploadBlockFiles('${key}', this)"><span>${isImg ? '+ 이미지 올리기' : '+ 파일 올리기'}</span></label>
     <div class="blk-progress" id="blkProg-${key}"></div>
     <div class="hint" style="font-size:0.74rem;color:#94a3b8;margin-top:4px">${isImg
-      ? 'JPG·PNG·GIF·WEBP · 한 블록에 12장까지 · 2장 이상이면 두 장씩 나란히 · 큰 사진은 자동으로 줄여서 올립니다'
+      ? 'JPG·PNG·GIF·WEBP · 한 블록에 12장까지 · 2장 이상이면 두 장씩 나란히(휴대폰은 한 장씩) · 크기는 블록 전체 폭 · 큰 사진은 자동으로 줄여서 올립니다'
       : 'PDF·한글(HWP·HWPX)·워드·엑셀·파워포인트·TXT·ZIP·이미지 · 한 블록에 10개까지 · 파일당 100MB까지 · 응답자는 «내려받기»로 받습니다'}</div>
   </div>`;
 }
