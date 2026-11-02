@@ -6,8 +6,10 @@
  * 요청 body:
  *   { slug: "event-signup",
  *     data: { fieldKey1: value1, fieldKey2: value2, ... },
- *     memberEmail?: string,  // 비회원 응답 시 연락처 (선택)
+ *     memberEmail?: string,  // (옛 화면 호환) 비회원 연락처 — 2026-11-02부터 화면은 보내지 않음
  *     memberPhone?: string }
+ * 2026-11-02: 폼 맨 아래 고정 연락처 칸 삭제 → 응답자 연락처(member_email·member_phone)는
+ *   운영자가 넣은 이메일·전화 질문 중 «순서상 첫 번째» 답에서 채운다(응답 조회 «응답자» 칸·CSV 이메일/전화).
  *
  * 응답:
  *   { ok: true, submissionId, message }
@@ -109,6 +111,7 @@ export default async (req: Request, _ctx: Context) => {
     const dr: any = await db.execute(sql`
       SELECT field_key, type, label, required, pattern, min_length, max_length
         FROM form_fields WHERE form_id = ${Number(form.id)} AND is_visible = TRUE
+       ORDER BY sort_order ASC, id ASC
     `);
     const fields = (dr?.rows ?? dr ?? []);
     const fieldErrors: Record<string, string> = {};
@@ -147,8 +150,20 @@ export default async (req: Request, _ctx: Context) => {
     /* 5) INSERT */
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
     const ua = req.headers.get("user-agent") || null;
-    const memberEmail = body.memberEmail ? String(body.memberEmail).slice(0, 200) : null;
-    const memberPhone = body.memberPhone ? String(body.memberPhone).slice(0, 20) : null;
+    let memberEmail = body.memberEmail ? String(body.memberEmail).slice(0, 200) : null;
+    let memberPhone = body.memberPhone ? String(body.memberPhone).slice(0, 20) : null;
+    /* 2026-11-02: 고정 연락처 칸이 없어졌으니 폼의 첫 이메일·전화 질문 답으로 응답자 연락처를 채운다 */
+    const firstAnswer = (type: string): string | null => {
+      for (const f of fields) {
+        if (f.type !== type) continue;
+        const v = data[f.field_key];
+        const t = Array.isArray(v) ? v.join(", ") : (v == null ? "" : String(v));
+        if (t.trim()) return t.trim();
+      }
+      return null;
+    };
+    if (!memberEmail) { const e = firstAnswer("email"); if (e) memberEmail = e.slice(0, 200); }
+    if (!memberPhone) { const p = firstAnswer("tel"); if (p) memberPhone = p.slice(0, 20); }
 
     const ir: any = await db.execute(sql`
       INSERT INTO form_submissions (form_id, member_id, member_email, member_phone, data, user_agent, ip_address, status, created_at, updated_at)

@@ -217,11 +217,8 @@ async function load() {
   html += `<form id="responseForm">`;
   for (const f of form.fields) html += renderField(f);
 
-  /* 비회원도 응답 가능한 폼이면 연락처 입력 권장 */
-  if (form.accessLevel === "public" && !form.requiresAuth) {
-    html += `<div class="field"><label>이메일 (응답 결과 통지용, 선택)</label><input type="email" name="__memberEmail" placeholder="example@email.com"></div>`;
-    html += `<div class="field"><label>전화번호 (선택)</label><input type="tel" name="__memberPhone" placeholder="010-0000-0000"></div>`;
-  }
+  /* 2026-11-02 Swain: 맨 아래 고정 «이메일·전화번호(선택)» 칸 삭제 — 연락처가 필요하면 운영자가 이메일·전화 질문을 직접 넣는다
+     (첫 이메일·전화 답이 응답 조회의 «응답자» 칸에 자동으로 들어간다 — form-submit) */
 
   html += `<button type="submit" class="submit-btn">응답 제출</button></form>`;
   html += `<div class="meta">응답 ${form.responseCount}건${form.maxResponses ? ` / ${form.maxResponses}건` : ''}</div>`;
@@ -237,10 +234,6 @@ async function load() {
     const formData = new FormData(ev.target);
     const data = {};
     const checkboxFields = form.fields.filter(f => f.type === "checkbox").map(f => f.fieldKey);
-    const memberEmail = formData.get("__memberEmail") || null;
-    const memberPhone = formData.get("__memberPhone") || null;
-    formData.delete("__memberEmail");
-    formData.delete("__memberPhone");
 
     for (const f of form.fields) {
       if (isBlock(f.type)) continue;   /* 이미지·자료 블록은 응답 칸이 아니다 */
@@ -254,7 +247,7 @@ async function load() {
 
     const r = await api("/api/form-submit", {
       method: "POST",
-      body: { slug: form.slug, data, memberEmail, memberPhone },
+      body: { slug: form.slug, data },
     });
     if (r.ok) {
       renderSuccess(r.data.message || "응답이 제출되었습니다.");

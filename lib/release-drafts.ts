@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-01.3";
+export const APP_VERSION = "2026-11-02.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-02-form-fixed-contact-removed",
+    title: "응답폼·신청폼 맨 아래에 자동으로 붙던 «이메일·전화번호(선택)» 칸을 없앴습니다 — 연락처는 질문으로 직접",
+    items: [
+      { text: "공개 폼 맨 아래에 항상 붙던 «이메일(응답 결과 통지용, 선택)»·«전화번호(선택)» 칸이 없어졌습니다. 이 칸은 폼 설정에서 고칠 수도 지울 수도 없었습니다. 연락처가 필요하면 질문 탭에서 «이메일»·«전화» 질문을 직접 넣고, 꼭 받아야 하면 «필수 입력»을 켜 주세요", link: "/cms-tbfa.html#forms-builder" },
+      { text: "[관리자] 직접 넣은 질문 가운데 첫 번째 이메일·전화 답이 응답 조회의 «응답자» 칸과 CSV의 이메일·전화 열에 자동으로 들어갑니다. 운영 중인 폼에 연락처 질문이 없다면 지금 추가해 주세요" },
+    ],
+  },
   {
     key: "2026-11-01-form-image-attachment-blocks",
     title: "응답폼·신청폼에 이미지·자료를 직접 올려 배치할 수 있습니다 — 포스터·안내 사진·안내문 파일",
