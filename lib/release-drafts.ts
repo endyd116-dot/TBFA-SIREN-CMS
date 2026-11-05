@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.2";
+export const APP_VERSION = "2026-11-06.3";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -21,7 +21,7 @@ export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
     key: "2026-11-06-npo-pricing",
     title: "[관리자] NPO 제안서(/2) 요금제 개편 — 구축비 + 월 운영비 구조 공개",
     items: [
-      { text: "기본형 구축 690만·월 39만, 표준형 구축 1,900만·월 99만, 전문형 구축 4,900만~·월 249만~으로 공개했습니다(부가세 별도·최소 약정 24개월·문자/알림톡 실비)", link: "/2" },
+      { text: "기본형 구축 1,900만·월 39만, 표준형 구축 6,900만·월 99만, 전문형 구축 1.9억~·월 249만~으로 공개하고, KOSA 2025년 개정판 산식으로 계산한 신규 제작 비용 근거 슬라이드를 추가했습니다(부가세 별도·최소 약정 12개월·문자/알림톡 실비)", link: "/2" },
     ],
   },
   {
