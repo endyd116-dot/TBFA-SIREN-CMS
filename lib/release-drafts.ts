@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-02.1";
+export const APP_VERSION = "2026-11-06.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-proposal-decks-refresh",
+    title: "[관리자] 제안서 /1·/2 최신화 — 회사명 함께워크 AX, 실제 규모·결제·신규 기능 반영",
+    items: [
+      { text: "tbfa.co.kr/1 사업소개서는 45장, /2 NPO 제안서는 51장으로 갱신했습니다. 결제는 KICC·효성 기준으로 바꾸고, 규모는 2026년 11월 집계(API 662·DB 표 196·AI 도구 130+)로 맞췄으며, 등급별 공개 단가와 2026년 구축 기능을 추가했습니다", link: "/2" },
+      { text: "근거를 확인할 수 없는 절감률·표본 수치와 협의회 명의 후기는 빼거나 예시로 표시했습니다. 대외 제출 전 실적·후기 문구를 한 번 확인해 주세요" },
+    ],
+  },
   {
     key: "2026-11-02-form-fixed-contact-removed",
     title: "응답폼·신청폼 맨 아래에 자동으로 붙던 «이메일·전화번호(선택)» 칸을 없앴습니다 — 연락처는 질문으로 직접",
