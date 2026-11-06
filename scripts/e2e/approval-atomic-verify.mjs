@@ -51,9 +51,10 @@ check('동시 승인 3회 중 1회만 성공', codes.filter((c) => c === 200).le
 const winner = [r1, r2, r3].find((r) => r.status === 200);
 const no1 = data(winner)?.resolutionNo;
 check('결의번호 발급', /^제\d{4}-\d{4}호$/.test(no1 || ''), no1);
+/* 2단계 이후 승인은 예약이다. 지출은 지급 확인 때 만들어지므로 여기서는 0건이어야 한다 */
 const exList = data(await api('GET', '/api/admin-expense-list?period=year&limit=500'));
 const dup = (exList.items || []).filter((e) => String(e.description || '').includes('[점검] 동시 승인 1단계') && e.status === 'approved');
-check('지출이 1건만 생성', dup.length === 1, `${dup.length}건`);
+check('승인만으로 지출이 생기지 않음', dup.length === 0, `${dup.length}건`);
 
 // 2단계 결재: 첫 단계 동시 클릭이 다음 단계를 건너뛰지 않음
 const b = await create('동시 승인 2단계', 300000); made.push(b.id);

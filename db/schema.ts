@@ -2966,6 +2966,7 @@ export const revenueCategories = pgTable("revenue_categories", {
   isActive:     boolean("is_active").default(true).notNull(),
   createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  accountCode:  varchar("account_code", { length: 20 }),               // 장부 2단계: → account_codes.code
 }, (t) => ({
   codeIdx:    index("revenue_categories_code_idx").on(t.code),
   activeIdx:  index("revenue_categories_active_idx").on(t.isActive),
@@ -3038,6 +3039,14 @@ export const expenses = pgTable("expenses", {
   rejectionReason:  text("rejection_reason"),
   createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+
+  /* === 장부 2단계 === (2026-11-06) 마이그: migrate-ledger-flow */
+  accountCode:      varchar("account_code", { length: 20 }),                             // → account_codes.code
+  functionCode:     varchar("function_code", { length: 20 }),                            // 'service'|'admin'|'fundraising'
+  programId:        integer("program_id"),                                               // → ledger_programs.id (DB FK)
+  fundId:           integer("fund_id"),                                                  // → ledger_funds.id (DB FK)
+  bankTxnId:        integer("bank_txn_id"),                                              // 연결된 통장 출금
+  payAccountCode:   varchar("pay_account_code", { length: 20 }),                         // 지급 계좌 계정
 }, (t) => ({
   fiscalYearIdx:  index("expenses_fy_idx").on(t.fiscalYear),
   categoryIdx:    index("expenses_category_idx").on(t.categoryId),
@@ -3204,6 +3213,7 @@ export const bankImports = pgTable("bank_imports", {
   importedAt:    timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
   status:        varchar("status", { length: 20 }).default("processing").notNull(),
                  // 'processing'|'review'|'completed'
+  accountCode:   varchar("account_code", { length: 20 }),                // 장부 2단계: 이 파일의 통장 계정
 }, (t) => ({
   importedByIdx: index("bank_imports_by_idx").on(t.importedBy),
   statusIdx:     index("bank_imports_status_idx").on(t.status),
@@ -4770,6 +4780,17 @@ export const approvalRequests = pgTable("approval_requests", {
   createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt:         timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   decidedAt:         timestamp("decided_at", { withTimezone: true }),
+
+  /* === 장부 2단계 === (2026-11-06) 마이그: migrate-ledger-flow
+     승인 = 예약(unpaid), 지급 확인 = 지출·전표(paid) */
+  functionCode:      varchar("function_code", { length: 20 }),
+  programId:         integer("program_id"),                                 // → ledger_programs.id (DB FK)
+  fundId:            integer("fund_id"),                                    // → ledger_funds.id (DB FK)
+  paymentStatus:     varchar("payment_status", { length: 10 }).notNull().default("none"), // none|unpaid|paid
+  paidAt:            date("paid_at"),
+  paidBy:            integer("paid_by"),
+  bankTxnId:         integer("bank_txn_id"),
+  payAccountCode:    varchar("pay_account_code", { length: 20 }),
 }, (t) => ({
   statusIdx:  index("approval_requests_status_idx").on(t.status),
   fyIdx:      index("approval_requests_fy_idx").on(t.fiscalYear),
@@ -5350,4 +5371,15 @@ export const ledgerHistory = pgTable("ledger_history", {
   entityIdx: index("ledger_history_entity_idx").on(t.entity, t.entityId, t.createdAt),
 }));
 export type LedgerHistory = typeof ledgerHistory.$inferSelect;
+
+/* === 장부 2단계 === (2026-11-06) 마이그: migrate-ledger-flow (적용 완료)
+   직원별 인건비 배부. 없으면 일반관리·기부금으로 기록한다. */
+export const ledgerStaffAllocations = pgTable("ledger_staff_allocations", {
+  memberId:     integer("member_id").primaryKey(),
+  functionCode: varchar("function_code", { length: 20 }).default("admin").notNull(),
+  programId:    integer("program_id").references(() => ledgerPrograms.id),
+  fundId:       integer("fund_id").references(() => ledgerFunds.id),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export type LedgerStaffAllocation = typeof ledgerStaffAllocations.$inferSelect;
 /* === 장부 뼈대 끝 === */

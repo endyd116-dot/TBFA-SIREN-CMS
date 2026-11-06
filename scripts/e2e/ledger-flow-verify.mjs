@@ -35,7 +35,7 @@ async function main() {
 
   const thisYear = new Date(Date.now() + 9 * 3600e3).getUTCFullYear();
   const snapshot = async () => {
-    const pl = await api('GET', `/api/admin-finance-pl-summary?year=${thisYear}`);
+    const pl = await api('GET', `/api/admin-finance-pl-summary?fiscalYear=${thisYear}`);
     const b = await api('GET', `/api/admin-finance-budget-list?year=${thisYear}`);
     return JSON.stringify({ expense: pl.data?.expenditure?.total ?? null, net: pl.data?.netIncome ?? null, executed: b.data?.totalExecuted ?? null });
   };
