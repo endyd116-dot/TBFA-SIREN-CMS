@@ -2,7 +2,7 @@
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, bigserial, varchar, integer, text, timestamp,
-  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric, date, time
+  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric, date, time, primaryKey
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -646,6 +646,8 @@ export const receiptSettings = pgTable("receipt_settings", {
   footerNotes: text("footer_notes"),
   /* ★ M-14: 직인 */
   stampBlobId: integer("stamp_blob_id"),
+  /* 공익법인 지정일. 넣으면 영수증이 법정 서식으로 바뀐다 (migrate-ledger-settlement) */
+  designatedOn: date("designated_on"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
 });
@@ -3068,6 +3070,7 @@ export const budgetPlans = pgTable("budget_plans", {
   status:          varchar("status", { length: 20 }).notNull().default("draft"),
                    // 'draft'|'submitted'|'approved'|'rejected'
   totalPlanned:    bigint("total_planned", { mode: "number" }).notNull().default(0),
+  carryIn:         bigint("carry_in", { mode: "number" }).notNull().default(0), // 전기이월금
   createdBy:       integer("created_by"),
   submittedBy:     integer("submitted_by"),
   submittedAt:     timestamp("submitted_at", { withTimezone: true }),
@@ -4791,10 +4794,42 @@ export const approvalRequests = pgTable("approval_requests", {
   paidBy:            integer("paid_by"),
   bankTxnId:         integer("bank_txn_id"),
   payAccountCode:    varchar("pay_account_code", { length: 20 }),
+
+  /* === 내부결재 === (2026-11-06) 마이그: migrate-ledger-settlement (적용 완료)
+     5개 문서를 이 표 하나로 다룬다. 결재·지출·취소·삭제 상태는 각각 저장한다 */
+  refundStatus:      varchar("refund_status", { length: 10 }).notNull().default("none"), // none|required|done
+  refundConfirmedAt: timestamp("refund_confirmed_at", { withTimezone: true }),
+  refundConfirmedBy: integer("refund_confirmed_by"),
+  paidAmount:        bigint("paid_amount", { mode: "number" }),
+  docType:           varchar("doc_type", { length: 20 }).notNull().default("expense"), // internal|proposal|expense|card|seal
+  docNo:             varchar("doc_no", { length: 30 }),
+  version:           integer("version").notNull().default(1),
+  body:              text("body"),
+  formData:          jsonb("form_data").notNull().default({}),
+  formVersion:       integer("form_version"),
+  payMethod:         varchar("pay_method", { length: 20 }),
+  expenseKind:       varchar("expense_kind", { length: 20 }),
+  budgetSplitId:     integer("budget_split_id"),
+  approvalMode:      varchar("approval_mode", { length: 20 }).notNull().default("line"), // line|substituted
+  substituteBasisId: integer("substitute_basis_id"),
+  cancelStatus:      varchar("cancel_status", { length: 12 }).notNull().default("none"), // none|requested|rejected|approved
+  cancelReason:      text("cancel_reason"),
+  cancelRequestedBy: integer("cancel_requested_by"),
+  cancelRequestedAt: timestamp("cancel_requested_at", { withTimezone: true }),
+  deleteStatus:      varchar("delete_status", { length: 12 }).notNull().default("none"), // none|deleted|purged
+  deletedAt:         timestamp("deleted_at", { withTimezone: true }),
+  deletedBy:         integer("deleted_by"),
+  deleteReason:      text("delete_reason"),
+  submittedAt:       timestamp("submitted_at", { withTimezone: true }),
+  holdReason:        text("hold_reason"),
+  attLeaveRequestId: integer("att_leave_request_id"),
+  followupDue:       boolean("followup_due").notNull().default(false),
 }, (t) => ({
   statusIdx:  index("approval_requests_status_idx").on(t.status),
   fyIdx:      index("approval_requests_fy_idx").on(t.fiscalYear),
   drafterIdx: index("approval_requests_drafter_idx").on(t.drafterId),
+  docNoUq:    uniqueIndex("approval_requests_doc_no_uq").on(t.docNo).where(sql`doc_no IS NOT NULL`),
+  docTypeIdx: index("approval_requests_doc_type_idx").on(t.docType, t.status),
 }));
 export type ApprovalRequest    = typeof approvalRequests.$inferSelect;
 export type NewApprovalRequest = typeof approvalRequests.$inferInsert;
@@ -4809,9 +4844,18 @@ export const approvalRequestSteps = pgTable("approval_request_steps", {
   decidedByName: varchar("decided_by_name", { length: 100 }),
   comment:       text("comment"),
   decidedAt:     timestamp("decided_at", { withTimezone: true }),
+  /* === 내부결재 === 문서 버전별 결재선과 취소 결재선 */
+  version:       integer("version").notNull().default(1),
+  kind:          varchar("kind", { length: 10 }).notNull().default("approval"),  // approval|cancel
+  round:         integer("round").notNull().default(0),                          // 취소 회차
+  stepType:      varchar("step_type", { length: 10 }).notNull().default("approve"), // approve|consult
+  assigneeId:    integer("assignee_id"),
+  assigneeName:  varchar("assignee_name", { length: 100 }),
+  assigneeTitle: varchar("assignee_title", { length: 100 }),
 }, (t) => ({
-  uq:        uniqueIndex("approval_steps_req_step_uq").on(t.requestId, t.stepIndex),
+  uq:        uniqueIndex("approval_steps_doc_uq").on(t.requestId, t.version, t.kind, t.round, t.stepIndex),
   requestIdx: index("approval_steps_request_idx").on(t.requestId),
+  assigneeIdx: index("approval_steps_assignee_idx").on(t.assigneeId, t.decision),
 }));
 export type ApprovalRequestStep    = typeof approvalRequestSteps.$inferSelect;
 export type NewApprovalRequestStep = typeof approvalRequestSteps.$inferInsert;
@@ -5379,7 +5423,266 @@ export const ledgerStaffAllocations = pgTable("ledger_staff_allocations", {
   functionCode: varchar("function_code", { length: 20 }).default("admin").notNull(),
   programId:    integer("program_id").references(() => ledgerPrograms.id),
   fundId:       integer("fund_id").references(() => ledgerFunds.id),
+  ruleId:       integer("rule_id").references(() => ledgerAllocationRules.id),   // 공통비 배분 규칙
   updatedAt:    timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 export type LedgerStaffAllocation = typeof ledgerStaffAllocations.$inferSelect;
 /* === 장부 뼈대 끝 === */
+
+
+/* === 결산·내부결재·공익법인 === (2026-11-06) 마이그: migrate-ledger-settlement (적용 완료)
+   설계: docs/active/2026-11-06-ledger-settlement-design.md, docs/active/2026-11-06-approval-docs-design.md
+   조회·저장은 lib의 raw SQL을 쓴다. 이 정의는 DB 구조 기록이다. */
+const tz = { withTimezone: true } as const;
+
+export const ledgerSettlements = pgTable("ledger_settlements", {
+  year:          integer("year").primaryKey(),
+  status:        varchar("status", { length: 20 }).notNull().default("draft"),
+  checklist:     jsonb("checklist").notNull().default({}),
+  snapshot:      jsonb("snapshot"),
+  lockedAt:      timestamp("locked_at", tz),
+  lockedBy:      integer("locked_by"),
+  lockedByName:  varchar("locked_by_name", { length: 100 }),
+  auditedOn:     date("audited_on"),
+  auditorName:   varchar("auditor_name", { length: 100 }),
+  auditOpinion:  text("audit_opinion"),
+  boardOn:       date("board_on"),
+  boardNote:     text("board_note"),
+  assemblyOn:    date("assembly_on"),
+  assemblyNote:  text("assembly_note"),
+  submittedOn:   date("submitted_on"),
+  submittedTo:   varchar("submitted_to", { length: 120 }),
+  submittedNote: text("submitted_note"),
+  createdAt:     timestamp("created_at", tz).defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at", tz).defaultNow().notNull(),
+});
+
+export const ledgerNotes = pgTable("ledger_notes", {
+  year:          integer("year").notNull(),
+  noteKey:       varchar("note_key", { length: 20 }).notNull(),
+  body:          text("body").notNull(),
+  updatedBy:     integer("updated_by"),
+  updatedByName: varchar("updated_by_name", { length: 100 }),
+  updatedAt:     timestamp("updated_at", tz).defaultNow().notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.year, t.noteKey] }) }));
+
+export const ledgerProgramReports = pgTable("ledger_program_reports", {
+  year:          integer("year").notNull(),
+  programId:     integer("program_id").notNull().references(() => ledgerPrograms.id),
+  planTarget:    varchar("plan_target", { length: 300 }),
+  planPeriod:    varchar("plan_period", { length: 100 }),
+  planBody:      text("plan_body"),
+  resultBody:    text("result_body"),
+  events:        integer("events"),
+  beneficiaries: integer("beneficiaries"),
+  updatedBy:     integer("updated_by"),
+  updatedAt:     timestamp("updated_at", tz).defaultNow().notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.year, t.programId] }) }));
+
+export const ledgerPropertyItems = pgTable("ledger_property_items", {
+  id:            serial("id").primaryKey(),
+  year:          integer("year").notNull(),
+  propertyClass: varchar("property_class", { length: 10 }).notNull().default("ordinary"), // basic|ordinary
+  accountCode:   varchar("account_code", { length: 20 }).notNull().references(() => accountCodes.code),
+  name:          varchar("name", { length: 200 }).notNull(),
+  detail:        varchar("detail", { length: 300 }),
+  quantity:      varchar("quantity", { length: 50 }),
+  amount:        bigint("amount", { mode: "number" }).notNull().default(0),
+  note:          varchar("note", { length: 300 }),
+  sortOrder:     integer("sort_order").notNull().default(0),
+  createdAt:     timestamp("created_at", tz).defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at", tz).defaultNow().notNull(),
+}, (t) => ({ yearIdx: index("ledger_property_year_idx").on(t.year) }));
+
+export const ledgerAllocationRules = pgTable("ledger_allocation_rules", {
+  id:        serial("id").primaryKey(),
+  name:      varchar("name", { length: 120 }).notNull().unique(),
+  basis:     varchar("basis", { length: 300 }),
+  lines:     jsonb("lines").notNull().default([]),
+  isActive:  boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", tz).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", tz).defaultNow().notNull(),
+});
+
+export const budgetRevenueLines = pgTable("budget_revenue_lines", {
+  id:             serial("id").primaryKey(),
+  planId:         integer("plan_id").notNull().references(() => budgetPlans.id, { onDelete: "cascade" }),
+  accountCode:    varchar("account_code", { length: 20 }).notNull().references(() => accountCodes.code),
+  fundId:         integer("fund_id").references(() => ledgerFunds.id),
+  plannedAmount:  bigint("planned_amount", { mode: "number" }).notNull().default(0),
+  prevYearActual: bigint("prev_year_actual", { mode: "number" }).notNull().default(0),
+  note:           text("note"),
+}, (t) => ({ uq: uniqueIndex("budget_revenue_lines_uq").on(t.planId, t.accountCode) }));
+
+export const budgetLineSplits = pgTable("budget_line_splits", {
+  id:           serial("id").primaryKey(),
+  lineId:       integer("line_id").notNull().references(() => budgetLines.id, { onDelete: "cascade" }),
+  functionCode: varchar("function_code", { length: 20 }),
+  programId:    integer("program_id").references(() => ledgerPrograms.id),
+  fundId:       integer("fund_id").references(() => ledgerFunds.id),
+  amount:       bigint("amount", { mode: "number" }).notNull().default(0),
+  note:         varchar("note", { length: 200 }),
+}, (t) => ({ lineIdx: index("budget_line_splits_line_idx").on(t.lineId) }));
+
+/* 예산 원장. 수정·삭제는 DB 트리거가 막는다. 정정 거래로 처리한다 */
+export const budgetLedger = pgTable("budget_ledger", {
+  id:              bigserial("id", { mode: "number" }).primaryKey(),
+  fiscalYear:      integer("fiscal_year").notNull(),
+  budgetAccountId: integer("budget_account_id"),
+  documentType:    varchar("document_type", { length: 30 }).notNull().default("approval_request"),
+  documentId:      integer("document_id").notNull(),
+  documentNo:      varchar("document_no", { length: 40 }),
+  documentVersion: integer("document_version").notNull().default(1),
+  txnType:         varchar("txn_type", { length: 12 }).notNull(),      // reserve|execute|release|refund|correction
+  amount:          bigint("amount", { mode: "number" }).notNull(),
+  reservedBefore:  bigint("reserved_before", { mode: "number" }).notNull().default(0),
+  reservedAfter:   bigint("reserved_after", { mode: "number" }).notNull().default(0),
+  executedBefore:  bigint("executed_before", { mode: "number" }).notNull().default(0),
+  executedAfter:   bigint("executed_after", { mode: "number" }).notNull().default(0),
+  paidOn:          date("paid_on"),
+  actorId:         integer("actor_id"),
+  actorName:       varchar("actor_name", { length: 100 }),
+  originId:        bigint("origin_id", { mode: "number" }),
+  idempotencyKey:  varchar("idempotency_key", { length: 80 }).notNull().unique("budget_ledger_idem_uq"),
+  note:            varchar("note", { length: 300 }),
+  createdAt:       timestamp("created_at", tz).defaultNow().notNull(),
+}, (t) => ({
+  accountIdx: index("budget_ledger_account_idx").on(t.fiscalYear, t.budgetAccountId),
+  docIdx:     index("budget_ledger_doc_idx").on(t.documentType, t.documentId),
+}));
+
+export const approvalSettings = pgTable("approval_settings", {
+  id:                  integer("id").primaryKey().default(1),
+  cardRuleEffectiveOn: date("card_rule_effective_on"),
+  cardRuleNote:        text("card_rule_note"),
+  retentionYears:      integer("retention_years"),
+  requireProposal:     boolean("require_proposal").notNull().default(true),
+  proposalMinAmount:   bigint("proposal_min_amount", { mode: "number" }).notNull().default(0),
+  publicRatioTarget:   integer("public_ratio_target").notNull().default(80),
+  updatedByName:       varchar("updated_by_name", { length: 100 }),
+  updatedAt:           timestamp("updated_at", tz).defaultNow().notNull(),
+});
+
+export const approvalDocVersions = pgTable("approval_doc_versions", {
+  id:          serial("id").primaryKey(),
+  requestId:   integer("request_id").notNull().references(() => approvalRequests.id, { onDelete: "cascade" }),
+  version:     integer("version").notNull(),
+  snapshot:    jsonb("snapshot").notNull(),
+  contentHash: varchar("content_hash", { length: 64 }),
+  submittedBy: integer("submitted_by"),
+  submittedAt: timestamp("submitted_at", tz).defaultNow().notNull(),
+}, (t) => ({ uq: uniqueIndex("approval_doc_versions_uq").on(t.requestId, t.version) }));
+
+export const approvalDocReferences = pgTable("approval_doc_references", {
+  id:            serial("id").primaryKey(),
+  requestId:     integer("request_id").notNull().references(() => approvalRequests.id, { onDelete: "cascade" }),
+  targetId:      integer("target_id").notNull().references(() => approvalRequests.id),
+  targetVersion: integer("target_version"),
+  targetDocNo:   varchar("target_doc_no", { length: 30 }),
+  refKind:       varchar("ref_kind", { length: 10 }).notNull().default("related"), // basis|related
+  createdBy:     integer("created_by"),
+  createdAt:     timestamp("created_at", tz).defaultNow().notNull(),
+}, (t) => ({
+  uq:        uniqueIndex("approval_doc_references_uq").on(t.requestId, t.targetId),
+  targetIdx: index("approval_doc_references_target_idx").on(t.targetId),
+}));
+
+export const approvalDocFiles = pgTable("approval_doc_files", {
+  id:             serial("id").primaryKey(),
+  requestId:      integer("request_id").notNull().references(() => approvalRequests.id, { onDelete: "cascade" }),
+  version:        integer("version").notNull().default(1),
+  fileKind:       varchar("file_kind", { length: 20 }).notNull().default("attachment"),
+  blobId:         integer("blob_id"),
+  blobKey:        varchar("blob_key", { length: 255 }),
+  fileName:       varchar("file_name", { length: 500 }).notNull(),
+  mimeType:       varchar("mime_type", { length: 100 }),
+  sizeBytes:      integer("size_bytes"),
+  sha256:         varchar("sha256", { length: 64 }),
+  uploadedBy:     integer("uploaded_by"),
+  uploadedByName: varchar("uploaded_by_name", { length: 100 }),
+  createdAt:      timestamp("created_at", tz).defaultNow().notNull(),
+  removedAt:      timestamp("removed_at", tz),
+}, (t) => ({ requestIdx: index("approval_doc_files_req_idx").on(t.requestId) }));
+
+export const approvalDocWatchers = pgTable("approval_doc_watchers", {
+  requestId:  integer("request_id").notNull().references(() => approvalRequests.id, { onDelete: "cascade" }),
+  memberId:   integer("member_id").notNull(),
+  memberName: varchar("member_name", { length: 100 }),
+  kind:       varchar("kind", { length: 10 }).notNull().default("reference"),
+  createdAt:  timestamp("created_at", tz).defaultNow().notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.requestId, t.memberId] }) }));
+
+export const approvalDocComments = pgTable("approval_doc_comments", {
+  id:         serial("id").primaryKey(),
+  requestId:  integer("request_id").notNull().references(() => approvalRequests.id, { onDelete: "cascade" }),
+  memberId:   integer("member_id"),
+  memberName: varchar("member_name", { length: 100 }),
+  body:       text("body").notNull(),
+  createdAt:  timestamp("created_at", tz).defaultNow().notNull(),
+});
+
+/* 문서번호 발급 표. 취소·삭제 뒤에도 번호를 다시 쓰지 않는다 */
+export const approvalDocSequences = pgTable("approval_doc_sequences", {
+  docType: varchar("doc_type", { length: 20 }).notNull(),
+  year:    integer("year").notNull(),
+  lastNo:  integer("last_no").notNull().default(0),
+}, (t) => ({ pk: primaryKey({ columns: [t.docType, t.year] }) }));
+
+export const approvalSavedLines = pgTable("approval_saved_lines", {
+  id:        serial("id").primaryKey(),
+  ownerId:   integer("owner_id"),                                      // 비어 있으면 공용
+  name:      varchar("name", { length: 120 }).notNull(),
+  steps:     jsonb("steps").notNull().default([]),
+  createdAt: timestamp("created_at", tz).defaultNow().notNull(),
+});
+
+export const approvalFormGuides = pgTable("approval_form_guides", {
+  id:            serial("id").primaryKey(),
+  docType:       varchar("doc_type", { length: 20 }).notNull(),
+  version:       integer("version").notNull(),
+  guide:         text("guide").notNull(),
+  createdByName: varchar("created_by_name", { length: 100 }),
+  createdAt:     timestamp("created_at", tz).defaultNow().notNull(),
+}, (t) => ({ uq: uniqueIndex("approval_form_guides_uq").on(t.docType, t.version) }));
+
+export const approvalPurgeGrants = pgTable("approval_purge_grants", {
+  id:            serial("id").primaryKey(),
+  memberId:      integer("member_id").notNull(),
+  memberName:    varchar("member_name", { length: 100 }),
+  grantedBy:     integer("granted_by"),
+  grantedByName: varchar("granted_by_name", { length: 100 }),
+  startOn:       date("start_on").notNull(),
+  endOn:         date("end_on").notNull(),
+  reason:        text("reason").notNull(),
+  revokedAt:     timestamp("revoked_at", tz),
+  revokedByName: varchar("revoked_by_name", { length: 100 }),
+  revokeReason:  text("revoke_reason"),
+  createdAt:     timestamp("created_at", tz).defaultNow().notNull(),
+});
+
+/* 완전삭제 최소 기록. 수정·삭제는 DB 트리거가 막는다 */
+export const approvalPurgeLog = pgTable("approval_purge_log", {
+  id:        bigserial("id", { mode: "number" }).primaryKey(),
+  requestId: integer("request_id").notNull(),
+  docNo:     varchar("doc_no", { length: 30 }),
+  docType:   varchar("doc_type", { length: 20 }),
+  actorId:   integer("actor_id"),
+  actorName: varchar("actor_name", { length: 100 }),
+  grantId:   integer("grant_id"),
+  reason:    text("reason").notNull(),
+  scope:     jsonb("scope").notNull().default({}),
+  result:    varchar("result", { length: 20 }).notNull().default("done"),
+  createdAt: timestamp("created_at", tz).defaultNow().notNull(),
+});
+
+export const ledgerDisclosures = pgTable("ledger_disclosures", {
+  year:            integer("year").primaryKey(),
+  title:           varchar("title", { length: 200 }).notNull(),
+  intro:           text("intro"),
+  status:          varchar("status", { length: 12 }).notNull().default("draft"), // draft|published
+  data:            jsonb("data"),
+  publishedAt:     timestamp("published_at", tz),
+  publishedByName: varchar("published_by_name", { length: 100 }),
+  updatedAt:       timestamp("updated_at", tz).defaultNow().notNull(),
+});
+/* === 결산·내부결재·공익법인 끝 === */

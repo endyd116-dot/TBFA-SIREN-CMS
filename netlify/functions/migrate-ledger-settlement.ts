@@ -383,6 +383,8 @@ export default async function handler(req: Request, _ctx: Context) {
       step = "cleanup";
       const result = await db.transaction(async (tx) => {
         const years = sql`(${sql.join(CLEANUP_YEARS.map((y) => sql`${y}`), sql`, `)})`;
+        /* 시험 문서: 시험 연도이거나 제목이 [점검]으로 시작한다 */
+        const testDocs = sql`(SELECT id FROM approval_requests WHERE fiscal_year IN ${years} OR title LIKE '[점검]%')`;
         await tx.execute(sql.raw(`ALTER TABLE vouchers DISABLE TRIGGER ledger_voucher_guard_trg`));
         await tx.execute(sql.raw(`ALTER TABLE voucher_lines DISABLE TRIGGER ledger_line_guard_trg`));
         await tx.execute(sql.raw(`ALTER TABLE ledger_history DISABLE TRIGGER ledger_history_guard_trg`));
@@ -390,18 +392,15 @@ export default async function handler(req: Request, _ctx: Context) {
         await tx.execute(sql.raw(`ALTER TABLE approval_purge_log DISABLE TRIGGER approval_purge_log_guard_trg`));
         const count = async (q: any) => Number(rowsOf(await tx.execute(q))[0]?.n ?? 0);
         const vouchers = await count(sql`SELECT COUNT(*)::int AS n FROM vouchers WHERE fiscal_year IN ${years}`);
-        const requests = await count(sql`SELECT COUNT(*)::int AS n FROM approval_requests WHERE fiscal_year IN ${years}`);
+        const requests = await count(sql`SELECT COUNT(*)::int AS n FROM approval_requests WHERE id IN ${testDocs}`);
 
         const keys = rowsOf(await tx.execute(sql`
-          SELECT f.blob_key FROM approval_doc_files f JOIN approval_requests r ON r.id = f.request_id
-           WHERE r.fiscal_year IN ${years} AND f.blob_key IS NOT NULL`)).map((k: any) => k.blob_key);
-        await tx.execute(sql`DELETE FROM blob_uploads WHERE reference_table = 'approval_requests'
-          AND reference_id IN (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
-        await tx.execute(sql`DELETE FROM budget_ledger WHERE fiscal_year IN ${years}`);
-        await tx.execute(sql`DELETE FROM approval_purge_log WHERE request_id IN
-          (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
-        await tx.execute(sql`DELETE FROM approval_doc_references WHERE target_id IN
-          (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
+          SELECT blob_key FROM approval_doc_files WHERE request_id IN ${testDocs} AND blob_key IS NOT NULL`)).map((k: any) => k.blob_key);
+        await tx.execute(sql`DELETE FROM blob_uploads WHERE reference_table = 'approval_requests' AND reference_id IN ${testDocs}`);
+        await tx.execute(sql`DELETE FROM notifications WHERE (ref_table = 'approval_requests' AND ref_id IN ${testDocs}) OR message LIKE '%[점검]%'`);
+        await tx.execute(sql`DELETE FROM budget_ledger WHERE fiscal_year IN ${years} OR document_id IN ${testDocs}`);
+        await tx.execute(sql`DELETE FROM approval_purge_log WHERE request_id IN ${testDocs}`);
+        await tx.execute(sql`DELETE FROM approval_doc_references WHERE target_id IN ${testDocs}`);
         await tx.execute(sql`DELETE FROM approval_saved_lines WHERE name LIKE '[점검]%'`);
         await tx.execute(sql`DELETE FROM approval_purge_grants WHERE reason LIKE '[점검]%'`);
         await tx.execute(sql`DELETE FROM ledger_disclosures WHERE year IN ${years}`);
@@ -422,11 +421,16 @@ export default async function handler(req: Request, _ctx: Context) {
           AND entity_id IN (SELECT id::text FROM vouchers WHERE fiscal_year IN ${years})`);
         await tx.execute(sql`DELETE FROM vouchers WHERE fiscal_year IN ${years}`);
         await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'approval'
-          AND entity_id IN (SELECT id::text FROM approval_requests WHERE fiscal_year IN ${years})`);
-        await tx.execute(sql`DELETE FROM approval_request_steps WHERE request_id IN
-          (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
-        await tx.execute(sql`DELETE FROM approval_requests WHERE fiscal_year IN ${years}`);
+          AND entity_id IN (SELECT id::text FROM approval_requests WHERE id IN ${testDocs})`);
+        await tx.execute(sql`DELETE FROM approval_request_steps WHERE request_id IN ${testDocs}`);
+        await tx.execute(sql`DELETE FROM approval_requests WHERE id IN ${testDocs}`);
         await tx.execute(sql`DELETE FROM expenses WHERE fiscal_year IN ${years}`);
+        /* 시험이 쓴 번호를 되돌린다. 실제 문서의 다음 번호가 건너뛰지 않게 한다 */
+        await tx.execute(sql`DELETE FROM approval_doc_sequences`);
+        await tx.execute(sql`
+          INSERT INTO approval_doc_sequences (doc_type, year, last_no)
+          SELECT doc_type, CAST(SUBSTRING(doc_no FROM '-([0-9]{4})-') AS INTEGER), MAX(CAST(SUBSTRING(doc_no FROM '([0-9]+)$') AS INTEGER))
+            FROM approval_requests WHERE doc_no IS NOT NULL GROUP BY 1, 2`);
         await tx.execute(sql`DELETE FROM other_revenues WHERE fiscal_year IN ${years}`);
         await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'fiscal_year' AND entity_id IN ('2099', '2100')`);
         await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'settlement' AND entity_id IN ('2099', '2100')`);

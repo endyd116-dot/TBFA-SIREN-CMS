@@ -124,8 +124,33 @@ async function main() {
   await docs({ action: 'decide', id: inside.data.id, decision: 'approve' });
   const seal = await docs({ action: 'save', docType: 'seal', title: '[점검] 인감', formData: { sealType: '법인인감', usePurpose: '시험', submitTo: '시험처', useDate: `${YEAR}-03-05`, sealTarget: '시험 서류', line } });
   check('인감 신청 상신', (await docs({ action: 'submit', id: seal.data.id })).ok);
-  const card = await docs({ action: 'save', docType: 'card', title: '[점검] 카드', formData: { usePurpose: '시험', periodFrom: `${YEAR}-03-05`, plannedAmount: 10000, cardLabel: '0000', line } });
+  const cardForm = { usePurpose: '시험', periodFrom: `${YEAR}-03-05`, plannedAmount: 10000, cardLabel: '0000', line };
+  const card = await docs({ action: 'save', docType: 'card', title: '[점검] 카드', formData: cardForm });
+  const cardBare = await docs({ action: 'submit', id: card.data.id });
+  check('품의 없는 카드 신청 차단', cardBare.status === 422, why(cardBare));
+  await docs({ action: 'save', id: card.data.id, docType: 'card', title: '[점검] 카드', formData: cardForm, references: [{ targetId: pId, refKind: 'basis' }] });
   check('카드 신청 상신', (await docs({ action: 'submit', id: card.data.id })).ok);
+  await docs({ action: 'decide', id: card.data.id, decision: 'approve' });
+  const overUse = await docs({ action: 'card_usage', id: card.data.id, actualAmount: 10001, usedOn: `${YEAR}-03-06` });
+  check('승인 금액 초과 사용 거절', overUse.status === 422, why(overUse));
+  const used = await docs({ action: 'card_usage', id: card.data.id, actualAmount: 9000, usedOn: `${YEAR}-03-06` });
+  check('카드 실제 사용액 등록', used.ok, why(used));
+
+  /* 긴급 지출과 사후 품의. 마지막에 취소해 예약을 푼다 */
+  const urgent = await docs({
+    action: 'save', docType: 'expense', title: '[점검] 긴급 지출', payMethod: 'transfer', expenseKind: 'urgent', budgetSplitId: opt.splitId, budgetYear: YEAR,
+    formData: { items: [{ use: '수리', content: '시험', payee: '시험처', supply: 1000 }], urgentReason: '시험', line },
+  });
+  await attach(urgent.data.id, 'payment');
+  await docs({ action: 'submit', id: urgent.data.id });
+  await docs({ action: 'decide', id: urgent.data.id, decision: 'approve' });
+  const uDoc = (await view(`view=detail&id=${urgent.data.id}`)).data;
+  check('사후 품의 표시', uDoc.followupDue === true && uDoc.actions.followup === true, JSON.stringify(uDoc.actions));
+  const fu = await docs({ action: 'followup_link', id: urgent.data.id, targetId: pId });
+  check('사후 품의 연결', fu.ok && (await view(`view=detail&id=${urgent.data.id}`)).data.followupDue === false, why(fu));
+  await docs({ action: 'cancel_request', id: urgent.data.id, reason: '시험' });
+  const uCancel = await docs({ action: 'cancel_decide', id: urgent.data.id, decision: 'approve' });
+  check('긴급 지출 취소로 예약 해제', uCancel.ok, why(uCancel));
 
   /* 취소 */
   const c = await docs({ action: 'save', docType: 'proposal', title: '[점검] 취소 대상', payMethod: 'none', body: '<p>x</p>', formData: { periodFrom: `${YEAR}-04-01`, line } });
