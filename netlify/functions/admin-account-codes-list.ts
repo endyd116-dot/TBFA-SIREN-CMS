@@ -32,6 +32,28 @@ export default async function handler(req: Request, _ctx: Context) {
       sortOrder:  Number(r.sort_order),
     }));
 
+    /* 장부 컬럼은 보조 조회로 합친다 */
+    try {
+      const extra: any = await db.execute(sql`
+        SELECT a.code, a.kind, a.normal_side, a.statement_line, a.nature, a.default_function, a.system_role,
+               EXISTS (SELECT 1 FROM account_codes c WHERE c.parent_code = a.code) AS has_children
+          FROM account_codes a`);
+      const byCode = new Map((extra?.rows ?? extra ?? []).map((r: any) => [r.code, r]));
+      for (const c of codes as any[]) {
+        const r: any = byCode.get(c.code);
+        if (!r) continue;
+        c.kind = r.kind;
+        c.normalSide = r.normal_side;
+        c.statementLine = r.statement_line;
+        c.nature = r.nature;
+        c.defaultFunction = r.default_function;
+        c.systemRole = r.system_role;
+        c.hasChildren = r.has_children === true;
+      }
+    } catch (err: any) {
+      console.warn("[account-codes-list] 장부 컬럼 조회 실패 (기본값으로 계속):", err?.message);
+    }
+
     return new Response(
       jsonKST({ ok: true, data: { codes, total: codes.length } }),
       { status: 200, headers: { "Content-Type": "application/json" } }

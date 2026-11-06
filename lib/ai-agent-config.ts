@@ -178,6 +178,8 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "손익" / "P&L" / "순이익" / "순손실" / "운영성과표" / "운영성과" | pl_summary |
    | "예산안" / "예산 편성" / "내년 예산" / "차년도 예산" | budget_plan_list |
    | "전표" / "전표 목록" / "전표 조회" / "회계 전표" | voucher_list |
+   | "시산표" / "합계잔액" / "장부 합계" | ledger_trial_balance |
+   | "총계정원장" / "원장" / "계정별 잔액" / "통장 장부" | ledger_general_ledger |
    | "통장 대사" / "통장 거래내역" / "입출금 대사" / "대사 현황" / "묶음정산" | bank_reconcile_summary |
    | "템플릿" / "발송 템플릿" | templates_list |
    | "수신자 그룹" | recipient_groups_list |

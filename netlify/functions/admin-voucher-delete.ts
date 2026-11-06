@@ -44,7 +44,14 @@ export default async function handler(req: Request, _ctx: Context) {
         { status: 422, headers: { "Content-Type": "application/json" } });
     }
 
-    await db.execute(sql`DELETE FROM vouchers WHERE id = ${id}`);
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`
+        UPDATE bank_transactions
+           SET voucher_id = NULL, status = 'pending', match_type = 'pending',
+               admin_account_code = NULL, admin_budget_id = NULL, confirmed_by = NULL, confirmed_at = NULL
+         WHERE voucher_id = ${id}`);
+      await tx.execute(sql`DELETE FROM vouchers WHERE id = ${id}`);
+    });
 
     return new Response(jsonKST({
       ok: true,

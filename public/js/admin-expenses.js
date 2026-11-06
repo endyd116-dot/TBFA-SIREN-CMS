@@ -197,7 +197,6 @@
         <!-- 탭 -->
         <div class="tabs-bar" style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px">
           <button class="tab-btn active" data-tab="list" type="button">지출 내역</button>
-          <button class="tab-btn" data-tab="voucher" type="button">전표</button>
           ${superTab}
         </div>
 
@@ -240,11 +239,6 @@
               <tr><td colspan="8" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
             </tbody>
           </table>
-        </div>
-
-        <!-- 전표 탭 -->
-        <div id="expTabVoucher" class="tab-pane" style="display:none">
-          <div id="expVoucherContainer"></div>
         </div>
 
         <!-- 카테고리 설정 탭 (super_admin 전용) -->
@@ -432,21 +426,10 @@
       b.classList.toggle('active', b.dataset.tab === tab);
     });
     const list    = document.getElementById('expTabList');
-    const voucher = document.getElementById('expTabVoucher');
     const cats    = document.getElementById('expTabCategories');
     if (list)    list.style.display    = tab === 'list'       ? '' : 'none';
-    if (voucher) voucher.style.display = tab === 'voucher'    ? '' : 'none';
     if (cats)    cats.style.display    = tab === 'categories' ? '' : 'none';
     if (tab === 'categories') renderCategoryList();
-    if (tab === 'voucher') {
-      const vcContainer = document.getElementById('expVoucherContainer');
-      if (vcContainer && !vcContainer.querySelector('table')) {
-        /* 최초 진입 시 초기화 */
-        if (window.SIREN_VOUCHER) {
-          window.SIREN_VOUCHER.initVoucherTab(vcContainer);
-        }
-      }
-    }
   }
 
   /* ── 목록 로드 ── */

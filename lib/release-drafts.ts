@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.9";
+export const APP_VERSION = "2026-11-06.10";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-ledger-foundation",
+    title: "[관리자] 재정 관리에 장부 추가 — 복식 전표, 총계정원장, 시산표, 월 마감, 기준 정보",
+    items: [
+      { text: "전표를 지출·수입·대체·개시로 나눠 쓰고, 비용마다 활동(사업수행·일반관리·모금), 사업, 재원을 표시합니다. 입력한 내용은 차변·대변 장부로 자동 기록됩니다" },
+      { text: "공익법인회계기준에 맞춘 계정과목 93개, 정관 기준 사업, 재원, 회계연도를 기준 정보에서 관리합니다" },
+      { text: "승인한 전표는 고치거나 지울 수 없고 반대 전표로 취소합니다. 월 마감과 변경 이력이 남습니다" },
+      { text: "전표 목록과 계정 선택이 비어 보이던 문제를 고쳤습니다. 전표는 지출 관리에서, 계정과목 관리는 지출 자동 추출 시스템에서 장부로 옮겼습니다" },
+    ],
+  },
   {
     key: "2026-11-06-npo-price-update",
     title: "[관리자] NPO 제안서(/2) 구축비 조정 — 기본형 3,900만·표준형 7,900만 원",

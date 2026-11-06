@@ -3,6 +3,10 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { nextVoucherNumber } from "../../lib/voucher-number";
+import {
+  VOUCHER_TYPES, headerFromLines, ledgerActor, ledgerErrorBody, loadAccounts, normalizeLines,
+  recordHistory, saveLines, validateLines,
+} from "../../lib/ledger-post";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-voucher-create" };
@@ -30,14 +34,35 @@ export default async function handler(req: Request, _ctx: Context) {
   try { body = await req.json(); } catch { body = {}; }
 
   const {
-    voucherDate, accountCode, subAccount, description,
-    payeeName, amount, evidenceType, evidenceNumber, evidenceUrl,
+    voucherDate, subAccount, description,
+    payeeName, evidenceType, evidenceNumber, evidenceUrl,
     budgetLineId, expenseId, isTemplate, templateName,
   } = body;
+  let { accountCode, amount } = body;
 
-  if (!voucherDate || !accountCode || !description || amount === undefined) {
-    return new Response(jsonKST({ ok: false, error: "voucherDate, accountCode, description, amount 필수" }),
+  /* 복식 입력: 분개 줄이 오면 대표 계정과 금액은 줄에서 계산한다 */
+  const lines = normalizeLines(body.lines);
+  const voucherType = VOUCHER_TYPES.includes(body.voucherType) && body.voucherType !== "reversal"
+    ? String(body.voucherType) : null;
+
+  if (!voucherDate || !description || (!lines.length && (!accountCode || amount === undefined))) {
+    return new Response(jsonKST({ ok: false, error: "voucherDate, description, 그리고 분개 또는 accountCode·amount가 필요합니다" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
+  }
+
+  if (lines.length) {
+    try {
+      const problems = await validateLines(db, { voucherDate: String(voucherDate), lines, strict: false });
+      if (problems.length) {
+        return new Response(jsonKST({ ok: false, error: "분개를 확인하세요", missing: problems }),
+          { status: 422, headers: { "Content-Type": "application/json" } });
+      }
+      const header = headerFromLines(lines, await loadAccounts(db, lines.map((l) => l.accountCode)));
+      accountCode = header.accountCode;
+      amount = header.amount;
+    } catch (err: any) {
+      return jsonError("validate_lines", err);
+    }
   }
 
   // 계정과목 존재 확인
@@ -84,7 +109,19 @@ export default async function handler(req: Request, _ctx: Context) {
           'draft', ${createdBy}, NOW(), NOW()
         ) RETURNING id, voucher_number
       `);
-      return (result?.rows ?? result ?? [])[0];
+      const row = (result?.rows ?? result ?? [])[0];
+      const newId = Number(row.id);
+      if (voucherType) {
+        await tx.execute(sql`UPDATE vouchers SET voucher_type = ${voucherType} WHERE id = ${newId}`);
+      }
+      if (lines.length) {
+        await saveLines(tx, newId, lines);
+        await recordHistory(tx, {
+          entity: "voucher", entityId: newId, action: "created", actor: ledgerActor(auth),
+          after: { voucherNumber: row.voucher_number, voucherType, lines },
+        });
+      }
+      return row;
     });
 
     return new Response(jsonKST({
@@ -96,6 +133,7 @@ export default async function handler(req: Request, _ctx: Context) {
       },
     }), { status: 201, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
-    return jsonError("insert", err);
+    const { status, body: payload } = ledgerErrorBody("insert", "전표 작성 실패", err);
+    return new Response(jsonKST(payload), { status, headers: { "Content-Type": "application/json" } });
   }
 }

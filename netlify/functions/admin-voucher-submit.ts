@@ -2,6 +2,7 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { ledgerActor, ledgerErrorBody, prepareSubmit, recordHistory } from "../../lib/ledger-post";
 import { sendEmail } from "../../lib/email";
 import { sql } from "drizzle-orm";
 
@@ -33,39 +34,30 @@ export default async function handler(req: Request, _ctx: Context) {
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
+  /* 줄 없는 전표는 기본 2줄을 만들고, 빠진 항목이 있으면 제출을 막는다 */
   let voucher: any;
   try {
-    const rows: any = await db.execute(sql`
-      SELECT id, status, voucher_number, description, amount, account_name
-      FROM vouchers WHERE id = ${Number(id)} LIMIT 1
-    `);
-    voucher = (rows?.rows ?? rows ?? [])[0];
-    if (!voucher) {
-      return new Response(jsonKST({ ok: false, error: "전표를 찾을 수 없습니다" }),
-        { status: 404, headers: { "Content-Type": "application/json" } });
-    }
-    if (voucher.status !== "draft" && voucher.status !== "rejected") {
-      return new Response(jsonKST({ ok: false, error: `draft 또는 rejected 상태에서만 제출 가능 (현재: ${voucher.status})` }),
-        { status: 422, headers: { "Content-Type": "application/json" } });
-    }
+    voucher = await db.transaction(async (tx) => {
+      const v = await prepareSubmit(tx, Number(id));
+      await tx.execute(sql`
+        UPDATE vouchers
+        SET status = 'submitted', submitted_at = NOW(), updated_at = NOW()
+        WHERE id = ${Number(id)}
+      `);
+      await recordHistory(tx, {
+        entity: "voucher", entityId: Number(id), action: "submitted", actor: ledgerActor(auth),
+      });
+      return v;
+    });
   } catch (err: any) {
-    return jsonError("select", err);
+    const { status, body: payload } = ledgerErrorBody("submit", "전표 제출 실패", err);
+    return new Response(jsonKST(payload), { status, headers: { "Content-Type": "application/json" } });
   }
 
-  try {
-    await db.execute(sql`
-      UPDATE vouchers
-      SET status = 'submitted', submitted_at = NOW(), updated_at = NOW()
-      WHERE id = ${Number(id)}
-    `);
-  } catch (err: any) {
-    return jsonError("update", err);
-  }
-
-  // 승인 담당자 이메일 알림 (fire-and-forget)
+  // 승인 담당자 이메일 알림. 함수가 먼저 끝나면 발송이 유실되므로 기다린다
   const notifyEmail = process.env.ADMIN_NOTIFY_EMAIL;
   if (notifyEmail) {
-    sendEmail({
+    await sendEmail({
       to: notifyEmail,
       subject: `[SIREN] 전표 승인 요청 — ${voucher.voucher_number}`,
       html: `

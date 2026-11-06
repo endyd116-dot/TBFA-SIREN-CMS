@@ -2,11 +2,12 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { ACCOUNT_CATEGORIES, accountDefaults } from "../../lib/ledger-post";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-account-code-update" };
 
-const VALID_CATEGORIES = ["personnel", "program", "admin_ops", "fundraising", "income"];
+const VALID_CATEGORIES = ACCOUNT_CATEGORIES;
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(jsonKST({
@@ -44,7 +45,8 @@ export default async function handler(req: Request, _ctx: Context) {
 
   try {
     const cur: any = await db.execute(sql`
-      SELECT id, code, name, parent_code, category, is_active, sort_order
+      SELECT id, code, name, parent_code, category, is_active, sort_order,
+             kind, normal_side, statement_line, nature, default_function, system_role
       FROM account_codes WHERE id = ${id} LIMIT 1`);
     const row = (cur?.rows ?? cur ?? [])[0];
     if (!row) {
@@ -76,10 +78,38 @@ export default async function handler(req: Request, _ctx: Context) {
       }
     }
 
+    if (!isActive && row.system_role) {
+      return jsonError("validate", new Error("시스템이 쓰는 기본 계정은 사용 중지할 수 없습니다."), 400);
+    }
+    const defaults = accountDefaults(category)!;
+    const kind = category === row.category ? row.kind : defaults.kind;
+    const normalSide = body?.normalSide === "debit" || body?.normalSide === "credit"
+      ? body.normalSide
+      : (category === row.category ? row.normal_side : defaults.normalSide);
+    const statementLine = body?.statementLine
+      ? String(body.statementLine)
+      : (category === row.category ? row.statement_line : defaults.statementLine);
+    const nature = body?.nature !== undefined
+      ? (body.nature || null)
+      : (category === row.category ? row.nature : defaults.nature);
+    const defaultFunction = body?.defaultFunction !== undefined
+      ? (body.defaultFunction || null)
+      : (category === row.category ? row.default_function : defaults.defaultFunction);
+
+    /* 이미 장부에 쓰인 계정은 구분과 잔액 방향을 바꾸면 과거 숫자가 달라진다 */
+    if (kind !== row.kind || normalSide !== row.normal_side) {
+      const used: any = await db.execute(sql`SELECT 1 FROM voucher_lines WHERE account_code = ${row.code} LIMIT 1`);
+      if ((used?.rows ?? used ?? []).length > 0) {
+        return jsonError("validate", new Error("장부에 쓰인 계정은 구분과 잔액 방향을 바꿀 수 없습니다."), 400);
+      }
+    }
+
     const upd: any = await db.execute(sql`
       UPDATE account_codes SET
         name = ${name}, parent_code = ${parentCode},
-        category = ${category}, is_active = ${isActive}
+        category = ${category}, is_active = ${isActive},
+        kind = ${kind}, normal_side = ${normalSide}, statement_line = ${statementLine},
+        nature = ${nature}, default_function = ${defaultFunction}
       WHERE id = ${id}
       RETURNING id, code, name, parent_code, category, is_active, sort_order`);
     const updated = (upd?.rows ?? upd ?? [])[0];

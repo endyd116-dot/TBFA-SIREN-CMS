@@ -292,6 +292,7 @@
           'finance-income': '손익 현황',
           'other-revenues': '후원 외 매출',
           'expenses': '지출 관리',
+          'ledger': '장부',
           'finance-budget': '예산 관리',
           'budget-accounts': '예산과목 체계(관·항·목)',
           'approval-inbox': '지출 결재함',
@@ -388,6 +389,9 @@
         }
         else if (tab === 'budget-accounts') {
           if (window.SIREN_BUDGET_ACCOUNTS) window.SIREN_BUDGET_ACCOUNTS.init();
+        }
+        else if (tab === 'ledger') {
+          if (window.SIREN_LEDGER) window.SIREN_LEDGER.init();
         }
         else if (tab === 'approval-inbox') {
           if (window.SIREN_APPROVAL) window.SIREN_APPROVAL.inbox();
@@ -2554,7 +2558,7 @@
     'donor-regular': 'siren_donation', 'donor-prospect': 'siren_donation', 'donor-potential': 'siren_donation', nurture: 'siren_donation',
     import: 'donation_confirm',
     hyosung: 'finance_view', 'toss-billing': 'finance_view',
-    'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view',
+    'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view', ledger: 'finance_view',
     expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'approval-inbox': 'finance_approval_submit', 'approval-resolutions': 'finance_bookkeeping', 'approval-lines': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
     'send-jobs': 'send_job', 'send-analytics': 'send_job', 'notification-logs': 'send_job',
     'send-template': 'send_template', 'recipient-groups': 'send_template',

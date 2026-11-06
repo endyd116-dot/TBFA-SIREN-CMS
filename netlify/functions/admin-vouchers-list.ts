@@ -102,7 +102,30 @@ export default async function handler(req: Request, _ctx: Context) {
       approvedAt:     isoUTC(r.approved_at),
       createdAt:      isoUTC(r.created_at),
       updatedAt:      isoUTC(r.updated_at),
+      voucherType:    "expense" as string,
+      reversedById:   null as number | null,
+      reversalOfId:   null as number | null,
     }));
+
+    /* 장부 컬럼은 보조 조회로 합친다 */
+    if (vouchers.length) {
+      try {
+        const ids = vouchers.map((v: any) => v.id);
+        const extra: any = await db.execute(sql`
+          SELECT id, voucher_type, reversed_by_id, reversal_of_id FROM vouchers
+           WHERE id IN (${sql.join(ids.map((n: number) => sql`${n}`), sql`, `)})`);
+        const byId = new Map((extra?.rows ?? extra ?? []).map((r: any) => [Number(r.id), r]));
+        for (const v of vouchers) {
+          const r: any = byId.get(v.id);
+          if (!r) continue;
+          v.voucherType = r.voucher_type;
+          v.reversedById = r.reversed_by_id == null ? null : Number(r.reversed_by_id);
+          v.reversalOfId = r.reversal_of_id == null ? null : Number(r.reversal_of_id);
+        }
+      } catch (err: any) {
+        console.warn("[vouchers-list] 장부 컬럼 조회 실패 (기본값으로 계속):", err?.message);
+      }
+    }
 
     return new Response(jsonKST({
       ok: true,

@@ -59,6 +59,26 @@ const PATH_FEATURE: Record<string, string> = {
      결재 처리(decide)·라인/위임 설정은 PATH_FEATURE 미등록 → 기본 admin/이사장만. */
   "/api/admin-approval-request-create": "finance_approval_submit",
   "/api/admin-approval-requests": "finance_approval_submit",
+  /* 2026-11-06 장부: 조회는 finance_view, 전표 쓰기는 finance_bookkeeping, 기준 정보는 finance_ledger_manage.
+     승인·취소·마감 해제·회계연도 변경은 함수 안에서 이사장으로 고정한다. */
+  "/api/admin-ledger-masters": "finance_view",
+  "/api/admin-ledger-gl": "finance_view",
+  "/api/admin-ledger-trial-balance": "finance_view",
+  "/api/admin-ledger-close": "finance_view",
+  "/api/admin-ledger-fiscal-year": "finance_view",
+  "/api/admin-ledger-history": "finance_view",
+  "/api/admin-ledger-master-save": "finance_ledger_manage",
+  "/api/admin-account-code-create": "finance_ledger_manage",
+  "/api/admin-account-code-update": "finance_ledger_manage",
+  "/api/admin-account-code-reorder": "finance_ledger_manage",
+  "/api/admin-vouchers-list": "finance_view",
+  "/api/admin-voucher-detail": "finance_view",
+  "/api/admin-voucher-templates-list": "finance_view",
+  "/api/admin-voucher-create": "finance_bookkeeping",
+  "/api/admin-voucher-update": "finance_bookkeeping",
+  "/api/admin-voucher-submit": "finance_bookkeeping",
+  "/api/admin-voucher-delete": "finance_bookkeeping",
+  "/api/admin-voucher-template-update": "finance_bookkeeping",
   /* 2026-07-02 권한설계 동기화: 프런트 메뉴에만 걸려있던 콘텐츠 게이트를 서버에도 강제.
      키는 lib/permission-catalog.ts 카탈로그와 동일 — 권한정책관리 화면 토글이 실제 차단으로 이어짐. */
   "/api/admin-popups": "cms_popup",

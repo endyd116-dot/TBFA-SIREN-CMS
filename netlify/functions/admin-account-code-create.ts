@@ -2,11 +2,12 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { ACCOUNT_CATEGORIES, accountDefaults } from "../../lib/ledger-post";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-account-code-create" };
 
-const VALID_CATEGORIES = ["personnel", "program", "admin_ops", "fundraising", "income"];
+const VALID_CATEGORIES = ACCOUNT_CATEGORIES;
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(jsonKST({
@@ -63,9 +64,17 @@ export default async function handler(req: Request, _ctx: Context) {
       }
     }
 
+    const defaults = accountDefaults(category)!;
+    const nature = body?.nature !== undefined ? (body.nature || null) : defaults.nature;
+    const defaultFunction = body?.defaultFunction !== undefined ? (body.defaultFunction || null) : defaults.defaultFunction;
+    const statementLine = String(body?.statementLine || defaults.statementLine);
+    const normalSide = body?.normalSide === "debit" || body?.normalSide === "credit" ? body.normalSide : defaults.normalSide;
     const ins: any = await db.execute(sql`
-      INSERT INTO account_codes (code, name, parent_code, category, is_active, sort_order)
-      VALUES (${code}, ${name}, ${parentCode}, ${category}, TRUE, ${sortOrder})
+      INSERT INTO account_codes
+        (code, name, parent_code, category, is_active, sort_order,
+         kind, normal_side, statement_line, nature, default_function)
+      VALUES (${code}, ${name}, ${parentCode}, ${category}, TRUE, ${sortOrder},
+              ${defaults.kind}, ${normalSide}, ${statementLine}, ${nature}, ${defaultFunction})
       RETURNING id, code, name, parent_code, category, is_active, sort_order`);
     const row = (ins?.rows ?? ins ?? [])[0];
 

@@ -2,6 +2,7 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { ledgerActor, ledgerErrorBody, rejectVoucher } from "../../lib/ledger-post";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-voucher-reject" };
@@ -42,43 +43,19 @@ export default async function handler(req: Request, _ctx: Context) {
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
-  let voucher: any;
-  try {
-    const rows: any = await db.execute(sql`
-      SELECT id, status, voucher_number FROM vouchers WHERE id = ${Number(id)} LIMIT 1
-    `);
-    voucher = (rows?.rows ?? rows ?? [])[0];
-    if (!voucher) {
-      return new Response(jsonKST({ ok: false, error: "전표를 찾을 수 없습니다" }),
-        { status: 404, headers: { "Content-Type": "application/json" } });
-    }
-    if (voucher.status !== "submitted") {
-      return new Response(jsonKST({ ok: false, error: `submitted 상태에서만 반려 가능 (현재: ${voucher.status})` }),
-        { status: 422, headers: { "Content-Type": "application/json" } });
-    }
-  } catch (err: any) {
-    return jsonError("select", err);
-  }
-
-  /* Q4-026: approved_by에 회원 id 저장(타 재정 테이블과 형식 통일·이전엔 이메일) */
+  /* Q4-026: approved_by에 회원 id 저장(타 재정 테이블과 형식 통일·이전엔 이메일 문자열). */
   const approverUid = String(auth.ctx.admin.uid);
 
   try {
-    await db.execute(sql`
-      UPDATE vouchers
-      SET status = 'rejected',
-          approved_by = ${approverUid},
-          approved_at = NOW(),
-          rejection_reason = ${rejectionReason.trim()},
-          updated_at = NOW()
-      WHERE id = ${Number(id)}
-    `);
+    const voucher = await db.transaction((tx) =>
+      rejectVoucher(tx, Number(id), rejectionReason.trim(), ledgerActor(auth), approverUid));
 
     return new Response(jsonKST({
       ok: true,
       data: { message: `전표 ${voucher.voucher_number}이 반려되었습니다. 사유: ${rejectionReason.trim()}` },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
-    return jsonError("reject", err);
+    const { status, body: payload } = ledgerErrorBody("reject", "전표 반려 실패", err);
+    return new Response(jsonKST(payload), { status, headers: { "Content-Type": "application/json" } });
   }
 }

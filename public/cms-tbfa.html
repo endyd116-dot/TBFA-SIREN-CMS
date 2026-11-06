@@ -515,6 +515,7 @@ if (window.self !== window.top) {
           <li><a href="#donations" data-tab="donations"><i><span class="siren-icon-wrap" data-icon="book"></span></i><span>후원 결제 내역</span></a></li>
           <li><a href="#other-revenues" data-tab="other-revenues"><i><span class="siren-icon-wrap" data-icon="briefcase"></span></i><span>후원 외 매출</span></a></li>
           <li><a href="#expenses" data-tab="expenses"><i><span class="siren-icon-wrap" data-icon="hand-coins"></span></i><span>지출 관리</span></a></li>
+          <li><a href="#ledger" data-tab="ledger"><i><span class="siren-icon-wrap" data-icon="book-open"></span></i><span>장부</span></a></li>
           <li><a href="#finance-budget" data-tab="finance-budget"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>예산 관리</span></a></li>
           <li><a href="#budget-accounts" data-tab="budget-accounts"><i><span class="siren-icon-wrap" data-icon="folders"></span></i><span>예산과목 체계(관·항·목)</span></a></li>
           <li><a href="#approval-inbox" data-tab="approval-inbox"><i><span class="siren-icon-wrap" data-icon="receipt"></span></i><span>지출 결재함</span></a></li>
@@ -1423,6 +1424,7 @@ if (window.self !== window.top) {
       </section>
       <section class="cms-page" id="page-other-revenues"></section>
       <section class="cms-page" id="page-expenses"></section>
+      <section class="cms-page" id="page-ledger"></section>
       <section class="cms-page" id="page-finance-budget"></section>
       <section class="cms-page" id="page-budget-accounts"></section>
       <section class="cms-page" id="page-approval-inbox"></section>
@@ -2584,7 +2586,7 @@ if (window.self !== window.top) {
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20261020-ev1"></script>
+  <script src="/js/cms-tbfa.js?v=20261106-ledger"></script>
   <script src="/js/cms-customer-journey.js?v=20261018-cj2"></script>
   <script src="/js/admin-session-timer.js?v=20260802-session7d"></script>
   <script src="/js/admin-notif-bell.js?v=20260802-idlepoll"></script>
@@ -2606,16 +2608,17 @@ if (window.self !== window.top) {
   <script src="/js/admin-donations.js?v=20260907-cancel"></script>
   <script src="/js/admin-finance-income.js?v=20260516ibk-fix"></script>
   <script src="/js/admin-other-revenues.js?v=20260712-kst"></script>
-  <script src="/js/admin-expenses.js?v=20260720-confirm"></script>
+  <script src="/js/admin-expenses.js?v=20261106-ledger"></script>
   <!-- Phase 22-D-R1: 전표 관리 -->
-  <script src="/js/admin-expenses-voucher.js?v=20260712-kst"></script>
+  <script src="/js/admin-expenses-voucher.js?v=20261106-ledger"></script>
+  <script src="/js/admin-ledger.js?v=20261106-ledger"></script>
   <!-- Phase 22-B-R2: 예산 편성 + 결재 -->
   <script src="/js/admin-finance-budget.js?v=20260702rate"></script>
   <script src="/js/admin-budget-accounts.js?v=20260716"></script>
   <script src="/js/admin-approval.js?v=20261106-atomic"></script>
   <script src="/js/admin-finance-report.js?v=20261106-budget"></script>
   <!-- Phase 22-D-R2: 통장 거래내역 자동화 -->
-  <script src="/js/admin-bank-transactions.js?v=20260517rename"></script>
+  <script src="/js/admin-bank-transactions.js?v=20261106-ledger"></script>
   <script src="/js/release-notes-widget.js?v=4-detail" defer></script>
 
   <!-- ★ Round 3 #5: 빌링키 재활성화 모달 -->

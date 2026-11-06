@@ -18,6 +18,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { nextVoucherNumber } from "../../lib/voucher-number";
+import { loadLines, saveLines } from "../../lib/ledger-post";
 
 export default async (_req: Request, _ctx: Context) => {
   const start = Date.now();
@@ -100,9 +101,12 @@ export default async (_req: Request, _ctx: Context) => {
               ${newDesc}, ${t.payee_name || null}, ${Number(t.amount)},
               ${t.evidence_type || "none"}, ${t.budget_line_id ? Number(t.budget_line_id) : null},
               FALSE, 'draft', ${t.created_by}, NOW(), NOW()
-            ) RETURNING voucher_number
+            ) RETURNING id, voucher_number
           `);
-          return (ins?.rows ?? ins ?? [])[0]?.voucher_number;
+          const row = (ins?.rows ?? ins ?? [])[0];
+          const lines = await loadLines(tx, templateId);
+          if (lines.length) await saveLines(tx, Number(row.id), lines);
+          return row?.voucher_number;
         });
         created++;
         results.push({ templateId, status: "created", voucherNumber: vn });

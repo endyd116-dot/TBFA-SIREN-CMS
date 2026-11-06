@@ -24,6 +24,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
+import { nextVoucherNumber } from "../../lib/voucher-number";
 import { learnCounterparty } from "../../lib/bank-reconcile";
 
 export const config = { path: "/api/admin-bank-transaction-confirm" };
@@ -186,15 +187,12 @@ export default async function handler(req: Request, _ctx: Context) {
         return new Response(jsonKST({ ok: false, error: `존재하지 않는 계정과목: ${body.accountCode}` }),
           { status: 422, headers: { "Content-Type": "application/json" } });
       }
-      // voucher_number 생성
+      /* 번호 발급과 전표 생성, 통장 거래 표시를 한 묶음으로 처리한다 */
       const yyyymm = txnDate.slice(0, 7).replace("-", "");
-      const maxR: any = await db.execute(sql`
-        SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
-        FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}`);
-      const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
-      const voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
+      const created = await db.transaction(async (tx) => {
+      const voucherNumber = await nextVoucherNumber(tx, yyyymm);
 
-      const vr: any = await db.execute(sql`
+      const vr: any = await tx.execute(sql`
         INSERT INTO vouchers (
           voucher_number, voucher_date, fiscal_year,
           account_code, account_name, sub_account,
@@ -209,15 +207,18 @@ export default async function handler(req: Request, _ctx: Context) {
           'transfer_confirm', ${body.budgetLineId ? Number(body.budgetLineId) : null}, ${txn.id},
           'draft', ${adminEmail}, NOW(), NOW()
         ) RETURNING id`);
-      createdRefId = Number((vr?.rows ?? vr ?? [])[0].id);
-      await db.execute(sql`
+      const newVoucherId = Number((vr?.rows ?? vr ?? [])[0].id);
+      await tx.execute(sql`
         UPDATE bank_transactions SET
           match_type = 'voucher', status = 'voucher_created',
           admin_account_code = ${body.accountCode},
-          voucher_id = ${createdRefId},
+          voucher_id = ${newVoucherId},
           confirmed_at = NOW(), confirmed_by = ${adminEmail}
         WHERE id = ${txn.id}`);
-      resultMessage = `전표 작성 완료 — ${voucherNumber} (${acRow.name})`;
+      return { voucherNumber, newVoucherId };
+      });
+      createdRefId = created.newVoucherId;
+      resultMessage = `전표 작성 완료 — ${created.voucherNumber} (${acRow.name})`;
     }
   } catch (err: any) {
     return jsonError(`confirm_${action}`, err);

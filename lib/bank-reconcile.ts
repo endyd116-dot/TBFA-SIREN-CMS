@@ -623,9 +623,10 @@ async function lookupAccountName(code: string | null): Promise<string | null> {
 async function pickAccountByCategory(category: string): Promise<{ code: string; name: string } | null> {
   try {
     const r: any = await db.execute(sql`
-      SELECT code, name FROM account_codes
-      WHERE category = ${category} AND is_active = TRUE
-      ORDER BY sort_order ASC, id ASC LIMIT 1`);
+      SELECT a.code, a.name FROM account_codes a
+      WHERE a.category = ${category} AND a.is_active = TRUE
+        AND NOT EXISTS (SELECT 1 FROM account_codes c WHERE c.parent_code = a.code)
+      ORDER BY a.sort_order ASC, a.id ASC LIMIT 1`);
     const row = (r?.rows ?? r ?? [])[0];
     return row ? { code: row.code, name: row.name } : null;
   } catch { return null; }
@@ -640,7 +641,7 @@ async function classifyExpenseByAI(txn: NormalizedTxn): Promise<{
   try {
     const r: any = await db.execute(sql`
       SELECT code, name, category, parent_code FROM account_codes
-      WHERE is_active = TRUE AND category <> 'income'
+      WHERE is_active = TRUE AND category IN ('personnel','program','admin_ops','fundraising')
       ORDER BY category, sort_order, code`);
     const rows: any[] = r?.rows ?? r ?? [];
     const CAT_LABEL: Record<string, string> = {
@@ -674,11 +675,11 @@ ${codeTree || "(목록 없음 — category만 추정)"}
 [분류 방법]
 1. 먼저 거래 성격으로 대분류(인건비/사업비/관리운영비/모금비)를 정한다.
 2. 그 대분류 안에서 거래내용에 가장 잘 맞는 소분류 코드를 고른다.
-3. 소분류까지 특정하기 어려우면 대분류 코드를 그대로 쓴다.
-4. 어느 대분류인지도 불확실하면 accountCode는 null, confidence는 0.5 미만으로 둔다.
+3. 대분류 코드는 장부에 쓸 수 없다. 반드시 소분류 코드를 고른다.
+4. 소분류를 고르기 어려우면 accountCode는 null, confidence는 0.5 미만으로 둔다.
 
 다음 JSON만 출력:
-{"accountCode":"소분류 또는 대분류 코드, 불확실하면 null","category":"personnel|program|admin_ops|fundraising","confidence":0.0~1.0,"reasoning":"왜 이 계정과목인지 한 줄"}`;
+{"accountCode":"소분류 코드, 불확실하면 null","category":"personnel|program|admin_ops|fundraising","confidence":0.0~1.0,"reasoning":"왜 이 계정과목인지 한 줄"}`;
 
   try {
     const res = await callGeminiJSON<{

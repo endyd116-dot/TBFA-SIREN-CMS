@@ -68,6 +68,7 @@ export default async function handler(req: Request, _ctx: Context) {
       FROM vouchers
       WHERE is_template = FALSE
         AND status = 'approved'
+        AND voucher_type <> 'reversal' AND reversed_by_id IS NULL
         AND voucher_date >= ${prevStart} AND voucher_date < ${nextMonth}
       GROUP BY account_code
     `);

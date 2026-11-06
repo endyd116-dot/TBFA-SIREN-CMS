@@ -11,6 +11,9 @@ import { resolvePeriod } from "./period-filter";
 import { downloadFromR2 } from "./r2-server";
 import { recalcCampaignStatsSafe } from "./campaign-stats";
 import { logTaskChange } from "./workspace-logger";
+import { nextVoucherNumber } from "./voucher-number";
+import { LedgerError, normalizeLines, postVoucher, rejectVoucher, saveLines, validateLines } from "./ledger-post";
+import { generalLedger, trialBalance } from "./ledger-report";
 
 /* ─── [배치8·감사#1~8] AI 작업 도구 안전장치 — 본 API(admin-workspace-tasks)와 동일한 후속처리
        (담당자 알림·신고 종결·마일스톤/완료보고서 트리거·소유권 검증)를 재사용. ─── */
@@ -779,6 +782,15 @@ export const TOOL_DECLARATIONS = [
       budgetLineId: { type: "INTEGER", description: "예산 항목 ID (선택)" },
       isTemplate:   { type: "BOOLEAN", description: "true=반복 템플릿으로 저장" },
       templateName: { type: "STRING",  description: "템플릿 이름 (isTemplate=true 시)" },
+      lines: { type: "ARRAY", description: "분개 줄(선택). 없으면 제출할 때 기본 2줄을 만든다. 비용 줄은 functionCode와 fundId가, 사업수행 비용은 programId도 필요",
+        items: { type: "OBJECT", properties: {
+          accountCode:  { type: "STRING",  description: "말단 계정과목 코드" },
+          debit:        { type: "INTEGER", description: "차변 금액" },
+          credit:       { type: "INTEGER", description: "대변 금액" },
+          functionCode: { type: "STRING",  description: "활동", enum: ["service", "admin", "fundraising"] },
+          programId:    { type: "INTEGER", description: "사업 ID" },
+          fundId:       { type: "INTEGER", description: "재원 ID" },
+        }}},
       requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
     }, required: ["voucherDate", "accountCode", "description", "amount"] }},
 
@@ -789,6 +801,19 @@ export const TOOL_DECLARATIONS = [
       rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
       requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
     }, required: ["voucherId", "action"] }},
+
+  /* === 장부 조회 (2개) === */
+  { name: "ledger_trial_balance", description: "장부 시산표 조회 — 계정별 차변·대변 합계와 잔액, 합계 일치 여부",
+    parameters: { type: "OBJECT", properties: {
+      year:  { type: "INTEGER", description: "회계연도" },
+      month: { type: "INTEGER", description: "이 달까지 계산 (생략 시 회계연도 끝까지)" },
+    }, required: ["year"] }},
+  { name: "ledger_general_ledger", description: "총계정원장 조회 — 계정 하나의 기간별 거래와 잔액",
+    parameters: { type: "OBJECT", properties: {
+      accountCode: { type: "STRING", description: "계정과목 코드 (예: '1012')" },
+      from: { type: "STRING", description: "시작일 YYYY-MM-DD" },
+      to:   { type: "STRING", description: "종료일 YYYY-MM-DD" },
+    }, required: ["accountCode", "from", "to"] }},
 
   /* === Phase 22-D-R2 통장 대사 (1개) === */
   { name: "bank_reconcile_summary", description: "통장 입출금 대사 현황 요약 — 입금(개별후원 매칭/묶음정산/매출/미확인), 출금(전표생성/확인대기). 기간 지정 가능",
@@ -1121,6 +1146,8 @@ export async function executeTool(
       case "voucher_list":            return await tool_voucherList(args);
       case "voucher_create":          return await tool_voucherCreate(args, adminId);
       case "voucher_approve":         return await tool_voucherApprove(args, adminId);
+      case "ledger_trial_balance":    return await tool_ledgerTrialBalance(args);
+      case "ledger_general_ledger":   return await tool_ledgerGeneralLedger(args);
       /* Phase 22-D-R2 통장 대사 */
       case "bank_reconcile_summary":  return await tool_bankReconcileSummary(args);
       /* === Layer 1 배치 도구 === */
@@ -5116,6 +5143,11 @@ async function tool_voucherCreate(args: any, adminId: number | null): Promise<To
     return { ok: false, error: "voucherDate, accountCode, description, amount 필수" };
   }
   const dryRun = requireApproval !== false;
+  const lines = normalizeLines(args?.lines);
+  if (lines.length) {
+    const problems = await validateLines(db, { voucherDate: String(voucherDate), lines, strict: false });
+    if (problems.length) return { ok: false, error: problems.join(" ") };
+  }
 
   // 계정과목 존재 확인
   let accountName = accountCode;
@@ -5147,29 +5179,27 @@ async function tool_voucherCreate(args: any, adminId: number | null): Promise<To
     const memberUid = (memberR?.rows ?? memberR ?? [])[0]?.email;
     if (!memberUid) return { ok: false, error: "관리자 이메일 조회 실패" };
 
-    // voucher_number: YYYYMM-NNN (트랜잭션 내 MAX+1)
+    /* 번호 발급과 전표·분개 저장을 한 묶음으로 처리한다 */
     const yyyymm = voucherDate.slice(0, 7).replace("-", "");
-    const maxR: any = await db.execute(sql`
-      SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
-      FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}
-    `);
-    const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
-    const voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
     const fiscalYear = parseInt(voucherDate.slice(0, 4));
-
-    const res: any = await db.execute(sql`
-      INSERT INTO vouchers (
-        voucher_number, voucher_date, fiscal_year, account_code, account_name,
-        sub_account, description, payee_name, amount, evidence_type,
-        budget_line_id, is_template, template_name, status, created_by, created_at, updated_at
-      ) VALUES (
-        ${voucherNumber}, ${voucherDate}, ${fiscalYear}, ${accountCode}, ${accountName},
-        ${subAccount || null}, ${description}, ${payeeName || null}, ${Number(amount)}, ${evidenceType || "none"},
-        ${budgetLineId ? Number(budgetLineId) : null}, ${Boolean(isTemplate)}, ${templateName || null},
-        'draft', ${String(memberUid)}, NOW(), NOW()
-      ) RETURNING id, voucher_number
-    `);
-    const created = (res?.rows ?? res ?? [])[0];
+    const created = await db.transaction(async (tx) => {
+      const voucherNumber = await nextVoucherNumber(tx, yyyymm);
+      const res: any = await tx.execute(sql`
+        INSERT INTO vouchers (
+          voucher_number, voucher_date, fiscal_year, account_code, account_name,
+          sub_account, description, payee_name, amount, evidence_type,
+          budget_line_id, is_template, template_name, status, created_by, created_at, updated_at
+        ) VALUES (
+          ${voucherNumber}, ${voucherDate}, ${fiscalYear}, ${accountCode}, ${accountName},
+          ${subAccount || null}, ${description}, ${payeeName || null}, ${Number(amount)}, ${evidenceType || "none"},
+          ${budgetLineId ? Number(budgetLineId) : null}, ${Boolean(isTemplate)}, ${templateName || null},
+          'draft', ${String(memberUid)}, NOW(), NOW()
+        ) RETURNING id, voucher_number
+      `);
+      const row = (res?.rows ?? res ?? [])[0];
+      if (lines.length) await saveLines(tx, Number(row.id), lines);
+      return row;
+    });
     return { ok: true, output: { message: `전표가 작성되었습니다. 번호: ${created.voucher_number}`, voucherId: Number(created.id), voucherNumber: created.voucher_number } };
   } catch (e: any) {
     return { ok: false, error: `전표 작성 실패: ${e?.message?.slice(0, 200)}` };
@@ -5207,25 +5237,49 @@ async function tool_voucherApprove(args: any, adminId: number | null): Promise<T
   }
 
   try {
-    // 어드민 email (approved_by 용) 조회
+    /* 화면과 같은 공용 처리를 탄다. 분개가 맞지 않으면 승인되지 않는다. */
     const memberR: any = await db.execute(sql`SELECT email FROM members WHERE id = ${adminId} LIMIT 1`);
     const memberUid = (memberR?.rows ?? memberR ?? [])[0]?.email;
+    const actor = { id: adminId, name: String(memberUid || adminId) };
+    const approverRef = String(adminId);
 
-    if (action === "approve") {
-      await db.execute(sql`
-        UPDATE vouchers SET status = 'approved', approved_by = ${String(memberUid)},
-        approved_at = NOW(), updated_at = NOW() WHERE id = ${Number(voucherId)}
-      `);
-    } else {
-      await db.execute(sql`
-        UPDATE vouchers SET status = 'rejected', approved_by = ${String(memberUid)},
-        approved_at = NOW(), rejection_reason = ${rejectionReason}, updated_at = NOW()
-        WHERE id = ${Number(voucherId)}
-      `);
-    }
+    await db.transaction((tx) => action === "approve"
+      ? postVoucher(tx, Number(voucherId), actor, approverRef)
+      : rejectVoucher(tx, Number(voucherId), String(rejectionReason).trim(), actor, approverRef));
     return { ok: true, output: { message: `전표 ${voucher.voucher_number}이 ${label}되었습니다.` } };
   } catch (e: any) {
+    if (e instanceof LedgerError) {
+      return { ok: false, error: [e.message, ...e.missing].join(" ") };
+    }
     return { ok: false, error: `${label} 처리 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_ledgerTrialBalance(args: any): Promise<ToolResult> {
+  const year = Number(args?.year);
+  const month = args?.month ? Number(args.month) : null;
+  if (!year) return { ok: false, error: "year 필수" };
+  try {
+    const data = await trialBalance(year, month);
+    if (!data) return { ok: false, error: `${year}년 회계연도가 없습니다` };
+    return { ok: true, output: data };
+  } catch (e: any) {
+    return { ok: false, error: `시산표 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_ledgerGeneralLedger(args: any): Promise<ToolResult> {
+  const { accountCode, from, to } = args || {};
+  if (!accountCode || !from || !to) return { ok: false, error: "accountCode, from, to 필수" };
+  try {
+    const data = await generalLedger({
+      accountCode: String(accountCode), from: String(from), to: String(to),
+      programId: null, fundId: null, limit: 200, offset: 0,
+    });
+    if (!data) return { ok: false, error: "계정과목을 찾을 수 없습니다" };
+    return { ok: true, output: data };
+  } catch (e: any) {
+    return { ok: false, error: `원장 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
 

@@ -2,6 +2,9 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import {
+  VOUCHER_TYPES, ledgerActor, ledgerErrorBody, normalizeLines, recordHistory, saveLines, validateLines,
+} from "../../lib/ledger-post";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-voucher-update" };
@@ -31,6 +34,12 @@ export default async function handler(req: Request, _ctx: Context) {
     payeeName, amount, evidenceType, evidenceNumber, evidenceUrl,
     budgetLineId, isTemplate, templateName,
   } = body;
+
+  /* lines가 오면 분개를 통째로 교체한다. 빈 배열이면 분개를 비운다. */
+  const hasLinesField = Array.isArray(body.lines);
+  const lines = normalizeLines(body.lines);
+  const voucherType = VOUCHER_TYPES.includes(body.voucherType) && body.voucherType !== "reversal"
+    ? String(body.voucherType) : null;
 
   if (!id) {
     return new Response(jsonKST({ ok: false, error: "id 필수" }),
@@ -74,10 +83,24 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
+  if (lines.length) {
+    try {
+      const problems = await validateLines(db, { voucherDate: String(voucherDate || ""), lines, strict: false });
+      if (problems.length) {
+        return new Response(jsonKST({ ok: false, error: "분개를 확인하세요", missing: problems }),
+          { status: 422, headers: { "Content-Type": "application/json" } });
+      }
+    } catch (err: any) {
+      return jsonError("validate_lines", err);
+    }
+  }
+
   try {
-    await db.execute(sql`
+    await db.transaction(async (tx) => {
+    await tx.execute(sql`
       UPDATE vouchers SET
         voucher_date    = COALESCE(${voucherDate || null}, voucher_date),
+        fiscal_year     = EXTRACT(YEAR FROM COALESCE(${voucherDate || null}::date, voucher_date))::int,
         account_code    = COALESCE(${accountCode || null}, account_code),
         account_name    = COALESCE(${accountName}, account_name),
         sub_account     = ${subAccount !== undefined ? (subAccount || null) : sql`sub_account`},
@@ -93,14 +116,26 @@ export default async function handler(req: Request, _ctx: Context) {
         status          = 'draft',
         rejection_reason = NULL,
         updated_at      = NOW()
-      WHERE id = ${Number(id)}
+      WHERE id = ${Number(id)} AND status IN ('draft','rejected')
     `);
+    if (voucherType) {
+      await tx.execute(sql`UPDATE vouchers SET voucher_type = ${voucherType} WHERE id = ${Number(id)}`);
+    }
+    if (hasLinesField) {
+      await saveLines(tx, Number(id), lines);
+      await recordHistory(tx, {
+        entity: "voucher", entityId: Number(id), action: "updated", actor: ledgerActor(auth),
+        after: { voucherNumber: voucher.voucher_number, voucherType, lines },
+      });
+    }
+    });
 
     return new Response(jsonKST({
       ok: true,
       data: { message: `전표 ${voucher.voucher_number}이 수정되었습니다.` },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
-    return jsonError("update", err);
+    const { status, body: payload } = ledgerErrorBody("update", "전표 수정 실패", err);
+    return new Response(jsonKST(payload), { status, headers: { "Content-Type": "application/json" } });
   }
 }
