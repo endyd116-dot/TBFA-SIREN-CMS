@@ -4,8 +4,8 @@
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import { spawn } from 'node:child_process';
 const ROOT = process.argv[2]; const OUT = path.resolve(process.argv[3]); const DECK = process.argv[4] || '2'; const KINDS = (process.argv[5] || 'pdf,ppt').split(','); fs.mkdirSync(OUT, { recursive: true });
 const live = /^https?:/.test(ROOT);
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png', '.jpg': 'image/jpeg', '.css': 'text/css' };
-const srv = live ? null : http.createServer((q, r) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); fs.readFile(f, (e, b) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'text/plain' }); r.end(b); } }); }).listen(8766);
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png', '.jpg': 'image/jpeg', '.css': 'text/css', '.webp': 'image/webp', '.mp4': 'video/mp4', '.svg': 'image/svg+xml' };
+const srv = live ? null : http.createServer((q, r) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); fs.readFile(f, (e, b) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'text/plain' }); r.end(b); } }); }).listen(8773);
 const sleep = (m) => new Promise((r) => setTimeout(r, m));
 const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--remote-debugging-port=9339', `--user-data-dir=${path.join(OUT, 'prof')}`, '--window-size=1320,760', 'about:blank'], { stdio: 'ignore' });
 for (let i = 0; i < 60; i++) { try { if ((await fetch('http://127.0.0.1:9339/json/version')).ok) break; } catch {} await sleep(250); }
@@ -20,8 +20,8 @@ const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.
 const ev = async (x) => (await send('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true })).result?.value;
 await send('Page.enable'); await send('Runtime.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1320, height: 760, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: live ? `${ROOT.replace(/\/$/, '')}/${DECK}` : `http://127.0.0.1:8766/${DECK}.html` }); await sleep(800);
-for (let i = 0; i < 80; i++) { if (await ev(`typeof goTo==='function'&&document.fonts.size>20&&[...document.querySelectorAll('link[rel=stylesheet]')].every(l=>l.media==='all')`)) break; await sleep(250); }
+await send('Page.navigate', { url: live ? `${ROOT.replace(/\/$/, '')}/${DECK}` : `http://127.0.0.1:8773/${DECK}.html` }); await sleep(800);
+for (let i = 0; i < 80; i++) { if (await ev(`typeof goTo==='function'&&document.fonts.size>20&&[...document.querySelectorAll('link[rel=stylesheet]')].every(l=>l.media!=='print')`)) break; await sleep(250); }
 await ev(`document.fonts.ready.then(()=>1)`); await sleep(1200);
 for (const k of KINDS) {
   const before = new Set(fs.readdirSync(OUT));

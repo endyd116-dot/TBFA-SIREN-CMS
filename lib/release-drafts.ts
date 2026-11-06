@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.17";
+export const APP_VERSION = "2026-11-07.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-07-proposal-redesign",
+    title: "[관리자] 사업소개서(/1)·NPO 제안서(/2) 새 디자인 — 밝은 화면, 실제 화면과 영상",
+    items: [
+      { text: "두 제안서를 밝고 선명한 디자인으로 다시 만들었습니다. 한 쪽에 한 메시지만 담았습니다", link: "/2" },
+      { text: "실제 운영 화면, 화면 예시, 짧은 영상을 넣었습니다. 쪽을 넘기면 화면이 움직입니다" },
+      { text: "NPO 제안서는 54쪽, 사업소개서는 34쪽입니다. 좌우 넘기기와 PDF·PPT 내보내기는 그대로입니다" },
+    ],
+  },
   {
     key: "2026-11-06-ledger-payroll-scope",
     title: "[관리자] 장부 인건비 — 협의회 소속 급여만 전표로 기록",
