@@ -1,37 +1,17 @@
 import { isoUTC, jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
-import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, members } from "../../db/schema";
-import { eq, and, sql, inArray, gte, lte, isNotNull, notInArray } from "drizzle-orm";
+import { attLeaveRequests } from "../../db/schema";
+import { eq, sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
-import { notifyAllOperators } from "../../lib/notify";
+import { createLeaveRequest, LeaveRequestError } from "../../lib/att-leave";
 
 export const config = { path: "/api/att-leave-request" };
-
-/* 부분 휴가 시간대
-   · 반차(0.5일)   : AM(오전) · PM(오후)
-   · 반반차(0.25일): LATE_IN(2시간 늦게 출근) · EARLY_OUT(2시간 일찍 퇴근)  — 2026-08-03 */
-const HALF_PERIODS = ["AM", "PM"];
-const QUARTER_PERIODS = ["LATE_IN", "EARLY_OUT"];
-const PERIOD_LABEL: Record<string, string> = {
-  AM: "오전 반차",
-  PM: "오후 반차",
-  LATE_IN: "반반차(늦게 출근)",
-  EARLY_OUT: "반반차(일찍 퇴근)",
-};
 
 function jsonOk(data: unknown, status = 200) {
   return new Response(jsonKST({ ok: true, data }), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
-/* db.execute 결과는 드라이버에 따라 배열 그대로 오기도 하고 { rows }로 감싸여 오기도 한다.
-   .rows만 보면 항상 빈 배열이 되어 ① 부분휴가 컬럼 존재 확인이 false로 굳고(반차·반반차 플래그가
-   통째로 저장되지 않음) ② RETURNING id를 못 읽어 신청 번호가 null이 된다.
-   2026-08-03 라이브 점검에서 실제로 드러난 문제 — 코드베이스 표준 방어 패턴으로 통일. */
-function execRows(result: any): any[] {
-  return (result?.rows ?? result ?? []) as any[];
-}
-
 function jsonError(step: string, err: any, status = 500) {
   return new Response(jsonKST({
     ok: false, error: "휴가 신청 처리 실패", step,
@@ -95,235 +75,19 @@ export default async function handler(req: Request) {
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
 
-    const { leaveTypeId, startDate, endDate, reason, halfDayPeriod } = body;
-    if (!leaveTypeId || !startDate || !endDate) {
-      return jsonError("validate", new Error("leaveTypeId, startDate, endDate 필수"), 400);
-    }
-
-    /* 부분 휴가 판별 — 반차(0.5일) / 반반차(0.25일, 2026-08-03 추가).
-       반반차도 is_half_day=true로 저장한다: '그날 출근은 하되 지각·조퇴로 보지 않는다'는
-       기존 반차 처리(출근 허용·PARTIAL_LEAVE 기록·종일 LEAVE 스탬프 생략)가 그대로 맞기 때문.
-       구분은 half_day_period 값과 days로 한다 (DB 컬럼 추가 불필요). */
-    const period = String(halfDayPeriod || "");
-    const isQuarterDay = QUARTER_PERIODS.includes(period);          // LATE_IN | EARLY_OUT
-    const isPartial = isQuarterDay || HALF_PERIODS.includes(period) || body.isHalfDay === true;
-
-    // 1. 서버에서 일수 직접 계산 (클라이언트 days 값 무시)
-    const startMs = new Date(`${startDate}T00:00:00Z`).getTime();
-    const endMs   = new Date(`${endDate}T00:00:00Z`).getTime();
-    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
-      return jsonError("validate_date", new Error("날짜 형식이 올바르지 않습니다"), 400);
-    }
-    let days: number;
-    if (isPartial) {
-      // 반차·반반차는 시작=종료 강제
-      if (startDate !== endDate) {
-        return jsonError("validate_halfday", new Error("반차·반반차는 단일 날짜만 신청할 수 있습니다"), 400);
-      }
-      if (!HALF_PERIODS.includes(period) && !isQuarterDay) {
-        return jsonError(
-          "validate_halfday_period",
-          new Error("시간대는 오전 반차(AM)·오후 반차(PM)·늦게 출근(LATE_IN)·일찍 퇴근(EARLY_OUT) 중 하나여야 합니다"),
-          400,
-        );
-      }
-      days = isQuarterDay ? 0.25 : 0.5;
-    } else {
-      // Q3-008 fix: 달력일 전체가 아니라 영업일(주말·att_holidays 제외)만 차감.
-      //   승인 시 att_records LEAVE 스탬프는 영업일에만 찍히므로(admin-att-leave-review),
-      //   기존 달력일 계산은 금~월 등 주말 낀 휴가에서 연차를 과다 차감했다.
-      let holidaySet = new Set<string>();
-      try {
-        const hRows = await db
-          .select({ date: attHolidays.date })
-          .from(attHolidays)
-          .where(and(gte(attHolidays.date, startDate), lte(attHolidays.date, endDate)));
-        holidaySet = new Set(hRows.map((h: any) => String(h.date)));
-      } catch (err) {
-        console.warn("[att-leave-request] 공휴일 조회 실패 — 주말만 제외:", err);
-      }
-      let biz = 0;
-      let cur = new Date(`${startDate}T00:00:00Z`);
-      const endD = new Date(`${endDate}T00:00:00Z`);
-      while (cur.getTime() <= endD.getTime()) {
-        const dow = cur.getUTCDay();              // 0=일 6=토
-        const ds = cur.toISOString().slice(0, 10);
-        if (dow !== 0 && dow !== 6 && !holidaySet.has(ds)) biz++;
-        cur = new Date(cur.getTime() + 86_400_000);
-      }
-      days = biz;
-    }
-    if (days <= 0) {
-      return jsonError("validate_range", new Error("신청 기간에 영업일이 없습니다 (주말·공휴일 제외)"), 400);
-    }
-
-    // 2. 잔여일 검증 (잔액 row 없으면 0일로 간주 → 미배정 휴가종류는 차단)
-    const year = new Date(startDate).getFullYear();
-    let remaining = 0;
+    /* 검사와 저장은 내부결재와 같은 공용 처리를 쓴다 (lib/att-leave.ts) */
     try {
-      const balRows = await db
-        .select()
-        .from(attLeaveBalances)
-        .where(and(
-          eq(attLeaveBalances.memberUid, memberUid),
-          eq(attLeaveBalances.leaveTypeId, leaveTypeId),
-          eq(attLeaveBalances.year, year),
-        ))
-        .limit(1);
-      const balance = balRows[0];
-      if (balance) {
-        remaining = Number(balance.totalDays) - Number(balance.usedDays);
-      }
-    } catch (err) {
-      console.warn("[att-leave-request] 잔여 검증 실패:", err);
-    }
-    /* P1-13 fix: used_days는 승인 시점에만 증가 → 승인 대기(PENDING) 다건이 각각 통과해
-       잔여를 초과할 수 있음. 같은 연도·종류의 PENDING 합산을 잔여에서 차감해 막는다. */
-    let pendingDays = 0;
-    try {
-      const pendRows: any = await db
-        .select({ s: sql<string>`COALESCE(SUM(${attLeaveRequests.days}), 0)` })
-        .from(attLeaveRequests)
-        .where(and(
-          eq(attLeaveRequests.memberUid, memberUid),
-          eq(attLeaveRequests.leaveTypeId, leaveTypeId),
-          eq(attLeaveRequests.status, "PENDING"),
-          sql`EXTRACT(YEAR FROM ${attLeaveRequests.startDate}) = ${year}`,
-        ));
-      pendingDays = Number(pendRows[0]?.s || 0);
-    } catch (err) {
-      console.warn("[att-leave-request] PENDING 합산 실패:", err);
-    }
-    const effectiveRemaining = remaining - pendingDays;
-    if (effectiveRemaining < days) {
-      return new Response(jsonKST({
-        ok: false,
-        error: `휴가 잔여일이 부족합니다 (잔여: ${effectiveRemaining}일${pendingDays > 0 ? ` · 승인대기 ${pendingDays}일 차감 후` : ""}, 신청: ${days}일)`,
-        step: "balance_check",
-      }), { status: 400, headers: { "Content-Type": "application/json" } });
-    }
-
-    // 3. 날짜 충돌 검사 — 동일 직원의 PENDING/APPROVED 중 기간 겹치는 건
-    try {
-      const overlap = await db
-        .select({ id: attLeaveRequests.id, startDate: attLeaveRequests.startDate, endDate: attLeaveRequests.endDate })
-        .from(attLeaveRequests)
-        .where(and(
-          eq(attLeaveRequests.memberUid, memberUid),
-          inArray(attLeaveRequests.status, ["PENDING", "APPROVED"]),
-          lte(attLeaveRequests.startDate, endDate),
-          gte(attLeaveRequests.endDate, startDate),
-        ))
-        .limit(1);
-      if (overlap.length > 0) {
-        return new Response(jsonKST({
-          ok: false,
-          error: "해당 기간에 이미 휴가 신청이 존재합니다",
-          step: "overlap_check",
-          conflict: overlap[0],
-        }), { status: 409, headers: { "Content-Type": "application/json" } });
-      }
-    } catch (err) {
-      console.warn("[att-leave-request] 충돌 검사 실패:", err);
-    }
-
-    /* 3-2. 출근 기록 충돌 검사 (2026-05-29 운영 시작 전 P1-1 fix)
-       — 종일 휴가 신청 시 신청 기간 안에 이미 출근 기록(checkInTime 있는 NORMAL/LATE/EARLY_LEAVE 등)이 있으면 차단.
-       — 반차·반반차는 출근 후 일부 시간만 휴가가 정상이라 패스.
-       — LEAVE/HOLIDAY/ABSENT 상태는 출근 안 한 날이라 충돌 아님. */
-    if (!isPartial) {
-      try {
-        const attOverlap = await db
-          .select({ id: attRecords.id, date: attRecords.date, status: attRecords.status })
-          .from(attRecords)
-          .where(and(
-            eq(attRecords.memberUid, memberUid),
-            gte(attRecords.date, startDate),
-            lte(attRecords.date, endDate),
-            isNotNull(attRecords.checkInTime),
-            notInArray(attRecords.status, ["LEAVE", "HOLIDAY", "ABSENT"]),
-          ))
-          .limit(1);
-        if (attOverlap.length > 0) {
+      const created = await createLeaveRequest(memberUid, body);
+      return jsonOk(created, 201);
+    } catch (err: any) {
+      if (err instanceof LeaveRequestError) {
+        if (err.plain) {
           return new Response(jsonKST({
-            ok: false,
-            error: `해당 기간(${attOverlap[0].date})에 이미 출근 기록이 있습니다. 반차·반반차로 신청하거나 관리자에게 출근 기록 정정을 문의하세요`,
-            step: "attendance_overlap",
-            conflict: attOverlap[0],
-          }), { status: 409, headers: { "Content-Type": "application/json" } });
+            ok: false, error: err.message, step: err.step, ...(err.conflict ? { conflict: err.conflict } : {}),
+          }), { status: err.status, headers: { "Content-Type": "application/json" } });
         }
-      } catch (err) {
-        console.warn("[att-leave-request] 출근 충돌 검사 실패:", err);
+        return jsonError(err.step, err, err.status);
       }
-    }
-
-    // 4. INSERT — 부분휴가 컬럼은 마이그(migrate-att-r29-halfday) 적용된 환경에서만 저장
-    try {
-      // 부분휴가 컬럼 존재 여부 동적 확인
-      let halfDayExists = false;
-      try {
-        const c: any = await db.execute(sql`
-          SELECT COUNT(*)::int AS cnt FROM information_schema.columns
-          WHERE table_name='att_leave_requests'
-            AND column_name IN ('is_half_day','half_day_period')
-        `);
-        halfDayExists = Number((execRows(c)[0] ?? {}).cnt ?? 0) >= 2;
-      } catch {}
-
-      let result: any;
-      if (halfDayExists) {
-        result = await db.execute(sql`
-          INSERT INTO att_leave_requests
-            (member_uid, leave_type_id, start_date, end_date, days, reason, status,
-             is_half_day, half_day_period)
-          VALUES
-            (${memberUid}, ${leaveTypeId}, ${startDate}::date, ${endDate}::date,
-             ${String(days)}, ${reason ?? null}, 'PENDING',
-             ${isPartial}, ${isPartial ? period : null})
-          RETURNING id
-        `);
-      } else {
-        // 마이그 미적용 — 부분휴가 플래그는 무시(0.5·0.25일은 days 컬럼에 기록됨)
-        if (isPartial) {
-          console.warn("[att-leave-request] half-day columns missing — flag dropped");
-        }
-        result = await db.execute(sql`
-          INSERT INTO att_leave_requests
-            (member_uid, leave_type_id, start_date, end_date, days, reason, status)
-          VALUES
-            (${memberUid}, ${leaveTypeId}, ${startDate}::date, ${endDate}::date,
-             ${String(days)}, ${reason ?? null}, 'PENDING')
-          RETURNING id
-        `);
-      }
-
-      const row = execRows(result)[0] ?? {};
-      const leaveId = Number(row.id) || null;
-
-      /* 어드민·운영자에게 결재 대기 알림 (2026-05-29 P1-2 fix·운영 시작 전) */
-      try {
-        const [requester] = await db
-          .select({ name: members.name })
-          .from(members)
-          .where(eq(members.id, Number(memberUid)))
-          .limit(1);
-        const requesterName = requester?.name || "직원";
-        const periodText = startDate === endDate ? startDate : `${startDate}~${endDate}`;
-        await notifyAllOperators({
-          category: "system",
-          severity: "info",
-          title: `휴가 결재 대기 — ${requesterName}`,
-          message: `${periodText} (${days}일${isPartial && PERIOD_LABEL[period] ? ` · ${PERIOD_LABEL[period]}` : ""})${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
-          link: "/cms-tbfa.html#att-ops",
-          refTable: "att_leave_requests",
-          refId: leaveId,
-        });
-      } catch (notifyErr) {
-        console.warn("[att-leave-request] 어드민 결재 대기 알림 실패:", notifyErr);
-      }
-
-      return jsonOk({ leaveId, days, remaining: remaining - days }, 201);
-    } catch (err) {
       return jsonError("insert_request", err);
     }
   }

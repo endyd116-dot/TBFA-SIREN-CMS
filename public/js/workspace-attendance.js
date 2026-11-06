@@ -799,6 +799,14 @@
     if (!start || !end) { toast('날짜를 입력하세요'); return; }
     if (start > end) { toast('종료일이 시작일보다 빠를 수 없습니다'); return; }
 
+    /* 휴가 신청은 내부결재 문서로 올린다(2026-11-06). 입력한 값을 작성 화면으로 넘긴다 */
+    const typeName = document.getElementById('attLeaveType')?.selectedOptions?.[0]?.textContent || '';
+    const kind = typeName.includes('병가') ? 'sick' : typeName.includes('경조') ? 'family' : 'annual';
+    const q = new URLSearchParams({ docType: 'internal', kind, from: start, to: end, leaveTypeId: typeId });
+    if (half) q.set('half', half);
+    location.href = '/cms-tbfa.html?' + q.toString() + '#docs-new';
+    return;
+
     // 반차·반반차 — 시작=종료 단일 날짜 강제
     const isHalfDay = PARTIAL_PERIODS.indexOf(half) >= 0;
     if (isHalfDay && start !== end) {

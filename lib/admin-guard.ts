@@ -57,8 +57,6 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/sso-marketing": "sso_marketing",
   /* 2026-07-01: 지출 결재 기안은 직원(operator)도 가능(finance_approval_submit·operator 허용 시드).
      결재 처리(decide)·라인/위임 설정은 PATH_FEATURE 미등록 → 기본 admin/이사장만. */
-  "/api/admin-approval-request-create": "finance_approval_submit",
-  "/api/admin-approval-requests": "finance_approval_submit",
   /* 2026-11-06 장부: 조회는 finance_view, 전표 쓰기는 finance_bookkeeping, 기준 정보는 finance_ledger_manage.
      승인·취소·마감 해제·회계연도 변경은 함수 안에서 이사장으로 고정한다. */
   "/api/admin-ledger-masters": "finance_view",
@@ -69,7 +67,8 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-ledger-history": "finance_view",
   "/api/admin-ledger-flow": "finance_view",
   "/api/admin-ledger-sync": "finance_bookkeeping",
-  "/api/admin-approval-pay": "finance_payment_confirm",
+  "/api/admin-approval-pay": "finance_bookkeeping",
+  "/api/admin-approval-requests": "finance_bookkeeping",
   "/api/admin-approval-refund": "finance_refund",
   "/api/admin-ledger-statements": "finance_view",
   "/api/admin-ledger-settlement": "finance_view",

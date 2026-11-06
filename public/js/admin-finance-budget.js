@@ -711,6 +711,7 @@
     const totalRate = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
 
     let anyOver = false;
+    const canAdjust = isSuperAdmin() && (plan?.status === 'approved');
     const rowFor = (n, depth) => {
       const planned = n.planned || 0, executed = n.executed || 0;
       const remaining = planned - executed;
@@ -722,7 +723,7 @@
       const bg = n.level === '관' ? 'background:#fdf2f4;' : n.level === '항' ? 'background:#fffbeb;' : '';
       const wt = n.level === '관' ? 'font-weight:700;' : n.level === '항' ? 'font-weight:600;' : '';
       let html = `<tr style="${bg}${over ? 'background:#fef2f2;' : ''}">
-        <td style="padding-left:${pad}px;${wt}"><span style="font-size:10px;color:var(--text-3)">${n.level}</span> ${escapeHtml(n.name)}${over ? ' <span style="color:var(--danger);font-size:11px;font-weight:700">초과</span>' : ''}</td>
+        <td style="padding-left:${pad}px;${wt}"><span style="font-size:10px;color:var(--text-3)">${n.level}</span> ${escapeHtml(n.name)}${over ? ' <span style="color:var(--danger);font-size:11px;font-weight:700">초과</span>' : ''}${n.level === '목' && canAdjust ? ` <button class="btn-sm btn-sm-ghost bp-adjust" type="button" data-ba="${n.id}" data-name="${escapeHtml(n.name)}" data-planned="${planned}" style="margin-left:6px">조정</button>` : ''}</td>
         <td class="num">${fmtKRW(planned)}</td>
         <td class="num">${fmtKRW(executed)}</td>
         <td class="num" style="color:${remaining < 0 ? 'var(--danger)' : 'var(--success)'};${remaining < 0 ? 'font-weight:700' : ''}">${fmtKRW(remaining)}</td>
@@ -753,8 +754,19 @@
         <thead><tr><th>예산과목 (관·항·목)</th><th class="num">편성</th><th class="num">집행</th><th class="num">잔액</th><th>집행률</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <div style="margin-top:10px;font-size:12px;color:var(--text-3)">※ 집행 = 승인 완료 지출 합계 · 잔액 = 편성 − 집행 · 계층별 소계는 자동 합산</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-3)">※ 집행 = 지출과 급여 등 전표 비용 합계 · 잔액 = 편성 − 집행 · 계층별 소계는 자동 합산</div>
     `;
+    bodyEl.querySelectorAll('.bp-adjust').forEach(b => b.addEventListener('click', async () => {
+      const amount = prompt(`${b.dataset.name} 예산을 얼마로 조정할까요? 지금 ${fmtKRW(b.dataset.planned)}`, b.dataset.planned);
+      if (amount === null) return;
+      const reason = prompt('조정 사유를 입력하세요. 변경 이력에 남습니다.');
+      if (!reason) return;
+      const r = await api('POST', '/api/admin-budget-plan-extras', {
+        planId, action: 'adjust', budgetAccountId: Number(b.dataset.ba), newAmount: parseInt(amount, 10), reason,
+      });
+      if (!r.ok) { alert(r.data?.error || r.error || '조정 실패'); return; }
+      openRate(planId);
+    }));
   }
 
   /* ════════════════════════════════════════════════

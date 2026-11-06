@@ -202,7 +202,7 @@ async function handleList(box: string, statusFilter: string | null, myId: number
     if (statusFilter && statusFilter.trim() !== "") {
       whereSql = sql`WHERE ar.status = ${statusFilter.trim()}`;
     } else {
-      whereSql = sql`WHERE TRUE`;
+      whereSql = sql`WHERE ar.doc_type = 'expense' AND ar.status <> 'draft'`;
     }
   }
 

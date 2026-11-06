@@ -5,10 +5,13 @@
  *   { action:'revenue', planId, lines:[{ accountCode, fundId?, plannedAmount, note? }] }
  *   { action:'splits', planId, lineId, splits:[{ functionCode?, programId?, fundId?, amount, note? }] }
  *   { action:'carry', planId, carryIn }
+ *   { action:'adjust', planId, budgetAccountId, newAmount, reason }  승인된 예산 조정 (이사장)
  *
  * 수입 과목은 수익 계정을 쓴다. 예산 과목(관·항·목)은 지출 전용이라 건드리지 않는다.
  * 나누기는 목 한 줄 아래 하위 표다. 목 합계와 같아야 저장된다.
  * 작성중·반려 예산안만 고칠 수 있다.
+ * 승인된 예산은 이사장이 사유를 적고 목 금액을 조정한다. 사용가능액 검사로 승인이 막혔을 때의 길이다.
+ * 이미 쓰거나 예약한 금액 밑으로는 줄일 수 없고, 조정은 예산 원장과 변경 이력에 남는다.
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
@@ -16,7 +19,8 @@ import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { sql } from "drizzle-orm";
-import { LedgerError, ledgerErrorBody } from "../../lib/ledger-post";
+import { LedgerError, ledgerActor, ledgerErrorBody, recordHistory } from "../../lib/ledger-post";
+import { budgetPosition, lockBudget, recordBudgetLedger } from "../../lib/budget-ledger";
 import { loadFiscalYears } from "../../lib/ledger-report";
 import { budgetStatement } from "../../lib/ledger-statements";
 
@@ -118,6 +122,53 @@ export default async function handler(req: Request, _ctx: Context) {
   if (!planId) return json({ ok: false, error: "planId 필수" }, 400);
 
   try {
+    if (action === "adjust") {
+      if (String(auth.ctx.member.role ?? "") !== "super_admin") throw new LedgerError("승인된 예산 조정은 이사장만 할 수 있습니다", 403);
+      const budgetAccountId = Number(body?.budgetAccountId) || 0;
+      const newAmount = Math.trunc(Number(body?.newAmount));
+      const reason = String(body?.reason ?? "").trim().slice(0, 300);
+      if (!budgetAccountId || !Number.isFinite(newAmount) || newAmount < 0) throw new LedgerError("예산 과목과 금액을 확인해 주세요", 400);
+      if (!reason) throw new LedgerError("조정 사유를 입력하세요", 400);
+      const actor = ledgerActor(auth);
+      await db.transaction(async (tx) => {
+        const plan = rowsOf(await tx.execute(sql`SELECT id, fiscal_year, status FROM budget_plans WHERE id = ${planId} FOR UPDATE`))[0];
+        if (!plan) throw new LedgerError("예산안을 찾을 수 없습니다", 404);
+        if (plan.status !== "approved") throw new LedgerError("승인된 예산만 조정합니다. 작성 중이면 편성 화면에서 고치세요.");
+        const year = Number(plan.fiscal_year);
+        await lockBudget(tx, year, budgetAccountId);
+        const position = await budgetPosition(tx, year, budgetAccountId);
+        if (newAmount < position.executed + position.reserved) {
+          throw new LedgerError(`집행액과 예약액 합계(${(position.executed + position.reserved).toLocaleString("ko-KR")}원)보다 적게 줄일 수 없습니다.`);
+        }
+        const delta = newAmount - position.planned;
+        if (position.lineId) {
+          await tx.execute(sql`UPDATE budget_lines SET planned_amount = ${newAmount} WHERE id = ${position.lineId}`);
+          const splits = rowsOf(await tx.execute(sql`SELECT id, amount FROM budget_line_splits WHERE line_id = ${position.lineId} ORDER BY amount DESC, id`));
+          /* 나눈 예산이 있으면 가장 큰 몫에서 조정해 합계를 맞춘다 */
+          if (splits.length) {
+            if (Number(splits[0].amount) + delta < 0) throw new LedgerError("나눈 예산이 있어 이만큼 줄일 수 없습니다. 예산 관리에서 나눈 금액을 먼저 확인하세요.");
+            await tx.execute(sql`UPDATE budget_line_splits SET amount = amount + ${delta} WHERE id = ${splits[0].id}`);
+          }
+        } else {
+          await tx.execute(sql`
+            INSERT INTO budget_lines (plan_id, budget_account_id, category_id, planned_amount, prev_year_actual)
+            VALUES (${planId}, ${budgetAccountId}, NULL, ${newAmount}, 0)`);
+        }
+        await tx.execute(sql`
+          UPDATE budget_plans SET total_planned = (SELECT COALESCE(SUM(planned_amount), 0) FROM budget_lines WHERE plan_id = ${planId}), updated_at = NOW()
+           WHERE id = ${planId}`);
+        await recordBudgetLedger(tx, {
+          year, budgetAccountId, documentType: "budget_plan", documentId: planId, type: "correction", amount: delta,
+          before: position, actor, key: `adjust:${planId}:${budgetAccountId}:${Date.now()}`, note: reason,
+        });
+        await recordHistory(tx, {
+          entity: "budget_plan", entityId: planId, action: "budget_adjusted", actor, reason,
+          before: { budgetAccountId, planned: position.planned }, after: { budgetAccountId, planned: newAmount },
+        });
+      });
+      return json({ ok: true, data: await loadExtras(planId) });
+    }
+
     await db.transaction(async (tx) => {
       const plan = rowsOf(await tx.execute(sql`SELECT id, status FROM budget_plans WHERE id = ${planId} FOR UPDATE`))[0];
       if (!plan) throw new LedgerError("예산안을 찾을 수 없습니다", 404);

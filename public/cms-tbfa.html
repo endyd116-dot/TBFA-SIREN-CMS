@@ -518,11 +518,28 @@ if (window.self !== window.top) {
           <li><a href="#ledger" data-tab="ledger"><i><span class="siren-icon-wrap" data-icon="book-open"></span></i><span>장부</span></a></li>
           <li><a href="#finance-budget" data-tab="finance-budget"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>예산 관리</span></a></li>
           <li><a href="#budget-accounts" data-tab="budget-accounts"><i><span class="siren-icon-wrap" data-icon="folders"></span></i><span>예산과목 체계(관·항·목)</span></a></li>
-          <li><a href="#approval-inbox" data-tab="approval-inbox"><i><span class="siren-icon-wrap" data-icon="receipt"></span></i><span>지출 결재함</span></a></li>
-          <li><a href="#approval-resolutions" data-tab="approval-resolutions"><i><span class="siren-icon-wrap" data-icon="files"></span></i><span>지출결의서</span></a></li>
-          <li><a href="#approval-lines" data-tab="approval-lines"><i><span class="siren-icon-wrap" data-icon="shield"></span></i><span>결재라인·위임 설정</span></a></li>
           <li><a href="#bank-transactions" data-tab="bank-transactions"><i><span class="siren-icon-wrap" data-icon="landmark"></span></i><span>지출 자동 추출 시스템</span></a></li>
           <li><a href="#finance-report" data-tab="finance-report"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>재무 보고서</span></a></li>
+        </ul>
+      </li>
+
+      <!-- ── 내부결재 (2026-11-06) ── -->
+      <li class="cms-menu-group" data-group="docs">
+        <a href="#" data-toggle="docs">
+          <i><span class="siren-icon-wrap" data-icon="files"></span></i><span>내부결재</span>
+          <span class="cms-menu-chevron">▾</span>
+        </a>
+        <ul class="cms-submenu" data-submenu="docs" style="display:none">
+          <li><a href="#docs-home" data-tab="docs-home"><i><span class="siren-icon-wrap" data-icon="clipboard-list"></span></i><span>결재 홈</span></a></li>
+          <li><a href="#docs-new" data-tab="docs-new"><i><span class="siren-icon-wrap" data-icon="file-text"></span></i><span>문서 작성</span></a></li>
+          <li><a href="#docs-mine" data-tab="docs-mine"><i><span class="siren-icon-wrap" data-icon="files"></span></i><span>내 문서함</span></a></li>
+          <li><a href="#docs-inbox" data-tab="docs-inbox"><i><span class="siren-icon-wrap" data-icon="receipt"></span></i><span>결재 문서함</span></a></li>
+          <li><a href="#docs-pay" data-tab="docs-pay"><i><span class="siren-icon-wrap" data-icon="hand-coins"></span></i><span>지출완료 확인</span></a></li>
+          <li><a href="#docs-budget" data-tab="docs-budget"><i><span class="siren-icon-wrap" data-icon="bar-chart-3"></span></i><span>예산 진행현황</span></a></li>
+          <li><a href="#approval-resolutions" data-tab="approval-resolutions"><i><span class="siren-icon-wrap" data-icon="book"></span></i><span>지출결의서 대장</span></a></li>
+          <li><a href="#docs-archive" data-tab="docs-archive"><i><span class="siren-icon-wrap" data-icon="folders"></span></i><span>취소 및 보존함</span></a></li>
+          <li><a href="#docs-settings" data-tab="docs-settings"><i><span class="siren-icon-wrap" data-icon="shield"></span></i><span>결재선 및 양식 설정</span></a></li>
+          <li><a href="#approval-lines" data-tab="approval-lines"><i><span class="siren-icon-wrap" data-icon="shield"></span></i><span>금액별 추천 결재선</span></a></li>
         </ul>
       </li>
 
@@ -1427,7 +1444,14 @@ if (window.self !== window.top) {
       <section class="cms-page" id="page-ledger"></section>
       <section class="cms-page" id="page-finance-budget"></section>
       <section class="cms-page" id="page-budget-accounts"></section>
-      <section class="cms-page" id="page-approval-inbox"></section>
+      <section class="cms-page" id="page-docs-home"></section>
+      <section class="cms-page" id="page-docs-new"></section>
+      <section class="cms-page" id="page-docs-mine"></section>
+      <section class="cms-page" id="page-docs-inbox"></section>
+      <section class="cms-page" id="page-docs-pay"></section>
+      <section class="cms-page" id="page-docs-budget"></section>
+      <section class="cms-page" id="page-docs-archive"></section>
+      <section class="cms-page" id="page-docs-settings"></section>
       <section class="cms-page" id="page-approval-resolutions"></section>
       <section class="cms-page" id="page-approval-lines"></section>
       <section class="cms-page" id="page-bank-transactions"></section>
@@ -2616,7 +2640,8 @@ if (window.self !== window.top) {
   <!-- Phase 22-B-R2: 예산 편성 + 결재 -->
   <script src="/js/admin-finance-budget.js?v=20261106-settle"></script>
   <script src="/js/admin-budget-accounts.js?v=20260716"></script>
-  <script src="/js/admin-approval.js?v=20261106-flow"></script>
+  <script src="/js/admin-approval.js?v=20261106-docs"></script>
+  <script src="/js/admin-docs.js?v=20261106-docs"></script>
   <script src="/js/admin-finance-report.js?v=20261106-settle"></script>
   <!-- Phase 22-D-R2: 통장 거래내역 자동화 -->
   <script src="/js/admin-bank-transactions.js?v=20261106-flow"></script>

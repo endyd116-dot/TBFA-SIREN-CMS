@@ -33,10 +33,13 @@ const STAGES: Stage[] = [
 
 async function fetchStalled(hoursLow: number): Promise<any[]> {
   const res = await db.execute(sql`
-    SELECT id, title, amount, steps, current_step, drafter_name, updated_at
-      FROM approval_requests
-     WHERE status = 'pending'
-       AND updated_at <= NOW() - (${hoursLow}::int * INTERVAL '1 hour')
+    SELECT r.id, r.title, r.amount, r.drafter_name, r.updated_at,
+           (SELECT st.assignee_id FROM approval_request_steps st
+             WHERE st.request_id = r.id AND st.version = r.version AND st.kind = 'approval'
+               AND st.step_index = r.current_step LIMIT 1) AS assignee_id
+      FROM approval_requests r
+     WHERE r.status = 'pending'
+       AND r.updated_at <= NOW() - (${hoursLow}::int * INTERVAL '1 hour')
      LIMIT 300
   `);
   return rowsOf(res);
@@ -72,22 +75,7 @@ export default async (_req: Request, _ctx: Context) => {
     }
 
     for (const r of rows) {
-      const steps: string[] = Array.isArray(r.steps) ? r.steps : [];
-      const curRole = steps[Number(r.current_step) || 0];
-      if (!curRole) continue;
-
-      let approverIds: number[] = [];
-      try {
-        const ares = await db.execute(sql`
-          SELECT id FROM members
-           WHERE type = 'admin' AND operator_active = TRUE AND status = 'active'
-             AND role IN (${curRole}, 'super_admin')
-        `);
-        approverIds = rowsOf(ares).map((a: any) => Number(a.id)).filter((n) => Number.isFinite(n));
-      } catch (err) {
-        console.warn("[cron-approval-delay] 대상 조회 실패:", r.id, err);
-        continue;
-      }
+      const approverIds: number[] = r.assignee_id == null ? [] : [Number(r.assignee_id)];
       if (stage.escalate) {
         try {
           const sres = await db.execute(sql`
@@ -105,15 +93,15 @@ export default async (_req: Request, _ctx: Context) => {
       if (approverIds.length === 0) continue;
 
       const days = Math.floor(stage.hoursLow / 24);
-      const title = `[결재지연-${stage.marker}] 지출 결재가 ${days}일째 대기 중`;
-      const message = `${r.drafter_name || "기안자"}님의 ${Number(r.amount).toLocaleString()}원 지출 결재 "${r.title}"가 ${days}일째 결재를 기다리고 있어요.${stage.escalate ? " (이사장 확인 요청)" : ""}`;
+      const title = `[결재지연-${stage.marker}] 결재 문서가 ${days}일째 대기 중`;
+      const message = `${r.drafter_name || "기안자"}님의 문서 "${r.title}"가 ${days}일째 결재를 기다리고 있어요.${stage.escalate ? " (이사장 확인 요청)" : ""}`;
 
       for (const memberId of approverIds) {
         try {
           if (await alreadyNotified(Number(r.id), memberId, stage.marker)) { totalSkipped++; continue; }
           const sent = await notifyMany([memberId], {
             recipientType: "operator", category: "system", severity: stage.escalate ? "critical" : "warning",
-            title, message, link: "/cms-tbfa.html#approval-inbox",
+            title, message, link: "/cms-tbfa.html#docs-inbox",
             refTable: "approval_requests", refId: Number(r.id),
           });
           if (sent > 0) totalSent++; else totalSkipped++;
@@ -122,6 +110,28 @@ export default async (_req: Request, _ctx: Context) => {
         }
       }
     }
+  }
+
+  /* 긴급 지출의 사후 품의 미연결 알림: 승인 뒤 7일이 지나면 기안자에게 매일 알린다 */
+  try {
+    const due = rowsOf(await db.execute(sql`
+      SELECT r.id, r.title, r.drafter_id FROM approval_requests r
+       WHERE r.followup_due = TRUE AND r.status = 'approved' AND r.decided_at <= NOW() - INTERVAL '7 days'
+         AND NOT EXISTS (
+           SELECT 1 FROM approval_doc_references x JOIN approval_requests t ON t.id = x.target_id
+            WHERE x.request_id = r.id AND t.doc_type = 'proposal' AND t.status = 'approved')
+       LIMIT 100`));
+    for (const r of due) {
+      if (!r.drafter_id || await alreadyNotified(Number(r.id), Number(r.drafter_id), "FOLLOWUP")) continue;
+      await notifyMany([Number(r.drafter_id)], {
+        recipientType: "operator", category: "system", severity: "warning",
+        title: "[결재지연-FOLLOWUP] 사후 품의 연결 필요",
+        message: `긴급 지출 "${r.title}"에 사후 품의가 연결되지 않았습니다.`,
+        link: "/cms-tbfa.html#docs-mine", refTable: "approval_requests", refId: Number(r.id),
+      });
+    }
+  } catch (err) {
+    console.warn("[cron-approval-delay] 사후 품의 알림 실패:", err);
   }
 
   const ms = Date.now() - startedAt;

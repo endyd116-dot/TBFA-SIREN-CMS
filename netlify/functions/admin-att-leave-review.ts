@@ -1,10 +1,10 @@
 import { jsonKST } from "../../lib/kst";
 import { db } from "../../db/index";
-import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, attLeaveTypes, members } from "../../db/schema";
-import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
+import { attLeaveRequests, attLeaveTypes, members } from "../../db/schema";
+import { eq, inArray, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
-import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { applyLeaveDecision } from "../../lib/att-leave";
 
 export const config = { path: "/api/admin-att-leave-review" };
 
@@ -19,6 +19,17 @@ function jsonError(step: string, err: any, status = 500) {
     detail: String(err?.message ?? err).slice(0, 500),
     stack: String(err?.stack ?? "").slice(0, 1000),
   }), { status, headers: { "Content-Type": "application/json" } });
+}
+
+/* 내부결재 문서와 연결된 휴가 신청. 연결 칸이 없는 동안에는 빈 목록으로 계속한다 */
+async function docLinkedLeaves(): Promise<Set<number>> {
+  try {
+    const res: any = await db.execute(sql`SELECT att_leave_request_id FROM approval_requests WHERE att_leave_request_id IS NOT NULL`);
+    return new Set(((res?.rows ?? res ?? []) as any[]).map((r) => Number(r.att_leave_request_id)));
+  } catch (err) {
+    console.warn("[admin-att-leave-review] 문서 연결 조회 실패:", err);
+    return new Set();
+  }
 }
 
 export default async function handler(req: Request) {
@@ -37,12 +48,13 @@ export default async function handler(req: Request) {
       const url = new URL(req.url);
       const status = url.searchParams.get("status") ?? "PENDING";
 
-      const rows = await db
+      const linked = await docLinkedLeaves();
+      const rows = (await db
         .select()
         .from(attLeaveRequests)
         .where(eq(attLeaveRequests.status, status))
         .orderBy(attLeaveRequests.createdAt)
-        .limit(100);
+        .limit(100)).filter((r) => status !== "PENDING" || !linked.has(Number(r.id)));
 
       // 신청자(members) + 휴가종류명 조인
       const memberIds = Array.from(
@@ -124,6 +136,9 @@ export default async function handler(req: Request) {
       .limit(1);
 
     if (!request) return jsonError("not_found", new Error("휴가 신청 없음"), 404);
+    if ((await docLinkedLeaves()).has(Number(request.id))) {
+      return jsonError("doc_linked", new Error("내부결재 문서로 올린 휴가입니다. 문서에서 처리해 주세요"), 409);
+    }
     /* Q3-009 fix: 승인취소(CANCELLED)는 APPROVED 건에만, 승인/반려는 PENDING 건에만 허용 */
     if (action === "CANCELLED") {
       if (request.status !== "APPROVED") {
@@ -140,148 +155,8 @@ export default async function handler(req: Request) {
       return jsonError("self_review", new Error("본인이 신청한 건은 본인이 승인할 수 없습니다 (다른 결재자에게 요청하세요)"), 403);
     }
 
-    // 결재 상태 업데이트
-    const [updated] = await db
-      .update(attLeaveRequests)
-      .set({
-        status: action,
-        reviewedBy: String(auth.ctx.member.id),
-        reviewNote: note ?? null,
-        updatedAt: new Date(),
-      } as any)
-      .where(eq(attLeaveRequests.id, requestId))
-      .returning();
-
-    // APPROVED: 잔여 휴가 used_days 증가 + 기간 영업일에 attRecords LEAVE 반영
-    if (action === "APPROVED") {
-      const year = new Date(request.startDate).getFullYear();
-      try {
-        // P2-69 fix: UPSERT로 변경 — 해당 연도·종류 잔여 행이 없어도(연도 경계 등) 차감이 조용히 누락되지 않도록.
-        //           (과거 단순 UPDATE는 행 없으면 0행 갱신 후 warn만 → 잔여가 실제보다 많게 남음)
-        await db.execute(sql`
-          INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)
-          VALUES (${request.memberUid}, ${request.leaveTypeId}, ${year}, 0, ${request.days})
-          ON CONFLICT (member_uid, leave_type_id, year)
-          DO UPDATE SET used_days = att_leave_balances.used_days + ${request.days}
-        `);
-      } catch (err) {
-        console.warn("[admin-att-leave-review] 잔여 휴가 차감 실패:", err);
-      }
-
-      // 휴가 기간 영업일(주말·공휴일 제외)에 attRecords UPSERT(status=LEAVE)
-      try {
-        const startStr = String(request.startDate);
-        const endStr = String(request.endDate);
-
-        // 공휴일 목록
-        const hRows = await db
-          .select({ date: attHolidays.date })
-          .from(attHolidays)
-          .where(and(gte(attHolidays.date, startStr), lte(attHolidays.date, endStr)));
-        const holidaySet = new Set(hRows.map(h => String(h.date)));
-
-        // 날짜 enumerate
-        const dates: string[] = [];
-        let cur = new Date(`${startStr}T00:00:00Z`);
-        const end = new Date(`${endStr}T00:00:00Z`);
-        while (cur.getTime() <= end.getTime()) {
-          const dow = cur.getUTCDay(); // 0=일, 6=토
-          const ds = cur.toISOString().slice(0, 10);
-          if (dow !== 0 && dow !== 6 && !holidaySet.has(ds)) {
-            dates.push(ds);
-          }
-          cur = new Date(cur.getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        // R35-GAP-P1 H-G2: 출근 기록 있는 날은 시각·근무시간 보존, status만 'LEAVE'로 변경
-        // 새 INSERT는 빈 행(check_in/out NULL), ON CONFLICT 시 기존 시각 유지
-        for (const d of dates) {
-          // Q3-028: 반차는 종일 LEAVE 스탬프 금지 — 직원이 나머지 반나절 출근하면 att-checkin이 PARTIAL_LEAVE로 기록.
-          if (request.isHalfDay) continue;
-          try {
-            await db.execute(sql`
-              INSERT INTO att_records (member_uid, date, status, work_mode)
-              VALUES (${request.memberUid}, ${d}::date, 'LEAVE', NULL)
-              ON CONFLICT (member_uid, date)
-              DO UPDATE SET
-                status = 'LEAVE',
-                updated_at = NOW()
-            `);
-          } catch (innerErr) {
-            console.warn(`[admin-att-leave-review] LEAVE 반영 실패 ${d}:`, innerErr);
-          }
-        }
-      } catch (err) {
-        console.warn("[admin-att-leave-review] 휴가 기간 LEAVE 반영 실패:", err);
-      }
-    }
-
-    // REJECTED: 기존에 LEAVE 로 박혀있던 attRecords 제거 (있다면)
-    if (action === "REJECTED") {
-      try {
-        await db.execute(sql`
-          DELETE FROM att_records
-          WHERE member_uid = ${request.memberUid}
-            AND date >= ${String(request.startDate)}::date
-            AND date <= ${String(request.endDate)}::date
-            AND status = 'LEAVE'
-            AND check_in_time IS NULL
-            AND check_out_time IS NULL
-        `);
-      } catch (err) {
-        console.warn("[admin-att-leave-review] LEAVE 복원 실패:", err);
-      }
-    }
-
-    // Q3-009 fix: CANCELLED(승인 취소) — 차감했던 연차 복원 + 빈 LEAVE 행 제거
-    if (action === "CANCELLED") {
-      const year = new Date(request.startDate).getFullYear();
-      try {
-        await db.execute(sql`
-          UPDATE att_leave_balances
-          SET used_days = GREATEST(0, used_days - ${request.days})
-          WHERE member_uid = ${request.memberUid}
-            AND leave_type_id = ${request.leaveTypeId}
-            AND year = ${year}
-        `);
-      } catch (err) {
-        console.warn("[admin-att-leave-review] 연차 복원 실패:", err);
-      }
-      // 직원이 그 날 실제 출근하지 않은(빈) LEAVE 행만 제거 — 출근 기록 있는 날은 보존
-      try {
-        await db.execute(sql`
-          DELETE FROM att_records
-          WHERE member_uid = ${request.memberUid}
-            AND date >= ${String(request.startDate)}::date
-            AND date <= ${String(request.endDate)}::date
-            AND status = 'LEAVE'
-            AND check_in_time IS NULL
-            AND check_out_time IS NULL
-        `);
-      } catch (err) {
-        console.warn("[admin-att-leave-review] 취소 시 LEAVE 행 제거 실패:", err);
-      }
-    }
-
-    // 결과 알림 → 신청자
-    try {
-      const recipientId = Number(request.memberUid);
-      if (Number.isFinite(recipientId) && recipientId > 0) {
-        await sendWorkspaceNotification({
-          memberId: recipientId,
-          sourceType: "event" as any,
-          sourceId: request.id,
-          notifType: action === "APPROVED" ? "approved" : "rejected",
-          channel: "bell",
-          title: action === "APPROVED" ? "휴가 신청 승인" : action === "CANCELLED" ? "휴가 승인 취소" : "휴가 신청 반려",
-          body: `${request.startDate} ~ ${request.endDate} (${request.days}일) — ${action === "APPROVED" ? "승인" : action === "CANCELLED" ? "승인 취소(연차 복원)" : "반려"}${note ? ` · ${String(note).slice(0, 100)}` : ""}`,
-          actionUrl: "/workspace-attendance.html",
-          category: "system",
-        });
-      }
-    } catch (err) {
-      console.warn("[admin-att-leave-review] 결과 알림 실패:", err);
-    }
+    /* 차감·근태 기록·알림은 내부결재와 같은 공용 처리를 쓴다 (lib/att-leave.ts) */
+    const updated = await applyLeaveDecision(request, action, String(auth.ctx.member.id), note);
 
     return jsonOk(updated);
   } catch (err) {

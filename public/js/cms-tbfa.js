@@ -295,9 +295,16 @@
           'ledger': '장부',
           'finance-budget': '예산 관리',
           'budget-accounts': '예산과목 체계(관·항·목)',
-          'approval-inbox': '지출 결재함',
-          'approval-resolutions': '지출결의서',
-          'approval-lines': '결재라인·위임 설정',
+          'docs-home': '결재 홈',
+          'docs-new': '문서 작성',
+          'docs-mine': '내 문서함',
+          'docs-inbox': '결재 문서함',
+          'docs-pay': '지출완료 확인',
+          'docs-budget': '예산 진행현황',
+          'docs-archive': '취소 및 보존함',
+          'docs-settings': '결재선 및 양식 설정',
+          'approval-resolutions': '지출결의서 대장',
+          'approval-lines': '금액별 추천 결재선',
           'bank-transactions': '지출 자동 추출 시스템',
           'finance-report': '재무 보고서',
           'csv-import': 'CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
@@ -393,8 +400,8 @@
         else if (tab === 'ledger') {
           if (window.SIREN_LEDGER) window.SIREN_LEDGER.init();
         }
-        else if (tab === 'approval-inbox') {
-          if (window.SIREN_APPROVAL) window.SIREN_APPROVAL.inbox();
+        else if (tab.indexOf('docs-') === 0) {
+          if (window.SIREN_DOCS) window.SIREN_DOCS.open(tab.slice(5));
         }
         else if (tab === 'approval-resolutions') {
           if (window.SIREN_APPROVAL) window.SIREN_APPROVAL.resolutions();
@@ -2559,7 +2566,7 @@
     import: 'donation_confirm',
     hyosung: 'finance_view', 'toss-billing': 'finance_view',
     'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view', ledger: 'finance_view',
-    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'approval-inbox': 'finance_approval_submit', 'approval-resolutions': 'finance_bookkeeping', 'approval-lines': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
+    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'docs-pay': 'finance_bookkeeping', 'approval-resolutions': 'finance_bookkeeping', 'approval-lines': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
     'send-jobs': 'send_job', 'send-analytics': 'send_job', 'notification-logs': 'send_job',
     'send-template': 'send_template', 'recipient-groups': 'send_template',
     'auto-trigger': 'send_auto', 'system-notification': 'send_auto',

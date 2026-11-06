@@ -3,6 +3,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
+import { voucherCostsByMok } from "../../lib/finance-budget-report";
 
 export const config = { path: "/api/admin-budget-accounts" };
 
@@ -132,6 +133,12 @@ async function handleGet(req: Request) {
         executedByAccount.set(Number(r.ba_id), Number(r.executed) || 0);
       }
     } catch (err: any) { return jsonError("select_executed", err); }
+
+    /* 급여처럼 지출 없이 전표로만 있는 비용도 집행이다. 보조 집계라 실패해도 계속 */
+    try {
+      const { byMok } = await voucherCostsByMok(db, fiscalYear);
+      for (const [mok, amount] of byMok) executedByAccount.set(mok, (executedByAccount.get(mok) ?? 0) + amount);
+    } catch (err: any) { console.warn("[admin-budget-accounts] 전표 비용 집계 실패:", err?.message); }
   }
 
   // 4) 노드 조립

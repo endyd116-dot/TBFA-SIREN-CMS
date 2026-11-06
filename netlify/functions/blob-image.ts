@@ -42,6 +42,9 @@ export default async (req: Request, _ctx: Context) => {
        R41 P0(Q2-001): 기존엔 "로그인만 하면" 통과 → 일반 회원이 ID(연속번호)만 바꿔
        남의 비공개 첨부(신고 증거·딥릴리프 유족자료 등)를 내려받을 수 있었음.
        이제: 관리자(어드민 토큰)는 전부 허용, 일반 사용자는 '본인이 업로드한 파일'만 허용. */
+    /* 결재 문서 첨부는 문서 열람 권한을 확인하는 주소로만 연다 (admin-docs-file) */
+    if ((row as any).context === "approval-docs") return new Response("Forbidden", { status: 403 });
+
     if (!(row as any).isPublic) {
       const admin = authenticateAdmin(req);
       if (!admin) {

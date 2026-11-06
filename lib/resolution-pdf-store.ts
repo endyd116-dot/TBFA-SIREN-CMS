@@ -29,7 +29,9 @@ export async function buildAndStoreResolutionPdf(
 
   const stepHist = await rowsOf(await db.execute(sql`
     SELECT role, decided_by_name, decided_at FROM approval_request_steps
-     WHERE request_id = ${requestId} ORDER BY step_index
+     WHERE request_id = ${requestId} AND kind = 'approval'
+       AND version = (SELECT version FROM approval_requests WHERE id = ${requestId})
+     ORDER BY step_index
   `));
 
   let budgetPath = "";
