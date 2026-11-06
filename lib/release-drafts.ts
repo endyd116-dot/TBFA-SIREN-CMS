@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.5";
+export const APP_VERSION = "2026-11-06.6";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-npo-cost-basis-market",
+    title: "[관리자] NPO 제안서(/2) 비용 근거를 민간 시장 기준으로 수정",
+    items: [
+      { text: "공공 대가 산식 대신 «인원 × 기간 × 월 단가»로 다시 계산했습니다. 중소 SI 예상 견적은 기본형 8,400만~1.6억, 표준형 1.7억~3.0억, 전문형 2.8억~4.8억 원입니다(당사 추정)" },
+      { text: "구축비가 낮은 이유와, 구조를 새로 바꾸는 요구는 별도 견적이라는 점을 함께 적었습니다" },
+    ],
+  },
   {
     key: "2026-11-06-company-deck-renewal",
     title: "[관리자] 사업소개서(/1) 리뉴얼 — 발주자의 고민에서 상담까지 26장",
