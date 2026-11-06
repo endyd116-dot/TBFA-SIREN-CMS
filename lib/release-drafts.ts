@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.8";
+export const APP_VERSION = "2026-11-06.9";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,13 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-npo-price-update",
+    title: "[관리자] NPO 제안서(/2) 구축비 조정 — 기본형 3,900만·표준형 7,900만 원",
+    items: [
+      { text: "기본형 구축비를 1,900만에서 3,900만 원으로, 표준형을 6,900만에서 7,900만 원으로 조정하고 요약·요금제·비용 근거·3년 총액 쪽을 함께 고쳤습니다. 전문형과 월 운영비는 그대로입니다" },
+    ],
+  },
   {
     key: "2026-11-06-finance-numbers-fix",
     title: "[관리자] 재무 보고서 숫자 바로잡기 — 예산 대비 실적, 결재 지출 항목, 결재 중복 방지",
