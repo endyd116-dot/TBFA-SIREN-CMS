@@ -14,6 +14,9 @@ import { logTaskChange } from "./workspace-logger";
 import { nextVoucherNumber } from "./voucher-number";
 import { LedgerError, normalizeLines, postVoucher, rejectVoucher, saveLines, validateLines } from "./ledger-post";
 import { generalLedger, trialBalance } from "./ledger-report";
+import { yearStatements } from "./ledger-statements";
+import { loadSettlementRow, settlementChecks } from "./ledger-settlement";
+import { DOC_TYPES, STATUS_LABEL } from "./approval-docs";
 
 /* ─── [배치8·감사#1~8] AI 작업 도구 안전장치 — 본 API(admin-workspace-tasks)와 동일한 후속처리
        (담당자 알림·신고 종결·마일스톤/완료보고서 트리거·소유권 검증)를 재사용. ─── */
@@ -808,6 +811,16 @@ export const TOOL_DECLARATIONS = [
       year:  { type: "INTEGER", description: "회계연도" },
       month: { type: "INTEGER", description: "이 달까지 계산 (생략 시 회계연도 끝까지)" },
     }, required: ["year"] }},
+  { name: "ledger_statements", description: "공식 재무제표 요약 조회 — 재무상태표 자산·부채·순자산 합계와 운영성과표 사업수익·사업비용·당기운영이익",
+    parameters: { type: "OBJECT", properties: {
+      year: { type: "INTEGER", description: "회계연도" },
+    }, required: ["year"] }},
+  { name: "settlement_status", description: "결산 진행 상태와 점검표 조회 — 해결이 필요한 항목, 확정·감사·이사회·총회·제출 단계",
+    parameters: { type: "OBJECT", properties: {
+      year: { type: "INTEGER", description: "회계연도" },
+    }, required: ["year"] }},
+  { name: "approval_docs_summary", description: "내부결재 현황 요약 — 문서 유형별 진행중 건수, 지출확인 대기, 취소 진행, 반환 확인 대기",
+    parameters: { type: "OBJECT", properties: {} }},
   { name: "ledger_general_ledger", description: "총계정원장 조회 — 계정 하나의 기간별 거래와 잔액",
     parameters: { type: "OBJECT", properties: {
       accountCode: { type: "STRING", description: "계정과목 코드 (예: '1012')" },
@@ -1148,6 +1161,9 @@ export async function executeTool(
       case "voucher_approve":         return await tool_voucherApprove(args, adminId);
       case "ledger_trial_balance":    return await tool_ledgerTrialBalance(args);
       case "ledger_general_ledger":   return await tool_ledgerGeneralLedger(args);
+      case "ledger_statements":       return await tool_ledgerStatements(args);
+      case "settlement_status":       return await tool_settlementStatus(args);
+      case "approval_docs_summary":   return await tool_approvalDocsSummary();
       /* Phase 22-D-R2 통장 대사 */
       case "bank_reconcile_summary":  return await tool_bankReconcileSummary(args);
       /* === Layer 1 배치 도구 === */
@@ -5265,6 +5281,66 @@ async function tool_ledgerTrialBalance(args: any): Promise<ToolResult> {
     return { ok: true, output: data };
   } catch (e: any) {
     return { ok: false, error: `시산표 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_ledgerStatements(args: any): Promise<ToolResult> {
+  const year = Number(args?.year);
+  if (!year) return { ok: false, error: "year 필수" };
+  try {
+    const data = await yearStatements(year);
+    if (!data) return { ok: false, error: `${year}년 회계연도가 없습니다` };
+    return {
+      ok: true,
+      output: {
+        period: data.operating.period, totals: data.balance.totals, balanced: data.balance.balanced,
+        operating: data.operating.summary, previousYear: data.previous?.year ?? null,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `재무제표 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_settlementStatus(args: any): Promise<ToolResult> {
+  const year = Number(args?.year);
+  if (!year) return { ok: false, error: "year 필수" };
+  try {
+    const checks = await settlementChecks(year);
+    if (!checks) return { ok: false, error: `${year}년 회계연도가 없습니다` };
+    const row = await loadSettlementRow(year);
+    return {
+      ok: true,
+      output: {
+        status: row?.status ?? "draft", blockers: checks.blockers,
+        items: checks.items.filter((i) => i.state !== "ok").map((i) => ({ label: i.label, state: i.state, detail: i.detail })),
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `결산 상태 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_approvalDocsSummary(): Promise<ToolResult> {
+  try {
+    const res: any = await db.execute(sql`
+      SELECT doc_type, status, COUNT(*)::int AS n FROM approval_requests
+       WHERE delete_status = 'none' AND status <> 'draft' GROUP BY doc_type, status`);
+    const extra: any = await db.execute(sql`
+      SELECT COUNT(*) FILTER (WHERE doc_type = 'expense' AND status = 'approved' AND payment_status = 'unpaid')::int AS pay_wait,
+             COUNT(*) FILTER (WHERE cancel_status = 'requested')::int AS cancel_wait,
+             COUNT(*) FILTER (WHERE refund_status = 'required')::int AS refund_wait
+        FROM approval_requests WHERE delete_status = 'none'`);
+    const x = (extra?.rows ?? extra ?? [])[0] ?? {};
+    return {
+      ok: true,
+      output: {
+        byType: (res?.rows ?? res ?? []).map((r: any) => ({ docType: DOC_TYPES[r.doc_type]?.label ?? r.doc_type, status: STATUS_LABEL[r.status] ?? r.status, count: r.n })),
+        payWait: x.pay_wait ?? 0, cancelWait: x.cancel_wait ?? 0, refundWait: x.refund_wait ?? 0,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `내부결재 현황 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
 

@@ -6,6 +6,7 @@
  * 3단계 결산과 2027 편성(2026-11-06). 설계: docs/active/2026-11-06-ledger-settlement-design.md
  * 설계도 대조 수정(로드맵 §7): 예산 원장, 지급 뒤 취소의 반환 상태.
  * 4단계 공통 결재 문서: docs/active/2026-11-06-approval-docs-design.md
+ * 5단계 공익법인 대응: 재정 공개, 공익법인 지정일, 사업수행 비율 기준
  * 멱등: 다시 실행해도 안전. 호출 성공 후 파일 삭제 + commit (CLAUDE.md §6.8).
  */
 import { jsonKST } from "../../lib/kst";
@@ -13,6 +14,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { deleteFromR2 } from "../../lib/r2-delete";
 
 export const config = { path: "/api/migrate-ledger-settlement" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
@@ -212,6 +214,7 @@ const STRUCTURE: string[] = [
      retention_years INTEGER,
      require_proposal BOOLEAN NOT NULL DEFAULT TRUE,
      proposal_min_amount BIGINT NOT NULL DEFAULT 0,
+     public_ratio_target INTEGER NOT NULL DEFAULT 80,
      updated_by_name VARCHAR(100),
      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
      CONSTRAINT approval_settings_one CHECK (id = 1)
@@ -322,6 +325,20 @@ const STRUCTURE: string[] = [
      result VARCHAR(20) NOT NULL DEFAULT 'done',
      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
    )`,
+  /* ── 5단계 공익법인 대응 ── */
+  `CREATE TABLE IF NOT EXISTS ledger_disclosures (
+     year INTEGER PRIMARY KEY,
+     title VARCHAR(200) NOT NULL,
+     intro TEXT,
+     status VARCHAR(12) NOT NULL DEFAULT 'draft',
+     data JSONB,
+     published_at TIMESTAMPTZ,
+     published_by_name VARCHAR(100),
+     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+     CONSTRAINT ledger_disclosures_status_ck CHECK (status IN ('draft','published'))
+   )`,
+  `ALTER TABLE receipt_settings ADD COLUMN IF NOT EXISTS designated_on DATE`,
+
   `CREATE OR REPLACE FUNCTION approval_purge_log_guard() RETURNS trigger AS $$
    BEGIN
      RAISE EXCEPTION '완전삭제 기록은 고치거나 지울 수 없습니다.';
@@ -375,6 +392,11 @@ export default async function handler(req: Request, _ctx: Context) {
         const vouchers = await count(sql`SELECT COUNT(*)::int AS n FROM vouchers WHERE fiscal_year IN ${years}`);
         const requests = await count(sql`SELECT COUNT(*)::int AS n FROM approval_requests WHERE fiscal_year IN ${years}`);
 
+        const keys = rowsOf(await tx.execute(sql`
+          SELECT f.blob_key FROM approval_doc_files f JOIN approval_requests r ON r.id = f.request_id
+           WHERE r.fiscal_year IN ${years} AND f.blob_key IS NOT NULL`)).map((k: any) => k.blob_key);
+        await tx.execute(sql`DELETE FROM blob_uploads WHERE reference_table = 'approval_requests'
+          AND reference_id IN (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
         await tx.execute(sql`DELETE FROM budget_ledger WHERE fiscal_year IN ${years}`);
         await tx.execute(sql`DELETE FROM approval_purge_log WHERE request_id IN
           (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
@@ -382,6 +404,10 @@ export default async function handler(req: Request, _ctx: Context) {
           (SELECT id FROM approval_requests WHERE fiscal_year IN ${years})`);
         await tx.execute(sql`DELETE FROM approval_saved_lines WHERE name LIKE '[점검]%'`);
         await tx.execute(sql`DELETE FROM approval_purge_grants WHERE reason LIKE '[점검]%'`);
+        await tx.execute(sql`DELETE FROM ledger_disclosures WHERE year IN ${years}`);
+        await tx.execute(sql`UPDATE nav_menu_items SET is_active = FALSE WHERE href = '/transparency.html'
+          AND NOT EXISTS (SELECT 1 FROM ledger_disclosures WHERE status = 'published')`);
+        await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'disclosure' AND entity_id IN ('2099', '2100')`);
         await tx.execute(sql`DELETE FROM ledger_settlements WHERE year IN ${years}`);
         await tx.execute(sql`DELETE FROM ledger_notes WHERE year IN ${years}`);
         await tx.execute(sql`DELETE FROM ledger_program_reports WHERE year IN ${years}`);
@@ -415,8 +441,11 @@ export default async function handler(req: Request, _ctx: Context) {
         await tx.execute(sql.raw(`ALTER TABLE ledger_history ENABLE TRIGGER ledger_history_guard_trg`));
         await tx.execute(sql.raw(`ALTER TABLE budget_ledger ENABLE TRIGGER budget_ledger_guard_trg`));
         await tx.execute(sql.raw(`ALTER TABLE approval_purge_log ENABLE TRIGGER approval_purge_log_guard_trg`));
-        return { vouchers, requests };
+        return { vouchers, requests, keys };
       });
+      for (const key of result.keys) {
+        try { await deleteFromR2(key); } catch (err: any) { console.warn("[migrate] 시험 첨부 삭제 실패:", err?.message); }
+      }
       return new Response(jsonKST({ ok: true, mode: "cleanup", deletedVouchers: result.vouchers, deletedRequests: result.requests }, null, 2),
         { headers: JSON_HEADER });
     }
@@ -449,6 +478,12 @@ export default async function handler(req: Request, _ctx: Context) {
                   ${Number(r.amount)}, ${`reserve:approval:${r.id}`}, '원장 도입 시 이관', '시스템')
           ON CONFLICT (idempotency_key) DO NOTHING`);
       }
+      /* 재정 공개 메뉴는 숨긴 채 넣어 두고 첫 공개 때 켠다 */
+      await tx.execute(sql`
+        INSERT INTO nav_menu_items (menu_location, label, href, sort_order, is_active)
+        SELECT 'footer', '재정 공개', '/transparency.html', 90, FALSE
+         WHERE NOT EXISTS (SELECT 1 FROM nav_menu_items WHERE href = '/transparency.html')`);
+
       /* 기존 지출 결재는 문서로 그대로 보인다. 번호와 상신 시각, 담당자를 채운다 */
       await tx.execute(sql`
         UPDATE approval_requests SET submitted_at = created_at WHERE submitted_at IS NULL AND status <> 'draft'`);

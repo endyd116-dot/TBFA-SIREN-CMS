@@ -318,7 +318,7 @@ const TOOL_GROUPS: ToolGroup[] = [
       "budget_plan_list", "budget_plan_create", "budget_plan_approve",
       /* Phase 22-D-R1 전표 시스템 */
       "account_codes_list", "voucher_list", "voucher_create", "voucher_approve",
-      "ledger_trial_balance", "ledger_general_ledger",
+      "ledger_trial_balance", "ledger_general_ledger", "ledger_statements", "settlement_status", "approval_docs_summary",
       /* Phase 22-D-R2 통장 대사 */
       "bank_reconcile_summary",
     ],

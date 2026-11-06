@@ -1,5 +1,5 @@
 /* admin-ledger-settlement.js — 재정 관리 › 장부 › 결산 (2026-11-06)
- * 점검표 / 재무상태표 / 운영성과표 / 주석 / 수지결산서 / 사업실적서 / 재산목록 / 다음 해 계획·예산 / 확정·승인
+ * 점검표 / 재무상태표 / 운영성과표 / 주석 / 수지결산서 / 사업실적서 / 재산목록 / 다음 해 계획·예산 / 확정·승인 / 공익법인
  * 설계: docs/active/2026-11-06-ledger-settlement-design.md
  * window.SIREN_SETTLEMENT = { render }
  */
@@ -16,7 +16,7 @@
   const TABS = [
     ['checks', '점검표'], ['balance', '재무상태표'], ['operating', '운영성과표'], ['notes', '주석'],
     ['settlement', '수지결산서'], ['programs', '사업실적서'], ['property', '재산목록'],
-    ['next', '다음 해 계획·예산'], ['approval', '확정·승인'],
+    ['next', '다음 해 계획·예산'], ['approval', '확정·승인'], ['public', '공익법인'],
   ];
   const STATE_LABEL = { ok: '통과', warn: '확인 권장', block: '해결 필요' };
   const STATE_COLOR = { ok: 'var(--success)', warn: '#b45309', block: 'var(--danger)' };
@@ -239,7 +239,7 @@
     win.document.close();
   }
 
-  function exportExcel() {
+  function exportExcel(extra, fileName) {
     if (!window.XLSX) { alert('엑셀 변환 라이브러리가 로드되지 않았습니다.'); return; }
     const p = data.package;
     const wb = window.XLSX.utils.book_new();
@@ -267,7 +267,8 @@
       ['지출', '차기이월금', '', s.carryOut, ''],
       ['', '기타 자금 증감', '', s.otherChange, ''],
     ]), '수지결산서');
-    window.XLSX.writeFile(wb, `결산서류_${p.year}.xlsx`);
+    if (typeof extra === 'function') extra(wb);
+    window.XLSX.writeFile(wb, fileName || `결산서류_${p.year}.xlsx`);
   }
 
   /* ── 탭 화면 ── */
@@ -364,9 +365,109 @@
       </div>`;
   }
 
+  /* ── 공익법인 대응 ── */
+  let publicData = null;
+  async function loadPublic() {
+    const res = await api('GET', `/api/admin-ledger-public?year=${year}`);
+    if (!res.ok) { qs('#lsBody').innerHTML = `<div style="color:var(--danger);white-space:pre-line">${esc(failText(res))}</div>`; return; }
+    publicData = dataOf(res);
+    paintPublic();
+  }
+
+  function paintPublic() {
+    const p = publicData;
+    if (!p || tab !== 'public') return;
+    const pct = v => (v == null ? '-' : v + '%');
+    const three = (label, a) => `<tr><td>${esc(label)}</td><td class="num">${amt(a.total)}</td><td class="num">${amt(a.public)}</td><td class="num">${amt(a.other)}</td></tr>`;
+    const head = '<thead><tr><th>구분</th><th>총계</th><th>공익목적사업</th><th>기타사업</th></tr></thead>';
+    const r = p.ratios;
+    const pass = r.serviceOfExpense != null && r.serviceOfExpense >= r.target;
+    const d = p.disclosure;
+    qs('#lsBody').innerHTML = `
+      <div class="ls-sub">사업수행 비율</div>
+      <table class="ls-table"><tbody>
+        <tr><td>사업비용 중 사업수행비용</td><td class="num" style="font-weight:600">${pct(r.serviceOfExpense)}</td><td>${r.serviceOfExpense == null ? '' : pass ? '<span style="color:var(--success)">기준 이상</span>' : '<span style="color:var(--danger)">기준 미달</span>'}</td></tr>
+        <tr><td>사업수익 중 사업수행비용</td><td class="num">${pct(r.serviceOfRevenue)}</td><td></td></tr>
+        <tr><td>일반관리비용 비중</td><td class="num">${pct(r.adminOfExpense)}</td><td></td></tr>
+        <tr><td>모금비용 비중</td><td class="num">${pct(r.fundraisingOfExpense)}</td><td></td></tr>
+      </tbody></table>
+      <div class="ls-note">참고 기준 ${r.target}%. 법령상 기준은 세무 확인 뒤 맞춥니다.
+        ${isChair() ? '<button class="btn-sm btn-sm-ghost" type="button" data-act="public-target">기준 변경</button>' : ''}</div>
+
+      <div class="ls-sub">공시 자료 — ${esc(p.form.label)}</div>
+      <div class="ls-note">총자산 ${won(p.form.totalAssets)}원, 수입금액과 출연재산 합계 ${won(p.form.incomeBase)}원 기준입니다. 간편서식은 총자산 5억 원 미만이고 수입금액과 출연재산 합계가 3억 원 미만일 때 씁니다.</div>
+      <table class="ls-table">${head}<tbody>
+        ${three('자산 합계', p.assets.total)}${three('금융자산', p.assets.financial)}${three('기타자산', p.assets.other)}${three('부채', p.assets.liabilities)}
+        ${three('수익 합계', p.revenue.total)}${three('기부금', p.revenue.donation)}${three('보조금', p.revenue.grant)}${three('회비수익', p.revenue.fee)}${three('기타 사업수익', p.revenue.other)}${three('사업외수익', p.revenue.nonOperating)}
+        ${three('비용 합계', p.expense.total)}${three('사업수행비용', p.expense.service)}${three('일반관리비용', p.expense.admin)}${three('모금비용', p.expense.fundraising)}${three('사업외비용', p.expense.nonOperating)}${three('법인세비용', p.expense.tax)}
+      </tbody></table>
+
+      <div class="ls-sub">공익목적사업 사업별 실적</div>
+      <table class="ls-table"><thead><tr><th>코드</th><th>사업명</th><th>사업수행비용</th><th>사업내용</th></tr></thead>
+        <tbody>${p.programs.map(x => `<tr><td>${esc(x.disclosureCode || '')}</td><td>${esc(x.name)}${x.charterRef ? '' : ' <span style="color:#b45309;font-size:11px">정관 근거 없음</span>'}</td><td class="num">${amt(x.amount)}</td><td style="white-space:pre-wrap">${esc(x.resultBody)}</td></tr>`).join('')
+          || '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">사업수행비용이 없습니다.</td></tr>'}</tbody></table>
+
+      <div class="ls-sub">기부금품 수입 및 지출 명세(부표 1)</div>
+      <table class="ls-table"><thead><tr><th>월</th><th>수입</th><th>지출</th><th>잔액</th></tr></thead><tbody>
+        <tr><td>전기이월</td><td></td><td></td><td class="num">${amt(p.donations.carryIn)}</td></tr>
+        ${p.donations.months.map(m => `<tr><td>${m.month}월</td><td class="num">${amt(m.income)}</td><td class="num">${amt(m.spent)}</td><td class="num">${amt(m.balance)}</td></tr>`).join('')}
+        <tr style="background:#f5f3f0"><td style="font-weight:600">합계</td><td class="num">${amt(p.donations.totalIncome)}</td><td class="num">${amt(p.donations.totalSpent)}</td><td class="num">${amt(p.donations.carryOut)}</td></tr>
+      </tbody></table>
+
+      <div class="ls-sub">전용계좌 외 거래</div>
+      <table class="ls-table"><thead><tr><th>날짜</th><th>전표</th><th>내용</th><th>계정</th><th>입금</th><th>출금</th></tr></thead>
+        <tbody>${p.dedicated.map(x => `<tr><td>${esc(x.date)}</td><td>${esc(x.voucherNumber)}</td><td>${esc(x.description)}</td><td>${esc(x.accountName)}</td><td class="num">${amt(x.debit)}</td><td class="num">${amt(x.credit)}</td></tr>`).join('')
+          || '<tr><td colspan="6" style="text-align:center;color:var(--text-3)">없습니다.</td></tr>'}</tbody></table>
+
+      <div class="ls-sub">재정 공개 ${d?.status === 'published' ? '<span style="color:var(--success)">공개 중</span>' : '<span style="color:var(--text-3)">비공개</span>'}</div>
+      <div class="ls-note">정관 제35조②에 따라 매년 4월 안에 홈페이지에 공개합니다. 공개하면 그 순간의 숫자로 고정되고, 장부가 바뀌면 다시 공개합니다.</div>
+      ${canManage() ? `<input id="lsPubTitle" class="input" style="width:100%;margin-bottom:6px" value="${esc(d?.title || year + '년 재정 공개')}">
+        <textarea id="lsPubIntro" class="input" rows="3" style="width:100%" placeholder="공개 페이지에 보일 안내 문구">${esc(d?.intro || '')}</textarea>
+        <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px">
+          <button class="btn-sm btn-sm-ghost" type="button" data-act="public-save">문구 저장</button>
+          ${isChair() ? `${d?.status === 'published' ? '<button class="btn-sm btn-sm-ghost" type="button" data-act="public-unpublish">내리기</button>' : ''}<button class="btn-sm btn-sm-primary" type="button" data-act="public-publish">${d?.status === 'published' ? '다시 공개' : '공개'}</button>` : ''}
+        </div>` : ''}
+
+      <div class="ls-sub">세무사 전달 파일</div>
+      <button class="btn-sm btn-sm-ghost" type="button" data-act="public-tax-file">엑셀 내려받기</button>
+      <div class="ls-note">재무상태표, 운영성과표, 수지결산서, 분개 전체, 기부금 명세를 한 파일로 만듭니다.</div>
+
+      <div class="ls-sub">공익법인 지정</div>
+      <div class="ls-note">지정일을 넣으면 그날부터 후원회원 회비 납부 확인서가 기부금 영수증 서식으로 바뀝니다. 지금 지정일: ${esc(p.designatedOn || '없음')}</div>
+      ${isChair() ? `<input id="lsDesignated" class="input-sm" type="date" value="${esc(p.designatedOn || '')}"> <button class="btn-sm btn-sm-ghost" type="button" data-act="public-designate">저장</button>` : ''}`;
+  }
+
+  async function exportTaxFile() {
+    if (!window.XLSX) { alert('엑셀 변환 라이브러리가 로드되지 않았습니다.'); return; }
+    const res = await api('GET', `/api/admin-ledger-public?year=${year}&doc=vouchers`);
+    if (!res.ok) { alert(failText(res)); return; }
+    const rows = dataOf(res).rows || [];
+    exportExcel(wb => {
+      const X = window.XLSX;
+      X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([
+        ['날짜', '전표번호', '구분', '적요', '거래처', '증빙', '출처', '계정코드', '계정', '차변', '대변', '활동', '사업', '재원'],
+        ...rows.map(r => [r.date, r.number, r.type, r.description, r.payee, r.evidence, r.source, r.accountCode, r.accountName, r.debit, r.credit, FN_LABEL[r.functionCode] || '', r.program || '', r.fund || '']),
+      ]), '분개');
+      const p = publicData;
+      if (p) {
+        X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([
+          ['월', '수입', '지출', '잔액'], ['전기이월', '', '', p.donations.carryIn],
+          ...p.donations.months.map(m => [m.month + '월', m.income, m.spent, m.balance]),
+          ['합계', p.donations.totalIncome, p.donations.totalSpent, p.donations.carryOut],
+        ]), '기부금 명세');
+      }
+    }, `세무사전달_${year}.xlsx`);
+  }
+
   function paint() {
     const body = qs('#lsBody');
     if (!data) return;
+    if (tab === 'public') {
+      root.querySelectorAll('[data-ls]').forEach(b => b.classList.toggle('on', b.dataset.ls === tab));
+      body.innerHTML = '<div style="color:var(--text-3);padding:16px">불러오는 중…</div>';
+      loadPublic();
+      return;
+    }
     const p = data.package;
     const docHead = (keys) => `<div style="display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px">
       <button class="btn-sm btn-sm-ghost" type="button" data-act="print" data-keys="${keys}">인쇄</button></div>`;
@@ -486,6 +587,29 @@
       if (act === 'print') openPrint(t.dataset.keys.split(','));
       if (act === 'print-all') openPrint(['balance', 'operating', 'notes', 'settlement', 'programs', 'property', 'nextPlan', 'nextBudget']);
       if (act === 'excel') exportExcel();
+      if (act === 'public-tax-file') await exportTaxFile();
+      if (act === 'public-save' || act === 'public-publish' || act === 'public-unpublish') {
+        const save = await api('POST', '/api/admin-ledger-public', { action: 'disclosure_save', year, title: qs('#lsPubTitle').value, intro: qs('#lsPubIntro').value });
+        if (!save.ok) { alert(failText(save)); return; }
+        if (act !== 'public-save') {
+          if (act === 'public-publish' && !confirm('홈페이지에 공개할까요? 지금 장부의 숫자로 고정됩니다.')) return;
+          const r = await api('POST', '/api/admin-ledger-public', { action: act === 'public-publish' ? 'publish' : 'unpublish', year });
+          if (!r.ok) { alert(failText(r)); return; }
+        }
+        await loadPublic();
+      }
+      if (act === 'public-target') {
+        const v = prompt('사업수행 비율 참고 기준(%)', publicData?.ratios?.target);
+        if (v === null) return;
+        const r = await api('POST', '/api/admin-ledger-public', { action: 'target_save', target: Number(v) });
+        if (!r.ok) alert(failText(r)); else await loadPublic();
+      }
+      if (act === 'public-designate') {
+        const on = qs('#lsDesignated').value;
+        if (!confirm(on ? `${on}부터 기부금 영수증 서식으로 발급합니다. 저장할까요?` : '지정일을 비웁니다. 저장할까요?')) return;
+        const r = await api('POST', '/api/admin-ledger-public', { action: 'designate', designatedOn: on });
+        if (!r.ok) alert(failText(r)); else await loadPublic();
+      }
       if (act === 'edit-result') editResult(id);
       if (act === 'edit-plan') editPlan(id);
       if (act === 'edit-property') editProperty(id);
@@ -536,12 +660,13 @@
     container.innerHTML = `
       <style>
         .ls-table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:13px}
-        .ls-table th,.ls-table td{border-bottom:1px solid var(--border);padding:6px 8px;text-align:left}
+        .ls-table th,.ls-table td{border-bottom:1px solid var(--line,#e5e0d8);padding:6px 8px;text-align:left}
         .ls-table th{background:var(--bg-2,#faf8f6);font-weight:600;white-space:nowrap}
         .ls-table .num{text-align:right;white-space:nowrap}
+        .ls-table th:not(:first-child){text-align:right}
         .ls-sub{font-weight:600;margin:14px 0 6px}
         .ls-note{font-size:12px;color:var(--text-3);margin:6px 0}
-        .ls-note-card{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px}
+        .ls-note-card{border:1px solid var(--line,#e5e0d8);border-radius:8px;padding:12px;margin-bottom:10px}
       </style>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="lsYear" class="input-sm">${list.map(f => `<option value="${f.year}"${f.year === year ? ' selected' : ''}>${f.year}년</option>`).join('')}</select>

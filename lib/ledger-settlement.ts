@@ -403,6 +403,15 @@ export async function settlementChecks(year: number): Promise<{ items: CheckItem
   const previous = fiscalYearOf(await loadFiscalYears(), year - 1);
   if (!previous) add("opening", "개시 잔액 입력", opening ? "ok" : "warn", opening ? "입력했습니다" : "장부 시작일 잔액의 개시 전표가 없습니다");
 
+  const outside = await count(sql`
+    SELECT COUNT(*)::int AS n FROM voucher_lines l
+      JOIN vouchers v ON v.id = l.voucher_id
+      JOIN account_codes a ON a.code = l.account_code
+     WHERE v.status = 'approved' AND v.is_template = FALSE AND v.voucher_type <> 'opening'
+       AND v.voucher_date BETWEEN ${fy.startDate} AND ${fy.endDate}
+       AND a.parent_code = '101' AND COALESCE(a.system_role, '') <> 'cash_default'`);
+  if (outside) add("dedicated", "전용계좌 외 거래", "warn", `${outside}건. 공익목적사업의 수입·지출은 전용계좌로 처리합니다`);
+
   const mixed = await count(sql`
     SELECT COUNT(*)::int AS n FROM (
       SELECT l.voucher_id FROM voucher_lines l JOIN vouchers v ON v.id = l.voucher_id

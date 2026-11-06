@@ -4,7 +4,7 @@
  * ★ 2026-09-06 전환(Swain 승인): 협의회는 아직 공익법인(지정기부금단체) 지정 전이라
  *   「기부금 영수증(소득세법 서식)」은 사실과 다르다 → 제목·서식 각주·증명 문구를 «납부 확인서»로 바꾸고
  *   「세액공제용 기부금영수증이 아니다·지정 후 별도 발급」을 명시한다.
- *   공익법인으로 지정되면 LEGACY_* 상수와 새 기본값(DEFAULT_*)을 맞바꾸고 receipt_settings 값을 손보면 된다(되돌릴 자리).
+ *   장부 › 결산 › 공익법인에서 지정일을 넣으면 그날부터 아래 LEGACY_* 서식으로 발급한다(2026-11-06).
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
  * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset: false)
@@ -12,12 +12,12 @@
  * - M-14: 관리자가 업로드한 직인 이미지를 R2에서 가져와 PDF에 삽입
  *   * 직인 미설정 시 기존처럼 빨간 원형 표식 표시
  */
-import { nowKST } from "./kst";
+import { nowKST, todayKST } from "./kst";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, receiptSettings } from "../db";
 import { blobUploads } from "../db/schema";
 import { downloadFromR2 } from "./r2-server";
@@ -80,6 +80,16 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
   const LEGACY_LABEL = "지정기부금";
   const isLegacyFooter = (notes: string[]) => notes.some((s) => /소득세법|기부금 영수증입니다/.test(s));
 
+  /* 공익법인 지정일. 칸이 없거나 비어 있으면 지정 전으로 본다 */
+  let designated = false;
+  try {
+    const res: any = await db.execute(sql`SELECT designated_on FROM receipt_settings WHERE id = 1`);
+    const on = ((res?.rows ?? res ?? []) as any[])[0]?.designated_on;
+    designated = !!on && String(on).slice(0, 10) <= todayKST();
+  } catch (e) {
+    console.warn("[pdf-receipt] 지정일 조회 실패 (지정 전으로 계속):", e);
+  }
+
   try {
     const [row] = await db
       .select()
@@ -97,12 +107,13 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
           const parsed = JSON.parse(r.footerNotes);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const notes = parsed.map((s: any) => String(s));
-            if (!isLegacyFooter(notes)) footerNotes = notes;
+            if (designated || !isLegacyFooter(notes)) footerNotes = notes;
           }
         } catch {}
       }
       const pick = (v: any, legacy: string, def: string) => {
         const s = String(v || "").trim();
+        if (designated) return s && s !== def ? s : legacy;
         return s && s !== legacy ? s : def;
       };
 

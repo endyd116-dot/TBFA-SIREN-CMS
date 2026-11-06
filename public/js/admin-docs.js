@@ -55,25 +55,25 @@
 
   const STYLE = `<style id="docsStyle">
     .dc-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
-    .dc-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+    .dc-card{background:#fff;border:1px solid var(--line,#e5e0d8);border-radius:10px;padding:14px;margin-bottom:12px}
     .dc-card h4{font-size:14px;font-weight:600;margin:0 0 8px}
     .dc-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
-    .dc-kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;text-align:left}
+    .dc-kpi{background:#fff;border:1px solid var(--line,#e5e0d8);border-radius:10px;padding:14px;cursor:pointer;text-align:left}
     .dc-kpi b{display:block;font-size:22px;color:#7a1f2b;margin-top:6px}
     .dc-types{display:flex;gap:8px;flex-wrap:wrap}
-    .dc-paper{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px}
+    .dc-paper{background:#fff;border:1px solid var(--line,#e5e0d8);border-radius:10px;padding:20px}
     .dc-paper h2{text-align:center;letter-spacing:6px;font-size:22px;margin:4px 0 14px}
     .dc-sign{border-collapse:collapse;margin-left:auto;margin-bottom:14px}
-    .dc-sign th,.dc-sign td{border:1px solid var(--border);padding:6px 10px;font-size:12px;text-align:center;min-width:70px}
+    .dc-sign th,.dc-sign td{border:1px solid var(--line,#e5e0d8);padding:6px 10px;font-size:12px;text-align:center;min-width:70px}
     .dc-sign th{background:#faf8f6}
     .dc-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:8px}
     .dc-row label{font-size:13px;color:var(--text-2)}
     .dc-row2{display:grid;grid-template-columns:96px minmax(0,1fr) 96px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:8px}
     .dc-row2 label{font-size:13px;color:var(--text-2)}
-    .dc-editor{border:1px solid var(--border);border-radius:8px;min-height:180px;padding:10px;font-size:14px;line-height:1.7;background:#fff}
+    .dc-editor{border:1px solid var(--line,#e5e0d8);border-radius:8px;min-height:180px;padding:10px;font-size:14px;line-height:1.7;background:#fff}
     .dc-tools{display:flex;gap:4px;margin-bottom:6px}
     .dc-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
-    .dc-table th,.dc-table td{border:1px solid var(--border);padding:5px 6px}
+    .dc-table th,.dc-table td{border:1px solid var(--line,#e5e0d8);padding:5px 6px}
     .dc-table th{background:#faf8f6;font-weight:600;white-space:nowrap}
     .dc-table .num{text-align:right;white-space:nowrap}
     .dc-table input,.dc-table select{width:100%;border:0;background:transparent;font-size:13px;padding:2px}
@@ -332,7 +332,7 @@
     return `<div class="dc-card" id="dcBudgetCard"><h4>예산 진행현황</h4>
       ${kv('현재예산', sel.planned)}${kv('지출완료 집행액', sel.executed)}${kv('미집행 예약액', sel.reserved)}
       ${kv('예산잔액', sel.remaining)}${kv('사용가능액', sel.available)}
-      <hr style="border:0;border-top:1px solid var(--border);margin:6px 0">
+      <hr style="border:0;border-top:1px solid var(--line,#e5e0d8);margin:6px 0">
       ${kv('작성금액', total)}${kv('승인 후 예상 가용액', sel.available - total)}
       ${budgets.hasPlan && sel.available - total < 0 ? '<div class="dc-note" style="color:var(--danger)">사용가능액을 넘습니다. 이대로는 최종 승인이 막힙니다.</div>' : ''}
     </div>`;

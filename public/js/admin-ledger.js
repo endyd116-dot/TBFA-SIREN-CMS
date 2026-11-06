@@ -25,14 +25,16 @@
   const ACTION_LABEL = {
     created: '추가', updated: '수정', submitted: '제출', approved: '승인', rejected: '반려',
     reversed: '반대 전표로 취소', deleted: '삭제', month_closed: '월 마감', month_reopened: '마감 해제',
-    paid: '지급 확인', auto_posted: '자동 전표 반영', refund_confirmed: '반환 확인',
+    paid: '지급 확인', auto_posted: '자동 전표 반영', refund_confirmed: '반환 확인', budget_adjusted: '예산 조정',
+    published: '공개', unpublished: '공개 내림', designated: '공익법인 지정일 변경', recalled: '회수', substituted: '승인 갈음',
+    cancel_requested: '취소 요청', cancel_approved: '취소 승인', cancel_rejected: '취소 반려', doc_deleted: '일반 삭제',
     settlement_locked: '결산 확정', settlement_reopened: '확정 해제', settlement_audit: '감사 기록',
     settlement_board: '이사회 의결 기록', settlement_assembly: '총회 승인 기록', settlement_submit: '제출 기록',
   };
   const ENTITY_LABEL = {
     voucher: '전표', program: '사업', fund: '재원', fiscal_year: '회계연도', account: '계정과목',
     approval: '결재', ledger_sync: '자동 전표', revenue_category: '수입 분류', staff_allocation: '인건비 배부',
-    settlement: '결산', allocation_rule: '배분 규칙',
+    settlement: '결산', allocation_rule: '배분 규칙', disclosure: '재정 공개', budget_plan: '예산', approval_settings: '결재 설정',
   };
 
   function api(method, path, body) {

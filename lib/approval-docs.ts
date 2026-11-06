@@ -62,17 +62,20 @@ export interface DocSettings {
   requireProposal: boolean;
   /** 이 금액 미만의 일반 지출은 사전 품의 없이 상신할 수 있다. 0이면 전부 필요 */
   proposalMinAmount: number;
+  /** 사업수행 비율 참고 기준(%). 법령 기준은 세무 확인 뒤 정한다 */
+  publicRatioTarget: number;
 }
 
 export async function loadSettings(exec: { execute: (q: any) => Promise<any> } = db): Promise<DocSettings> {
   const r = rowsOf(await exec.execute(sql`
-    SELECT card_rule_effective_on, card_rule_note, retention_years, require_proposal, proposal_min_amount FROM approval_settings WHERE id = 1`))[0];
+    SELECT card_rule_effective_on, card_rule_note, retention_years, require_proposal, proposal_min_amount, public_ratio_target FROM approval_settings WHERE id = 1`))[0];
   return {
     cardRuleEffectiveOn: r?.card_rule_effective_on ? ymd(r.card_rule_effective_on) : null,
     cardRuleNote: r?.card_rule_note ?? null,
     retentionYears: r?.retention_years == null ? null : Number(r.retention_years),
     requireProposal: r ? r.require_proposal === true || r.require_proposal === "t" : true,
     proposalMinAmount: Number(r?.proposal_min_amount) || 0,
+    publicRatioTarget: r?.public_ratio_target == null ? 80 : Number(r.public_ratio_target),
   };
 }
 

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>재정 공개 | 교사유가족협의회</title>
+<meta name="description" content="(사)교사유가족협의회의 연간 수입과 활용 실적을 공개합니다.">
+<meta property="og:title" content="재정 공개 | 교사유가족협의회">
+<meta property="og:description" content="(사)교사유가족협의회의 연간 수입과 활용 실적을 공개합니다.">
+<meta property="og:image" content="https://tbfa.co.kr/og-default.png">
+<meta property="og:url" content="https://tbfa.co.kr/transparency.html">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://tbfa.co.kr/transparency.html">
+<link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
+<link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
+<link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
+<link rel="stylesheet" href="/css/pages.css">
+<style>
+  .tp-wrap { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  .tp-year { background: #fff; border: 1px solid #e7e2dc; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+  .tp-year h2 { font-size: 20px; margin: 0 0 6px; }
+  .tp-meta { font-size: 13px; color: #6b6660; margin-bottom: 12px; }
+  .tp-intro { white-space: pre-wrap; font-size: 15px; line-height: 1.7; margin-bottom: 14px; }
+  .tp-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .tp-kpi { background: #faf8f6; border-radius: 10px; padding: 12px; font-size: 13px; color: #6b6660; }
+  .tp-kpi b { display: block; font-size: 20px; color: #7a1f2b; margin-top: 4px; }
+  .tp-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 14px; }
+  .tp-table th, .tp-table td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; }
+  .tp-table td.num, .tp-table th.num { text-align: right; white-space: nowrap; }
+  .tp-table tfoot td { font-weight: 600; }
+  .tp-empty { text-align: center; color: #6b6660; padding: 48px 0; }
+  @media (max-width: 560px) { .tp-kpis { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-page="transparency">
+  <div id="header-slot"></div>
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="sec-eyebrow">TRANSPARENCY</div>
+        <h1>재정 공개</h1>
+        <p>연간 수입과 활용 실적을 공개합니다</p>
+      </div>
+    </section>
+    <div class="tp-wrap" id="tpBody"><div class="tp-empty">불러오는 중…</div></div>
+  </main>
+  <div id="footer-slot"></div>
+  <script src="/js/icons.js?v=20260820-ssr" defer></script>
+  <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
+  <script src="/js/common.js?v=20261007-init" defer></script>
+  <script src="/js/auth.js?v=20261031-member" defer></script>
+  <script>
+    (function () {
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function won(n) { return Number(n || 0).toLocaleString('ko-KR') + '원'; }
+      function table(title, rows, total) {
+        return '<table class="tp-table"><thead><tr><th>' + title + '</th><th class="num">금액</th></tr></thead><tbody>'
+          + rows.map(function (r) { return '<tr><td>' + esc(r.label) + '</td><td class="num">' + won(r.amount) + '</td></tr>'; }).join('')
+          + '</tbody><tfoot><tr><td>합계</td><td class="num">' + won(total) + '</td></tr></tfoot></table>';
+      }
+      function render(items) {
+        var el = document.getElementById('tpBody');
+        if (!items.length) { el.innerHTML = '<div class="tp-empty">공개된 자료가 아직 없습니다.</div>'; return; }
+        el.innerHTML = items.map(function (it) {
+          var d = it.data || {};
+          return '<section class="tp-year"><h2>' + esc(it.title) + '</h2>'
+            + '<div class="tp-meta">' + esc(d.period ? d.period.from + ' ~ ' + d.period.to : '') + '</div>'
+            + (it.intro ? '<div class="tp-intro">' + esc(it.intro) + '</div>' : '')
+            + '<div class="tp-kpis">'
+            + '<div class="tp-kpi">수입<b>' + won(d.incomeTotal) + '</b></div>'
+            + '<div class="tp-kpi">활용<b>' + won(d.spendingTotal) + '</b></div>'
+            + '<div class="tp-kpi">사업 수행 비율<b>' + (d.serviceRate == null ? '-' : d.serviceRate + '%') + '</b></div>'
+            + '</div>'
+            + table('수입', d.income || [], d.incomeTotal)
+            + table('활용', d.spending || [], d.spendingTotal)
+            + '</section>';
+        }).join('');
+      }
+      fetch('/api/public/disclosures').then(function (r) { return r.json(); }).then(function (j) {
+        render((j.data && j.data.items) || []);
+      }).catch(function () {
+        document.getElementById('tpBody').innerHTML = '<div class="tp-empty">자료를 불러오지 못했습니다.</div>';
+      });
+    })();
+  </script>
+</body>
+</html>

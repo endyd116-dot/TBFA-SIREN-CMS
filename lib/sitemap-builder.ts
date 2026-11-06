@@ -41,6 +41,7 @@ const STATIC_PAGES: SitemapUrl[] = [
   { loc: "/notice.html",            changefreq: "weekly",  priority: 0.7 },
   { loc: "/press.html",             changefreq: "weekly",  priority: 0.6 },
   { loc: "/activities.html",        changefreq: "weekly",  priority: 0.7 },
+  { loc: "/transparency.html",      changefreq: "monthly", priority: 0.6 },
   { loc: "/news.html",              changefreq: "weekly",  priority: 0.7 },
   { loc: "/campaigns.html",         changefreq: "daily",   priority: 0.9 },
   { loc: "/support.html",           changefreq: "weekly",  priority: 0.8 },
