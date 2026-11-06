@@ -107,6 +107,8 @@ export default async function handler(req: Request, _ctx: Context) {
         await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'voucher'
           AND entity_id IN (SELECT id::text FROM vouchers WHERE fiscal_year = ${CLEANUP_YEAR})`);
         await tx.execute(sql`DELETE FROM vouchers WHERE fiscal_year = ${CLEANUP_YEAR}`);
+        await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'approval'
+          AND entity_id IN (SELECT id::text FROM approval_requests WHERE fiscal_year = ${CLEANUP_YEAR})`);
         await tx.execute(sql`DELETE FROM approval_request_steps WHERE request_id IN
           (SELECT id FROM approval_requests WHERE fiscal_year = ${CLEANUP_YEAR})`);
         await tx.execute(sql`DELETE FROM approval_requests WHERE fiscal_year = ${CLEANUP_YEAR}`);
@@ -114,8 +116,10 @@ export default async function handler(req: Request, _ctx: Context) {
         await tx.execute(sql`DELETE FROM other_revenues WHERE fiscal_year = ${CLEANUP_YEAR}`);
         await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'fiscal_year' AND entity_id = ${String(CLEANUP_YEAR)}`);
         await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'voucher' AND reason = 'E2E 시험'`);
-        await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'ledger_sync'
-          AND (after_data::text LIKE '%"date":"2099%')`);
+        /* 장부 시작 전이라 지금까지의 반영 기록과 사라진 전표의 기록은 전부 시험분이다 */
+        await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'ledger_sync'`);
+        await tx.execute(sql`DELETE FROM ledger_history WHERE entity = 'voucher'
+          AND entity_id NOT IN (SELECT id::text FROM vouchers)`);
         await tx.execute(sql`DELETE FROM ledger_fiscal_years WHERE year = ${CLEANUP_YEAR}`);
         await tx.execute(sql.raw(`ALTER TABLE vouchers ENABLE TRIGGER ledger_voucher_guard_trg`));
         await tx.execute(sql.raw(`ALTER TABLE voucher_lines ENABLE TRIGGER ledger_line_guard_trg`));

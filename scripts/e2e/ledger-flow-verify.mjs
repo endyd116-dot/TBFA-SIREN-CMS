@@ -54,7 +54,7 @@ async function main() {
   const walk = (n) => { for (const x of n || []) { if (x.level === '목') moks.push(x); walk(x.children); } };
   walk(budgetTree.data?.tree);
   const rent = moks.find((x) => x.code === '3-1-01');
-  check('예산 목 ↔ 계정 연결', (rent?.accountCodes || rent?.codes || []).includes('5031'), JSON.stringify(rent?.accountCodes ?? rent?.codes));
+  check('예산 목 ↔ 계정 연결', (rent?.mappedCodes || []).includes('5031'), JSON.stringify(rent?.mappedCodes));
 
   const fund = (code) => M.funds.find((f) => f.code === code).id;
   const F01 = fund('F01');
@@ -144,6 +144,8 @@ async function main() {
   check('최종 시산표 합계 일치', tb4.data?.balanced === true);
   const sync2 = await api('POST', '/api/admin-ledger-sync');
   check('다시 반영해도 중복 없음', sync2.ok && sync2.data?.posted === 0, JSON.stringify(sync2.data));
+  const flowEnd = await api('GET', '/api/admin-ledger-flow');
+  check('반영 뒤 미반영 0건', flowEnd.data?.sync?.total === 0, JSON.stringify(flowEnd.data?.sync?.bySource));
 
   /* 기존 숫자 */
   const after = await snapshot();

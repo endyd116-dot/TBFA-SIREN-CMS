@@ -68,12 +68,13 @@ const line = (accountCode: string, debit: number, credit: number, tags: Partial<
 /** 저장 시각을 한국 날짜로 바꾼다. 컬럼은 시간대 없는 UTC라 두 단계 변환이 필요하다. */
 const kstDate = (column: any) => sql`to_char((${column} AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD')`;
 
-/** 자동 전표가 없는 출처만 고르는 조건. 시스템이 취소한 전표는 없는 것으로 친다. */
+/** 자동 전표가 없는 출처만 고르는 조건. 시스템이 취소한 전표는 없는 것으로 친다.
+ *  idExpr은 바깥 조회의 별칭을 쓴다. 안쪽 별칭 v·reversal과 겹치면 조건이 조용히 틀어진다. */
 const noVoucher = (type: SourceType, idExpr: any) => sql`NOT EXISTS (
   SELECT 1 FROM vouchers v
-    LEFT JOIN vouchers r ON r.id = v.reversed_by_id
+    LEFT JOIN vouchers reversal ON reversal.id = v.reversed_by_id
    WHERE v.source_type = ${type} AND v.source_id = ${idExpr}
-     AND (v.reversed_by_id IS NULL OR r.created_by <> ${SYSTEM_ACTOR.name}))`;
+     AND (v.reversed_by_id IS NULL OR reversal.created_by <> ${SYSTEM_ACTOR.name}))`;
 
 async function loadContext(): Promise<Context | null> {
   const fiscalYears = await loadFiscalYears();
