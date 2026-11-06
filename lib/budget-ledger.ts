@@ -4,7 +4,7 @@
 // 예약 잔액은 별도 표에 두지 않고 승인·미지급 문서 합으로 계산한다(로드맵 §2-3). 원장은 이력이다.
 // 연결 1개 환경이라 트랜잭션 안에서는 인자로 받은 tx만 쓴다.
 import { sql } from "drizzle-orm";
-import { type QueryRunner, voucherCostsByMok } from "./finance-budget-report";
+import { type QueryRunner, unpaidApprovalsOfMok, voucherCostsByMok } from "./finance-budget-report";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
 
@@ -44,12 +44,8 @@ export async function budgetPosition(exec: QueryRunner, year: number, budgetAcco
   const { byMok } = await voucherCostsByMok(exec, year);
   const executed = (Number(spent?.total) || 0) + (budgetAccountId == null ? 0 : byMok.get(budgetAccountId) ?? 0);
 
-  const unpaid = rowsOf(await exec.execute(sql`
-    SELECT COALESCE(SUM(amount), 0)::bigint AS total
-      FROM approval_requests
-     WHERE status = 'approved' AND payment_status = 'unpaid'
-       AND fiscal_year = ${year} AND budget_account_id = ${budgetAccountId}`))[0];
-  let reserved = Number(unpaid?.total) || 0;
+  /* 승인됐지만 아직 지급하지 않은 결재. 급여 지급 결재는 과목별로 나눈 금액을 센다 */
+  let reserved = await unpaidApprovalsOfMok(exec, year, budgetAccountId);
   if (lineId != null) {
     const submitted = rowsOf(await exec.execute(sql`
       SELECT COALESCE(SUM(amount), 0)::bigint AS total

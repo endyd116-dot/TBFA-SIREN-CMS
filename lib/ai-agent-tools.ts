@@ -819,7 +819,7 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {
       year: { type: "INTEGER", description: "회계연도" },
     }, required: ["year"] }},
-  { name: "approval_docs_summary", description: "내부결재 현황 요약 — 문서 유형별 진행중 건수, 지출확인 대기, 취소 진행, 반환 확인 대기",
+  { name: "approval_docs_summary", description: "내부결재 현황 요약 — 문서 유형별 진행중 건수, 지출확인 대기(그중 급여 지급 확인 대기), 취소 진행, 반환 확인 대기. 사단법인 급여는 급여 관리의 지급 결재로 올려 승인 뒤 지출완료 확인에서 한꺼번에 지급 처리한다",
     parameters: { type: "OBJECT", properties: {} }},
   { name: "ledger_general_ledger", description: "총계정원장 조회 — 계정 하나의 기간별 거래와 잔액",
     parameters: { type: "OBJECT", properties: {
@@ -5328,6 +5328,8 @@ async function tool_approvalDocsSummary(): Promise<ToolResult> {
        WHERE delete_status = 'none' AND status <> 'draft' GROUP BY doc_type, status`);
     const extra: any = await db.execute(sql`
       SELECT COUNT(*) FILTER (WHERE doc_type = 'expense' AND status = 'approved' AND payment_status = 'unpaid')::int AS pay_wait,
+             COUNT(*) FILTER (WHERE doc_type = 'expense' AND status = 'approved' AND payment_status = 'unpaid'
+                              AND jsonb_typeof(form_data->'payroll'->'slipIds') = 'array')::int AS payroll_pay_wait,
              COUNT(*) FILTER (WHERE cancel_status = 'requested')::int AS cancel_wait,
              COUNT(*) FILTER (WHERE refund_status = 'required')::int AS refund_wait
         FROM approval_requests WHERE delete_status = 'none'`);
@@ -5336,7 +5338,7 @@ async function tool_approvalDocsSummary(): Promise<ToolResult> {
       ok: true,
       output: {
         byType: (res?.rows ?? res ?? []).map((r: any) => ({ docType: DOC_TYPES[r.doc_type]?.label ?? r.doc_type, status: STATUS_LABEL[r.status] ?? r.status, count: r.n })),
-        payWait: x.pay_wait ?? 0, cancelWait: x.cancel_wait ?? 0, refundWait: x.refund_wait ?? 0,
+        payWait: x.pay_wait ?? 0, payrollPayWait: x.payroll_pay_wait ?? 0, cancelWait: x.cancel_wait ?? 0, refundWait: x.refund_wait ?? 0,
       },
     };
   } catch (e: any) {

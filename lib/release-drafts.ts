@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-07.1";
+export const APP_VERSION = "2026-11-07.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-07-payroll-approval",
+    title: "[관리자] 급여 지급 결재 — 급여 대장을 결재 한 장으로, 승인 뒤 한꺼번에 지급 처리",
+    items: [
+      { text: "사단법인 소속 직원의 급여는 급여 관리의 [지급 결재 올리기]로 결재 문서를 만들어 승인받습니다. 다른 사업자 소속 급여는 지금처럼 [지급]으로 확정합니다", link: "/cms-tbfa.html#payroll" },
+      { text: "결재가 승인되면 급여를 이체한 뒤 내부결재 › 지출완료 확인에서 한 번 확인합니다. 급여 명세가 한꺼번에 지급 완료로 바뀌고 장부에는 급여 전표가 한 번만 기록됩니다", link: "/cms-tbfa.html#docs-pay" },
+      { text: "직원별 금액은 지금처럼 이사장만 봅니다. 결재선의 다른 사람에게는 인원과 합계만 보입니다" },
+      { text: "결재가 진행 중이거나 끝난 급여는 급여 관리에서 고칠 수 없습니다. 고치려면 결재 문서를 회수하거나 취소합니다" },
+      { text: "기본급·상여금 예산은 급여 지급 결재로만 집행합니다. 손으로 쓴 지출결의서에서는 고를 수 없습니다" },
+    ],
+  },
   {
     key: "2026-11-07-proposal-redesign",
     title: "[관리자] 사업소개서(/1)·NPO 제안서(/2) 새 디자인 — 밝은 화면, 실제 화면과 영상",

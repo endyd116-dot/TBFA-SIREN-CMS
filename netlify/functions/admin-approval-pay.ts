@@ -16,6 +16,7 @@ import { sql } from "drizzle-orm";
 import { LedgerError, ledgerActor, ledgerErrorBody, recordHistory } from "../../lib/ledger-post";
 import { syncLedger } from "../../lib/ledger-auto";
 import { budgetPosition, lockBudget, recordBudgetLedger } from "../../lib/budget-ledger";
+import { isPayrollDoc, payrollBudgetStep, payrollOf, settlePayrollSlips } from "../../lib/payroll-approval";
 
 export const config = { path: "/api/admin-approval-pay" };
 
@@ -49,16 +50,42 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const myId = Number(auth.ctx.admin.uid);
   const actor = ledgerActor(auth);
+  const chair = String(auth.ctx.member?.role ?? "") === "super_admin";
   try {
     const paid = await db.transaction(async (tx) => {
       const r = rowsOf(await tx.execute(sql`
         SELECT id, title, amount, status, payment_status, fiscal_year, budget_account_id, payee_name,
-               evidence_url, drafter_id, function_code, program_id, fund_id, resolution_no, cancel_status, doc_no
+               evidence_url, drafter_id, function_code, program_id, fund_id, resolution_no, cancel_status, doc_no,
+               doc_type, form_data, version
           FROM approval_requests WHERE id = ${requestId} FOR UPDATE`))[0];
       if (!r) throw new LedgerError("결재를 찾을 수 없습니다", 404);
       if (r.status !== "approved") throw new LedgerError("최종 승인된 결재만 지급 확인할 수 있습니다.");
       if (r.payment_status !== "unpaid") throw new LedgerError("이미 지급 확인된 결재입니다.");
       if (r.cancel_status === "requested") throw new LedgerError("취소가 진행 중인 문서는 지출완료를 확인할 수 없습니다.");
+
+      /* 급여 지급 결재: 급여 명세를 한꺼번에 지급 완료로 바꾼다. 지출은 만들지 않는다.
+         장부에는 급여 전표가 들어가므로 여기서 지출을 만들면 인건비가 두 번 잡힌다.
+         급여 지급 확정은 급여 관리와 같이 이사장만 한다. 금액은 승인액 그대로다. */
+      if (isPayrollDoc(r)) {
+        if (!chair) throw new LedgerError("급여 지급 확인은 이사장만 할 수 있습니다", 403);
+        const total = Number(r.amount);
+        if (paidAmountInput !== null && paidAmountInput !== total) {
+          throw new LedgerError("급여 지급 결재는 승인된 금액 그대로 확인합니다. 금액이 달라졌으면 결재를 취소하고 다시 올려 주세요.");
+        }
+        await payrollBudgetStep(tx, r, "execute", actor, { paidOn: paidAt });
+        const slips = await settlePayrollSlips(tx, r, paidAt, myId);
+        await tx.execute(sql`
+          UPDATE approval_requests
+             SET payment_status = 'paid', paid_at = ${paidAt}, paid_amount = ${total}, paid_by = ${myId}, updated_at = NOW()
+           WHERE id = ${requestId}`);
+        const p = payrollOf(r.form_data)!;
+        await recordHistory(tx, {
+          entity: "approval", entityId: requestId, action: "paid", actor,
+          after: { resolutionNo: r.resolution_no, approved: total, paidAmount: total, paidAt, payroll: { year: p.year, month: p.month, slips } },
+        });
+        return { expenseId: null, resolutionNo: r.resolution_no, payroll: { slips, year: p.year, month: p.month } };
+      }
+
       const approved = Number(r.amount);
       const paidAmount = paidAmountInput ?? approved;
       if (paidAmount > approved) throw new LedgerError("실제 지급액이 승인액을 넘습니다. 다시 기안해 주세요.");
@@ -117,13 +144,13 @@ export default async function handler(req: Request, _ctx: Context) {
         entity: "approval", entityId: requestId, action: "paid", actor,
         after: { resolutionNo: r.resolution_no, approved, paidAmount, paidAt, expenseId, bankTxnId },
       });
-      return { expenseId, resolutionNo: r.resolution_no };
+      return { expenseId, resolutionNo: r.resolution_no, payroll: null as null | { slips: number; year: number; month: number } };
     });
 
     /* 장부 반영은 커밋 뒤에 한다. 실패해도 지급 확인은 유효하고 야간 반영에서 처리된다 */
     let ledger: any = null;
     try {
-      ledger = await syncLedger({ only: ["expense"] });
+      ledger = await syncLedger({ only: [paid.payroll ? "payroll" : "expense"] });
     } catch (err: any) {
       console.warn("[approval-pay] 장부 반영 실패(야간 재시도):", err?.message);
     }

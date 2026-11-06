@@ -7,6 +7,10 @@
  *   POST /api/admin-payroll?id=N&action=hold              보류 (HOLD)
  *   POST /api/admin-payroll?action=recalculate&year=&month=   월별 수동 재집계 (3일차에서 구현)
  *
+ * 사단법인 소속 급여는 결재를 거쳐 지급한다(lib/payroll-approval.ts).
+ *   일람은 명세별로 소속(orgPayroll)과 묶인 결재(approval)를 함께 돌려준다.
+ *   결재가 진행 중이거나 끝난 명세는 수정·보류·삭제·재집계를 막고, 사단법인 급여의 직접 지급 확정도 막는다.
+ *
  * 권한: super_admin 전용 (member.role === 'super_admin')
  * R37 1일차 — API 골격. 자동 집계·발송은 후속 일차에서 구현.
  */
@@ -18,6 +22,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { calculatePayrollForMonth, loadPayrollSettings, computeDeductions } from "../../lib/payroll-calc";
 import { taxableBaseOf, positionLabelOf } from "../../lib/payroll-breakdown";
 import { callGemini } from "../../lib/ai-gemini";
+import { lockedNotice, payrollMonthStatus, slipApprovalState, type SlipClaim } from "../../lib/payroll-approval";
 
 export const config = { path: "/api/admin-payroll" };
 
@@ -160,11 +165,22 @@ export default async function handler(req: Request) {
         }
       }
 
+      /* 사단법인 소속 급여는 결재를 거쳐 지급한다. 명세별로 소속과 묶인 결재를 함께 알려 준다.
+         보조 조회라 실패해도 일람은 보여 준다(지급·수정 때 서버가 다시 확인한다) */
+      let approvalMap = new Map<number, { org: boolean; claim: SlipClaim | null }>();
+      try {
+        approvalMap = await payrollMonthStatus(db, year, month);
+      } catch (err) {
+        console.warn("[admin-payroll] 결재 연결 조회 실패:", err);
+      }
+
       /* 저장소 키는 클라이언트에 내보내지 않는다 — 존재 여부만 알린다 */
       const enriched = rows.map(r => {
         const { documentR2Key, signedDocumentR2Key, ...rest } = r as any;
         return {
           ...rest,
+          orgPayroll: approvalMap.get(r.id)?.org ?? false,
+          approval: approvalMap.get(r.id)?.claim ?? null,
           memberName: memberMap.get(Number(r.memberUid))?.name ?? null,
           memberEmail: memberMap.get(Number(r.memberUid))?.email ?? null,
           memberMilestoneRole: memberMap.get(Number(r.memberUid))?.milestoneRole ?? null,
@@ -222,6 +238,12 @@ export default async function handler(req: Request) {
       // P2-25 fix: 지급 완료(PAID) 명세서는 서버에서도 금액 수정·상태 변경 차단 (화면 잠금만으론 직접 호출로 우회 가능)
       if (cur.status === "PAID" && (isEdit || typeof body.status === "string")) {
         return jsonBadRequest("지급 완료된 명세서는 수정·상태 변경할 수 없습니다 (정정은 지급 취소 절차로 진행)");
+      }
+
+      /* 결재가 진행 중이거나 끝난 급여는 고칠 수 없다. 결재한 금액과 지급 금액이 달라지기 때문이다 */
+      if (isEdit || typeof body.status === "string") {
+        const state = await slipApprovalState(db, idNum);
+        if (state.claim?.locked) return jsonBadRequest(lockedNotice(state.claim));
       }
 
       const update: any = { updatedAt: new Date() };
@@ -391,6 +413,8 @@ export default async function handler(req: Request) {
           .from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
         if (!curH) return jsonBadRequest("명세서를 찾을 수 없습니다");
         if (curH.status === "PAID") return jsonBadRequest("지급 완료된 명세서는 보류할 수 없습니다");
+        const stateH = await slipApprovalState(db, idNum);
+        if (stateH.claim?.locked) return jsonBadRequest(lockedNotice(stateH.claim));
         const update: any = { status: "HOLD", updatedAt: new Date() };
         if (typeof body.reviewNote === "string") update.reviewNote = body.reviewNote;
         const [updated] = await db.update(payrollSlips).set(update)
@@ -429,6 +453,14 @@ export default async function handler(req: Request) {
         if (!["APPROVED", "SENT"].includes(cur.status)) {
           return jsonBadRequest("승인(APPROVED) 또는 발송(SENT) 상태에서만 지급 확정 가능합니다");
         }
+        /* 사단법인 급여는 결재를 거쳐 지급한다. 승인된 결재 문서의 지출완료 확인이 명세를 한꺼번에 지급 완료로 바꾼다.
+           여기서 따로 확정하면 결재 없이 급여가 나가고 장부·예산 기록이 결재와 어긋난다. */
+        const stateP = await slipApprovalState(db, idNum);
+        if (stateP.org) {
+          return jsonBadRequest(stateP.claim?.locked
+            ? `${stateP.claim.label}인 급여입니다${stateP.claim.docNo ? ` (${stateP.claim.docNo})` : ""}. 결재 문서의 지출완료 확인에서 한꺼번에 지급 처리됩니다.`
+            : "사단법인 급여는 결재를 거쳐 지급합니다. [지급 결재 올리기]로 결재를 올리고, 승인된 뒤 지출완료 확인에서 지급 처리해 주세요.");
+        }
         const paidUpdate: any = {
           status: "PAID", paidBy: String(admin.id), paidAt, updatedAt: new Date(),
         };
@@ -465,6 +497,8 @@ export default async function handler(req: Request) {
         if (cur.issuedAt || cur.sentAt) {
           return jsonBadRequest("한 번이라도 직원에게 교부한 명세서는 삭제할 수 없습니다(법정 보존·서명 증적). [정정 재발행]으로 새 차수를 교부하세요");
         }
+        const stateD = await slipApprovalState(db, idNum);
+        if (stateD.claim?.locked) return jsonBadRequest(lockedNotice(stateD.claim));
 
         let memberName: string | null = null;
         try {

@@ -256,7 +256,9 @@
         <a class="btn btn-light" id="btnExport" title="해당 월 명세서 CSV 다운로드" target="_blank" rel="noopener"><span class="siren-icon-wrap" data-icon="arrow-down"></span> CSV</a>
         <a class="btn btn-light" id="btnZip" title="그 달 교부 문서(서명본 우선) 일괄 ZIP 다운로드" target="_blank" rel="noopener"><span class="siren-icon-wrap" data-icon="download"></span> 증빙 ZIP</a>
         <button class="btn btn-success" id="btnSendAll" title="APPROVED 명세서 일괄 이메일 발송"><span class="siren-icon-wrap" data-icon="mail"></span> 전체 발송</button>
+        <button class="btn btn-primary" id="btnApprovalDraft" title="사단법인 소속 급여를 결재 문서 한 장으로 올립니다. 승인 뒤 지출완료 확인에서 한꺼번에 지급 처리됩니다"><span class="siren-icon-wrap" data-icon="file-text"></span> 지급 결재 올리기</button>
       </div>
+      <div id="approvalNote" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:13px;line-height:1.6"></div>
     </div>
 
     <!-- 계산기준 설정 (토글) -->
@@ -485,6 +487,6 @@
   <!-- SheetJS — 국세청 간이지급명세서 양식(.xls)을 브라우저에서 직접 채워 내려받는다.
        주민등록번호가 들어가는 파일이라 서버를 거치지 않게 한다(로그·에러리포트에 남을 위험 제거). -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="/js/admin-payroll.js?v=20261008-paydays"></script>
+  <script src="/js/admin-payroll.js?v=20261107-approval"></script>
 </body>
 </html>

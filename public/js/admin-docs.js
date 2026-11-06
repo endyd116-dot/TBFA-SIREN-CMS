@@ -1,7 +1,10 @@
 /* admin-docs.js — 내부결재 (2026-11-06)
  * 결재 홈 / 문서 작성 / 내 문서함 / 결재 문서함 / 지출완료 확인 / 예산 진행현황 / 취소 및 보존함 / 결재선 및 양식 설정
  * 설계: docs/active/2026-11-06-approval-docs-design.md
- * window.SIREN_DOCS = { open }
+ * window.SIREN_DOCS = { open, openDoc }
+ *
+ * 급여 지급 결재: 급여 관리의 «지급 결재 올리기»가 만든 지출결의서다(formData.payroll).
+ * 대상과 금액은 급여 명세에서 오므로 화면에서 고치지 않는다. 직원별 금액은 이사장에게만 온다.
  */
 (function () {
   'use strict';
@@ -15,6 +18,7 @@
   let autoTimer = null; // 자동저장 타이머
   let lastSaved = '';   // 마지막으로 저장한 내용
   let saving = null;    // 진행 중인 저장. 겹치면 문서가 두 건 생긴다
+  let pendingDoc = null; // 다른 화면에서 열어 달라고 한 문서
 
   const FN_LABEL = { service: '사업수행', admin: '일반관리', fundraising: '모금' };
   const ROLE_LABEL = { operator: '직원', admin: '국장', super_admin: '이사장' };
@@ -287,6 +291,50 @@
     </div></div>`;
   }
 
+  /* ── 급여 지급 결재 ── */
+  const payrollOf = d => (d && d.formData && d.formData.payroll && Array.isArray(d.formData.payroll.slipIds) ? d.formData.payroll : null);
+
+  function payrollTable(p) {
+    const summary = `<table class="dc-table"><tbody>
+      <tr><th style="width:120px">대상</th><td>${esc(p.year)}년 ${esc(p.month)}월 급여 · 직원 ${won(p.count)}명</td></tr>
+      <tr><th>지급총액</th><td class="num"><strong>${won(p.gross)}</strong></td></tr>
+      <tr><th>공제액</th><td class="num">${won(p.deduction)}</td></tr>
+      <tr><th>실지급액</th><td class="num"><strong>${won(p.net)}</strong></td></tr>
+      ${(p.budget || []).map(b => `<tr><th>예산</th><td>${esc(b.label)} <span style="float:right">${won(b.amount)}</span></td></tr>`).join('')}
+    </tbody></table>`;
+    const rows = (p.rows || []).length
+      ? `<table class="dc-table"><thead><tr><th>직원</th><th>직책</th><th>지급총액</th><th>공제액</th><th>실지급액</th><th>급여 근거</th></tr></thead>
+          <tbody>${p.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.position || '')}</td><td class="num">${won(r.gross)}</td>
+            <td class="num">${won(r.deduction)}</td><td class="num">${won(r.net)}</td><td>${r.contract ? '근로계약' : '계약 미등록'}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="dc-note">직원별 금액은 이사장만 볼 수 있습니다. 인원과 합계만 표시합니다.</div>';
+    return summary + rows;
+  }
+
+  function payrollFields(d) {
+    const p = payrollOf(d);
+    return `
+      <div class="dc-note" style="margin-bottom:8px">급여 지급 결재입니다. 대상과 금액은 급여 관리의 명세를 따르며 이 화면에서는 고칠 수 없습니다.
+        상신하는 순간의 급여 명세로 다시 맞춘 뒤 고정합니다. 명세를 바꿨다면 급여 관리에서 [지급 결재 올리기]를 다시 눌러 주세요.</div>
+      ${payrollTable(p)}
+      <div class="dc-note">공제액(소득세·4대보험)은 납부할 때까지 장부에 예수금으로 남습니다. 승인 뒤 지출완료를 확인하면 급여 명세 ${won(p.count)}건이 지급 완료로 바뀝니다.</div>
+      ${p.noContract ? `<div class="dc-note" style="color:#b45309">근로계약이 등록되지 않은 직원 ${won(p.noContract)}명이 있습니다. 급여 근거가 되는 승인 문서를 오른쪽에서 연결하거나 품의 근거로 첨부해야 상신할 수 있습니다.</div>` : ''}`;
+  }
+
+  function payrollBudgetCard(d) {
+    const p = payrollOf(d);
+    const kv = (k, v) => `<div class="dc-kv"><span>${k}</span><strong>${won(v)}</strong></div>`;
+    return `<div class="dc-card"><h4>예산 진행현황</h4>
+      ${(p.budget || []).map(b => {
+        const o = (budgets?.options || []).find(x => x.budgetAccountId === b.budgetAccountId);
+        const after = o ? o.available - b.amount : null;
+        return `<div style="font-size:13px;font-weight:600;margin-top:6px">${esc(b.label)}</div>
+          ${o ? kv('사용가능액', o.available) : ''}${kv('이 결재 금액', b.amount)}${o ? kv('승인 후 예상 가용액', after) : ''}
+          ${o && budgets.hasPlan && after < 0 ? '<div class="dc-note" style="color:var(--danger)">사용가능액을 넘습니다. 이대로는 최종 승인이 막힙니다.</div>' : ''}`;
+      }).join('')}
+      ${budgets && !budgets.hasPlan ? `<div class="dc-note">${budgets.year}년 승인 예산이 없어 사용가능액을 검사하지 않습니다.</div>` : ''}
+    </div>`;
+  }
+
   function itemTable(d) {
     const items = d.formData.items || (d.formData.items = [{}]);
     const total = items.reduce((t, i) => t + (Number(i.supply) || 0) + (Number(i.vat) || 0), 0);
@@ -407,10 +455,11 @@
       <div class="dc-card"><h4>첨부파일 <span class="dc-note">${(d.files || []).length}개</span></h4>
         <div id="dcFiles">${(d.files || []).map(f => `<div class="dc-kv"><span><a href="/api/admin-docs-file?id=${f.id}" target="_blank" rel="noopener">${esc(f.fileName)}</a> <span class="dc-note">${esc(meta.fileKinds[f.fileKind] || '')}</span></span><a href="#" data-file-del="${f.id}">×</a></span></div>`).join('')}</div>
         <select class="input-sm" id="dcFileKind" style="width:100%;margin-top:4px">${Object.entries(meta.fileKinds).filter(([k]) => k !== 'additional').map(([k, v]) =>
-          `<option value="${k}"${d.docType === 'expense' && k === 'payment' ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>
+          `<option value="${k}"${d.docType === 'expense' && k === (payrollOf(d) ? 'proposal' : 'payment') ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>
         <input type="file" id="dcFile" style="margin-top:6px;width:100%">
+        ${payrollOf(d) ? '<div class="dc-note">직원별 금액이 담긴 파일은 붙이지 마세요. 문서를 여는 사람 모두에게 보입니다.</div>' : ''}
       </div>
-      ${d.docType === 'expense' ? budgetCard(d) : ''}`;
+      ${d.docType === 'expense' ? (payrollOf(d) ? payrollBudgetCard(d) : budgetCard(d)) : ''}`;
   }
 
   function composeHtml() {
@@ -438,7 +487,7 @@
             <div class="dc-row2"><label>기안자</label><div style="font-size:13px">${esc(meta.me.name)}</div>
               <label>직책</label><div style="font-size:13px">${esc(myTitle())}</div></div>
             <div class="dc-row"><label>제목 *</label><input class="input" id="dcTitle" value="${esc(d.title || '')}"></div>
-            ${d.docType === 'expense' ? expenseFields(d) : typeFields(d)}
+            ${d.docType === 'expense' ? (payrollOf(d) ? payrollFields(d) : expenseFields(d)) : typeFields(d)}
             ${d.docType === 'proposal' ? budgetRowTable(d) : ''}
             ${guide ? `<div class="dc-note" style="white-space:pre-line;margin-top:8px">${esc(guide)}</div>` : ''}
             <div style="margin-top:10px"><strong>${d.docType === 'internal' ? '신청 내용' : d.docType === 'proposal' ? '품의 내용 *' : '내용'}</strong></div>
@@ -596,7 +645,9 @@
     on('#dcPreview', () => { collect(); printDoc(previewDoc(), true); });
     on('#dcSubmit', async () => {
       if (!(await saveCurrent())) return;
-      if (!confirm('상신하면 본문·첨부·참조·결재선이 승인 대상으로 고정됩니다. 상신할까요?')) return;
+      if (!confirm(payrollOf(draft)
+        ? '상신하면 급여 명세의 지금 금액으로 문서를 다시 맞춘 뒤 승인 대상으로 고정합니다. 결재가 끝날 때까지 이 급여는 급여 관리에서 고칠 수 없습니다. 상신할까요?'
+        : '상신하면 본문·첨부·참조·결재선이 승인 대상으로 고정됩니다. 상신할까요?')) return;
       const res = await post({ action: 'submit', id: draft.id });
       if (!res.ok) { showError(failText(res)); return; }
       alert(`상신했습니다. ${dataOf(res).docNo}`);
@@ -749,7 +800,7 @@
       : d.docType === 'proposal' ? sum(f.budgetRows, r => Number(r.amount) || 0) : Number(f.plannedAmount) || 0;
     return {
       docLabel: meta.docTypes[d.docType].label, docNo: d.docNo || '(상신 시 부여)', title: d.title, body: d.body, formData: f,
-      docType: d.docType, drafterName: meta.me.name, amount,
+      docType: d.docType, drafterName: meta.me.name, amount, isPayroll: !!payrollOf(d),
       payMethodLabel: meta.payMethods[d.payMethod] || null, expenseKindLabel: meta.expenseKinds[d.expenseKind] || null,
       internalKindLabel: meta.internalKinds[f.kind]?.label || null,
       functionCode: opt?.locked ? opt.functionCode : d.functionCode,
@@ -786,7 +837,7 @@
     }
     if (x.docType === 'expense') {
       const info = x.budgetInfo || {};
-      return row('예산', info.path) + row('활동', FN_LABEL[x.functionCode]) + row('사업', info.programName) + row('재원', info.fundName)
+      return row('예산', x.isPayroll ? '' : info.path) + row('활동', FN_LABEL[x.functionCode]) + row('사업', info.programName) + row('재원', info.fundName)
         + row('지출 구분', x.expenseKindLabel) + row('지급방법', x.payMethodLabel) + row('긴급 사유', f.urgentReason)
         + row('결의번호', x.resolutionNo) + row('지급일', x.paidAt) + (x.paidAmount != null && x.paidAmount !== x.amount ? row('실제 지급액', won(x.paidAmount)) : '');
     }
@@ -799,6 +850,7 @@
         `<tr><td>${esc(r.item)}</td><td class="num">${won(r.amount)}</td></tr>`).join('')}</tbody></table>`;
     }
     if (x.docType !== 'expense') return '';
+    if (payrollOf(x)) return payrollTable(payrollOf(x));
     return `<table class="dc-table"><thead><tr><th>용도</th><th>내용</th><th>지급처</th><th>공급가액</th><th>부가세</th><th>합계</th></tr></thead>
       <tbody>${(f.items || []).map(i => `<tr><td>${esc(i.use)}</td><td>${esc(i.content)}</td><td>${esc(i.payee)}</td>
         <td class="num">${won(i.supply)}</td><td class="num">${won(i.vat)}</td><td class="num">${won((Number(i.supply) || 0) + (Number(i.vat) || 0))}</td></tr>`).join('')}</tbody>
@@ -855,6 +907,7 @@
               ${x.cancelStatus !== 'none' ? `<span class="dc-badge bad">${esc(cancelText(x))}</span>` : ''}
               ${x.refundStatus === 'required' ? '<span class="dc-badge wait">반환 확인 대기</span>' : ''}
               ${x.followupDue ? '<span class="dc-badge wait">사후 품의 필요</span>' : ''}
+              ${x.isPayroll ? '<span class="dc-badge">급여 지급 결재</span>' : ''}
               ${x.basisCanceled ? `<span class="dc-badge bad">근거 품의 취소: ${esc(CARD_BASIS_NOTE(x))}</span>` : ''}
             </div>
             <table class="dc-table"><tbody>
@@ -885,6 +938,11 @@
             </div>
             ${x.watchers.length ? `<div class="dc-card"><h4>참조자</h4>${x.watchers.map(w => esc(w.name)).join(', ')}</div>` : ''}
             ${x.cardScope ? `<div class="dc-card"><h4>카드 승인범위</h4>${kv('품의 금액', x.cardScope.approved)}${kv('사용 누계', x.cardScope.used)}${kv('남은 범위', x.cardScope.remaining)}</div>` : ''}
+            ${x.isPayroll && x.status === 'approved' && x.paymentStatus === 'unpaid' && !a.pay ? '<div class="dc-card"><h4>급여 지급 확인</h4><div class="dc-note">급여 지급 확인은 이사장이 합니다. 확인하면 급여 명세가 한꺼번에 지급 완료로 바뀌고 장부에 급여 전표가 만들어집니다.</div></div>' : ''}
+            ${(x.payrollBudget || []).length ? `<div class="dc-card"><h4>예산 진행현황</h4>${x.payrollBudget.map(pb => `<div style="font-size:13px;font-weight:600;margin-top:6px">${esc(pb.label)}</div>
+              ${pb.hasPlan ? kv('현재예산', pb.planned) + kv('지출완료 집행액', pb.executed) + kv('미집행 예약액', pb.reserved) + kv('사용가능액', pb.available) : ''}${kv('이 결재 금액', pb.amount)}
+              ${pb.hasPlan && x.status !== 'approved' && x.status !== 'canceled' ? kv('승인 후 예상 가용액', pb.expectedAvailable) : ''}`).join('')}
+              ${x.payrollBudget.some(pb => !pb.hasPlan) ? '<div class="dc-note">승인된 예산안이 없어 사용가능액을 검사하지 않습니다.</div>' : ''}</div>` : ''}
             ${b ? `<div class="dc-card"><h4>예산 진행현황</h4>${kv('현재예산', b.planned)}${kv('지출완료 집행액', b.executed)}${kv('미집행 예약액', b.reserved)}${kv('예산잔액', b.remaining)}${kv('사용가능액', b.available)}
               ${b.draftAmount ? `${kv('이 문서 금액', b.draftAmount)}${kv('승인 후 예상 가용액', b.expectedAvailable)}` : ''}</div>` : ''}
             ${(x.purgeProblems || []).length ? `<div class="dc-card"><h4>완전삭제 불가 사유</h4>${x.purgeProblems.map(p => `<div class="dc-note">${esc(p)}</div>`).join('')}</div>` : ''}
@@ -928,7 +986,7 @@
       if (act === 'delete') { const c = prompt('삭제 사유. 문서함에서 빠지고 내부 보존됩니다.'); if (c) run({ action: 'delete', reason: c }, () => {}); }
       if (act === 'hold') { const c = x.holdReason ? '' : prompt('보존 중지 사유'); if (x.holdReason || c) run({ action: 'hold', reason: c }); }
       if (act === 'comment') { const c = container.querySelector('#dcComment').value; if (c.trim()) run({ action: 'comment', body: c }); }
-      if (act === 'pay') openPayModal(x, reload);
+      if (act === 'pay') (payrollOf(x) ? openPayrollPayModal : openPayModal)(x, reload);
       if (act === 'refund') openRefundModal(x, reload);
       if (act === 'followup') openFollowupModal(x, reload);
       if (act === 'card-usage') openCardUsageModal(x, reload);
@@ -992,6 +1050,32 @@
         bankTxnId: w.querySelector('#dcPayBank').value ? Number(w.querySelector('#dcPayBank').value) : undefined,
       });
       if (r.ok) done();
+      return r;
+    }, '확인');
+  }
+
+  /* 급여 지급 확인. 금액은 승인액 그대로이고, 확인하면 급여 명세가 한꺼번에 지급 완료가 된다 */
+  function openPayrollPayModal(x, done) {
+    const p = payrollOf(x);
+    modal('급여 지급 확인', `
+      <div style="font-size:13px;margin-bottom:10px">${esc(x.title)} · 직원 ${won(p.count)}명<br>실지급액 <strong>${won(p.net)}원</strong> <span class="dc-note">지급총액 ${won(p.gross)}원, 공제액 ${won(p.deduction)}원</span></div>
+      <label class="form-label">실제 지급일 (계좌이체일)</label><input id="dcPayDate" class="input" type="date" value="${today()}" style="width:100%;margin-bottom:10px">
+      <div class="dc-note">확인하면 급여 명세 ${won(p.count)}건이 지급 완료로 바뀌고 장부에 급여 전표가 만들어집니다. 원천징수 신고는 이 지급일 기준으로 집계됩니다. 확인한 뒤에는 취소할 수 없습니다.</div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:12px"><input id="dcPayEvidence" type="checkbox"> 이체 내역을 확인했습니다</label>
+    `, async w => {
+      const r = await api('POST', '/api/admin-approval-pay', {
+        requestId: x.id, paidAt: w.querySelector('#dcPayDate').value, evidenceChecked: w.querySelector('#dcPayEvidence').checked,
+      });
+      if (r.ok) {
+        const d = dataOf(r);
+        const lg = d.ledger || {};
+        const made = (Number(lg.posted) || 0) + (Number(lg.drafts) || 0);
+        alert(`급여 명세 ${won(d.payroll?.slips ?? p.count)}건을 지급 완료로 바꿨습니다.\n`
+          + (made ? `장부에 급여 전표 ${won(made)}건을 만들었습니다.${lg.drafts ? ` 그중 ${won(lg.drafts)}건은 확인이 필요해 작성중으로 두었습니다.` : ''}`
+            : lg.blocked ? '마감된 기간이라 장부 전표는 만들지 못했습니다. 장부에서 확인해 주세요.'
+              : '장부 시작일 이전이거나 반영할 전표가 없어 장부에는 기록하지 않았습니다.'));
+        done();
+      }
       return r;
     }, '확인');
   }
@@ -1229,10 +1313,26 @@
     }));
   }
 
+  /* 다른 화면(급여 관리)에서 문서를 바로 연다. 고칠 수 있는 내 문서면 작성 화면을, 아니면 상세를 보여 준다 */
+  async function openDoc(id, edit) {
+    if (!(await ensureMeta())) return;
+    if (edit) {
+      const res = await get(`view=detail&id=${id}`);
+      if (res.ok && dataOf(res).actions?.edit) { await renderCompose(id); go('new'); return; }
+    }
+    pendingDoc = Number(id);
+    go('mine');
+  }
+
   async function open(view) {
     const c = page(view);
     if (!c) return;
     if (!(await ensureMeta())) { c.innerHTML = '<div class="panel" style="color:var(--danger)">내부결재를 불러오지 못했습니다. 마이그 적용 여부를 확인해 주세요.</div>'; return; }
+    if (view === 'mine' && pendingDoc) {
+      const id = pendingDoc;
+      pendingDoc = null;
+      return openDetail(c, id, () => renderBox('mine'));
+    }
     if (view === 'home') return renderHome();
     if (view === 'new') return renderCompose();
     if (view === 'mine' || view === 'inbox') return renderBox(view);
@@ -1242,5 +1342,5 @@
     if (view === 'settings') return renderSettings();
   }
 
-  window.SIREN_DOCS = { open };
+  window.SIREN_DOCS = { open, openDoc };
 })();

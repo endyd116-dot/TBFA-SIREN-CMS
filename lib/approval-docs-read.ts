@@ -10,6 +10,7 @@ import { ymd } from "./ledger-post";
 import { buildBudgetReport } from "./finance-budget-report";
 import { budgetPosition } from "./budget-ledger";
 import { activePurgeGrant, cardScope, DEFAULT_GUIDES, DOC_TYPES, type DocActor, EXPENSE_KINDS, INTERNAL_KINDS, loadSettings, PAY_METHODS, purgeProblems, STATUS_LABEL } from "./approval-docs";
+import { isPayrollDoc, maskPayroll, payrollBudgetView } from "./payroll-approval";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
 
@@ -193,9 +194,13 @@ export async function docDetail(s: ReadScope, id: number) {
     SELECT version, content_hash, submitted_at FROM approval_doc_versions WHERE request_id = ${id} ORDER BY version`))
     .map((r: any) => ({ version: Number(r.version), hash: r.content_hash, submittedAt: r.submitted_at }));
 
+  /* 급여 지급 결재: 직원별 금액은 이사장만 보고, 예산은 과목별로 보여 준다 */
+  const payroll = isPayrollDoc(doc);
+  const payrollBudget = payroll ? await payrollBudgetView(db, doc) : null;
+
   /* 예산 진행현황: 열람할 때 자기 금액을 다시 빼지 않는다(설계도 6쪽) */
   let budget: any = null;
-  if (doc.doc_type === "expense" && doc.budget_account_id) {
+  if (doc.doc_type === "expense" && doc.budget_account_id && !payroll) {
     const position = await budgetPosition(db, Number(doc.fiscal_year), Number(doc.budget_account_id));
     const amount = Number(doc.amount) || 0;
     const counted = doc.status === "approved" || doc.status === "canceled";
@@ -236,11 +241,14 @@ export async function docDetail(s: ReadScope, id: number) {
     edit: mine && ["draft", "rejected", "recalled"].includes(doc.status),
     recall: mine && doc.status === "pending",
     decide: doc.status === "pending" && pendingStep?.assigneeId === me ? pendingStep.stepType : null,
-    cancelRequest: doc.status === "approved" && doc.cancel_status !== "requested" && (mine || isChair(s)),
+    /* 지급이 끝난 급여 결재는 취소할 수 없다(급여 정정은 급여 관리의 정정 절차) */
+    cancelRequest: doc.status === "approved" && doc.cancel_status !== "requested" && (mine || isChair(s))
+      && !(payroll && doc.payment_status === "paid"),
     cancelDecide: doc.cancel_status === "requested" && cancelStep?.assigneeId === me ? cancelStep.stepType : null,
     delete: doc.cancel_status === "approved" && doc.delete_status === "none" && (s.bookkeeping || isChair(s)),
+    /* 급여 지급 확인은 급여 관리와 같이 이사장만 한다 */
     pay: doc.doc_type === "expense" && doc.status === "approved" && doc.payment_status === "unpaid"
-      && doc.cancel_status !== "requested" && (s.bookkeeping || isChair(s)),
+      && doc.cancel_status !== "requested" && (payroll ? isChair(s) : s.bookkeeping || isChair(s)),
     refund: doc.refund_status === "required" && (s.bookkeeping || isChair(s)),
     addFile: doc.status === "approved" && (mine || s.bookkeeping || isChair(s)),
     followup: followupDue && doc.status === "approved" && (mine || isChair(s)),
@@ -253,7 +261,8 @@ export async function docDetail(s: ReadScope, id: number) {
 
   return {
     id: Number(doc.id), docNo: doc.doc_no, docType: doc.doc_type, docLabel: DOC_TYPES[doc.doc_type]?.label ?? doc.doc_type,
-    title: doc.title, amount: Number(doc.amount) || 0, body: doc.body, formData: doc.form_data ?? {}, version: Number(doc.version) || 1,
+    title: doc.title, amount: Number(doc.amount) || 0, body: doc.body, formData: maskPayroll(doc.form_data, isChair(s)), version: Number(doc.version) || 1,
+    isPayroll: payroll, payrollBudget,
     status: doc.status, statusLabel: doc.approval_mode === "substituted" && doc.status === "approved" ? "승인 갈음" : STATUS_LABEL[doc.status] ?? doc.status,
     approvalMode: doc.approval_mode, substituteBasisId: doc.substitute_basis_id == null ? null : Number(doc.substitute_basis_id),
     payMethod: doc.pay_method, payMethodLabel: PAY_METHODS[doc.pay_method] ?? null,
@@ -281,7 +290,11 @@ export async function docVersion(s: ReadScope, id: number, version: number) {
   if (!(await canViewDoc(s, id))) return null;
   const r = rowsOf(await db.execute(sql`
     SELECT version, snapshot, content_hash, submitted_at FROM approval_doc_versions WHERE request_id = ${id} AND version = ${version}`))[0];
-  return r ? { version: Number(r.version), snapshot: r.snapshot, hash: r.content_hash, submittedAt: r.submitted_at } : null;
+  if (!r) return null;
+  /* 승인 당시 내용에도 직원별 급여가 들어 있다. 이사장이 아니면 합계만 돌려준다 */
+  const snapshot = r.snapshot && typeof r.snapshot === "object"
+    ? { ...r.snapshot, formData: maskPayroll(r.snapshot.formData, isChair(s)) } : r.snapshot;
+  return { version: Number(r.version), snapshot, hash: r.content_hash, submittedAt: r.submitted_at };
 }
 
 /** 참조 검색. 열람 가능한 문서만, 완료 문서를 먼저 보여 준다(설계도 8쪽). */
@@ -359,7 +372,12 @@ export async function budgetProgress(s: ReadScope, year: number, budgetAccountId
   const position = await budgetPosition(db, year, budgetAccountId);
   const rows = rowsOf(await db.execute(sql`
     SELECT ${COLUMNS} FROM approval_requests r
-     WHERE r.doc_type = 'expense' AND r.fiscal_year = ${year} AND r.budget_account_id = ${budgetAccountId}
+     WHERE r.doc_type = 'expense' AND r.fiscal_year = ${year}
+       AND (r.budget_account_id = ${budgetAccountId}
+            /* 급여 지급 결재는 여러 과목에 걸친다(기본급·상여금) */
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(
+                 CASE WHEN jsonb_typeof(r.form_data->'payroll'->'budget') = 'array' THEN r.form_data->'payroll'->'budget' ELSE '[]'::jsonb END) AS b(value)
+                WHERE (b.value->>'budgetAccountId')::int = ${budgetAccountId}))
        AND r.status <> 'draft' AND r.delete_status <> 'purged' AND ${visible(s)}
      ORDER BY r.id DESC LIMIT 200`));
   return {

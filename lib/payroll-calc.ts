@@ -17,6 +17,7 @@ import { REMOTE_REPORT_REQUIRED_FROM } from "./att-remote-policy";
 import { taxableBaseOf } from "./payroll-breakdown";
 import { getDefaultPolicy, PAY_DAY_GRACE_MINS } from "./att-utils";
 import { incomeTaxFor, localTaxFor, TAX_TABLE_SOURCE } from "./income-tax-table";
+import { slipClaims } from "./payroll-approval";
 
 /* === 급여 고도화 (2026-05-20): 계산 기준 + 공제 === */
 export interface PayrollSettings {
@@ -712,6 +713,18 @@ export async function calculatePayrollForMonth(
       const existingRow = ((existing as any).rows || (existing as any[]))[0];
 
       if (existingRow) {
+        /* 결재가 진행 중이거나 끝난 급여는 강제 재집계로도 바꾸지 않는다.
+           결재한 금액과 달라지고, 지급이 끝난 급여는 장부의 급여 전표와도 어긋난다. 고치려면 결재를 먼저 회수·취소한다. */
+        const approvalClaim = (await slipClaims(db, { slipIds: [Number(existingRow.id)] })).get(Number(existingRow.id));
+        if (approvalClaim?.locked) {
+          result.skipped++;
+          result.slipIds.push(Number(existingRow.id));
+          result.skippedDetail.push({
+            memberUid, memberName: String(m.name ?? memberUid),
+            reason: `${approvalClaim.label}${approvalClaim.docNo ? ` (${approvalClaim.docNo})` : ""}`,
+          });
+          continue;
+        }
         /* 확정 단계(검토완료·승인·발송·지급)와 어드민이 금액을 직접 손댄 명세서만 재집계가 보존한다.
            2026-07-11 fix: 여기 있던 '보류(HOLD)'를 뺐다.
              보류는 "지급 확정 전, 뭔가 이상해서 멈춰둔 상태"다. 실제 운영 흐름은

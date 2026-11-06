@@ -7,6 +7,8 @@
  * - POST  /api/admin-payroll?action=recalculate&year=&month=  → 재집계 (body.force)
  * - GET   /api/admin-payroll-settings  / PUT  → 계산 기준
  * - POST  /api/admin-payroll-send  body { year, month }       → 일괄 발송
+ * - POST  /api/admin-docs  body { action:'payroll_draft', year, month } → 사단법인 급여의 지급 결재 문서 만들기
+ *     사단법인 소속 급여(orgPayroll)는 결재를 거쳐 지급한다. 일람의 approval이 묶인 결재 문서다.
  * - GET   /api/admin-payroll-pdf?id=N   → PDF
  * - GET   /api/admin-payroll-export?year=&month=  → CSV
  */
@@ -154,6 +156,7 @@
     const counts = d?.counts || {};
     const ack = d?.ackCounts || {};
     currentRows = rows;
+    renderApprovalNote(rows);   // 명세가 없는 달에도 앞 달의 안내가 남지 않게 먼저 갱신한다
 
     $('cntDraft').textContent    = counts.DRAFT    || 0;
     $('cntReviewed').textContent = counts.REVIEWED || 0;
@@ -189,7 +192,11 @@
       if (r.status === 'DRAFT' || r.status === 'REVIEWED') {
         actions.push('<button class="btn btn-success btn-sm" onclick="approveSlip(' + r.id + ')">승인</button>');
       }
-      if (r.status === 'APPROVED' || r.status === 'SENT') {
+      if ((r.status === 'APPROVED' || r.status === 'SENT') && r.orgPayroll) {
+        /* 사단법인 급여는 결재를 거쳐 지급한다 — 승인된 결재 문서의 지출완료 확인이 한꺼번에 지급 처리한다 */
+        actions.push('<button class="btn btn-light btn-sm" onclick="payByApproval(' + r.id + ')"' +
+          ' title="사단법인 급여는 결재 문서의 지출완료 확인에서 한꺼번에 지급 처리됩니다">결재로 지급</button>');
+      } else if (r.status === 'APPROVED' || r.status === 'SENT') {
         /* 서명(수령확인)을 받았으면 초록으로 '집행해도 됨'을 알리고, 아직이면 흐리게 둔다 */
         const signed = r.ackStatus === 'ACKNOWLEDGED';
         actions.push('<button class="btn ' + (signed ? 'btn-success' : 'btn-light') + ' btn-sm" onclick="paidSlip(' + r.id + ')"' +
@@ -226,11 +233,100 @@
         '<td class="r">' + won(r.performanceBonus) + '</td>' +
         '<td class="r" style="font-weight:700">' + won(r.grossPay) + '</td>' +
         '<td class="r" style="font-weight:700;color:#0f766e">' + won(r.netPay) + '</td>' +
-        '<td class="c">' + statusBadge(r.status) + '</td>' +
+        '<td class="c">' + statusBadge(r.status) + approvalMark(r) + '</td>' +
         '<td class="c">' + ackBadge(r) + '</td>' +
         '<td class="c" style="white-space:nowrap">' + actions.join(' ') + '</td>' +
         '</tr>';
     }).join('');
+  }
+
+  /* ── 사단법인 급여의 지급 결재 ──
+     사단법인 소속 급여는 급여 대장을 결재 문서 한 장으로 올려 승인받고, 지출완료 확인에서 한꺼번에 지급 처리한다.
+     장부에는 급여 전표가 한 번만 들어간다. 다른 사업자의 급여는 지금처럼 [지급]으로 확정한다. */
+  function approvalMark(r) {
+    const a = r.approval;
+    if (a) {
+      const editable = a.status === 'draft' || a.status === 'rejected' || a.status === 'recalled';
+      return '<div style="font-size:11px;margin-top:3px;white-space:nowrap"><a href="#" onclick="openApprovalDoc(' + a.docId + ',' +
+        (editable ? 'true' : 'false') + ');return false;" title="결재 문서 열기">' + esc(a.label) + (a.docNo ? ' ' + esc(a.docNo) : '') + '</a></div>';
+    }
+    if (r.orgPayroll && r.status !== 'PAID') {
+      return '<div style="font-size:11px;margin-top:3px;color:#b45309;white-space:nowrap">결재 전</div>';
+    }
+    return '';
+  }
+
+  function renderApprovalNote(rows) {
+    const box = $('approvalNote');
+    if (!box) return;
+    const org = (rows || []).filter(r => r.orgPayroll);
+    if (!org.length) { box.style.display = 'none'; return; }
+    const ready = org.filter(r => (r.status === 'APPROVED' || r.status === 'SENT') && !r.approval).length;
+    const notYet = org.filter(r => ['DRAFT', 'REVIEWED', 'HOLD'].indexOf(r.status) >= 0).length;
+    const inDoc = org.filter(r => r.approval && r.status !== 'PAID').length;
+    const paid = org.filter(r => r.status === 'PAID').length;
+    box.innerHTML = '<b>사단법인 급여 ' + org.length + '건</b>은 결재를 거쳐 지급합니다. ' +
+      (ready ? '결재에 올릴 수 있는 급여 <b>' + ready + '건</b> — [지급 결재 올리기]를 누르세요. ' : '') +
+      (notYet ? '급여 관리에서 아직 승인하지 않은 급여 ' + notYet + '건. ' : '') +
+      (inDoc ? '결재 문서에 들어 있는 급여 ' + inDoc + '건. ' : '') +
+      (paid ? '지급 완료 ' + paid + '건. ' : '') +
+      '<span style="color:#b45309">결재가 승인되면 내부결재의 지출완료 확인에서 한꺼번에 지급 처리되고 장부에 기록됩니다.</span>';
+    box.style.display = '';
+  }
+
+  /* 결재 문서 열기 — 통합 CMS 안에서는 내부결재 화면으로 넘어간다 */
+  function openApprovalDoc(docId, edit) {
+    try {
+      const docs = (window.parent && window.parent !== window) ? window.parent.SIREN_DOCS : null;
+      if (docs && docs.openDoc) { docs.openDoc(docId, !!edit); return; }
+    } catch (_) { /* 통합 CMS 밖에서 열었으면 아래로 */ }
+    window.open('/cms-tbfa.html#docs-mine', '_blank');
+  }
+
+  async function draftApproval() {
+    const y = $('selYear').value, m = $('selMonth').value;
+    if (!confirm(y + '년 ' + m + '월 사단법인 급여의 지급 결재 문서를 만듭니다.\n\n' +
+      '· 급여 관리에서 승인했거나 발송한 명세만 들어갑니다\n' +
+      '· 금액은 상신할 때 급여 명세의 최신 값으로 고정됩니다\n' +
+      '· 결재가 승인되면 지출완료 확인에서 한꺼번에 지급 처리됩니다\n\n계속할까요?')) return;
+    const btn = $('btnApprovalDraft');
+    btn.disabled = true;
+    try {
+      const res = await api('/api/admin-docs', { method: 'POST', body: { action: 'payroll_draft', year: Number(y), month: Number(m) } });
+      if (!res.ok || res.data?.ok === false) {
+        const missing = res.data?.missing || [];
+        alert((res.data?.error || ('요청 실패 HTTP ' + res.status)) +
+          (missing.length ? '\n\n' + missing.map(x => '  · ' + x).join('\n') : '') +
+          (res.data?.detail ? '\n\n' + res.data.detail : ''));
+        return;
+      }
+      const d = res.data?.data || res.data || {};
+      let msg = (d.created ? '결재 문서를 만들었습니다.' : '작성 중이던 결재 문서를 최신 급여로 맞췄습니다.') +
+        '\n\n대상 ' + d.count + '명 · 지급총액 ' + won(d.gross) + '원 · 실지급액 ' + won(d.net) + '원';
+      if ((d.skipped || []).length) msg += '\n\n아래 급여는 빠졌습니다.\n' + d.skipped.map(x => '  · ' + x).join('\n');
+      if (d.noContract) msg += '\n\n근로계약이 등록되지 않은 직원 ' + d.noContract + '명이 있습니다.\n상신 전에 급여 근거 문서를 연결하거나 첨부해 주세요.';
+      msg += '\n\n결재선을 지정하고 상신할 문서 작성 화면을 엽니다.';
+      alert(msg);
+      await loadList();
+      openApprovalDoc(d.id, true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* 사단법인 급여 줄의 [결재로 지급] — 지금 단계에 맞는 다음 할 일로 안내한다 */
+  function payByApproval(id) {
+    const row = (currentRows || []).find(r => r.id === id) || {};
+    const a = row.approval;
+    if (!a) { draftApproval(); return; }
+    if (a.status === 'pending') {
+      alert('결재가 진행 중입니다' + (a.docNo ? ' (' + a.docNo + ')' : '') + '.\n최종 승인되면 지출완료 확인에서 지급 처리합니다.');
+      openApprovalDoc(a.docId, false);
+      return;
+    }
+    if (a.status === 'approved') { openApprovalDoc(a.docId, false); return; }
+    alert('작성 중인 결재 문서가 있습니다. 결재선을 지정해 상신해 주세요.');
+    openApprovalDoc(a.docId, true);
   }
 
   /* ── 재집계 ──
@@ -625,7 +721,11 @@
     const slip = d.slip, mb = d.member, audit = d.audit || [];
     _curSlip = slip;
 
-    const editable = slip.status !== 'PAID';
+    /* 결재가 진행 중이거나 끝난 급여는 금액을 고칠 수 없다(서버도 막는다) */
+    const listRow = (currentRows || []).find(r => r.id === slip.id) || {};
+    const claim = listRow.approval || null;
+    const lockedByDoc = !!(claim && claim.locked);
+    const editable = slip.status !== 'PAID' && !lockedByDoc;
 
     $('modalTitle').innerHTML = esc(mb?.name || ('회원ID:' + slip.memberUid)) +
       ' — ' + slip.payYear + '년 ' + String(slip.payMonth).padStart(2, '0') + '월' +
@@ -764,14 +864,18 @@
     if (slip.status === 'DRAFT' || slip.status === 'REVIEWED') {
       acts.push('<button class="btn btn-success btn-sm" onclick="approveSlip(' + slip.id + ')">승인</button>');
     }
-    if (slip.status === 'APPROVED' || slip.status === 'SENT') {
+    if ((slip.status === 'APPROVED' || slip.status === 'SENT') && listRow.orgPayroll) {
+      acts.push('<button class="btn btn-light btn-sm" onclick="closeModal();payByApproval(' + slip.id + ')" title="사단법인 급여는 결재 문서의 지출완료 확인에서 지급 처리됩니다">결재로 지급</button>');
+    } else if (slip.status === 'APPROVED' || slip.status === 'SENT') {
       acts.push('<button class="btn btn-success btn-sm" onclick="paidSlip(' + slip.id + ')">지급 확정</button>');
     }
-    if (slip.status !== 'SENT' && slip.status !== 'HOLD' && slip.status !== 'PAID') {
+    if (slip.status !== 'SENT' && slip.status !== 'HOLD' && slip.status !== 'PAID' && !lockedByDoc) {
       acts.push('<button class="btn btn-danger btn-sm" onclick="holdSlip(' + slip.id + ')">보류</button>');
     }
     acts.push('<button class="btn btn-light btn-sm" onclick="closeModal()">닫기</button>');
-    actions.innerHTML = acts.join(' ');
+    actions.innerHTML = (lockedByDoc
+      ? '<span style="color:#b45309;font-size:12px;font-weight:600;margin-right:auto">' + esc(claim.label) + (claim.docNo ? ' ' + esc(claim.docNo) : '') + ' — 결재를 회수하거나 취소해야 고칠 수 있습니다</span> '
+      : '') + acts.join(' ');
 
     $('modal').classList.add('show');
 
@@ -1681,6 +1785,8 @@
   window.holdSlip = holdSlip;
   window.markReviewed = markReviewed;
   window.paidSlip = paidSlip;
+  window.payByApproval = payByApproval;
+  window.openApprovalDoc = openApprovalDoc;
   window.saveSlipEdit = saveSlipEdit;
   window.addAdjRow = addAdjRow;
   window.recomputePreview = recomputePreview;
@@ -1705,6 +1811,8 @@
     $('btnRecalcForce').addEventListener('click', () => recalc(true));
     $('btnAnalyze').addEventListener('click', analyzePayroll);
     $('btnSendAll').addEventListener('click', sendAll);
+    const bad = $('btnApprovalDraft');
+    if (bad) bad.addEventListener('click', draftApproval);
     $('btnSettings').addEventListener('click', toggleSettings);
     $('btnSaveSettings').addEventListener('click', saveSettings);
     const br = $('btnRemind');

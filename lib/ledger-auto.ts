@@ -14,6 +14,10 @@ import {
   type LedgerAccount, type LedgerActor, type LedgerLine,
   headerFromLines, lineProblems, loadAccounts, recordHistory, reverseVoucher, splitByRatio, storedLine, ymd,
 } from "./ledger-post";
+import { ORG_PAYROLL, orgPayrollJoins } from "./payroll-approval";
+
+/* 사단법인 고유번호. 판정 조각과 함께 lib/payroll-approval.ts에 둔다(급여 지급 결재와 같은 기준) */
+export { ORG_BIZ_NO } from "./payroll-approval";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
 
@@ -244,12 +248,10 @@ async function collectRefunds(ctx: Context): Promise<Entry[]> {
   return out;
 }
 
-/** 사단법인 고유번호. 법인화 전 임의단체 번호(118-82-71215)와 구분한다 */
-export const ORG_BIZ_NO = "3818200754";
-
 /* ── 급여: 지급 확정분. 직원별 전표 ──
    급여 관리는 여러 사업자의 직원을 함께 다룬다. 사단법인 장부에는 사단법인 소속 급여만 넣는다.
-   완료된 근로계약이 있으면 그 사업자의 번호로 판단하고, 없으면 인건비 배부를 저장한 직원만 넣는다. */
+   완료된 근로계약이 있으면 그 사업자의 번호로 판단하고, 없으면 인건비 배부를 저장한 직원만 넣는다.
+   사단법인 급여는 급여 지급 결재의 지급 확인으로만 지급 완료가 된다(lib/payroll-approval.ts). */
 async function collectPayroll(ctx: Context, limit: number): Promise<Entry[]> {
   const rows = rowsOf(await db.execute(sql`
     SELECT p.id, p.member_uid, p.pay_year, p.pay_month, p.gross_pay, p.total_deduction, p.net_pay,
@@ -257,16 +259,11 @@ async function collectPayroll(ctx: Context, limit: number): Promise<Entry[]> {
            m.name AS member_name, s.function_code, s.program_id, s.fund_id, r.lines AS rule_lines
       FROM payroll_slips p
       LEFT JOIN members m ON m.id::text = p.member_uid
-      LEFT JOIN ledger_staff_allocations s ON s.member_id::text = p.member_uid
+      ${orgPayrollJoins(sql`p.member_uid`)}
       LEFT JOIN ledger_allocation_rules r ON r.id = s.rule_id AND r.is_active = TRUE
-      LEFT JOIN LATERAL (
-        SELECT regexp_replace(COALESCE(e.biz_no, ''), '[^0-9]', '', 'g') AS biz_no FROM employment_contracts c
-          JOIN contract_business_entities e ON e.id = c.entity_id
-         WHERE c.member_id::text = p.member_uid AND c.status = 'completed'
-         ORDER BY c.id DESC LIMIT 1) employer ON TRUE
      WHERE p.status = 'PAID' AND p.paid_at IS NOT NULL
        AND p.paid_at >= (${ctx.start}::date - INTERVAL '1 day')
-       AND (CASE WHEN employer.biz_no IS NOT NULL THEN employer.biz_no = ${ORG_BIZ_NO} ELSE s.member_id IS NOT NULL END)
+       AND ${ORG_PAYROLL}
        AND ${noVoucher("payroll", sql`p.id::text`)}
      ORDER BY p.id
      LIMIT ${limit}`));

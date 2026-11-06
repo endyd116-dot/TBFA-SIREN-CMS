@@ -39,6 +39,49 @@ export async function loadAccountToMok(exec: QueryRunner = db): Promise<(code: s
   };
 }
 
+/* 급여 지급 결재는 예산을 과목별(기본급·상여금)로 나눠 예약한다. 과목별 금액은 문서의 form_data.payroll.budget에 있다.
+   표식은 서버만 쓴다(lib/payroll-approval.ts). 별칭 r은 approval_requests다 */
+const PAYROLL_PARTS = sql`CASE WHEN jsonb_typeof(r.form_data->'payroll'->'budget') = 'array' THEN r.form_data->'payroll'->'budget' ELSE '[]'::jsonb END`;
+const NOT_PAYROLL = sql`COALESCE(jsonb_typeof(r.form_data->'payroll'->'budget') = 'array', FALSE) = FALSE`;
+
+/** 승인됐지만 아직 지급하지 않은 결재의 예약액. 예산 목별로 모은다 */
+export async function unpaidApprovalsByMok(exec: QueryRunner, year: number): Promise<Map<number, number>> {
+  const out = new Map<number, number>();
+  const add = (mok: unknown, amount: unknown) => {
+    if (mok == null) return;
+    out.set(Number(mok), (out.get(Number(mok)) ?? 0) + (Number(amount) || 0));
+  };
+  for (const r of rowsOf(await exec.execute(sql`
+    SELECT r.budget_account_id AS mok, COALESCE(SUM(r.amount), 0)::bigint AS reserved
+      FROM approval_requests r
+     WHERE r.status = 'approved' AND r.payment_status = 'unpaid' AND r.fiscal_year = ${year} AND ${NOT_PAYROLL}
+     GROUP BY r.budget_account_id`))) add(r.mok, r.reserved);
+  for (const r of rowsOf(await exec.execute(sql`
+    SELECT (b.value->>'budgetAccountId')::int AS mok, COALESCE(SUM((b.value->>'amount')::bigint), 0)::bigint AS reserved
+      FROM approval_requests r
+     CROSS JOIN LATERAL jsonb_array_elements(${PAYROLL_PARTS}) AS b(value)
+     WHERE r.status = 'approved' AND r.payment_status = 'unpaid' AND r.fiscal_year = ${year}
+     GROUP BY 1`))) add(r.mok, r.reserved);
+  return out;
+}
+
+/** 예산 목 하나의 미지급 결재 예약액 */
+export async function unpaidApprovalsOfMok(exec: QueryRunner, year: number, budgetAccountId: number | null): Promise<number> {
+  if (budgetAccountId == null) return 0;
+  const r = rowsOf(await exec.execute(sql`
+    SELECT (
+      (SELECT COALESCE(SUM(r.amount), 0) FROM approval_requests r
+        WHERE r.status = 'approved' AND r.payment_status = 'unpaid' AND r.fiscal_year = ${year}
+          AND r.budget_account_id = ${budgetAccountId} AND ${NOT_PAYROLL})
+      + (SELECT COALESCE(SUM((b.value->>'amount')::bigint), 0)
+           FROM approval_requests r
+          CROSS JOIN LATERAL jsonb_array_elements(${PAYROLL_PARTS}) AS b(value)
+          WHERE r.status = 'approved' AND r.payment_status = 'unpaid' AND r.fiscal_year = ${year}
+            AND (b.value->>'budgetAccountId')::int = ${budgetAccountId})
+    )::bigint AS total`))[0];
+  return Number(r?.total) || 0;
+}
+
 /** 지출(expenses)에서 오지 않은 승인 전표의 비용. 급여와 손으로 쓴 전표가 여기 들어온다.
  *  지출에서 만든 전표와 그 환불·취소는 지출 합계에 이미 있으므로 뺀다. */
 export async function voucherCostsByMok(exec: QueryRunner, year: number): Promise<{ byMok: Map<number, number>; unassigned: number }> {
@@ -201,17 +244,11 @@ export async function buildBudgetReport(planId: number, year: number): Promise<B
     console.warn("[budget-report] 전표 예약액 집계 실패 (0으로 계속):", err?.message);
   }
 
-  /* 승인됐지만 아직 지급하지 않은 결재도 예약이다 */
+  /* 승인됐지만 아직 지급하지 않은 결재도 예약이다. 급여 지급 결재는 과목별로 나눠 센다 */
   try {
-    const res: any = await db.execute(sql`
-      SELECT budget_account_id, COALESCE(SUM(amount), 0)::bigint AS reserved
-      FROM approval_requests
-      WHERE status = 'approved' AND payment_status = 'unpaid' AND fiscal_year = ${year}
-      GROUP BY budget_account_id
-    `);
-    for (const r of rowsOf(res)) {
-      const line = lineByAccount.get(Number(r.budget_account_id));
-      if (line) reservedByLine.set(line.id, (reservedByLine.get(line.id) ?? 0) + (Number(r.reserved) || 0));
+    for (const [mok, reserved] of await unpaidApprovalsByMok(db, year)) {
+      const line = lineByAccount.get(mok);
+      if (line) reservedByLine.set(line.id, (reservedByLine.get(line.id) ?? 0) + reserved);
     }
   } catch (err: any) {
     console.warn("[budget-report] 미지급 결재 집계 실패 (0으로 계속):", err?.message);

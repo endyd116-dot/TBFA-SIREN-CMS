@@ -11,6 +11,7 @@ import { db } from "../db";
 import { todayKST, yearKST } from "./kst";
 import { LedgerError, recordHistory, ymd } from "./ledger-post";
 import { budgetPosition, lockBudget, recordBudgetLedger, type BudgetPosition } from "./budget-ledger";
+import { isPayrollDoc, payrollBudgetStep, payrollMoks, payrollOf, refreshPayrollDoc } from "./payroll-approval";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
 
@@ -46,7 +47,7 @@ export const FILE_KINDS: Record<string, string> = {
 export const DEFAULT_GUIDES: Record<string, string> = {
   internal: "연차·병가·경조사는 잔여일과 겹침을 근태 규칙으로 확인합니다. 출장·외근은 기간, 시간, 장소, 대상과 주요 업무, 업무 인계를 적습니다. 결재선은 위임전결 지침을 확인해 지정합니다.",
   proposal: "목적, 주요 내용, 진행 계획을 적습니다. 소요예산은 계획 금액이며 예산을 예약하지 않습니다. 계획안, 견적, 계약자료를 첨부합니다. 계약·업체선정 건은 지침의 계약 방식과 필요자료를 확인합니다.",
-  expense: "협의회 지출만 올립니다. 함께워크 등 다른 사업자의 비용은 올리지 않습니다. 일반 지출은 승인된 품의서를 연결합니다. 거래에 필요한 견적, 거래명세, 세금계산서, 영수증을 지급증빙으로 첨부합니다. 급여 변경과 상여는 별도 품의가 필요합니다. 보조사업은 해당 사업의 교부·계약·집행조건을 먼저 확인합니다.",
+  expense: "협의회 지출만 올립니다. 함께워크 등 다른 사업자의 비용은 올리지 않습니다. 일반 지출은 승인된 품의서를 연결합니다. 거래에 필요한 견적, 거래명세, 세금계산서, 영수증을 지급증빙으로 첨부합니다. 급여 변경과 상여는 별도 품의가 필요합니다. 급여 지급은 여기서 쓰지 않고 급여 관리의 [지급 결재 올리기]로 올립니다. 보조사업은 해당 사업의 교부·계약·집행조건을 먼저 확인합니다.",
   card: "카드결제로 승인된 품의가 있으면 그 품의를 연결합니다. 규정 시행일 뒤에는 별도 결재 없이 처리됩니다. 그 외에는 품의서를 첨부하고 결재선으로 승인받습니다. 사용 뒤에는 실제 사용액과 증빙을 등록합니다.",
   seal: "날인 대상과 제출처를 적습니다. 공문이나 날인 대상을 첨부해 승인된 품의가 있으면 그 품의로 승인을 갈음할 수 있습니다.",
 };
@@ -219,6 +220,8 @@ export async function saveDraft(actor: DocActor, input: DraftInput) {
   if (!DOC_TYPES[docType]) throw new LedgerError("문서 유형을 고르세요", 400);
   const form = input.formData && typeof input.formData === "object" ? { ...input.formData } : {};
   if (Array.isArray(input.line)) form.line = input.line;
+  /* 급여 지급 결재 표식은 서버만 쓴다. 화면이 보낸 값으로 급여 문서를 만들거나 바꿀 수 없다 */
+  delete form.payroll;
 
   return db.transaction(async (tx: any) => {
     const budget = docType === "expense" ? await resolveBudget(tx, input) : null;
@@ -236,18 +239,27 @@ export async function saveDraft(actor: DocActor, input: DraftInput) {
 
     let id = Number(input.id) || 0;
     if (id) {
-      const cur = rowsOf(await tx.execute(sql`SELECT drafter_id, status FROM approval_requests WHERE id = ${id} FOR UPDATE`))[0];
+      const cur = rowsOf(await tx.execute(sql`SELECT drafter_id, status, doc_type, form_data FROM approval_requests WHERE id = ${id} FOR UPDATE`))[0];
       if (!cur) throw new LedgerError("문서를 찾을 수 없습니다", 404);
       if (Number(cur.drafter_id) !== actor.id) throw new LedgerError("본인이 쓴 문서만 고칠 수 있습니다", 403);
       if (!["draft", "rejected", "recalled"].includes(cur.status)) throw new LedgerError("상신한 문서는 회수한 뒤 고칠 수 있습니다.");
-      await tx.execute(sql`
-        UPDATE approval_requests
-           SET title = ${title}, amount = ${amount}, body = ${body}, form_data = ${formJson}::jsonb,
-               pay_method = ${payMethod}, expense_kind = ${expenseKind}, budget_account_id = ${budget?.budgetAccountId ?? null},
-               budget_split_id = ${budget?.budgetSplitId ?? null}, function_code = ${budget?.functionCode ?? null},
-               program_id = ${budget?.programId ?? null}, fund_id = ${budget?.fundId ?? null}, fiscal_year = ${fiscalYear},
-               occurred_at = ${occurredAt}, payee_name = ${payeeName}, updated_at = NOW()
-         WHERE id = ${id}`);
+      if (isPayrollDoc(cur)) {
+        /* 급여 지급 결재의 대상·금액·예산은 급여 명세에서 온다. 여기서는 제목·내용·결재선만 바꾼다 */
+        const kept = { ...cur.form_data, line: Array.isArray(form.line) ? form.line : cur.form_data.line ?? [] };
+        await tx.execute(sql`
+          UPDATE approval_requests
+             SET title = ${title}, body = ${body}, form_data = ${JSON.stringify(kept)}::jsonb, updated_at = NOW()
+           WHERE id = ${id}`);
+      } else {
+        await tx.execute(sql`
+          UPDATE approval_requests
+             SET title = ${title}, amount = ${amount}, body = ${body}, form_data = ${formJson}::jsonb,
+                 pay_method = ${payMethod}, expense_kind = ${expenseKind}, budget_account_id = ${budget?.budgetAccountId ?? null},
+                 budget_split_id = ${budget?.budgetSplitId ?? null}, function_code = ${budget?.functionCode ?? null},
+                 program_id = ${budget?.programId ?? null}, fund_id = ${budget?.fundId ?? null}, fiscal_year = ${fiscalYear},
+                 occurred_at = ${occurredAt}, payee_name = ${payeeName}, updated_at = NOW()
+           WHERE id = ${id}`);
+      }
     } else {
       const row = rowsOf(await tx.execute(sql`
         INSERT INTO approval_requests
@@ -343,11 +355,29 @@ async function validateSubmit(tx: any, doc: any, form: any, settings: DocSetting
   const missing: string[] = [];
   if (!text(doc.title, 200) || doc.title === "(제목 없음)") missing.push("제목");
 
+  if (isPayrollDoc(doc)) {
+    /* 대상·금액·예산은 급여 명세에서 왔다. 근로계약이 없는 직원의 급여만 근거를 따로 요구한다(설계도 8쪽 고정 인건비) */
+    const p = payrollOf(form)!;
+    if (!p.count || !Number(doc.amount)) missing.push("지급할 급여 명세");
+    if (p.noContract > 0) {
+      const refs = await approvedBasis(tx, doc.id);
+      const anyBasis = refs.some((t) => t.status === "approved" && t.delete_status === "none");
+      if (!anyBasis && !(await fileCount(tx, doc.id, ["proposal"]))) {
+        missing.push(`근로계약이 등록되지 않은 직원 ${p.noContract}명의 급여 근거 (승인된 문서를 연결하거나 품의 근거로 첨부)`);
+      }
+    }
+    return { missing, followup: false };
+  }
+
   if (doc.doc_type === "expense") {
     const items = Array.isArray(form.items) ? form.items : [];
     if (!items.length || !Number(doc.amount)) missing.push("지출내역");
     if (items.some((i: any) => !text(i?.payee, 200))) missing.push("지출내역의 지급처");
     if (!doc.budget_account_id) missing.push("예산");
+    /* 급여·상여 예산은 급여 전표가 집행으로 잡는다. 손으로 쓴 결의서로 같은 돈을 올리면 인건비가 두 번 잡힌다 */
+    else if ((await payrollMoks(tx)).has(Number(doc.budget_account_id))) {
+      missing.push("급여·상여 예산은 급여 관리에서 올린 지급 결재로만 집행합니다. 다른 예산을 고르세요");
+    }
     if (!doc.pay_method) missing.push("지급방법");
     if (!(await fileCount(tx, doc.id, ["payment"]))) missing.push("지급증빙");
     if (!doc.budget_split_id) {
@@ -463,10 +493,12 @@ export async function submitDoc(actor: DocActor, id: number, leave: LeaveBridge)
 
   try {
     return await db.transaction(async (tx: any) => {
-      const doc = rowsOf(await tx.execute(sql`SELECT * FROM approval_requests WHERE id = ${id} FOR UPDATE`))[0];
+      let doc = rowsOf(await tx.execute(sql`SELECT * FROM approval_requests WHERE id = ${id} FOR UPDATE`))[0];
       if (!doc) throw new LedgerError("문서를 찾을 수 없습니다", 404);
       if (Number(doc.drafter_id) !== actor.id) throw new LedgerError("본인이 쓴 문서만 상신할 수 있습니다", 403);
       if (!["draft", "rejected", "recalled"].includes(doc.status)) throw new LedgerError("이미 상신한 문서입니다.");
+      /* 급여 지급 결재는 상신하는 순간의 급여 명세로 다시 맞춘다. 승인 대상은 이 값이다 */
+      if (isPayrollDoc(doc)) doc = await refreshPayrollDoc(tx, doc);
       const form = doc.form_data ?? {};
       const { missing, followup } = await validateSubmit(tx, doc, form, settings);
       if (missing.length) throw new LedgerError("상신하려면 다음 항목이 필요합니다.", 422, missing);
@@ -556,6 +588,16 @@ export type DecideOutcome =
 /** 지출결의서 최종 승인: 예산을 잠그고 다시 계산한 뒤 예약한다(설계도 10·14쪽). */
 async function finalizeExpense(tx: any, doc: any, actor: DocActor) {
   const year = Number(doc.fiscal_year);
+  if (isPayrollDoc(doc)) {
+    await payrollBudgetStep(tx, doc, "reserve", actor, { check: true });
+    const payrollResolutionNo = await nextResolutionNo(tx, year);
+    await tx.execute(sql`
+      UPDATE approval_requests
+         SET status = 'approved', decided_at = NOW(), updated_at = NOW(), payment_status = 'unpaid',
+             resolution_no = ${payrollResolutionNo}, resolution_issued_at = NOW()
+       WHERE id = ${doc.id}`);
+    return payrollResolutionNo;
+  }
   const budgetAccountId = doc.budget_account_id == null ? null : Number(doc.budget_account_id);
   const amount = Number(doc.amount);
   await lockBudget(tx, year, budgetAccountId);
@@ -639,6 +681,9 @@ export async function requestCancel(actor: DocActor, id: number, reason: string)
     if (!doc) throw new LedgerError("문서를 찾을 수 없습니다", 404);
     if (doc.status !== "approved") throw new LedgerError("완료된 문서만 취소를 요청할 수 있습니다.");
     if (doc.cancel_status === "requested") throw new LedgerError("이미 취소가 진행 중입니다.");
+    if (isPayrollDoc(doc) && doc.payment_status === "paid") {
+      throw new LedgerError("지급이 끝난 급여 결재는 취소할 수 없습니다. 급여를 바로잡을 때는 급여 관리의 정정 절차를 쓰세요.");
+    }
     if (Number(doc.drafter_id) !== actor.id && actor.role !== "super_admin") throw new LedgerError("기안자 또는 이사장이 요청할 수 있습니다", 403);
 
     /* 승인 갈음 문서는 근거 품의의 실제 결재선을 쓴다(설계도 9쪽) */
@@ -730,6 +775,10 @@ export async function decideCancel(actor: DocActor, id: number, input: { decisio
       refundRequired = true;
       await tx.execute(sql`
         UPDATE approval_requests SET status = 'canceled', cancel_status = 'approved', refund_status = 'required', updated_at = NOW() WHERE id = ${id}`);
+    } else if (isPayrollDoc(doc) && doc.payment_status === "unpaid") {
+      await payrollBudgetStep(tx, doc, "release", actor, { note: doc.cancel_reason });
+      await tx.execute(sql`
+        UPDATE approval_requests SET status = 'canceled', cancel_status = 'approved', payment_status = 'none', updated_at = NOW() WHERE id = ${id}`);
     } else if (doc.doc_type === "expense" && doc.payment_status === "unpaid") {
       const year = Number(doc.fiscal_year);
       const budgetAccountId = doc.budget_account_id == null ? null : Number(doc.budget_account_id);

@@ -4,7 +4,7 @@
  *
  * GET  ?view=home | list | detail | version | search | budgets | budget | people | recommend | lines | settings | form
  * POST { action, ... }
- *   save, submit, recall, decide, comment, followup_link, card_usage
+ *   save, submit, recall, decide, comment, followup_link, card_usage, payroll_draft
  *   cancel_request, cancel_decide, delete, hold
  *   file_presign, file_add, file_remove
  *   line_save, line_delete, settings_save, guide_save, grant_save, grant_revoke, purge
@@ -36,6 +36,7 @@ import {
   loadPurgeGrants, loadSavedLines, loadSettings, type ReadScope, recommendLine, searchDocs,
 } from "../../lib/approval-docs-read";
 import { createLeaveRequest, decideLeaveById, LeaveRequestError, withdrawLeaveRequest } from "../../lib/att-leave";
+import { draftPayrollDoc, isPayrollDoc } from "../../lib/payroll-approval";
 
 export const config = { path: "/api/admin-docs" };
 
@@ -174,7 +175,14 @@ async function afterDecide(outcome: any, id: number, actor: DocActor, comment: s
   if (doc.doc_type === "expense") {
     try { await buildAndStoreResolutionPdf(id, actor.id); }
     catch (err: any) { console.warn("[admin-docs] 결의서 PDF 실패(무시):", err?.message); }
-    await notifyDoc(await financeMembers("finance_bookkeeping"), "지출확인 대기", `"${doc.title}" ${Number(doc.amount).toLocaleString("ko-KR")}원이 최종 승인됐습니다. 지급 후 지출완료를 확인해 주세요.`, id, "info", "docs-pay");
+    if (isPayrollDoc(doc)) {
+      /* 급여 지급 확인은 이사장만 한다. 확인하면 급여 명세가 한꺼번에 지급 완료가 된다 */
+      const chairs = rowsOf(await db.execute(sql`
+        SELECT id FROM members WHERE type = 'admin' AND status = 'active' AND role = 'super_admin'`)).map((r: any) => Number(r.id));
+      await notifyDoc(chairs, "급여 지급 확인 대기", `"${doc.title}" 결재가 최종 승인됐습니다. 급여를 이체한 뒤 지출완료를 확인하면 급여 명세가 지급 완료로 바뀝니다.`, id, "info", "docs-pay");
+    } else {
+      await notifyDoc(await financeMembers("finance_bookkeeping"), "지출확인 대기", `"${doc.title}" ${Number(doc.amount).toLocaleString("ko-KR")}원이 최종 승인됐습니다. 지급 후 지출완료를 확인해 주세요.`, id, "info", "docs-pay");
+    }
   }
   await notifyDoc([doc.drafter_id], `${label} 최종 승인`, `"${doc.title}" 문서가 최종 승인됐습니다.`, id, "info", "docs-mine");
 }
@@ -189,6 +197,12 @@ async function handlePost(req: Request, auth: any, scope: ReadScope) {
 
   if (action === "save") {
     return json({ ok: true, data: await saveDraft(actor, body) });
+  }
+
+  /* 급여 관리의 «지급 결재 올리기». 사단법인 소속 급여를 지출결의서 한 장으로 만든다. 급여 관리와 같이 이사장만 쓴다 */
+  if (action === "payroll_draft") {
+    if (!chair) throw new LedgerError("급여 지급 결재는 이사장만 올릴 수 있습니다", 403);
+    return json({ ok: true, data: await draftPayrollDoc(actor, Number(body?.year), Number(body?.month)) });
   }
 
   if (action === "submit") {
