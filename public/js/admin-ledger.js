@@ -820,7 +820,7 @@
   function renderStaff() {
     const body = qs('lgMasterBody');
     body.innerHTML = `
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">협의회 소속 직원의 급여만 지급 확정 때 전표가 됩니다. 완료된 근로계약이 있으면 그 사업자로 판단합니다. 계약이 없는 직원은 여기서 배부를 저장해야 장부에 들어갑니다. 정하지 않은 항목은 일반관리, 기부금으로 기록합니다.</div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">사단법인 소속 직원의 급여만 지급 확정 때 전표가 됩니다. 완료된 근로계약이 있으면 그 사업자의 고유번호로 판단합니다. 계약이 없는 직원은 여기서 배부를 저장해야 장부에 들어갑니다. 정하지 않은 항목은 일반관리, 기부금으로 기록합니다.</div>
       <table class="data-table" style="width:100%">
         <thead><tr><th>직원</th><th>고용 주체</th><th>장부 반영</th><th>활동</th><th>사업</th><th>재원</th><th>배분 규칙</th><th></th></tr></thead>
         <tbody>${masters.staff.map(m => `<tr>
