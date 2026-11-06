@@ -94,3 +94,19 @@
 {"question":"분류 대기 전표가 뭐예요?","answer":"자동으로 만들어졌지만 활동, 사업, 재원이 빠져 승인되지 못한 전표입니다. 장부 › 전표에서 채워 제출하면 됩니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
 {"question":"결제 정산 미수금에 돈이 남아 있어요","answer":"카드·CMS 후원 중 아직 통장에 들어오지 않은 금액이거나 수수료입니다. 수수료는 대체 전표로 지급수수료에 옮기세요.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
 {"question":"원천세를 납부했는데 어떻게 처리하나요?","answer":"통장 출금을 전표로 만들 때 계정과목을 예수금으로 고르세요. 4대보험은 근로자분은 예수금, 사업주분은 복리후생비로 나눕니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"지출완료 확인은 누가 하나요?","answer":"재정 기록 권한이 있으면 누구나 합니다. 내부결재 › 지출완료 확인에서 지급일과 증빙을 확인합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"실제 지급액이 승인액과 달라요","answer":"적으면 지출완료 확인 창에 실제 금액을 넣습니다. 차액은 예약에서 풀립니다. 승인액보다 많으면 다시 기안합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"결재선은 누가 정하나요?","answer":"기안자가 정합니다. 결재와 합의만 있고 마지막 단계는 결재입니다. 추천 결재선은 금액에 맞는 담당자를 채워 줄 뿐이고 바꿀 수 있습니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"상신한 문서를 고치고 싶어요","answer":"내 문서함에서 회수한 뒤 고쳐 다시 올립니다. 번호는 같고 새 버전으로 처음부터 승인받습니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"지출결의서 상신이 안 돼요","answer":"빠진 항목이 화면에 나옵니다. 일반 지출은 승인된 품의서 참조나 품의 근거 첨부, 지급증빙이 필요합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"최종 승인이 예산 때문에 막혔어요","answer":"예산 사용가능액을 넘은 경우입니다. 이사장이 예산 관리 › 집행률에서 사유를 적고 그 목의 예산을 조정한 뒤 다시 승인합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"연차는 어디서 신청하나요?","answer":"내부결재 › 문서 작성 › 내부결재에서 구분을 연차로 골라 신청합니다. 승인되면 근태와 잔여일에 자동 반영됩니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"완료된 문서를 취소하려면?","answer":"문서에서 취소 요청을 합니다. 원래 결재선으로 다시 승인받습니다. 이미 지급했다면 실제 반환을 확인해야 집행액이 줄어듭니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"취소한 문서를 지우고 싶어요","answer":"취소가 최종 승인된 뒤 재정 기록 권한자가 일반 삭제합니다. 문서함에서만 빠지고 보존함에 남습니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"결산은 어디서 하나요?","answer":"장부 › 결산입니다. 점검표의 해결 필요 항목을 없앤 뒤 이사장이 확정하고 감사, 이사회, 총회, 제출을 기록합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"재산목록이 장부와 안 맞아요","answer":"재산목록 탭의 대조 표에서 차이를 확인합니다. 장부 잔액으로 채우기를 누른 뒤 내역을 고치면 됩니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"공시 자료는 어디 있나요?","answer":"장부 › 결산 › 공익법인입니다. 서식 판정과 옮겨 적을 금액, 기부금품 명세가 있습니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"재정 공개는 어떻게 하나요?","answer":"장부 › 결산 › 공익법인에서 문구를 쓰고 공개를 누릅니다. 이사장만 할 수 있고 공개 순간의 숫자로 고정됩니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"세무사에게 보낼 자료는요?","answer":"장부 › 결산 › 공익법인의 세무사 전달 파일에서 엑셀로 내려받습니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"긴급 지출의 사후 품의는 어떻게 연결하나요?","answer":"승인된 긴급 지출결의서를 열고 사후 품의 연결을 누른 뒤 승인된 품의서를 고릅니다. 승인본은 바뀌지 않고 근거만 더해집니다.","page_path":"/cms-tbfa.html#docs-mine","tags":["admin","finance","docs"]}
+{"question":"법인카드 실제 사용액은 어디에 적나요?","answer":"완료된 법인카드 문서를 열고 사용 내역 등록을 눌러 사용일과 실제 사용액을 적습니다. 영수증은 추가증빙으로 첨부합니다.","page_path":"/cms-tbfa.html#docs-mine","tags":["admin","finance","docs"]}

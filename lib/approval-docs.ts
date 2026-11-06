@@ -42,6 +42,15 @@ export const FILE_KINDS: Record<string, string> = {
   attachment: "첨부", payment: "지급증빙", proposal: "품의 근거", seal_target: "날인 대상", additional: "추가증빙",
 };
 
+/** 양식 안내 기본 문구. 설정에서 저장하면 새 버전이 이 문구를 대신한다 */
+export const DEFAULT_GUIDES: Record<string, string> = {
+  internal: "연차·병가·경조사는 잔여일과 겹침을 근태 규칙으로 확인합니다. 출장·외근은 기간, 시간, 장소, 대상과 주요 업무, 업무 인계를 적습니다. 결재선은 위임전결 지침을 확인해 지정합니다.",
+  proposal: "목적, 주요 내용, 진행 계획을 적습니다. 소요예산은 계획 금액이며 예산을 예약하지 않습니다. 계획안, 견적, 계약자료를 첨부합니다. 계약·업체선정 건은 지침의 계약 방식과 필요자료를 확인합니다.",
+  expense: "일반 지출은 승인된 품의서를 연결합니다. 거래에 필요한 견적, 거래명세, 세금계산서, 영수증을 지급증빙으로 첨부합니다. 급여 변경과 상여는 별도 품의가 필요합니다. 보조사업은 해당 사업의 교부·계약·집행조건을 먼저 확인합니다.",
+  card: "카드결제로 승인된 품의가 있으면 그 품의를 연결합니다. 규정 시행일 뒤에는 별도 결재 없이 처리됩니다. 그 외에는 품의서를 첨부하고 결재선으로 승인받습니다. 사용 뒤에는 실제 사용액과 증빙을 등록합니다.",
+  seal: "날인 대상과 제출처를 적습니다. 공문이나 날인 대상을 첨부해 승인된 품의가 있으면 그 품의로 승인을 갈음할 수 있습니다.",
+};
+
 export interface DocActor {
   id: number;
   name: string;
@@ -367,6 +376,12 @@ async function validateSubmit(tx: any, doc: any, form: any, settings: DocSetting
     if (!Number(doc.amount)) missing.push("예정금액");
     if (!text(form.periodFrom, 10)) missing.push("사용 기간");
     if (!text(form.cardLabel, 100)) missing.push("카드 식별정보");
+    if (form.substitute !== true && settings.requireProposal) {
+      const refs = await approvedBasis(tx, doc.id);
+      if (!refs.some(validProposal) && !(await fileCount(tx, doc.id, ["proposal"]))) {
+        missing.push("승인된 품의서를 연결하거나 품의서를 첨부하세요");
+      }
+    }
   }
   if (doc.doc_type === "seal") {
     if (!text(form.sealType, 50)) missing.push("인감 종류");
@@ -381,7 +396,7 @@ async function validateSubmit(tx: any, doc: any, form: any, settings: DocSetting
 /** 품의서에서 카드로 쓴 누계와 남은 승인범위(설계도 9쪽) */
 export async function cardScope(exec: any, proposalId: number, excludeId = 0) {
   const r = rowsOf(await exec.execute(sql`
-    SELECT COALESCE(SUM(amount), 0)::bigint AS used
+    SELECT COALESCE(SUM(COALESCE((form_data->>'actualAmount')::bigint, amount)), 0)::bigint AS used
       FROM approval_requests
      WHERE doc_type = 'card' AND substitute_basis_id = ${proposalId} AND id <> ${excludeId}
        AND status = 'approved' AND delete_status = 'none'`))[0];
@@ -461,13 +476,15 @@ export async function submitDoc(actor: DocActor, id: number, leave: LeaveBridge)
       const version = first ? 1 : Number(doc.version) + 1;
       const docNo: string = doc.doc_no ?? await nextDocNo(tx, doc.doc_type, yearKST());
       const substitute = form.substitute === true && (doc.doc_type === "card" || doc.doc_type === "seal");
+      const guide = rowsOf(await tx.execute(sql`SELECT MAX(version) AS v FROM approval_form_guides WHERE doc_type = ${doc.doc_type}`))[0];
+      const formVersion = Number(guide?.v) || 0;
 
       if (substitute) {
         const basis = await substitutionBasis(tx, doc, form, settings);
         await tx.execute(sql`
           UPDATE approval_requests
              SET doc_no = ${docNo}, request_no = ${docNo}, version = ${version}, status = 'approved', approval_mode = 'substituted',
-                 substitute_basis_id = ${Number(basis.id)}, submitted_at = NOW(), decided_at = NOW(), current_step = 0, updated_at = NOW()
+                 substitute_basis_id = ${Number(basis.id)}, form_version = ${formVersion}, submitted_at = NOW(), decided_at = NOW(), current_step = 0, updated_at = NOW()
            WHERE id = ${id}`);
       } else {
         const steps = await validateLine(tx, doc, form.line, actor);
@@ -476,7 +493,7 @@ export async function submitDoc(actor: DocActor, id: number, leave: LeaveBridge)
         await tx.execute(sql`
           UPDATE approval_requests
              SET doc_no = ${docNo}, request_no = ${docNo}, version = ${version}, status = 'pending', approval_mode = 'line',
-                 substitute_basis_id = NULL, steps = ${JSON.stringify(roles)}::jsonb, current_step = 0,
+                 substitute_basis_id = NULL, form_version = ${formVersion}, steps = ${JSON.stringify(roles)}::jsonb, current_step = 0,
                  submitted_at = NOW(), decided_at = NULL, followup_due = ${followup},
                  att_leave_request_id = ${leaveId}, updated_at = NOW()
            WHERE id = ${id}`);
@@ -732,6 +749,49 @@ export async function decideCancel(actor: DocActor, id: number, input: { decisio
   });
 }
 
+/** 긴급 지출의 사후 품의 연결. 승인본은 그대로 두고 참조만 더한다(설계도 8쪽). */
+export async function linkFollowup(actor: DocActor, id: number, targetId: number) {
+  return db.transaction(async (tx: any) => {
+    const doc = rowsOf(await tx.execute(sql`SELECT * FROM approval_requests WHERE id = ${id} FOR UPDATE`))[0];
+    if (!doc) throw new LedgerError("문서를 찾을 수 없습니다", 404);
+    if (!(doc.followup_due === true || doc.followup_due === "t")) throw new LedgerError("사후 품의가 필요한 문서가 아닙니다.");
+    if (Number(doc.drafter_id) !== actor.id && actor.role !== "super_admin") throw new LedgerError("기안자 또는 이사장이 연결할 수 있습니다", 403);
+    const target = rowsOf(await tx.execute(sql`
+      SELECT id, doc_type, doc_no, version, status, cancel_status, delete_status FROM approval_requests WHERE id = ${targetId}`))[0];
+    if (!target || !validProposal(target)) throw new LedgerError("승인된 품의서만 연결할 수 있습니다.");
+    await tx.execute(sql`
+      INSERT INTO approval_doc_references (request_id, target_id, target_version, target_doc_no, ref_kind, created_by)
+      VALUES (${id}, ${targetId}, ${Number(target.version) || 1}, ${target.doc_no}, 'basis', ${actor.id})
+      ON CONFLICT (request_id, target_id) DO UPDATE SET ref_kind = 'basis'`);
+    await tx.execute(sql`UPDATE approval_requests SET followup_due = FALSE, updated_at = NOW() WHERE id = ${id}`);
+    await recordHistory(tx, { entity: "approval", entityId: id, action: "followup_linked", actor, after: { docNo: target.doc_no } });
+    return { docNo: target.doc_no };
+  });
+}
+
+/** 카드 사용 등록. 사용일과 실제 사용액을 남긴다. 승인 금액을 넘으면 별도 승인을 받는다(설계도 9쪽). */
+export async function recordCardUsage(actor: DocActor, id: number, input: { actualAmount?: unknown; usedOn?: unknown }, canRecord: boolean) {
+  const actual = Math.trunc(Number(input.actualAmount));
+  const usedOn = String(input.usedOn ?? "");
+  if (!Number.isFinite(actual) || actual < 0) throw new LedgerError("실제 사용액을 입력하세요", 400);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(usedOn)) throw new LedgerError("사용일을 입력하세요", 400);
+  return db.transaction(async (tx: any) => {
+    const doc = rowsOf(await tx.execute(sql`SELECT * FROM approval_requests WHERE id = ${id} FOR UPDATE`))[0];
+    if (!doc) throw new LedgerError("문서를 찾을 수 없습니다", 404);
+    if (doc.doc_type !== "card") throw new LedgerError("법인카드 문서가 아닙니다.");
+    if (doc.status !== "approved" || doc.delete_status !== "none") throw new LedgerError("완료된 문서만 사용을 등록할 수 있습니다.");
+    if (doc.cancel_status === "requested") throw new LedgerError("취소가 진행 중인 문서는 사용을 등록할 수 없습니다.");
+    if (Number(doc.drafter_id) !== actor.id && !canRecord) throw new LedgerError("기안자 또는 재정 기록 권한자가 등록할 수 있습니다", 403);
+    if (actual > Number(doc.amount)) {
+      throw new LedgerError(`승인 금액 ${Number(doc.amount).toLocaleString("ko-KR")}원을 넘습니다. 초과분은 별도 승인을 받으세요.`);
+    }
+    const form = { ...(doc.form_data ?? {}), actualAmount: actual, usedOn, usageRecordedBy: actor.name };
+    await tx.execute(sql`UPDATE approval_requests SET form_data = ${JSON.stringify(form)}::jsonb, updated_at = NOW() WHERE id = ${id}`);
+    await recordHistory(tx, { entity: "approval", entityId: id, action: "card_used", actor, after: { actualAmount: actual, usedOn } });
+    return { actualAmount: actual, usedOn };
+  });
+}
+
 /** 일반 삭제. 취소 최종승인 뒤에만, 사유를 남기고 화면에서 뺀다(설계도 11쪽). 임시저장은 기안자가 지운다. */
 export async function deleteDoc(actor: DocActor, id: number, reason: string | null, canDelete: boolean) {
   return db.transaction(async (tx: any) => {
@@ -752,7 +812,7 @@ export async function deleteDoc(actor: DocActor, id: number, reason: string | nu
       UPDATE approval_requests SET delete_status = 'deleted', deleted_at = NOW(), deleted_by = ${actor.id}, delete_reason = ${why}, updated_at = NOW()
        WHERE id = ${id}`);
     await recordHistory(tx, { entity: "approval", entityId: id, action: "doc_deleted", actor, reason: why });
-    return { removed: false };
+    return { removed: false, drafterId: doc.drafter_id == null ? null : Number(doc.drafter_id), title: doc.title as string };
   });
 }
 

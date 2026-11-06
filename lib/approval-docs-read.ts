@@ -9,7 +9,7 @@ import { yearKST } from "./kst";
 import { ymd } from "./ledger-post";
 import { buildBudgetReport } from "./finance-budget-report";
 import { budgetPosition } from "./budget-ledger";
-import { activePurgeGrant, cardScope, DOC_TYPES, type DocActor, EXPENSE_KINDS, INTERNAL_KINDS, loadSettings, PAY_METHODS, purgeProblems, STATUS_LABEL } from "./approval-docs";
+import { activePurgeGrant, cardScope, DEFAULT_GUIDES, DOC_TYPES, type DocActor, EXPENSE_KINDS, INTERNAL_KINDS, loadSettings, PAY_METHODS, purgeProblems, STATUS_LABEL } from "./approval-docs";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
 
@@ -97,7 +97,8 @@ export async function listDocs(s: ReadScope, q: ListQuery) {
   else if (q.box === "pay") where = sql`r.delete_status = 'none' AND r.doc_type = 'expense' AND r.status = 'approved' AND r.payment_status = 'unpaid'`;
   else if (q.box === "cancel") where = sql`${where} AND r.cancel_status <> 'none'`;
   else if (q.box === "archive") where = sql`r.delete_status = 'deleted'`;
-  if ((q.box === "pay" || q.box === "archive") && !(s.bookkeeping || isChair(s))) {
+  const canSeeBox = s.bookkeeping || isChair(s) || (q.box === "archive" && !!(await activePurgeGrant(db, me)));
+  if ((q.box === "pay" || q.box === "archive") && !canSeeBox) {
     return { items: [], total: 0 };
   }
   if (q.docType && DOC_TYPES[q.docType]) where = sql`${where} AND r.doc_type = ${q.docType}`;
@@ -137,8 +138,12 @@ export async function homeCounts(s: ReadScope) {
 
 export async function canViewDoc(s: ReadScope, id: number): Promise<boolean> {
   const r = rowsOf(await db.execute(sql`SELECT 1 FROM approval_requests r WHERE r.id = ${id} AND ${visible(s)}`));
-  return r.length > 0 || (s.bookkeeping && rowsOf(await db.execute(sql`
-    SELECT 1 FROM approval_requests WHERE id = ${id} AND doc_type = 'expense' AND status <> 'draft'`)).length > 0);
+  if (r.length) return true;
+  if (s.bookkeeping && rowsOf(await db.execute(sql`
+    SELECT 1 FROM approval_requests WHERE id = ${id} AND doc_type = 'expense' AND status <> 'draft'`)).length) return true;
+  /* 완전삭제 담당자는 보존함의 문서를 확인할 수 있어야 한다 */
+  return !!(await activePurgeGrant(db, s.actor.id)) && rowsOf(await db.execute(sql`
+    SELECT 1 FROM approval_requests WHERE id = ${id} AND delete_status = 'deleted'`)).length > 0;
 }
 
 export async function docDetail(s: ReadScope, id: number) {
@@ -197,6 +202,30 @@ export async function docDetail(s: ReadScope, id: number) {
     budget = { ...position, draftAmount: counted ? 0 : amount, expectedAvailable: position.available - (counted ? 0 : amount) };
   }
 
+  let budgetInfo: any = null;
+  if (doc.doc_type === "expense") {
+    const b = rowsOf(await db.execute(sql`
+      SELECT g.name AS gwan_name, h.name AS hang_name, m.name AS mok_name,
+             (SELECT name FROM ledger_programs WHERE id = ${doc.program_id}) AS program_name,
+             (SELECT name FROM ledger_funds WHERE id = ${doc.fund_id}) AS fund_name
+        FROM (SELECT 1) one
+        LEFT JOIN budget_accounts m ON m.id = ${doc.budget_account_id}
+        LEFT JOIN budget_accounts h ON h.id = m.parent_id
+        LEFT JOIN budget_accounts g ON g.id = h.parent_id`))[0];
+    budgetInfo = {
+      path: [b?.gwan_name, b?.hang_name, b?.mok_name].filter(Boolean).join(" › ") || null,
+      programName: b?.program_name ?? null, fundName: b?.fund_name ?? null,
+    };
+  }
+
+  /* 승인 갈음 문서의 근거 품의가 취소됐는지(설계도 9쪽) */
+  let basisCanceled = false;
+  if (doc.substitute_basis_id != null) {
+    basisCanceled = rowsOf(await db.execute(sql`
+      SELECT 1 FROM approval_requests WHERE id = ${doc.substitute_basis_id} AND cancel_status = 'approved'`)).length > 0;
+  }
+  const followupDue = doc.followup_due === true || doc.followup_due === "t";
+
   const me = s.actor.id;
   const mine = Number(doc.drafter_id) === me;
   const pendingStep = currentSteps.find((x) => x.stepIndex === Number(doc.current_step) && x.decision === "pending");
@@ -214,6 +243,11 @@ export async function docDetail(s: ReadScope, id: number) {
       && doc.cancel_status !== "requested" && (s.bookkeeping || isChair(s)),
     refund: doc.refund_status === "required" && (s.bookkeeping || isChair(s)),
     addFile: doc.status === "approved" && (mine || s.bookkeeping || isChair(s)),
+    followup: followupDue && doc.status === "approved" && (mine || isChair(s)),
+    cardUse: doc.doc_type === "proposal" && doc.pay_method === "card" && doc.status === "approved"
+      && doc.cancel_status !== "requested" && doc.delete_status === "none",
+    cardUsage: doc.doc_type === "card" && doc.status === "approved" && doc.delete_status === "none"
+      && doc.cancel_status !== "requested" && (mine || s.bookkeeping || isChair(s)),
     purge: doc.delete_status === "deleted" && !!purgeGrant,
   };
 
@@ -234,7 +268,7 @@ export async function docDetail(s: ReadScope, id: number) {
     resolutionPdfUrl: doc.resolution_pdf_url,
     cancelStatus: doc.cancel_status, cancelReason: doc.cancel_reason, refundStatus: doc.refund_status,
     deleteStatus: doc.delete_status, deleteReason: doc.delete_reason, holdReason: doc.hold_reason,
-    followupDue: doc.followup_due === true || doc.followup_due === "t",
+    followupDue, basisCanceled, budgetInfo,
     drafterId: Number(doc.drafter_id) || null, drafterName: doc.drafter_name, createdAt: doc.created_at, submittedAt: doc.submitted_at, decidedAt: doc.decided_at,
     steps: currentSteps, cancelSteps, history: steps, references, referencedBy, files, watchers, comments, versions, budget, cardScope: scope,
     purgeProblems: actions.purge ? await purgeProblems(db, doc) : [],
@@ -251,11 +285,13 @@ export async function docVersion(s: ReadScope, id: number, version: number) {
 }
 
 /** 참조 검색. 열람 가능한 문서만, 완료 문서를 먼저 보여 준다(설계도 8쪽). */
-export async function searchDocs(s: ReadScope, q: string, docType: string | null, excludeId: number) {
+export async function searchDocs(s: ReadScope, q: string, docType: string | null, excludeId: number, from?: string | null, to?: string | null) {
   const like = `%${q.slice(0, 80)}%`;
   let where = sql`${visible(s)} AND r.delete_status = 'none' AND r.id <> ${excludeId} AND r.status <> 'draft'`;
   if (q) where = sql`${where} AND (r.title ILIKE ${like} OR r.doc_no ILIKE ${like} OR r.drafter_name ILIKE ${like})`;
   if (docType && DOC_TYPES[docType]) where = sql`${where} AND r.doc_type = ${docType}`;
+  if (from) where = sql`${where} AND COALESCE(r.submitted_at, r.created_at) >= ${from}::date`;
+  if (to) where = sql`${where} AND COALESCE(r.submitted_at, r.created_at) < (${to}::date + 1)`;
   const rows = rowsOf(await db.execute(sql`
     SELECT ${COLUMNS} FROM approval_requests r WHERE ${where}
      ORDER BY (r.status = 'approved') DESC, r.id DESC LIMIT 30`));
@@ -366,7 +402,9 @@ export async function loadSavedLines(ownerId: number) {
 export async function loadGuides() {
   const rows = rowsOf(await db.execute(sql`
     SELECT DISTINCT ON (doc_type) doc_type, version, guide FROM approval_form_guides ORDER BY doc_type, version DESC`));
-  return Object.fromEntries(rows.map((r: any) => [r.doc_type, { version: Number(r.version), guide: r.guide }]));
+  const saved = Object.fromEntries(rows.map((r: any) => [r.doc_type, { version: Number(r.version), guide: r.guide }]));
+  const defaults = Object.fromEntries(Object.entries(DEFAULT_GUIDES).map(([k, guide]) => [k, { version: 0, guide }]));
+  return { ...defaults, ...saved };
 }
 
 export async function loadPurgeGrants() {

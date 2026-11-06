@@ -16,6 +16,9 @@
 
 ---
 
+
+> **2026-11-06 재정·장부·내부결재 0~5단계 완료.** 로드맵 docs/active/2026-11-06-approval-finance-roadmap.md. 내부결재는 lib/approval-docs.ts, 결산은 lib/ledger-settlement.ts·lib/ledger-statements.ts, 공익법인은 lib/ledger-public.ts. Swain에게 전달할 일 목록은 메모리 project_approval_redesign.
+
 ## 0-A. ★ 지금 시점 (2026-07-20 최신) — 지출결재·지출결의서 트랙
 
 사무실 세션(7/16~7/20)에서 **지출 결재 워크플로우를 실사용 가능한 수준까지** 끌어올림. 전부 main 배포 완료.

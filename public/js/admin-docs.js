@@ -12,12 +12,24 @@
   let draft = null;     // 작성 중 문서
   let budgets = null;   // 예산 선택지
   let boxState = {};    // 문서함별 필터
+  let autoTimer = null; // 자동저장 타이머
+  let lastSaved = '';   // 마지막으로 저장한 내용
+  let saving = null;    // 진행 중인 저장. 겹치면 문서가 두 건 생긴다
 
   const FN_LABEL = { service: '사업수행', admin: '일반관리', fundraising: '모금' };
   const ROLE_LABEL = { operator: '직원', admin: '국장', super_admin: '이사장' };
   const SEAL_TYPES = ['법인인감', '사용인감', '직인'];
+  const EVIDENCE_TYPES = ['세금계산서', '계산서', '카드매출전표', '현금영수증', '영수증', '기타'];
   const HALF_PERIODS = { '': '종일', AM: '오전 반차', PM: '오후 반차', LATE_IN: '반반차(늦게 출근)', EARLY_OUT: '반반차(일찍 퇴근)' };
   const DOC_ORDER = ['internal', 'proposal', 'expense', 'card', 'seal'];
+  /* 브라우저가 형식을 비워 보내는 파일이 있어 확장자로 정한다 */
+  const FILE_TYPES = {
+    pdf: 'application/pdf', hwp: 'application/x-hwp', hwpx: 'application/vnd.hancom.hwpx',
+    doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  };
+  const fileType = f => FILE_TYPES[String(f.name).split('.').pop().toLowerCase()] || f.type || 'application/octet-stream';
 
   function api(method, path, body) {
     const opts = { method, credentials: 'include', headers: {} };
@@ -40,6 +52,8 @@
   const page = view => document.getElementById('page-docs-' + view);
   const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const isChair = () => meta?.me?.role === 'super_admin';
+  const myTitle = () => people.find(p => p.id === meta.me.id)?.title || ROLE_LABEL[meta.me.role] || '';
+  const cardRuleOn = () => !!meta.settings.cardRuleEffectiveOn && today() >= meta.settings.cardRuleEffectiveOn;
   /* 통합 CMS 탭은 사이드바 클릭으로 바꾼다 */
   const go = view => document.querySelector(`a[data-tab="docs-${view}"]`)?.click();
 
@@ -71,13 +85,18 @@
     .dc-row2{display:grid;grid-template-columns:96px minmax(0,1fr) 96px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:8px}
     .dc-row2 label{font-size:13px;color:var(--text-2)}
     .dc-editor{border:1px solid var(--line,#e5e0d8);border-radius:8px;min-height:180px;padding:10px;font-size:14px;line-height:1.7;background:#fff}
+    .dc-editor ul{list-style:disc;padding-left:22px;margin:4px 0}
+    .dc-editor ol{list-style:decimal;padding-left:22px;margin:4px 0}
     .dc-tools{display:flex;gap:4px;margin-bottom:6px}
     .dc-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
-    .dc-table th,.dc-table td{border:1px solid var(--line,#e5e0d8);padding:5px 6px}
+    .dc-table th,.dc-table td{border:1px solid #d9d3c9;padding:5px 6px}
     .dc-table th{background:#faf8f6;font-weight:600;white-space:nowrap}
     .dc-table .num{text-align:right;white-space:nowrap}
-    .dc-table input,.dc-table select{width:100%;border:0;background:transparent;font-size:13px;padding:2px}
+    .dc-table input,.dc-table select{width:100%;border:0;background:#fdfcfb;font-size:13px;padding:3px}
+    .dc-table input:focus,.dc-table select:focus{outline:1px solid #7a1f2b;background:#fff}
     .dc-line{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:4px;margin-bottom:6px;align-items:center}
+    .dc-line select{padding-left:6px;padding-right:2px}
+    .dc-line .btn-sm,.dc-table .btn-sm{padding:2px 6px;min-width:0;font-size:12px}
     .dc-badge{display:inline-block;padding:1px 8px;border-radius:20px;font-size:12px;font-weight:600;background:#f3f4f6;color:#555}
     .dc-badge.ok{background:#d1fae5;color:#059669}.dc-badge.wait{background:#fef3c7;color:#b45309}.dc-badge.bad{background:#fee2e2;color:#dc2626}
     .dc-note{font-size:12px;color:var(--text-3);margin:4px 0}
@@ -86,7 +105,11 @@
     .dc-kv{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
     @media(max-width:1100px){.dc-grid{grid-template-columns:1fr}.dc-kpis{grid-template-columns:repeat(2,1fr)}}
   </style>`;
-  function styled(html) { return (document.getElementById('docsStyle') ? '' : STYLE) + html; }
+  /* 스타일은 문서 머리에 한 번만 넣는다. 화면 안에 두면 그 화면을 다시 그릴 때 함께 지워진다 */
+  function styled(html) {
+    if (!document.getElementById('docsStyle')) document.head.insertAdjacentHTML('beforeend', STYLE);
+    return html;
+  }
 
   function badge(row) {
     const cls = { approved: 'ok', pending: 'wait', rejected: 'bad', recalled: 'bad', canceled: 'bad' }[row.status] || '';
@@ -99,20 +122,21 @@
 
   function listTable(items, opts = {}) {
     if (!items.length) return '<div style="color:var(--text-3);padding:20px;text-align:center">해당 문서가 없습니다.</div>';
+    const wide = !opts.compact;
     return `<table class="data-table" style="width:100%"><thead><tr>
-      <th>문서번호</th><th>제목</th><th>유형</th><th>결재 상태</th><th>현재 담당</th><th>지출 상태</th><th>취소</th><th class="num">금액</th><th>기안자</th><th>작성일</th>
+      <th>문서번호</th><th>제목</th>${wide ? '<th>유형</th>' : ''}<th>결재 상태</th>${wide ? '<th>현재 담당</th>' : ''}<th>지출 상태</th><th>취소</th><th class="num">금액</th>${wide ? '<th>기안자</th><th>작성일</th>' : ''}
       ${opts.action ? '<th></th>' : ''}</tr></thead>
       <tbody>${items.map(r => `<tr>
         <td style="white-space:nowrap">${esc(r.docNo || '(번호 없음)')}${r.version > 1 ? ` <span class="dc-note">v${r.version}</span>` : ''}</td>
         <td><a href="#" data-doc="${r.id}">${esc(r.title)}</a></td>
-        <td style="white-space:nowrap">${esc(r.docLabel)}</td>
+        ${wide ? `<td style="white-space:nowrap">${esc(r.docLabel)}</td>` : ''}
         <td>${badge(r)}</td>
-        <td>${esc(r.currentAssignee || '')}</td>
+        ${wide ? `<td>${esc(r.currentAssignee || '')}</td>` : ''}
         <td style="white-space:nowrap">${esc(r.paymentLabel)}</td>
         <td style="white-space:nowrap">${esc(cancelText(r))}</td>
         <td class="num" style="white-space:nowrap">${r.amount ? won(r.amount) : ''}</td>
-        <td>${esc(r.drafterName || '')}</td>
-        <td style="white-space:nowrap">${esc(day(r.submittedAt || r.createdAt))}</td>
+        ${wide ? `<td>${esc(r.drafterName || '')}</td>
+        <td style="white-space:nowrap">${esc(day(r.submittedAt || r.createdAt))}</td>` : ''}
         ${opts.action ? `<td style="text-align:right">${opts.action(r)}</td>` : ''}
       </tr>`).join('')}</tbody></table>`;
   }
@@ -229,7 +253,8 @@
         ${kind?.leave ? `<div class="dc-row2"><label>휴가 종류 *</label><select class="input" data-f="leaveTypeId"><option value="">선택</option>${(meta.leaveTypes || []).map(t => `<option value="${t.id}"${Number(f.leaveTypeId) === t.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
           <label>시간</label><select class="input" data-f="halfDayPeriod">${Object.entries(HALF_PERIODS).map(([k, v]) => `<option value="${k}"${(f.halfDayPeriod || '') === k ? ' selected' : ''}>${v}</option>`).join('')}</select></div>` : ''}
         <div class="dc-row2"><label>시작일 *</label><input class="input" type="date" data-f="periodFrom" value="${esc(f.periodFrom || '')}"><label>종료일 *</label><input class="input" type="date" data-f="periodTo" value="${esc(f.periodTo || '')}"></div>
-        ${kind?.leave ? '' : `<div class="dc-row2"><label>장소</label><input class="input" data-f="place" value="${esc(f.place || '')}"><label>대상</label><input class="input" data-f="target" value="${esc(f.target || '')}"></div>`}`;
+        ${kind?.leave ? '' : `<div class="dc-row"><label>시간</label><input class="input" data-f="timeText" placeholder="예: 09:00~18:00" value="${esc(f.timeText || '')}"></div>
+          <div class="dc-row2"><label>장소</label><input class="input" data-f="place" value="${esc(f.place || '')}"><label>대상</label><input class="input" data-f="target" value="${esc(f.target || '')}"></div>`}`;
     }
     if (d.docType === 'card') {
       return `
@@ -257,7 +282,8 @@
       <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="dcSubstitute"${f.substitute ? ' checked' : ''}> ${esc(label)}</label>
       <select class="input" data-f="basisId" style="margin-top:4px"><option value="">근거 품의 선택 (오른쪽 문서 연결에서 추가)</option>${proposals.map(r =>
         `<option value="${r.id}"${Number(f.basisId) === r.id ? ' selected' : ''}>${esc(r.docNo)} ${esc(r.title)}</option>`).join('')}</select>
-      ${d.docType === 'card' && !meta.settings.cardRuleEffectiveOn ? '<div class="dc-note">카드 규정 시행일이 정해지지 않아 지금은 결재선으로 상신해야 합니다.</div>' : ''}
+      ${d.docType === 'card' && !cardRuleOn() ? `<div class="dc-note">${meta.settings.cardRuleEffectiveOn ? `규정 시행일(${esc(meta.settings.cardRuleEffectiveOn)}) 전이라` : '카드 규정 시행일이 정해지지 않아'} 지금은 품의서를 연결하고 결재선으로 상신합니다.</div>` : ''}
+      ${d.scope ? `<div class="dc-note">품의 금액 ${won(d.scope.approved)}원, 사용 누계 ${won(d.scope.used)}원, 남은 승인범위 ${won(d.scope.remaining)}원</div>` : ''}
     </div></div>`;
   }
 
@@ -283,13 +309,14 @@
     const rows = d.formData.payees || (d.formData.payees = [{}]);
     return `<div style="display:flex;align-items:center;margin:10px 0 4px"><strong style="flex:1">지급 정보</strong>
         <button class="btn-sm btn-sm-ghost" type="button" id="dcPayeeAdd">행 추가</button></div>
-      <table class="dc-table"><thead><tr><th>지급처</th><th>은행</th><th>계좌</th><th>예금주</th><th>지급예정일</th><th></th></tr></thead>
+      <table class="dc-table"><thead><tr><th style="width:16%">지급처</th><th style="width:12%">은행</th><th style="width:21%">계좌</th><th style="width:13%">예금주</th><th style="width:17%">지급예정일</th><th style="width:16%">증빙</th><th></th></tr></thead>
       <tbody>${rows.map((p, i) => `<tr>
         <td><input data-payee="${i}" data-k="payee" value="${esc(p.payee || '')}"></td>
         <td><input data-payee="${i}" data-k="bank" value="${esc(p.bank || '')}"></td>
         <td><input data-payee="${i}" data-k="account" value="${esc(p.account || '')}"></td>
         <td><input data-payee="${i}" data-k="holder" value="${esc(p.holder || '')}"></td>
         <td><input data-payee="${i}" data-k="payDate" type="date" value="${esc(p.payDate || '')}"></td>
+        <td><select data-payee="${i}" data-k="evidence"><option value="">선택</option>${EVIDENCE_TYPES.map(t => `<option${p.evidence === t ? ' selected' : ''}>${t}</option>`).join('')}</select></td>
         <td><button class="btn-sm btn-sm-ghost" type="button" data-payee-del="${i}">×</button></td>
       </tr>`).join('')}</tbody></table>`;
   }
@@ -306,13 +333,21 @@
       </tr>`).join('')}</tbody></table>`;
   }
 
+  function budgetOptions(d, query) {
+    const q = String(query || '').trim().toLowerCase();
+    const opts = (budgets?.options || []).filter(o => !q || `${o.label} ${o.code || ''}`.toLowerCase().includes(q));
+    return '<option value="">예산 선택</option>' + opts.map(o =>
+      `<option value="${esc(o.key)}"${o.key === d.budgetKey ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
+  }
+
   function expenseFields(d) {
     const opts = budgets?.options || [];
     const sel = opts.find(o => o.key === d.budgetKey);
     const manual = !sel || !sel.locked;
     return `
-      <div class="dc-row"><label>예산 *</label><select class="input" id="dcBudget"><option value="">예산 선택</option>${opts.map(o =>
-        `<option value="${esc(o.key)}"${o.key === d.budgetKey ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select></div>
+      <div class="dc-row"><label>예산 *</label><div>
+        <input class="input-sm" id="dcBudgetQ" placeholder="예산명·코드·사업으로 찾기" style="width:100%;margin-bottom:4px">
+        <select class="input" id="dcBudget">${budgetOptions(d, '')}</select></div></div>
       ${budgets && !budgets.hasPlan ? `<div class="dc-note">${budgets.year}년 승인 예산이 없어 사용가능액을 검사하지 않습니다.</div>` : ''}
       ${manual ? `<div class="dc-row2"><label>활동 *</label><select class="input" id="dcFn"><option value="">선택</option>${(tags.functions || []).map(f => `<option value="${f.code}"${d.functionCode === f.code ? ' selected' : ''}>${esc(f.label)}</option>`).join('')}</select>
         <label>재원 *</label><select class="input" id="dcFund"><option value="">선택</option>${(tags.funds || []).map(f => `<option value="${f.id}"${d.fundId === f.id ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}</select></div>
@@ -363,7 +398,10 @@
         <div id="dcRefs">${(d.references || []).map(r => `<div class="dc-kv"><span>${esc(r.docNo)} ${esc(r.title)}</span>
           <span style="white-space:nowrap"><select class="input-sm" data-ref-kind="${r.id}"><option value="related"${r.refKind !== 'basis' ? ' selected' : ''}>관련</option><option value="basis"${r.refKind === 'basis' ? ' selected' : ''}>근거</option></select>
           <a href="#" data-ref-del="${r.id}">×</a></span></div>`).join('') || '<div class="dc-note">연결된 문서가 없습니다.</div>'}</div>
-        <div style="display:flex;gap:4px;margin-top:6px"><input class="input-sm" id="dcRefQ" placeholder="문서번호·제목" style="flex:1"><button class="btn-sm btn-sm-ghost" type="button" id="dcRefSearch">검색</button></div>
+        <div style="display:flex;gap:4px;margin-top:6px"><input class="input-sm" id="dcRefQ" placeholder="문서번호·제목·작성자" style="flex:1;min-width:0">
+          <select class="input-sm" id="dcRefType" style="width:84px"><option value="">유형</option>${DOC_ORDER.map(k => `<option value="${k}">${esc(meta.docTypes[k].label)}</option>`).join('')}</select></div>
+        <div style="display:flex;gap:4px;margin-top:4px"><input class="input-sm" id="dcRefFrom" type="date" style="flex:1;min-width:0"><input class="input-sm" id="dcRefTo" type="date" style="flex:1;min-width:0">
+          <button class="btn-sm btn-sm-ghost" type="button" id="dcRefSearch">검색</button></div>
         <div id="dcRefResult"></div>
       </div>
       <div class="dc-card"><h4>첨부파일 <span class="dc-note">${(d.files || []).length}개</span></h4>
@@ -383,6 +421,7 @@
       <div class="panel">
         <div class="p-head"><div class="p-title">결재문서 작성</div>
           <div class="p-actions">
+            <span class="dc-note" id="dcAutoNote"></span>
             <button class="btn-sm btn-sm-ghost" type="button" id="dcSave">임시저장</button>
             <button class="btn-sm btn-sm-ghost" type="button" id="dcPreview">미리보기</button>
             <button class="btn-sm btn-sm-primary" type="button" id="dcSubmit">상신</button>
@@ -395,7 +434,9 @@
             <h2>${esc(meta.docTypes[d.docType].label.replace(/ /g, ' '))}</h2>
             ${signTable(form.line || [])}
             <div class="dc-row2"><label>문서번호</label><div style="font-size:13px;color:var(--text-3)">${esc(d.docNo || '상신 시 자동 부여')}</div>
-              <label>기안자</label><div style="font-size:13px">${esc(meta.me.name)}</div></div>
+              <label>작성일</label><div style="font-size:13px">${today()}</div></div>
+            <div class="dc-row2"><label>기안자</label><div style="font-size:13px">${esc(meta.me.name)}</div>
+              <label>직책</label><div style="font-size:13px">${esc(myTitle())}</div></div>
             <div class="dc-row"><label>제목 *</label><input class="input" id="dcTitle" value="${esc(d.title || '')}"></div>
             ${d.docType === 'expense' ? expenseFields(d) : typeFields(d)}
             ${d.docType === 'proposal' ? budgetRowTable(d) : ''}
@@ -481,13 +522,39 @@
     if (text) el.scrollIntoView({ block: 'center' });
   }
 
-  async function saveCurrent() {
+  async function saveNow() {
+    if (saving) await saving;
     collect();
-    const res = await post({ action: 'save', ...payload() });
+    saving = post({ action: 'save', ...payload() });
+    const res = await saving;
+    saving = null;
+    if (res.ok && draft) {
+      draft.id = dataOf(res).id;
+      lastSaved = JSON.stringify(payload());
+    }
+    return res;
+  }
+
+  async function saveCurrent() {
+    const res = await saveNow();
     if (!res.ok) { showError(failText(res)); return false; }
-    draft.id = dataOf(res).id;
     showError('');
     return true;
+  }
+
+  /* 1분마다 바뀐 내용만 저장한다. 화면이 숨겨져 있거나 빈 문서면 저장하지 않는다 */
+  function startAutosave() {
+    if (autoTimer) return;
+    autoTimer = setInterval(async () => {
+      const c = page('new');
+      if (!draft || !c || !c.offsetParent || !c.querySelector('#dcTitle') || document.hidden || saving) return;
+      collect();
+      if (!(draft.title || '').trim() && !(draft.formData.reasonText || '').trim()) return;
+      if (JSON.stringify(payload()) === lastSaved) return;
+      const res = await saveNow();
+      const note = c.querySelector('#dcAutoNote');
+      if (res.ok && note) note.textContent = '자동 저장 ' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 16);
+    }, 60000);
   }
 
   async function reloadFiles() {
@@ -504,13 +571,14 @@
 
   async function uploadFile(file, fileKind) {
     if (!draft.id && !(await saveCurrent())) return;
-    const pres = await post({ action: 'file_presign', fileName: file.name, contentType: file.type || 'application/pdf', sizeBytes: file.size });
+    const contentType = fileType(file);
+    const pres = await post({ action: 'file_presign', fileName: file.name, contentType, sizeBytes: file.size });
     if (!pres.ok) { showError(failText(pres)); return; }
     const { id: blobId, uploadUrl } = dataOf(pres);
     const buffer = await file.arrayBuffer();
     const digest = await crypto.subtle.digest('SHA-256', buffer);
     const sha256 = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
-    const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/pdf' }, body: buffer });
+    const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': contentType }, body: buffer });
     if (!put.ok) { showError('파일 업로드 실패: HTTP ' + put.status); return; }
     await api('POST', '/api/blob-confirm', { id: blobId });
     const add = await post({ action: 'file_add', id: draft.id, blobId, fileKind, sha256 });
@@ -525,7 +593,7 @@
     c.querySelectorAll('[data-type]').forEach(b => b.addEventListener('click', () => { draft = { id: null, docType: b.dataset.type, formData: {}, references: [], watchers: [], files: [] }; repaint(); }));
     c.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => { document.execCommand(b.dataset.cmd); c.querySelector('#dcBody').focus(); }));
     on('#dcSave', async () => { if (await saveCurrent()) { alert('임시저장했습니다.'); repaint(); } });
-    on('#dcPreview', () => { collect(); printDoc(previewDoc()); });
+    on('#dcPreview', () => { collect(); printDoc(previewDoc(), true); });
     on('#dcSubmit', async () => {
       if (!(await saveCurrent())) return;
       if (!confirm('상신하면 본문·첨부·참조·결재선이 승인 대상으로 고정됩니다. 상신할까요?')) return;
@@ -539,6 +607,7 @@
     c.querySelector('#dcExpenseKind')?.addEventListener('change', () => { collect(); repaint(); });
     c.querySelector('#dcFn')?.addEventListener('change', () => { collect(); repaint(); });
     c.querySelector('#dcBudget')?.addEventListener('change', e => { collect(); d.budgetKey = e.target.value; repaint(); });
+    c.querySelector('#dcBudgetQ')?.addEventListener('input', e => { c.querySelector('#dcBudget').innerHTML = budgetOptions(d, e.target.value); });
     c.querySelector('#dcSubstitute')?.addEventListener('change', () => { collect(); repaint(); });
 
     const rowOps = (addId, list, attrDel) => {
@@ -606,7 +675,9 @@
     /* 문서 연결 */
     on('#dcRefSearch', async () => {
       const box = c.querySelector('#dcRefResult');
-      const res = await get(`view=search&q=${encodeURIComponent(c.querySelector('#dcRefQ').value)}&exclude=${d.id || 0}`);
+      const qs = new URLSearchParams({ view: 'search', q: c.querySelector('#dcRefQ').value, exclude: d.id || 0 });
+      [['docType', '#dcRefType'], ['from', '#dcRefFrom'], ['to', '#dcRefTo']].forEach(([k, sel]) => { const v = c.querySelector(sel).value; if (v) qs.set(k, v); });
+      const res = await get(qs.toString());
       const items = dataOf(res).items || [];
       box.innerHTML = items.map(r => `<div class="dc-kv"><span>${esc(r.docNo)} ${esc(r.title)} <span class="dc-note">${esc(r.docLabel)} · ${esc(r.statusLabel)}</span></span><button class="btn-sm btn-sm-ghost" type="button" data-ref-add="${r.id}">연결</button></div>`).join('')
         || '<div class="dc-note">찾은 문서가 없습니다.</div>';
@@ -661,18 +732,32 @@
       });
       draft = { id: null, docType, formData, references: [], watchers: [], files: [] };
     }
-    if (!budgets) {
-      const res = await get('view=budgets');
-      budgets = res.ok ? dataOf(res) : { options: [], hasPlan: false };
-    }
+    const res = await get('view=budgets');
+    budgets = res.ok ? dataOf(res) : (budgets || { options: [], hasPlan: false });
     repaint();
+    collect();
+    lastSaved = JSON.stringify(payload());
+    startAutosave();
   }
 
   function previewDoc() {
     const d = draft;
+    const f = d.formData;
+    const opt = (budgets?.options || []).find(o => o.key === d.budgetKey);
+    const sum = (list, read) => (list || []).reduce((t, r) => t + read(r), 0);
+    const amount = d.docType === 'expense' ? sum(f.items, i => (Number(i.supply) || 0) + (Number(i.vat) || 0))
+      : d.docType === 'proposal' ? sum(f.budgetRows, r => Number(r.amount) || 0) : Number(f.plannedAmount) || 0;
     return {
-      docLabel: meta.docTypes[d.docType].label, docNo: d.docNo || '(상신 시 부여)', title: d.title, body: d.body, formData: d.formData,
-      docType: d.docType, drafterName: meta.me.name, amount: 0,
+      docLabel: meta.docTypes[d.docType].label, docNo: d.docNo || '(상신 시 부여)', title: d.title, body: d.body, formData: f,
+      docType: d.docType, drafterName: meta.me.name, amount,
+      payMethodLabel: meta.payMethods[d.payMethod] || null, expenseKindLabel: meta.expenseKinds[d.expenseKind] || null,
+      internalKindLabel: meta.internalKinds[f.kind]?.label || null,
+      functionCode: opt?.locked ? opt.functionCode : d.functionCode,
+      budgetInfo: d.docType === 'expense' ? {
+        path: opt ? opt.label.split(' · ')[0] : null,
+        programName: opt?.locked ? opt.programName : (tags.programs || []).find(p => p.id === d.programId)?.name,
+        fundName: opt?.locked ? opt.fundName : (tags.funds || []).find(p => p.id === d.fundId)?.name,
+      } : null,
       steps: (d.formData.line || []).map(s => ({ stepType: s.type, assigneeName: s.name, decision: 'pending' })),
       references: d.references || [], files: d.files || [],
     };
@@ -688,17 +773,21 @@
     }
     if (x.docType === 'internal') {
       return row('신청 구분', x.internalKindLabel) + row('기간', period) + row('장소', f.place) + row('대상', f.target)
-        + row('시간', HALF_PERIODS[f.halfDayPeriod || ''] === '종일' ? '' : HALF_PERIODS[f.halfDayPeriod || '']);
+        + row('시간', f.timeText || (HALF_PERIODS[f.halfDayPeriod || ''] === '종일' ? '' : HALF_PERIODS[f.halfDayPeriod || '']));
     }
     if (x.docType === 'card') {
-      return row('사용 목적', f.usePurpose) + row('사용 기간', period) + row('예정금액', won(f.plannedAmount)) + row('카드', f.cardLabel);
+      return row('사용 목적', f.usePurpose) + row('사용 기간', period) + row('예정금액', won(f.plannedAmount)) + row('카드', f.cardLabel)
+        + row('사용자', x.drafterName) + row('사용일', f.usedOn) + row('실제 사용액', f.actualAmount != null ? won(f.actualAmount) : '')
+        + row('승인 방식', x.approvalMode === 'substituted' ? '승인 갈음' : '');
     }
     if (x.docType === 'seal') {
       return row('인감 종류', f.sealType) + row('사용 목적', f.usePurpose) + row('제출처', f.submitTo) + row('사용일', f.useDate)
         + row('날인 대상', f.sealTarget) + row('부수', f.copies);
     }
     if (x.docType === 'expense') {
-      return row('지출 구분', x.expenseKindLabel) + row('지급방법', x.payMethodLabel) + row('긴급 사유', f.urgentReason)
+      const info = x.budgetInfo || {};
+      return row('예산', info.path) + row('활동', FN_LABEL[x.functionCode]) + row('사업', info.programName) + row('재원', info.fundName)
+        + row('지출 구분', x.expenseKindLabel) + row('지급방법', x.payMethodLabel) + row('긴급 사유', f.urgentReason)
         + row('결의번호', x.resolutionNo) + row('지급일', x.paidAt) + (x.paidAmount != null && x.paidAmount !== x.amount ? row('실제 지급액', won(x.paidAmount)) : '');
     }
     return '';
@@ -714,9 +803,10 @@
       <tbody>${(f.items || []).map(i => `<tr><td>${esc(i.use)}</td><td>${esc(i.content)}</td><td>${esc(i.payee)}</td>
         <td class="num">${won(i.supply)}</td><td class="num">${won(i.vat)}</td><td class="num">${won((Number(i.supply) || 0) + (Number(i.vat) || 0))}</td></tr>`).join('')}</tbody>
       <tfoot><tr><th colspan="5" style="text-align:right">총 지급액</th><th class="num">${won(x.amount)}</th></tr></tfoot></table>
-      ${(f.payees || []).some(p => p.payee || p.bank) ? `<table class="dc-table"><thead><tr><th>지급처</th><th>은행</th><th>계좌</th><th>예금주</th><th>지급예정일</th></tr></thead><tbody>${f.payees.map(p =>
-        `<tr><td>${esc(p.payee)}</td><td>${esc(p.bank)}</td><td>${esc(p.account)}</td><td>${esc(p.holder)}</td><td>${esc(p.payDate)}</td></tr>`).join('')}</tbody></table>` : ''}`;
+      ${(f.payees || []).some(p => p.payee || p.bank) ? `<table class="dc-table"><thead><tr><th>지급처</th><th>은행</th><th>계좌</th><th>예금주</th><th>지급예정일</th><th>증빙</th></tr></thead><tbody>${f.payees.map(p =>
+        `<tr><td>${esc(p.payee)}</td><td>${esc(p.bank)}</td><td>${esc(p.account)}</td><td>${esc(p.holder)}</td><td>${esc(p.payDate)}</td><td>${esc(p.evidence)}</td></tr>`).join('')}</tbody></table>` : ''}`;
   }
+  const CARD_BASIS_NOTE = x => (x.formData?.actualAmount != null ? '거래 취소·반환 확인 필요' : '취소 대상');
   const DECISION_LABEL = { approved: '승인', rejected: '반려', pending: '대기', canceled: '중단' };
   function stepTable(steps) {
     return `<table class="dc-table"><thead><tr><th>구분</th><th>담당</th><th>처리</th><th>시각</th><th>의견</th></tr></thead>
@@ -740,6 +830,9 @@
       a.cancelDecide ? btn('취소 승인', 'cancel-approve', 'btn-sm-primary') + btn('취소 반려', 'cancel-reject', 'btn-sm-danger') : '',
       a.pay ? btn('지출완료 확인', 'pay', 'btn-sm-primary') : '',
       a.refund ? btn('반환 확인', 'refund', 'btn-sm-primary') : '',
+      a.followup ? btn('사후 품의 연결', 'followup', 'btn-sm-primary') : '',
+      a.cardUse ? btn('카드 사용 등록', 'card-use', 'btn-sm-primary') : '',
+      a.cardUsage ? btn(x.formData?.actualAmount != null ? '사용 내역 수정' : '사용 내역 등록', 'card-usage') : '',
       a.cancelRequest ? btn('취소 요청', 'cancel-request') : '',
       a.delete ? btn('일반 삭제', 'delete', 'btn-sm-danger') : '',
       a.purge ? btn('완전삭제', 'purge', 'btn-sm-danger') : '',
@@ -762,6 +855,7 @@
               ${x.cancelStatus !== 'none' ? `<span class="dc-badge bad">${esc(cancelText(x))}</span>` : ''}
               ${x.refundStatus === 'required' ? '<span class="dc-badge wait">반환 확인 대기</span>' : ''}
               ${x.followupDue ? '<span class="dc-badge wait">사후 품의 필요</span>' : ''}
+              ${x.basisCanceled ? `<span class="dc-badge bad">근거 품의 취소: ${esc(CARD_BASIS_NOTE(x))}</span>` : ''}
             </div>
             <table class="dc-table"><tbody>
               <tr><th style="width:120px">제목</th><td>${esc(x.title)}</td></tr>
@@ -836,6 +930,17 @@
       if (act === 'comment') { const c = container.querySelector('#dcComment').value; if (c.trim()) run({ action: 'comment', body: c }); }
       if (act === 'pay') openPayModal(x, reload);
       if (act === 'refund') openRefundModal(x, reload);
+      if (act === 'followup') openFollowupModal(x, reload);
+      if (act === 'card-usage') openCardUsageModal(x, reload);
+      if (act === 'card-use') {
+        const on = cardRuleOn();
+        draft = {
+          id: null, docType: 'card', scope: x.cardScope, watchers: [], files: [],
+          formData: { usePurpose: x.formData?.projectName || x.title, substitute: on, basisId: on ? String(x.id) : '' },
+          references: [{ id: x.id, docNo: x.docNo, title: x.title, docLabel: x.docLabel, docType: 'proposal', refKind: 'basis' }],
+        };
+        go('new');
+      }
       if (act === 'purge') openPurgeModal(x, () => (back || renderHome)());
     }));
   }
@@ -903,10 +1008,49 @@
     }, '확인');
   }
 
+  function openFollowupModal(x, done) {
+    const wrap = modal('사후 품의 연결', `
+      <div class="dc-note" style="margin-bottom:8px">승인된 품의서를 고르면 근거로 연결됩니다. 승인본은 바뀌지 않습니다.</div>
+      <div style="display:flex;gap:4px"><input id="dcFuQ" class="input-sm" placeholder="문서번호·제목" style="flex:1"><button class="btn-sm btn-sm-ghost" type="button" id="dcFuSearch">검색</button></div>
+      <select id="dcFuPick" class="input" style="width:100%;margin-top:8px"><option value="">품의서 선택</option></select>
+    `, async w => {
+      const targetId = Number(w.querySelector('#dcFuPick').value);
+      if (!targetId) return { ok: false, error: '품의서를 고르세요' };
+      const r = await post({ action: 'followup_link', id: x.id, targetId });
+      if (r.ok) done();
+      return r;
+    }, '연결');
+    const search = async () => {
+      const res = await get(`view=search&docType=proposal&exclude=${x.id}&q=${encodeURIComponent(wrap.querySelector('#dcFuQ').value)}`);
+      const items = (dataOf(res).items || []).filter(r => r.status === 'approved' && r.cancelStatus !== 'requested');
+      wrap.querySelector('#dcFuPick').innerHTML = `<option value="">품의서 선택 (${items.length}건)</option>`
+        + items.map(r => `<option value="${r.id}">${esc(r.docNo)} ${esc(r.title)}</option>`).join('');
+    };
+    wrap.querySelector('#dcFuSearch').addEventListener('click', search);
+    search();
+  }
+
+  function openCardUsageModal(x, done) {
+    const f = x.formData || {};
+    modal('카드 사용 내역', `
+      <div style="font-size:13px;margin-bottom:10px">${esc(x.title)} · 승인 금액 <strong>${won(x.amount)}원</strong></div>
+      <label class="form-label">사용일</label><input id="dcUsedOn" class="input" type="date" value="${esc(f.usedOn || today())}" style="width:100%;margin-bottom:10px">
+      <label class="form-label">실제 사용액</label><input id="dcUsedAmount" class="input" type="number" min="0" max="${x.amount}" value="${esc(f.actualAmount ?? x.amount)}" style="width:100%">
+      <div class="dc-note" style="margin-top:6px">증빙은 문서의 추가증빙으로 첨부합니다. 예산 반영은 지출결의서에서 합니다.</div>
+    `, async w => {
+      const r = await post({ action: 'card_usage', id: x.id, usedOn: w.querySelector('#dcUsedOn').value, actualAmount: Number(w.querySelector('#dcUsedAmount').value) });
+      if (r.ok) done();
+      return r;
+    });
+  }
+
   function openPurgeModal(x, done) {
+    if ((x.purgeProblems || []).length) { alert('완전삭제할 수 없습니다.\n' + x.purgeProblems.join('\n')); return; }
     modal('완전삭제', `
       <div style="font-size:13px;margin-bottom:10px;color:var(--danger)">${esc(x.docNo)}의 본문, 첨부, 승인 내역을 지웁니다. 되돌릴 수 없습니다. 예산 원장과 지출 기록은 남습니다.</div>
-      <div class="dc-note" style="margin-bottom:8px">지울 범위: 본문, 첨부 ${x.files.length}개, 버전 ${x.versions.length}개, 결재 내역</div>
+      <div class="dc-note">상태: 취소 최종 승인, 일반 삭제 완료${x.deleteReason ? ' · 삭제 사유 ' + esc(x.deleteReason) : ''}</div>
+      <div class="dc-note">지울 범위: 본문, 첨부 ${x.files.length}개, 버전 ${x.versions.length}개, 결재 내역</div>
+      <div class="dc-note" style="margin-bottom:8px">이 문서를 참조한 문서 ${x.referencedBy.length}건은 연결이 유지되고 «완전삭제된 문서»로 표시됩니다.</div>
       <label class="form-label">삭제 사유</label><input id="dcPurgeWhy" class="input" style="width:100%;margin-bottom:10px">
       <label class="form-label">비밀번호 다시 입력</label><input id="dcPurgePw" class="input" type="password" style="width:100%">
     `, async w => {
@@ -917,12 +1061,17 @@
   }
 
   /* 인쇄·미리보기. 브라우저 인쇄 창에서 PDF로 저장할 수 있다 */
-  function printDoc(x) {
+  function printDoc(x, preview) {
     const win = window.open('', '_blank');
     if (!win) { alert('팝업이 차단되어 인쇄 창을 열 수 없습니다.'); return; }
     const steps = x.steps || [];
     const heads = ['기안', ...steps.map(s => s.stepType === 'consult' ? '합의' : '결재')];
     const names = [x.drafterName, ...steps.map(s => s.assigneeName || '')];
+    const marks = ['', ...steps.map(s => (s.decision === 'approved' ? day(s.decidedAt) : s.decision === 'rejected' ? '반려' : ''))];
+    const substituted = x.approvalMode === 'substituted';
+    const basis = (x.references || []).find(r => r.id === x.substituteBasisId);
+    const refs = x.references || [];
+    const files = x.files || [];
     win.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${esc(x.docNo || x.docLabel)}</title><style>
       body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-size:12px;color:#222;margin:24px}
       h1{text-align:center;letter-spacing:6px;font-size:22px} table{border-collapse:collapse;width:100%;margin-bottom:10px}
@@ -932,11 +1081,15 @@
       @page{size:A4;margin:14mm}
     </style></head><body>
       <h1>${esc(x.docLabel)}</h1>
-      <table class="sign"><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr><tr>${names.map(n => `<td>${esc(n)}</td>`).join('')}</tr></table>
+      ${preview ? '<button onclick="window.print()" style="float:right">인쇄</button>' : ''}
+      ${substituted ? `<p style="text-align:right">승인 갈음: ${esc(basis?.docNo || '근거 품의')}의 승인으로 처리 (별도 결재 없음)</p>`
+        : `<table class="sign"><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr><tr>${names.map(n => `<td>${esc(n)}</td>`).join('')}</tr><tr>${marks.map(n => `<td>${esc(n)}</td>`).join('')}</tr></table>`}
       <table><tr><th style="width:110px">문서번호</th><td>${esc(x.docNo || '')}</td></tr><tr><th>제목</th><td>${esc(x.title || '')}</td></tr><tr><th>기안자</th><td>${esc(x.drafterName || '')}</td></tr>${fieldRows(x)}</table>
       ${expenseTables(x)}
       <div class="body">${x.body || ''}</div>
-      <script>window.onload=function(){window.print()}<\/script></body></html>`);
+      ${refs.length ? `<table style="margin-top:10px"><tr><th colspan="3">근거 및 관련 문서</th></tr>${refs.map(r => `<tr><td style="width:130px">${esc(r.docNo)}</td><td>${esc(r.title)}</td><td style="width:50px">${r.refKind === 'basis' ? '근거' : '관련'}</td></tr>`).join('')}</table>` : ''}
+      ${files.length ? `<table style="margin-top:10px"><tr><th colspan="2">첨부파일</th></tr>${files.map(f => `<tr><td>${esc(f.fileName)}</td><td style="width:90px">${esc(meta.fileKinds[f.fileKind] || '')}</td></tr>`).join('')}</table>` : ''}
+      ${preview ? '' : '<script>window.onload=function(){window.print()}<\/script>'}</body></html>`);
     win.document.close();
   }
 
@@ -982,7 +1135,7 @@
         <div class="dc-bar"><i style="width:${Math.min(100, d.rate || 0)}%"></i></div>
         ${p.hasPlan ? '' : '<div class="dc-note">승인된 예산안이 없습니다.</div>'}</div>`;
       const docs = c.querySelector('#dcBudgetDocs');
-      docs.innerHTML = `<div style="font-weight:600;margin-bottom:6px">선택 예산의 결재 및 지출 현황</div>${listTable(d.documents || [])}`;
+      docs.innerHTML = `<div style="font-weight:600;margin-bottom:6px">선택 예산의 결재 및 지출 현황</div>${listTable(d.documents || [], { compact: true })}`;
       bindDocLinks(docs, renderBudget);
     };
     pick.addEventListener('change', load);
@@ -1035,7 +1188,7 @@
         <div class="dc-note">작성 화면에 보이는 안내입니다. 저장할 때마다 새 버전으로 남습니다.</div>
         ${DOC_ORDER.map(k => `<div class="dc-row"><label>${esc(meta.docTypes[k].label)}</label><div>
           <textarea class="input" rows="2" data-guide="${k}" style="width:100%"${chair ? '' : ' disabled'}>${esc(d.guides?.[k]?.guide || '')}</textarea>
-          ${chair ? `<button class="btn-sm btn-sm-ghost" type="button" data-guide-save="${k}">저장</button>` : ''} <span class="dc-note">${d.guides?.[k] ? 'v' + d.guides[k].version : ''}</span></div></div>`).join('')}
+          ${chair ? `<button class="btn-sm btn-sm-ghost" type="button" data-guide-save="${k}">저장</button>` : ''} <span class="dc-note">${d.guides?.[k]?.version ? 'v' + d.guides[k].version : '기본 문구'}</span></div></div>`).join('')}
       </div>
       ${chair ? `<div class="dc-card"><h4>완전삭제 담당자</h4>
         <div class="dc-note">담당자가 없으면 완전삭제 메뉴와 실행이 잠겨 있습니다. 지정과 해제는 기록에 남습니다.</div>

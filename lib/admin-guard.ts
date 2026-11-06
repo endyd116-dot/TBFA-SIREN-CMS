@@ -69,7 +69,7 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-ledger-sync": "finance_bookkeeping",
   "/api/admin-approval-pay": "finance_bookkeeping",
   "/api/admin-approval-requests": "finance_bookkeeping",
-  "/api/admin-approval-refund": "finance_refund",
+  "/api/admin-approval-refund": "finance_bookkeeping",
   "/api/admin-ledger-statements": "finance_view",
   "/api/admin-ledger-public": "finance_view",
   "/api/admin-ledger-settlement": "finance_view",

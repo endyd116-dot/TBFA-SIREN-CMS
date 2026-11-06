@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.15";
+export const APP_VERSION = "2026-11-06.16";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-approval-docs-2",
+    title: "[관리자] 내부결재 보강 — 사후 품의 연결, 카드 사용 등록, 자동 저장",
+    items: [
+      { text: "긴급 지출은 승인 뒤 문서에서 사후 품의를 연결합니다. 연결하면 알림이 멈춥니다", link: "/cms-tbfa.html#docs-mine" },
+      { text: "카드결제로 승인된 품의서에서 카드 사용을 바로 등록합니다. 사용 뒤에는 사용일과 실제 사용액을 남깁니다" },
+      { text: "법인카드 신청은 승인 갈음이 아니면 품의서를 연결하거나 첨부해야 상신됩니다" },
+      { text: "작성 중인 문서는 1분마다 자동으로 저장됩니다. 워드와 파워포인트 파일도 첨부할 수 있습니다" },
+      { text: "지출결의서 화면과 인쇄물에 예산, 활동, 사업, 재원, 증빙 종류가 표시됩니다" },
+    ],
+  },
   {
     key: "2026-11-06-approval-docs",
     title: "[관리자] 내부결재 신설 — 5가지 문서, 기안자가 정하는 결재선, 취소·보존",

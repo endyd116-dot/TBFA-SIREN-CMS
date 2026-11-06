@@ -4,7 +4,7 @@
  *
  * GET  ?view=home | list | detail | version | search | budgets | budget | people | recommend | lines | settings | form
  * POST { action, ... }
- *   save, submit, recall, decide, comment
+ *   save, submit, recall, decide, comment, followup_link, card_usage
  *   cancel_request, cancel_decide, delete, hold
  *   file_presign, file_add, file_remove
  *   line_save, line_delete, settings_save, guide_save, grant_save, grant_revoke, purge
@@ -29,7 +29,7 @@ import { generateBlobKey, getR2Client, R2_BUCKET } from "../../lib/r2-client";
 import { deleteFromR2 } from "../../lib/r2-delete";
 import {
   activePurgeGrant, decideCancel, decideDoc, deleteDoc, DOC_TYPES, type DocActor, EXPENSE_KINDS, FILE_KINDS, INTERNAL_KINDS,
-  type LeaveBridge, PAY_METHODS, purgeDoc, recallDoc, requestCancel, saveDraft, submitDoc,
+  type LeaveBridge, linkFollowup, PAY_METHODS, purgeDoc, recallDoc, recordCardUsage, requestCancel, saveDraft, submitDoc,
 } from "../../lib/approval-docs";
 import {
   budgetChoices, budgetProgress, canViewDoc, docDetail, docVersion, homeCounts, listDocs, loadGuides, loadPeople,
@@ -46,7 +46,9 @@ const FILE_MAX = 50 * 1024 * 1024;
 const ALLOWED_MIME = [
   "image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf", "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/x-hwp", "application/haansofthwp", "application/vnd.hancom.hwp",
+  "application/x-hwp", "application/haansofthwp", "application/vnd.hancom.hwp", "application/vnd.hancom.hwpx", "application/hwp+zip",
+  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ];
 
 /* 내부결재 ↔ 근태 휴가. 규칙은 근태와 같은 공용 처리를 쓴다 */
@@ -120,7 +122,7 @@ async function handleGet(req: Request, scope: ReadScope) {
     const d = await docVersion(scope, num("id"), num("version"));
     return d ? json({ ok: true, data: d }) : json({ ok: false, error: "해당 버전을 찾을 수 없습니다" }, 404);
   }
-  if (view === "search") return json({ ok: true, data: { items: await searchDocs(scope, str("q") || "", str("docType"), num("exclude")) } });
+  if (view === "search") return json({ ok: true, data: { items: await searchDocs(scope, str("q") || "", str("docType"), num("exclude"), str("from"), str("to")) } });
   if (view === "budgets") return json({ ok: true, data: await budgetChoices(num("year")) });
   if (view === "budget") return json({ ok: true, data: await budgetProgress(scope, num("year"), num("budgetAccountId")) });
   if (view === "people") return json({ ok: true, data: { people: await loadPeople() } });
@@ -222,6 +224,14 @@ async function handlePost(req: Request, auth: any, scope: ReadScope) {
     return json({ ok: true, data: { id } });
   }
 
+  if (action === "followup_link") {
+    return json({ ok: true, data: await linkFollowup(actor, id, Number(body?.targetId) || 0) });
+  }
+
+  if (action === "card_usage") {
+    return json({ ok: true, data: await recordCardUsage(actor, id, body, scope.bookkeeping || chair) });
+  }
+
   if (action === "cancel_request") {
     const r = await requestCancel(actor, id, String(body?.reason ?? ""));
     await notifyDoc([r.firstAssignee], "취소 승인 요청", `"${r.title}" 문서의 취소 승인을 기다립니다.`, id, "warning");
@@ -248,9 +258,12 @@ async function handlePost(req: Request, auth: any, scope: ReadScope) {
       /* 근거 품의가 취소되면 연결된 카드 문서를 확인해야 한다(설계도 9쪽) */
       if (doc.doc_type === "proposal") {
         const cards = rowsOf(await db.execute(sql`
-          SELECT id, drafter_id, title FROM approval_requests WHERE doc_type = 'card' AND substitute_basis_id = ${id} AND status = 'approved'`));
+          SELECT id, drafter_id, title, form_data FROM approval_requests WHERE doc_type = 'card' AND substitute_basis_id = ${id} AND status = 'approved'`));
         for (const c of cards) {
-          await notifyDoc([c.drafter_id], "카드 사용 확인 필요", `근거 품의가 취소됐습니다. "${c.title}"이 미사용이면 취소하고, 사용했으면 거래 취소·반환을 확인해 주세요.`, Number(c.id), "warning", "docs-mine");
+          const used = c.form_data?.actualAmount != null;
+          await notifyDoc([c.drafter_id], "카드 사용 확인 필요", used
+            ? `근거 품의가 취소됐습니다. "${c.title}"은 이미 사용했으니 거래 취소·반환을 확인해 주세요.`
+            : `근거 품의가 취소됐습니다. 미사용 카드 기록 "${c.title}"을 취소해 주세요.`, Number(c.id), "warning", "docs-mine");
         }
       }
     }
@@ -259,13 +272,17 @@ async function handlePost(req: Request, auth: any, scope: ReadScope) {
 
   if (action === "delete") {
     const r = await deleteDoc(actor, id, body?.reason ?? null, scope.bookkeeping || chair);
+    if (!r.removed) await notifyDoc([r.drafterId], "문서 삭제 완료", `"${r.title}" 문서가 일반 문서함에서 삭제되고 내부 보존됐습니다.`, id, "info", "docs-mine");
     return json({ ok: true, data: r });
   }
 
   if (action === "hold") {
     if (!chair) throw new LedgerError("보존 중지는 이사장이 지정합니다", 403);
     const reason = String(body?.reason ?? "").trim().slice(0, 300) || null;
-    await db.execute(sql`UPDATE approval_requests SET hold_reason = ${reason}, updated_at = NOW() WHERE id = ${id}`);
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`UPDATE approval_requests SET hold_reason = ${reason}, updated_at = NOW() WHERE id = ${id}`);
+      await recordHistory(tx, { entity: "approval", entityId: id, action: reason ? "hold_set" : "hold_released", actor, reason });
+    });
     return json({ ok: true, data: { holdReason: reason } });
   }
 
