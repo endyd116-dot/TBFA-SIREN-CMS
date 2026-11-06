@@ -23,3 +23,7 @@
 - `/workspace-calendar.html` — FullCalendar (tasks·events 통합)
 - `/workspace-templates.html` — 템플릿 CRUD
 - `/workspace-files.html` — 파일함 + 휴지통 cron
+
+## 재정 공개 (2026-11-06)
+
+- `/transparency.html` — 공익법인 재정 공개. 장부 › 결산 › 공익법인에서 공개하면 내용이 나오고 푸터 메뉴가 켜진다. 공개 전에는 메뉴가 꺼져 있다.

@@ -29,8 +29,9 @@
 - **3단계 결산** [설계서](docs/active/2026-11-06-ledger-settlement-design.md): 장부 › 결산(점검표, 재무제표, 주석 17개, 수지결산서, 사업실적서, 재산목록, 다음 해 계획·예산, 확정·승인). 재무 보고서도 장부 기준. 수입 예산, 목 나누기, 예산 조정, 배분 규칙.
 - **4단계 내부결재** [설계서](docs/active/2026-11-06-approval-docs-design.md): 문서 5종, 기안자 지정 결재선, 버전 고정, 참조, 취소·보존, 휴가 연결. 지출완료 확인·일반 삭제는 재정 기록 권한. 코드는 lib/approval-docs.ts·lib/approval-docs-read.ts·admin-docs.ts·public/js/admin-docs.js.
 - **5단계 공익법인**: 장부 › 결산 › 공익법인, /transparency.html, lib/ledger-public.ts. 지정일 넣으면 영수증 서식 전환.
-- 설계도 PDF는 Swain 지시로 Claude 판단에 따라 고침(설계서 §0-1). 최종 설계도는 워드 파일.
-- 재검증: scripts/e2e/settlement-verify.mjs(2099 시험 연도, 정리 주소 필요).
+- 설계도 PDF는 Swain 지시로 Claude 판단에 따라 고침(설계서 §0-1). 최종 설계도는 워드 파일(막작업 파일/교사유가족협의회_내부결재시스템_최종설계도.docx, 저장소 밖).
+- 마이그 migrate-ledger-settlement 적용·시험 정리·파일 삭제 완료(2026-11-06). 라이브 시나리오 57개, 화면 35개, 예산 편성·결산 인쇄 15개 통과. 실제 문서 7건, 2026 지출 626,432원 변화 없음.
+- 재검증: scripts/e2e/settlement-verify.mjs는 정리 주소가 없어졌으므로 다시 돌리려면 정리 마이그를 새로 만든다.
 
 ### 🧾 (이전) 0·1·2단계
 설계도는 참고만 하고 기존 재정에 맞춰 개발(Swain). 공익법인 신청 목표 2027년 3월. 로드맵 [`docs/active/2026-11-06-approval-finance-roadmap.md`](docs/active/2026-11-06-approval-finance-roadmap.md) §6이 최신 결정.
