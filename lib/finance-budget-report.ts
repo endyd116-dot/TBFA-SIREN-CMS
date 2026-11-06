@@ -175,7 +175,8 @@ export async function buildBudgetReport(planId: number, year: number): Promise<B
 }
 
 /* ── 지출 항목 표시 ──
-   결재로 만든 지출은 옛 분류 없이 예산 목만 갖는다. 옛 분류가 있으면 그대로 쓰고, 없으면 목 이름을 쓴다. */
+   결재로 만든 지출은 옛 분류 없이 예산 목만 갖는다. 옛 분류가 있으면 그대로 쓰고, 없으면 «관 · 목»으로 쓴다.
+   관마다 «미분류» 목이 있어 목 이름만으로는 어느 관인지 구분되지 않는다. */
 export interface ExpenseLabelMaps {
   categories: Map<number, { code: string; name: string }>;
   accounts: Map<number, { code: string; name: string }>;
@@ -189,8 +190,15 @@ export async function loadExpenseLabelMaps(): Promise<ExpenseLabelMaps> {
     for (const r of rowsOf(res)) categories.set(Number(r.id), { code: r.code, name: r.name });
   } catch (err: any) { console.warn("[budget-report] 지출 분류 조회 실패", err?.message); }
   try {
-    const res: any = await db.execute(sql`SELECT id, code, name FROM budget_accounts`);
-    for (const r of rowsOf(res)) accounts.set(Number(r.id), { code: r.code, name: r.name });
+    const res: any = await db.execute(sql`
+      SELECT mok.id, mok.code, mok.name, gwan.name AS gwan_name
+      FROM budget_accounts mok
+      LEFT JOIN budget_accounts hang ON hang.id = mok.parent_id
+      LEFT JOIN budget_accounts gwan ON gwan.id = hang.parent_id
+    `);
+    for (const r of rowsOf(res)) {
+      accounts.set(Number(r.id), { code: r.code, name: r.gwan_name ? `${r.gwan_name} · ${r.name}` : r.name });
+    }
   } catch (err: any) { console.warn("[budget-report] 예산 과목 조회 실패", err?.message); }
   return { categories, accounts };
 }
