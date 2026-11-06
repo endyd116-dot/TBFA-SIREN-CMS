@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.4";
+export const APP_VERSION = "2026-11-06.5";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-company-deck-renewal",
+    title: "[관리자] 사업소개서(/1) 리뉴얼 — 발주자의 고민에서 상담까지 26장",
+    items: [
+      { text: "tbfa.co.kr/1을 26장으로 새로 만들었습니다. 발주자가 자주 하는 말 → 서비스 → 일하는 방식 → 실적 → 공개 단가 → 상담 순서로 읽히고, 디자인과 보기 화면은 /2와 같습니다" },
+      { text: "확인할 수 없는 수치·후기와 시안으로 보이는 화면은 뺐고, 실제 결과물 화면, 실운영 규모, AM 공개 실적, 견적 계산 예시를 넣었습니다" },
+      { text: "PDF·PPT 내보내기는 예전처럼 위쪽 버튼으로 받습니다. 외부 제출 전 하자보증·소스코드·장애 대응 같은 계약 조건을 한 번 확인해 주세요" },
+    ],
+  },
   {
     key: "2026-11-06-npo-proposal-renewal",
     title: "[관리자] NPO 제안서(/2) 전면 재제작 — 공감에서 시작해 지금·개선 후·AI 도입 후를 한눈에",
