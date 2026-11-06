@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.11";
+export const APP_VERSION = "2026-11-06.12";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-ledger-flow",
+    title: "[관리자] 장부 자동 연결 — 후원·수입·지출·급여가 전표로 자동 기록, 결재는 승인 뒤 지급 확인",
+    items: [
+      { text: "후원금, 후원 외 수입, 승인 지출, 지급 확정 급여, 카드·CMS 정산 입금이 매일 새벽 장부로 옮겨집니다. 환불과 취소는 반대 전표로 자동 처리됩니다" },
+      { text: "지출 결재는 승인되면 예약으로 잡히고, 장부 › 자금 연결에서 지급 확인을 해야 손익과 예산 집행에 반영됩니다" },
+      { text: "지출 결재와 지출 등록에서 활동, 사업, 재원을 고릅니다" },
+      { text: "장부 › 자금 연결에서 미지급 결재, 결재 없는 출금, 통장 잔액 대조, 정산 미수금을 봅니다" },
+      { text: "우리은행 통장 파일을 올릴 수 있습니다" },
+    ],
+  },
   {
     key: "2026-11-06-ledger-polish",
     title: "[관리자] 장부 전표 목록 표시 개선, 운영자 메뉴얼에 장부 안내 추가",

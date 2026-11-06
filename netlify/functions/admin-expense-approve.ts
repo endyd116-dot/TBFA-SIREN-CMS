@@ -5,6 +5,8 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { requireRole, roleForbidden } from "../../lib/admin-role";
 import { eq } from "drizzle-orm";
 
+import { syncLedger } from "../../lib/ledger-auto";
+
 export const config = { path: "/api/admin-expense-approve" };
 
 export default async function handler(req: Request): Promise<Response> {
@@ -80,6 +82,13 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const r = updated[0];
+
+  /* 승인된 지출은 바로 장부에 옮긴다. 실패해도 야간 반영에서 처리된다 */
+  if (action === "approve") {
+    try { await syncLedger({ only: ["expense"] }); }
+    catch (err: any) { console.warn("[expense-approve] 장부 반영 실패(야간 재시도):", err?.message); }
+  }
+
   return new Response(jsonKST({
     ok: true,
     data: {

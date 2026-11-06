@@ -89,3 +89,8 @@
 {"question":"월 마감이 안 돼요","answer":"해당 기간에 작성중·제출·반려 전표가 남아 있으면 마감되지 않습니다. 월 마감 탭의 미결 전표 건수를 확인해 처리하세요. 앞 달을 먼저 마감해야 합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
 {"question":"시산표 합계가 맞는지 어떻게 아나요?","answer":"장부 › 시산표에서 연도와 달을 고르면 «합계 일치» 또는 «합계 불일치»가 표시됩니다.","page_path":"/cms-tbfa.html#ledger","tool_hint":"ledger_trial_balance","tags":["admin","finance","ledger"]}
 {"question":"사업 목록에 정관 근거 없음은 무슨 뜻인가요?","answer":"정관 제4조 목적사업에 없는 사업이라는 표시입니다. 공시 서식은 정관에 기재된 사업을 공익목적사업으로 보므로 공익법인 신청 전 정관 변경 여부를 판단할 때 참고합니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"지출 결재를 승인했는데 손익에 안 잡혀요","answer":"승인은 예약입니다. 돈을 보낸 뒤 장부 › 자금 연결에서 지급 확인을 해야 지출이 만들어지고 손익과 예산 집행에 반영됩니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"후원금이 장부에 언제 들어가나요?","answer":"매일 새벽 3시에 자동으로 전표가 됩니다. 바로 반영하려면 장부 › 자금 연결에서 지금 반영을 누르세요.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"분류 대기 전표가 뭐예요?","answer":"자동으로 만들어졌지만 활동, 사업, 재원이 빠져 승인되지 못한 전표입니다. 장부 › 전표에서 채워 제출하면 됩니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"결제 정산 미수금에 돈이 남아 있어요","answer":"카드·CMS 후원 중 아직 통장에 들어오지 않은 금액이거나 수수료입니다. 수수료는 대체 전표로 지급수수료에 옮기세요.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}
+{"question":"원천세를 납부했는데 어떻게 처리하나요?","answer":"통장 출금을 전표로 만들 때 계정과목을 예수금으로 고르세요. 4대보험은 근로자분은 예수금, 사업주분은 복리후생비로 나눕니다.","page_path":"/cms-tbfa.html#ledger","tags":["admin","finance","ledger"]}

@@ -126,10 +126,10 @@ export default async function handler(req: Request, _ctx: Context) {
     importId = await db.transaction(async (tx) => {
       const r: any = await tx.execute(sql`
         INSERT INTO bank_imports
-          (filename, bank_name, period_from, period_to, total_rows,
+          (filename, bank_name, account_code, period_from, period_to, total_rows,
            auto_matched, pending_review, ignored_rows, imported_by, status, imported_at)
         VALUES
-          (${filename}, ${bankName || "IBK기업은행"}, ${pFrom}, ${pTo}, ${toInsert.length},
+          (${filename}, ${bankName || "IBK기업은행"}, ${String(bankName || "").includes("우리") ? "1012" : "1013"}, ${pFrom}, ${pTo}, ${toInsert.length},
            0, ${toInsert.length}, 0, ${importedBy}, 'review', NOW())
         RETURNING id`);
       const impId = Number((r?.rows ?? r ?? [])[0].id);

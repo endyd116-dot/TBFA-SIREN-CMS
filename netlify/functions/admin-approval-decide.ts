@@ -4,7 +4,8 @@
  *
  * 3계층 직책: operator(기안)/admin(국장·1차)/super_admin(이사장·최종).
  * - 현재 단계 직책을 승인 권한 있는 사람만 결재(super_admin 전권·위임 반영).
- * - 마지막 단계 승인 시: 지출(expenses) 생성·예산 목에 집행 물림 + 지출결의서 정식번호 발행.
+ * - 마지막 단계 승인 시: 미지급 상태로 예약하고 지출결의서를 발행한다. 지출은 지급 확인 때 만든다.
+ * - (2026-11-06 이전 동작) 마지막 단계 승인 시: 지출(expenses) 생성·예산 목에 집행 물림 + 지출결의서 정식번호 발행.
  *
  * 2026-11-06: 상태 확인부터 지출 생성·번호 발행까지 한 트랜잭션으로 묶었다.
  * - 요청 행을 잠가 동시 클릭이 지출을 두 번 만들지 못하게 한다.
@@ -142,24 +143,13 @@ export default async function handler(req: Request, _ctx: Context) {
         return { kind: "advanced", r, nextIdx, nextRole: steps[nextIdx] };
       }
 
-      /* ── 최종 승인: 지출 생성(예산 목 물림) + 지출결의서 정식번호 발행 ── */
-      const exRows = rowsOf(await tx.execute(sql`
-        INSERT INTO expenses
-          (fiscal_year, occurred_at, category_id, budget_account_id, amount, payee_name,
-           description, receipt_url, status, recorded_by, recorded_at, approved_by, approved_at)
-        VALUES
-          (${Number(r.fiscal_year)}, COALESCE(${r.occurred_at}, (NOW() AT TIME ZONE 'Asia/Seoul')::date), NULL,
-           ${r.budget_account_id}, ${Number(r.amount)}, ${r.payee_name ?? null},
-           ${r.title}, ${r.evidence_url ?? null}, 'approved', ${r.drafter_id ?? null}, NOW(),
-           ${myId}, NOW())
-        RETURNING id
-      `));
-      const expenseId = exRows[0] ? Number(exRows[0].id) : null;
+      /* ── 최종 승인: 지출결의서 번호 발행. 지출은 지급 확인 때 만든다(승인 = 예약) ── */
+      const expenseId: number | null = null;
       const resolutionNo = await nextResolutionNo(tx, Number(r.fiscal_year));
       await tx.execute(sql`
         UPDATE approval_requests
            SET status = 'approved', decided_at = NOW(), updated_at = NOW(),
-               expense_id = ${expenseId}, resolution_no = ${resolutionNo}, resolution_issued_at = NOW()
+               payment_status = 'unpaid', resolution_no = ${resolutionNo}, resolution_issued_at = NOW()
          WHERE id = ${requestId}
       `);
       return { kind: "approved", r, expenseId, resolutionNo };

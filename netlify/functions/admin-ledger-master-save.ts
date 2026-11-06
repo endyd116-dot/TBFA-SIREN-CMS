@@ -3,6 +3,8 @@
  * 사업·재원 추가·수정·숨김. 전표에 쓰인 항목은 지우지 않고 숨긴다.
  * body: { type: 'program'|'fund', id?, code?, name?, segment?, charterRef?, disclosureCode?,
  *         description?, restricted?, isActive?, sortOrder?, reason? }
+ *       { type: 'revenue_category', id, accountCode }   수입 분류 ↔ 계정과목
+ *       { type: 'staff', memberId, functionCode, programId?, fundId? }   인건비 배부
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
@@ -89,6 +91,40 @@ async function saveFund(tx: any, id: number, body: any, actor: any, reason: stri
   return row;
 }
 
+async function saveRevenueCategory(tx: any, id: number, body: any, actor: any, reason: string | null) {
+  const accountCode = text(body?.accountCode, 20);
+  if (!id || !accountCode) throw new LedgerError("수입 분류와 계정과목을 고르세요.", 400);
+  const account = rowsOf(await tx.execute(sql`
+    SELECT a.kind, EXISTS (SELECT 1 FROM account_codes c WHERE c.parent_code = a.code) AS has_children
+      FROM account_codes a WHERE a.code = ${accountCode} LIMIT 1`))[0];
+  if (!account || account.kind !== "revenue" || account.has_children) throw new LedgerError("수익 계정의 말단 계정을 고르세요.", 400);
+  const row = rowsOf(await tx.execute(sql`
+    UPDATE revenue_categories SET account_code = ${accountCode}, updated_at = NOW() WHERE id = ${id} RETURNING id, code, name`))[0];
+  if (!row) throw new LedgerError("수입 분류를 찾을 수 없습니다", 404);
+  await recordHistory(tx, { entity: "revenue_category", entityId: id, action: "updated", actor, reason, after: { accountCode } });
+  return row;
+}
+
+async function saveStaff(tx: any, body: any, actor: any, reason: string | null) {
+  const memberId = Number(body?.memberId) || 0;
+  const functionCode = ["service", "admin", "fundraising"].includes(body?.functionCode) ? body.functionCode : "";
+  const programId = functionCode === "service" ? (Number(body?.programId) || null) : null;
+  const fundId = Number(body?.fundId) || null;
+  if (!memberId || !functionCode) throw new LedgerError("직원과 활동을 고르세요.", 400);
+  if (functionCode === "service" && !programId) throw new LedgerError("사업수행이면 사업을 고르세요.", 400);
+  await tx.execute(sql`
+    INSERT INTO ledger_staff_allocations (member_id, function_code, program_id, fund_id, updated_at)
+    VALUES (${memberId}, ${functionCode}, ${programId}, ${fundId}, NOW())
+    ON CONFLICT (member_id) DO UPDATE SET
+      function_code = EXCLUDED.function_code, program_id = EXCLUDED.program_id,
+      fund_id = EXCLUDED.fund_id, updated_at = NOW()`);
+  await recordHistory(tx, {
+    entity: "staff_allocation", entityId: memberId, action: "updated", actor, reason,
+    after: { functionCode, programId, fundId },
+  });
+  return { id: memberId };
+}
+
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
     return new Response(jsonKST({ ok: false, error: "POST 메서드만 허용" }),
@@ -101,8 +137,8 @@ export default async function handler(req: Request, _ctx: Context) {
   try { body = await req.json(); } catch { body = {}; }
 
   const type = body?.type;
-  if (type !== "program" && type !== "fund") {
-    return new Response(jsonKST({ ok: false, error: "type은 program 또는 fund여야 합니다" }),
+  if (!["program", "fund", "revenue_category", "staff"].includes(type)) {
+    return new Response(jsonKST({ ok: false, error: "type을 확인하세요" }),
       { status: 400, headers: { "Content-Type": "application/json" } });
   }
   const id = Number(body?.id) || 0;
@@ -110,8 +146,12 @@ export default async function handler(req: Request, _ctx: Context) {
   const reason = text(body?.reason, 200);
 
   try {
-    const saved = await db.transaction((tx) =>
-      type === "program" ? saveProgram(tx, id, body, actor, reason) : saveFund(tx, id, body, actor, reason));
+    const saved = await db.transaction((tx) => {
+      if (type === "program") return saveProgram(tx, id, body, actor, reason);
+      if (type === "fund") return saveFund(tx, id, body, actor, reason);
+      if (type === "revenue_category") return saveRevenueCategory(tx, id, body, actor, reason);
+      return saveStaff(tx, body, actor, reason);
+    });
     return new Response(jsonKST({ ok: true, data: { id: Number(saved.id), code: saved.code, name: saved.name } }),
       { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {

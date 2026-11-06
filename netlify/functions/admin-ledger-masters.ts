@@ -67,6 +67,27 @@ export default async function handler(req: Request, _ctx: Context) {
     step = "fiscal_years";
     const fiscalYears = await loadFiscalYears();
 
+    /* 수입 분류 연결과 인건비 배부: 보조 조회 */
+    let revenueCategories: any[] = [];
+    let staff: any[] = [];
+    try {
+      revenueCategories = rowsOf(await db.execute(sql`
+        SELECT id, code, name, account_code FROM revenue_categories WHERE is_active = TRUE ORDER BY sort_order, id`))
+        .map((r: any) => ({ id: Number(r.id), code: r.code, name: r.name, accountCode: r.account_code }));
+      staff = rowsOf(await db.execute(sql`
+        SELECT m.id, m.name, s.function_code, s.program_id, s.fund_id
+          FROM members m
+          LEFT JOIN ledger_staff_allocations s ON s.member_id = m.id
+         WHERE m.type = 'admin' AND m.status = 'active' AND m.operator_active = TRUE
+         ORDER BY m.name`)).map((r: any) => ({
+        memberId: Number(r.id), name: r.name, functionCode: r.function_code,
+        programId: r.program_id == null ? null : Number(r.program_id),
+        fundId: r.fund_id == null ? null : Number(r.fund_id),
+      }));
+    } catch (err: any) {
+      console.warn("[ledger-masters] 수입 분류·배부 조회 실패:", err?.message);
+    }
+
     /* 보조 지표: 실패해도 기준 정보는 그대로 응답 */
     let gap: any = null;
     try {
@@ -79,7 +100,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
     return new Response(jsonKST({
       ok: true,
-      data: { accounts, programs, funds, functions: LEDGER_FUNCTIONS, fiscalYears, charterGap: gap },
+      data: { accounts, programs, funds, functions: LEDGER_FUNCTIONS, fiscalYears, charterGap: gap, revenueCategories, staff },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError(step, err);

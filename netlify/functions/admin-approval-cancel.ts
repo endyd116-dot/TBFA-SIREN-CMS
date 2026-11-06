@@ -15,6 +15,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
+import { syncLedger } from "../../lib/ledger-auto";
 import { createNotification } from "../../lib/notify";
 import { logAdminAction } from "../../lib/audit";
 
@@ -74,10 +75,14 @@ export default async function handler(req: Request, _ctx: Context) {
           await tx.execute(sql`UPDATE expenses SET status = 'canceled', updated_at = NOW() WHERE id = ${cur.expense_id}`);
         }
         await tx.execute(sql`
-          UPDATE approval_requests SET status = 'canceled', updated_at = NOW() WHERE id = ${requestId}
+          UPDATE approval_requests SET status = 'canceled', payment_status = 'none', updated_at = NOW() WHERE id = ${requestId}
         `);
         return null;
       });
+      /* 지급된 건이면 장부에도 반대 전표를 남긴다. 실패해도 야간 반영에서 처리된다 */
+      if (!stale && r.expense_id) {
+        try { await syncLedger(); } catch (e) { console.warn("[approval-cancel] 장부 반영 실패(야간 재시도):", e); }
+      }
       if (stale) return bad(`최종 승인된 건만 취소할 수 있습니다 (현재 상태: ${stale})`, 409);
       await logAdminAction(req, myId, me.name || "", "approval_cancel", {
         target: String(requestId), detail: { resolutionNo: r.resolution_no, amount: Number(r.amount), reason },

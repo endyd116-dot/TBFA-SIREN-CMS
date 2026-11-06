@@ -2,7 +2,7 @@ import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
 import { expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-expense-create" };
 
@@ -72,6 +72,21 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const r = inserted[0];
+
+  /* 장부 칸은 표 정의 밖이라 따로 저장한다. 비워 두면 승인 뒤 작성중 전표로 남는다 */
+  try {
+    await db.execute(sql`
+      UPDATE expenses SET
+        account_code = ${body.accountCode ? String(body.accountCode) : null},
+        function_code = ${["service", "admin", "fundraising"].includes(body.functionCode) ? String(body.functionCode) : null},
+        program_id = ${body.functionCode === "service" ? (Number(body.programId) || null) : null},
+        fund_id = ${Number(body.fundId) || null},
+        pay_account_code = ${body.payAccountCode ? String(body.payAccountCode) : null}
+      WHERE id = ${r.id}`);
+  } catch (err: any) {
+    console.warn("[expense-create] 장부 칸 저장 실패:", err?.message);
+  }
+
   return new Response(jsonKST({
     ok: true,
     data: {

@@ -83,6 +83,7 @@ async function handleDetail(id: number) {
         ar.budget_account_id, ar.fiscal_year, ar.occurred_at, ar.payee_name,
         ar.evidence_url, ar.drafter_id, ar.drafter_name, ar.approval_line_id,
         ar.board_required, ar.steps, ar.current_step, ar.status, ar.expense_id,
+        ar.payment_status, ar.paid_at, ar.function_code, ar.program_id, ar.fund_id,
         ar.resolution_no, ar.resolution_pdf_url, ar.resolution_issued_at,
         ar.created_at, ar.updated_at, ar.decided_at,
         ba.name AS budget_account_name, ba.parent_id AS budget_parent_id,
@@ -166,6 +167,11 @@ async function handleDetail(id: number) {
     currentStep:       Number(reqRow.current_step) || 0,
     status:            reqRow.status,
     expenseId:         reqRow.expense_id == null ? null : Number(reqRow.expense_id),
+    paymentStatus:     reqRow.payment_status,
+    paidAt:            reqRow.paid_at,
+    functionCode:      reqRow.function_code,
+    programId:         reqRow.program_id == null ? null : Number(reqRow.program_id),
+    fundId:            reqRow.fund_id == null ? null : Number(reqRow.fund_id),
     resolutionNo:      reqRow.resolution_no,
     resolutionPdfUrl:  reqRow.resolution_pdf_url,
     resolutionIssuedAt: isoUTC(reqRow.resolution_issued_at),
@@ -207,6 +213,7 @@ async function handleList(box: string, statusFilter: string | null, myId: number
         ar.id, ar.request_no, ar.title, ar.amount, ar.status,
         ar.current_step, ar.steps, ar.board_required, ar.drafter_name,
         ar.fiscal_year, ar.occurred_at, ar.resolution_no, ar.resolution_pdf_url, ar.created_at,
+        ar.payment_status, ar.paid_at,
         ar.budget_account_id, ba.name AS budget_account_name
       FROM approval_requests ar
       LEFT JOIN budget_accounts ba ON ba.id = ar.budget_account_id
@@ -235,6 +242,8 @@ async function handleList(box: string, statusFilter: string | null, myId: number
       fiscalYear:        Number(r.fiscal_year),
       occurredAt:        isoUTC(r.occurred_at),
       resolutionNo:      r.resolution_no,
+      paymentStatus:     r.payment_status,
+      paidAt:            r.paid_at,
       resolutionPdfUrl:  r.resolution_pdf_url || null,
       createdAt:         isoUTC(r.created_at),
       _stepRole:         currentStepRole(stepsArr, curStep),

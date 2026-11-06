@@ -52,6 +52,9 @@ export default async function handler(req: Request, _ctx: Context) {
   const occurredAt = body?.occurredAt ? String(body.occurredAt) : null;
   const payeeName = body?.payeeName != null ? String(body.payeeName).slice(0, 200) : null;
   const evidenceUrl = body?.evidenceUrl != null ? String(body.evidenceUrl).slice(0, 500) : null;
+  const functionCode = ["service", "admin", "fundraising"].includes(body?.functionCode) ? String(body.functionCode) : null;
+  const programId = Number(body?.programId) || null;
+  const fundId = Number(body?.fundId) || null;
 
   if (!title) return jsonBad("validate", "title(제목)은 필수입니다");
   if (!Number.isFinite(amount) || amount <= 0) return jsonBad("validate", "amount(금액)는 0보다 큰 숫자여야 합니다");
@@ -112,11 +115,13 @@ export default async function handler(req: Request, _ctx: Context) {
         INSERT INTO approval_requests
           (request_no, title, amount, description, budget_account_id, fiscal_year,
            occurred_at, payee_name, evidence_url, drafter_id, drafter_name,
-           approval_line_id, board_required, steps, current_step, status, created_at, updated_at)
+           approval_line_id, board_required, steps, current_step, status,
+           function_code, program_id, fund_id, created_at, updated_at)
         VALUES
           (${no}, ${title}, ${amount}, ${description}, ${budgetAccountId}, ${fiscalYear},
            ${occurredAt}, ${payeeName}, ${evidenceUrl}, ${drafterId}, ${drafterName},
-           ${approvalLineId}, ${boardRequired}, ${stepsJson}::jsonb, 0, 'pending', NOW(), NOW())
+           ${approvalLineId}, ${boardRequired}, ${stepsJson}::jsonb, 0, 'pending',
+           ${functionCode}, ${functionCode === "service" ? programId : null}, ${fundId}, NOW(), NOW())
         RETURNING id
       `);
       const id = Number(rowsOf(res)[0].id);

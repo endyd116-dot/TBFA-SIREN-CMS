@@ -14,6 +14,7 @@ import { canAccess } from "../../lib/role-permission-check";
 import { sql } from "drizzle-orm";
 import { LedgerError, ledgerActor, ledgerErrorBody, recordHistory, ymd } from "../../lib/ledger-post";
 import { closeStatus, monthEnd, suspenseBalances } from "../../lib/ledger-report";
+import { syncLedger } from "../../lib/ledger-auto";
 
 export const config = { path: "/api/admin-ledger-close" };
 
@@ -77,6 +78,17 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   const actor = ledgerActor(auth);
+
+  /* 마감 전에 후원·지출·급여를 장부로 옮겨 빠진 건이 없게 한다 */
+  if (action === "close") {
+    try {
+      await syncLedger();
+    } catch (err: any) {
+      const { status, body: payload } = ledgerErrorBody("sync", "자동 전표 반영 실패", err);
+      return new Response(jsonKST(payload), { status, headers: JSON_HEADERS });
+    }
+  }
+
   try {
     const closedThrough = await db.transaction(async (tx) => {
       const fy = rowsOf(await tx.execute(sql`SELECT * FROM ledger_fiscal_years WHERE year = ${year} FOR UPDATE`))[0];

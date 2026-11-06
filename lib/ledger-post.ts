@@ -144,15 +144,10 @@ export async function periodProblem(tx: any, voucherDate: string): Promise<strin
 /**
  * 분개 검사. strict=false는 작성중 저장용으로 계정 유효성만 본다.
  * strict=true는 제출·승인용이며 빠진 항목을 모두 모아 돌려준다.
+ * 계정 정보를 이미 가진 자동 전표도 쓰도록 DB를 보지 않는다.
  */
-export async function validateLines(
-  tx: any,
-  input: { voucherDate: string; lines: LedgerLine[]; strict: boolean },
-): Promise<string[]> {
-  const { voucherDate, lines, strict } = input;
+export function lineProblems(lines: LedgerLine[], accounts: Map<string, LedgerAccount>, strict: boolean): string[] {
   const problems: string[] = [];
-  const accounts = await loadAccounts(tx, lines.map((l) => l.accountCode));
-
   lines.forEach((line, index) => {
     const label = `${index + 1}번째 줄`;
     const account = accounts.get(line.accountCode);
@@ -186,16 +181,40 @@ export async function validateLines(
   });
 
   if (strict) {
-    const dr = lines.reduce((s, l) => s + l.debit, 0);
-    const cr = lines.reduce((s, l) => s + l.credit, 0);
+    const dr = lines.reduce((sum, l) => sum + l.debit, 0);
+    const cr = lines.reduce((sum, l) => sum + l.credit, 0);
     if (lines.length < 2) problems.push("분개는 2줄 이상이어야 합니다.");
     if (dr === 0 || dr !== cr) {
       problems.push(`차변 합계(${dr.toLocaleString("ko-KR")}원)와 대변 합계(${cr.toLocaleString("ko-KR")}원)가 맞지 않습니다.`);
     }
+  }
+  return problems;
+}
+
+export async function validateLines(
+  tx: any,
+  input: { voucherDate: string; lines: LedgerLine[]; strict: boolean },
+): Promise<string[]> {
+  const { voucherDate, lines, strict } = input;
+  const accounts = await loadAccounts(tx, lines.map((l) => l.accountCode));
+  const problems = lineProblems(lines, accounts, strict);
+  if (strict) {
     const period = await periodProblem(tx, voucherDate);
     if (period) problems.push(period);
   }
   return problems;
+}
+
+/** 줄을 저장할 때의 활동·사업·재원·부문. 해당 없는 값은 비운다. */
+export function storedLine(line: LedgerLine, account: LedgerAccount | undefined, segments: Map<number, string>) {
+  const isIncomeOrExpense = account?.kind === "revenue" || account?.kind === "expense";
+  const isBusinessExpense = account?.statementLine === "business_expense";
+  return {
+    functionCode: isBusinessExpense ? line.functionCode : null,
+    programId: isBusinessExpense && line.functionCode !== "service" ? null : line.programId,
+    fundId: isIncomeOrExpense ? line.fundId : null,
+    segment: line.programId ? segments.get(line.programId) ?? "public" : "public",
+  };
 }
 
 /** 머리표에 저장할 대표 계정과 금액. 기존 목록·이상 감지가 이 값을 읽는다. */
@@ -242,19 +261,13 @@ export async function saveLines(tx: any, voucherId: number, lines: LedgerLine[])
   let lineNo = 0;
   for (const line of lines) {
     lineNo += 1;
-    const account = accounts.get(line.accountCode);
-    const isIncomeOrExpense = account?.kind === "revenue" || account?.kind === "expense";
-    const isBusinessExpense = account?.statementLine === "business_expense";
-    const segment = line.programId ? segments.get(line.programId) ?? "public" : "public";
+    const stored = storedLine(line, accounts.get(line.accountCode), segments);
     await tx.execute(sql`
       INSERT INTO voucher_lines
         (voucher_id, line_no, account_code, debit, credit, function_code, program_id, fund_id, segment, memo)
       VALUES
         (${voucherId}, ${lineNo}, ${line.accountCode}, ${line.debit}, ${line.credit},
-         ${isBusinessExpense ? line.functionCode : null},
-         ${isBusinessExpense && line.functionCode !== "service" ? null : line.programId},
-         ${isIncomeOrExpense ? line.fundId : null},
-         ${segment}, ${line.memo})`);
+         ${stored.functionCode}, ${stored.programId}, ${stored.fundId}, ${stored.segment}, ${line.memo})`);
   }
 
   const header = headerFromLines(lines, accounts);

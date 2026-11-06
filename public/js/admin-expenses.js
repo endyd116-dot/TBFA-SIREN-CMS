@@ -274,6 +274,7 @@
               <label class="form-label">금액 (원) <span style="color:var(--danger)">*</span></label>
               <input type="number" id="expAddAmount" class="input" min="0" placeholder="0">
             </div>
+            <div id="expAddLedger"></div>
             <div class="form-row">
               <label class="form-label">지급처</label>
               <input type="text" id="expAddPayee" class="input" placeholder="기관명 또는 개인명">
@@ -555,6 +556,53 @@
     document.getElementById('expAddFilePreview').textContent = '';
     document.getElementById('expAddError').style.display = 'none';
     document.getElementById('expAddModal').style.display = 'flex';
+    renderLedgerFields();
+  }
+
+  /* 장부 칸: 비워 두면 승인 뒤 작성중 전표로 남는다 */
+  let ledgerTags = null;
+  async function renderLedgerFields() {
+    const box = document.getElementById('expAddLedger');
+    if (!box) return;
+    if (!ledgerTags) {
+      const res = await api('GET', '/api/admin-ledger-tags');
+      if (!res.ok) { box.innerHTML = ''; return; }
+      ledgerTags = res.data?.data || res.data;
+    }
+    const t = ledgerTags;
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const expense = t.accounts.filter(a => a.kind === 'expense');
+    const pay = t.accounts.filter(a => a.kind !== 'expense');
+    box.innerHTML = `
+      <div class="form-row">
+        <label class="form-label">계정과목 <span style="color:var(--danger)">*</span></label>
+        <select id="expAddAccount" class="input"><option value="">선택</option>${expense.map(a =>
+          `<option value="${esc(a.code)}">${esc(a.parentName || '')} · ${esc(a.name)}</option>`).join('')}</select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px">
+        <div class="form-row"><label class="form-label">활동 <span style="color:var(--danger)">*</span></label>
+          <select id="expAddFunction" class="input"><option value="">선택</option>${t.functions.map(f =>
+            `<option value="${f.code}">${esc(f.label)}</option>`).join('')}</select></div>
+        <div class="form-row"><label class="form-label">사업</label>
+          <select id="expAddProgram" class="input" disabled><option value="">선택</option>${t.programs.map(p =>
+            `<option value="${p.id}">${esc(p.name)}${p.charterRef ? '' : ' (정관 근거 없음)'}</option>`).join('')}</select></div>
+        <div class="form-row"><label class="form-label">어떤 돈 <span style="color:var(--danger)">*</span></label>
+          <select id="expAddFund" class="input"><option value="">선택</option>${t.funds.map(f =>
+            `<option value="${f.id}">${esc(f.name)}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">지급 방법</label>
+        <select id="expAddPay" class="input">${pay.map(a =>
+          `<option value="${esc(a.code)}"${a.systemRole === 'cash_default' ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
+      </div>`;
+    const fn = document.getElementById('expAddFunction');
+    const program = document.getElementById('expAddProgram');
+    const syncProgram = () => { program.disabled = fn.value !== 'service'; if (program.disabled) program.value = ''; };
+    fn.addEventListener('change', syncProgram);
+    document.getElementById('expAddAccount').addEventListener('change', e => {
+      const a = t.accounts.find(x => x.code === e.target.value);
+      if (a?.defaultFunction) { fn.value = a.defaultFunction; syncProgram(); }
+    });
   }
 
   async function submitAdd() {
@@ -571,6 +619,14 @@
     if (!date)                  { showErr(errEl, '지출일을 선택하세요.');       return; }
     if (!catId)                 { showErr(errEl, '카테고리를 선택하세요.');     return; }
     if (!amount || amount <= 0) { showErr(errEl, '금액을 올바르게 입력하세요.'); return; }
+    const accountEl = document.getElementById('expAddAccount');
+    const functionEl = document.getElementById('expAddFunction');
+    const programEl = document.getElementById('expAddProgram');
+    const fundEl = document.getElementById('expAddFund');
+    if (accountEl) {
+      if (!accountEl.value || !functionEl.value || !fundEl.value) { showErr(errEl, '계정과목, 활동, 어떤 돈인지 골라 주세요.'); return; }
+      if (functionEl.value === 'service' && !programEl.value) { showErr(errEl, '사업수행이면 사업을 골라 주세요.'); return; }
+    }
     errEl.style.display = 'none';
 
     let receiptUrl = null;
@@ -593,6 +649,11 @@
       payeeName:   payee || undefined,
       description: desc  || undefined,
       receiptUrl:  receiptUrl || undefined,
+      accountCode: accountEl?.value || undefined,
+      functionCode: functionEl?.value || undefined,
+      programId: programEl?.value ? Number(programEl.value) : undefined,
+      fundId: fundEl?.value ? Number(fundEl.value) : undefined,
+      payAccountCode: document.getElementById('expAddPay')?.value || undefined,
     });
     if (!res.ok) { showErr(errEl, res.data?.error || res.error || '저장 실패'); return; }
     document.getElementById('expAddModal').style.display = 'none';

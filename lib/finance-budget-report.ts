@@ -130,6 +130,22 @@ export async function buildBudgetReport(planId: number, year: number): Promise<B
     console.warn("[budget-report] 전표 예약액 집계 실패 (0으로 계속):", err?.message);
   }
 
+  /* 승인됐지만 아직 지급하지 않은 결재도 예약이다 */
+  try {
+    const res: any = await db.execute(sql`
+      SELECT budget_account_id, COALESCE(SUM(amount), 0)::bigint AS reserved
+      FROM approval_requests
+      WHERE status = 'approved' AND payment_status = 'unpaid' AND fiscal_year = ${year}
+      GROUP BY budget_account_id
+    `);
+    for (const r of rowsOf(res)) {
+      const line = lineByAccount.get(Number(r.budget_account_id));
+      if (line) reservedByLine.set(line.id, (reservedByLine.get(line.id) ?? 0) + (Number(r.reserved) || 0));
+    }
+  } catch (err: any) {
+    console.warn("[budget-report] 미지급 결재 집계 실패 (0으로 계속):", err?.message);
+  }
+
   const items: BudgetReportItem[] = lines.map((l) => {
     const executed = executedByLine.get(l.id) ?? 0;
     const reserved = reservedByLine.get(l.id) ?? 0;

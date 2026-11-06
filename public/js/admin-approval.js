@@ -6,6 +6,7 @@
 
   let myRole = null;
   let mokCache = null;   // 예산 목 select 캐시
+  let tagCache = null;   // 활동·사업·재원 목록
 
   function api(method, path, body) {
     const opts = { method, credentials: 'include', headers: {} };
@@ -49,10 +50,36 @@
     const tree = res.ok ? (res.data?.data?.tree || res.data?.tree || []) : [];
     const out = [];
     (tree || []).forEach(g => (g.children || []).forEach(h => (h.children || []).forEach(m => {
-      out.push({ id: m.id, label: `${g.name} > ${h.name} > ${m.name}` });
+      out.push({ id: m.id, code: m.code, label: `${g.name} > ${h.name} > ${m.name}` });
     })));
     mokCache = out;
     return out;
+  }
+
+  async function loadTags() {
+    if (tagCache) return tagCache;
+    const res = await api('GET', '/api/admin-ledger-tags');
+    if (!res.ok) return null;
+    tagCache = res.data?.data || res.data;
+    return tagCache;
+  }
+  /* 예산 관별 활동 기본값. 인건비는 직원마다 달라 비워 둔다 */
+  const FUNCTION_BY_GWAN = { 2: 'service', 3: 'admin', 4: 'fundraising' };
+  function tagFieldsHtml(tags, p) {
+    if (!tags) return '';
+    const fn = p.functionCode || '';
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;margin-top:8px">
+        <div><label class="form-label">활동 *</label>
+          <select class="input" id="apfFunction"><option value="">선택</option>${(tags.functions || []).map(f =>
+            `<option value="${f.code}"${f.code === fn ? ' selected' : ''}>${esc(f.label)}</option>`).join('')}</select></div>
+        <div><label class="form-label">사업</label>
+          <select class="input" id="apfProgram"${fn === 'service' ? '' : ' disabled'}><option value="">선택</option>${(tags.programs || []).map(x =>
+            `<option value="${x.id}"${String(x.id) === String(p.programId || '') ? ' selected' : ''}>${esc(x.name)}${x.charterRef ? '' : ' (정관 근거 없음)'}</option>`).join('')}</select></div>
+        <div><label class="form-label">어떤 돈 *</label>
+          <select class="input" id="apfFund"><option value="">선택</option>${(tags.funds || []).map(x =>
+            `<option value="${x.id}"${String(x.id) === String(p.fundId || '') ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+      </div>`;
   }
 
   /* ══════════ 화면 1: 내 결재함 ══════════ */
@@ -124,6 +151,7 @@
 
   async function openDraftForm(prefill) {
     const moks = await loadMoks();
+    const tags = await loadTags();
     const m = document.getElementById('apModal');
     const p = prefill || {};
     m.innerHTML = `
@@ -139,6 +167,7 @@
             <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="apfLineHint">금액에 따라 결재선이 자동 결정됩니다.</div>
             <label class="form-label" style="margin-top:8px">예산 목(目) *</label>
             <select class="input" id="apfMok"><option value="">— 예산과목(목) 선택 —</option>${moks.map(x => `<option value="${x.id}" ${p.budgetAccountId && String(p.budgetAccountId) === String(x.id) ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>
+            ${tagFieldsHtml(tags, p)}
             <label class="form-label" style="margin-top:8px">지급처</label>
             <input class="input" id="apfPayee" maxlength="200" placeholder="예: OO기획" value="${esc(p.payeeName || '')}">
             <label class="form-label" style="margin-top:8px">지출 예정일</label>
@@ -157,6 +186,19 @@
         </div>
       </div>`;
     const close = () => { m.innerHTML = ''; };
+    const fnEl = m.querySelector('#apfFunction');
+    const programEl = m.querySelector('#apfProgram');
+    const syncProgram = () => {
+      if (!programEl) return;
+      programEl.disabled = fnEl.value !== 'service';
+      if (programEl.disabled) programEl.value = '';
+    };
+    fnEl?.addEventListener('change', syncProgram);
+    m.querySelector('#apfMok').addEventListener('change', e => {
+      const mok = moks.find(x => String(x.id) === e.target.value);
+      const gwan = mok?.code ? Number(String(mok.code).split('-')[0]) : 0;
+      if (fnEl && !fnEl.value && FUNCTION_BY_GWAN[gwan]) { fnEl.value = FUNCTION_BY_GWAN[gwan]; syncProgram(); }
+    });
     m.querySelector('#apDraftClose').onclick = close;
     m.querySelector('#apDraftCancel').onclick = close;
     m.querySelector('#apDraftSubmit').onclick = async () => {
@@ -169,6 +211,11 @@
       if (!title || amount <= 0 || !budgetAccountId) {
         errEl.textContent = '제목·금액·예산 목은 필수입니다.'; errEl.style.display = ''; return;
       }
+      if (tags) {
+        const fundEl = m.querySelector('#apfFund');
+        if (!fnEl.value || !fundEl.value) { errEl.textContent = '활동과 어떤 돈인지 골라 주세요.'; errEl.style.display = ''; return; }
+        if (fnEl.value === 'service' && !programEl.value) { errEl.textContent = '사업수행이면 사업을 골라 주세요.'; errEl.style.display = ''; return; }
+      }
       const submitBtn = m.querySelector('#apDraftSubmit');
       let evidenceUrl = null;
       if (file) {
@@ -179,6 +226,9 @@
       }
       const res = await api('POST', '/api/admin-approval-request-create', {
         title, amount, budgetAccountId,
+        functionCode: fnEl?.value || undefined,
+        programId: programEl?.value ? parseInt(programEl.value) : undefined,
+        fundId: m.querySelector('#apfFund')?.value ? parseInt(m.querySelector('#apfFund').value) : undefined,
         payeeName: m.querySelector('#apfPayee').value.trim(),
         occurredAt: m.querySelector('#apfDate').value || null,
         description: m.querySelector('#apfDesc').value.trim(),
@@ -241,6 +291,7 @@
     openDraftForm({
       isResubmit: true, origRequestNo: r.requestNo,
       title: r.title, amount: r.amount, budgetAccountId: r.budgetAccountId,
+      functionCode: r.functionCode, programId: r.programId, fundId: r.fundId,
       payeeName: r.payeeName, occurredAt: r.occurredAt, description: note,
     });
   }
@@ -491,11 +542,12 @@
     });
     if (!list.length) { el.innerHTML = `<div style="color:var(--text-3);padding:20px;text-align:center">발행된 지출결의서가 없습니다.</div>`; return; }
     el.innerHTML = `<table class="data-table" style="width:100%">
-      <thead><tr><th>결의번호</th><th>제목</th><th>금액</th><th>예산과목</th><th>발행일</th><th>상태</th><th></th></tr></thead>
+      <thead><tr><th>결의번호</th><th>제목</th><th>금액</th><th>예산과목</th><th>발행일</th><th>상태</th><th>지급</th><th></th></tr></thead>
       <tbody>${list.map(r => `<tr style="${r.status === 'canceled' ? 'opacity:.55' : ''}">
         <td><b>${esc(r.resolutionNo)}</b></td><td>${esc(r.title)}</td><td class="num">${fmtKRW(r.amount)}</td>
         <td>${esc(r.budgetAccountName || '—')}</td><td>${fmtDate(r.decidedAt || r.createdAt)}</td>
         <td>${statusBadge(r.status)}</td>
+        <td style="white-space:nowrap;font-size:12px">${r.paymentStatus === 'paid' ? '지급 완료' : r.paymentStatus === 'unpaid' ? '<span style="color:#b45309">미지급</span>' : '—'}</td>
         <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">인쇄</button>${
           r.status === 'approved' && isSuper() ? ` <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._regenRes(${r.id})">재발행</button> <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._cancelRes(${r.id})">결재취소</button>` : ''
         }</td>

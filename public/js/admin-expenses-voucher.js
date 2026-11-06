@@ -20,6 +20,10 @@
   let viewingId     = null;   // 보기 창에 열린 전표
   const FN_LABEL    = { service: '사업수행', admin: '일반관리', fundraising: '모금' };
   const TYPE_LABEL  = { expense: '지출', income: '수입', transfer: '대체', opening: '개시', reversal: '취소' };
+  const SOURCE_LABEL = {
+    donation: '후원금', revenue: '기타 수입', revenue_refund: '수입 환불', expense: '지출',
+    expense_refund: '지출 환불', payroll: '급여', settlement: '정산 입금',
+  };
   const HISTORY_LABEL = {
     created: '작성', updated: '수정', submitted: '제출', approved: '승인',
     rejected: '반려', reversed: '반대 전표로 취소', deleted: '삭제',
@@ -1136,6 +1140,7 @@
         <span style="color:var(--text-3)">구분</span><span>${escapeHtml(TYPE_LABEL[v.voucherType] || v.voucherType || '')}</span>
         <span style="color:var(--text-3)">적요</span><span style="grid-column:2/-1">${escapeHtml(v.description || '')}</span>
         <span style="color:var(--text-3)">거래처</span><span>${escapeHtml(v.payeeName || '—')}</span>
+        ${v.sourceType ? `<span style="color:var(--text-3)">자동 전표</span><span>${escapeHtml(SOURCE_LABEL[v.sourceType] || v.sourceType)} #${escapeHtml(String(v.sourceId || '').split(':')[0])}</span>` : ''}
         <span style="color:var(--text-3)">상태</span><span>${escapeHtml(voucherStatusLabel(v.status))}${v.reversedById ? ' · 취소됨' : ''}</span>
       </div>
       ${lines.length ? `<table class="data-table" style="width:100%">

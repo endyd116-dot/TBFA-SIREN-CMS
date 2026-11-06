@@ -61,7 +61,9 @@
       pending:        { label: '확인필요', color: '#b91c1c', bg: '#fee2e2' },
       ignored:        { label: '무시',     color: '#6b7280', bg: '#f3f4f6' },
     };
-    const m = map[matchType] || { label: matchType || '미처리', color: '#6b7280', bg: '#f3f4f6' };
+    const m = map[matchType] || (matchType === 'expense'
+      ? { label: '지출 연결', color: '#15803d', bg: '#dcfce7' }
+      : { label: matchType || '미처리', color: '#6b7280', bg: '#f3f4f6' });
     return `<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;color:${m.color};background:${m.bg}">${m.label}</span>`;
   }
 
@@ -148,7 +150,7 @@
           <!-- 업로드 영역 -->
           <div id="btUploadZone" style="border:2px dashed var(--border,#d4d8e0);border-radius:12px;padding:24px;text-align:center;background:#fafbfc;margin-bottom:16px;cursor:pointer;transition:.2s">
             <div style="font-size:28px;margin-bottom:6px"></div>
-            <div style="font-weight:600;margin-bottom:4px">IBK 기업은행 거래내역 엑셀을 끌어다 놓거나 클릭해서 업로드</div>
+            <div style="font-weight:600;margin-bottom:4px">우리은행·IBK 기업은행 거래내역 엑셀을 끌어다 놓거나 클릭해서 업로드</div>
             <div style="font-size:12px;color:var(--text-3,#94a0b3)">.xlsx · .csv 지원 — 업로드 시 자동 파싱 + 입출금 대사 실행</div>
             <input type="file" id="btFileInput" accept=".xlsx,.xls,.csv" style="display:none">
           </div>
@@ -311,13 +313,25 @@
   /* IBK 12컬럼 헤더 명칭 → 정규화 키 매핑 (헤더 텍스트는 공백 제거 후 비교) */
   const IBK_HEADER_MAP = {
     '거래일시': 'txnDate',
+    '거래일자': 'txnDate',
     '출금': 'withdraw',
     '출금금액': 'withdraw',
+    '출금(원)': 'withdraw',
+    '지급(원)': 'withdraw',
+    '지급금액': 'withdraw',
+    '찾으신금액': 'withdraw',
     '입금': 'deposit',
     '입금금액': 'deposit',
+    '입금(원)': 'deposit',
+    '맡기신금액': 'deposit',
     '거래후잔액': 'balanceAfter',
+    '거래후잔액(원)': 'balanceAfter',
     '잔액': 'balanceAfter',
+    '잔액(원)': 'balanceAfter',
     '거래내용': 'description',
+    '적요': 'description',
+    '기재내용': 'counterpartName',
+    '받는분/보내는분': 'counterpartName',
     '상대계좌번호': 'counterpartAccount',
     '상대은행': 'counterpartBank',
     '메모': 'memo',
@@ -344,9 +358,9 @@
     let headerIdx = -1;
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i] || [];
-      if (r.some(c => normHeader(c) === '거래일시')) { headerIdx = i; break; }
+      if (r.some(c => normHeader(c) === '거래일시' || normHeader(c) === '거래일자')) { headerIdx = i; break; }
     }
-    if (headerIdx < 0) throw new Error('"거래일시" 헤더를 찾을 수 없습니다. IBK 기업은행 거래내역 엑셀이 맞는지 확인해 주세요.');
+    if (headerIdx < 0) throw new Error('"거래일시" 헤더를 찾을 수 없습니다. 우리은행·IBK 기업은행 거래내역 엑셀이 맞는지 확인해 주세요.');
 
     /* 2) 헤더 행 → 컬럼 인덱스 매핑 */
     const headerRow = rows[headerIdx] || [];
@@ -358,8 +372,10 @@
     if (colIdx.txnDate === undefined) throw new Error('거래일시 컬럼을 인식하지 못했습니다.');
 
     /* 3) 메타데이터 추출 — 헤더 위쪽 행들에서 계좌번호·예금주명·조회기간 찾기 */
-    const meta = { accountNo: '', accountHolder: '', periodStart: '', periodEnd: '' };
+    const meta = { accountNo: '', accountHolder: '', periodStart: '', periodEnd: '', bankName: '' };
     const metaText = rows.slice(0, headerIdx).map(r => (r || []).join(' ')).join(' ');
+    /* 전용계좌는 우리은행이다. 계좌 앞자리나 파일 내용으로 은행을 가린다 */
+    if (/우리은행|1005-?404|1005404/.test(metaText + ' ' + file.name)) meta.bankName = '우리은행';
     const acctM   = metaText.match(/(\d{2,4}-\d{2,6}-\d{2,4}-\d{2,4}|\d{10,16})/);
     if (acctM) meta.accountNo = acctM[1];
     const holderM = metaText.match(/예금주\s*명?\s*[:：]?\s*([^\s]+)/);
@@ -431,7 +447,7 @@
        { filename, bankName?, periodFrom?, periodTo?, rows:[...] } */
     const res = await api('POST', '/api/admin-bank-import', {
       filename:   file.name,
-      bankName:   'IBK기업은행',
+      bankName:   parsed.meta.bankName || 'IBK기업은행',
       periodFrom: parsed.meta.periodStart || undefined,
       periodTo:   parsed.meta.periodEnd   || undefined,
       rows:       parsed.rows,

@@ -7,11 +7,12 @@
   'use strict';
 
   let myRole = null;
-  let masters = { accounts: [], programs: [], funds: [], functions: [], fiscalYears: [], charterGap: null };
+  let masters = { accounts: [], programs: [], funds: [], functions: [], fiscalYears: [], charterGap: null, revenueCategories: [], staff: [] };
   let currentTab = 'voucher';
   let masterTab = 'accounts';
   let voucherReady = false;
   let modalSave = null;
+  let modalAfter = null;
 
   const FN_LABEL = { service: '사업수행', admin: '일반관리', fundraising: '모금' };
   const KIND_LABEL = { asset: '자산', liability: '부채', net_asset: '순자산', revenue: '수익', expense: '비용' };
@@ -24,8 +25,12 @@
   const ACTION_LABEL = {
     created: '추가', updated: '수정', submitted: '제출', approved: '승인', rejected: '반려',
     reversed: '반대 전표로 취소', deleted: '삭제', month_closed: '월 마감', month_reopened: '마감 해제',
+    paid: '지급 확인', auto_posted: '자동 전표 반영',
   };
-  const ENTITY_LABEL = { voucher: '전표', program: '사업', fund: '재원', fiscal_year: '회계연도', account: '계정과목' };
+  const ENTITY_LABEL = {
+    voucher: '전표', program: '사업', fund: '재원', fiscal_year: '회계연도', account: '계정과목',
+    approval: '결재', ledger_sync: '자동 전표', revenue_category: '수입 분류', staff_allocation: '인건비 배부',
+  };
 
   function api(method, path, body) {
     const opts = { method, credentials: 'include', headers: {} };
@@ -60,6 +65,7 @@
     masters = {
       accounts: d.accounts || [], programs: d.programs || [], funds: d.funds || [],
       functions: d.functions || [], fiscalYears: d.fiscalYears || [], charterGap: d.charterGap || null,
+      revenueCategories: d.revenueCategories || [], staff: d.staff || [],
     };
   }
 
@@ -88,6 +94,7 @@
           <button class="tab-btn" data-lg="voucher" type="button">전표</button>
           <button class="tab-btn" data-lg="gl" type="button">총계정원장</button>
           <button class="tab-btn" data-lg="trial" type="button">시산표</button>
+          <button class="tab-btn" data-lg="flow" type="button">자금 연결</button>
           <button class="tab-btn" data-lg="close" type="button">월 마감</button>
           <button class="tab-btn" data-lg="masters" type="button">기준 정보</button>
           <button class="tab-btn" data-lg="history" type="button">변경 이력</button>
@@ -95,6 +102,7 @@
         <div id="lgVoucher"></div>
         <div id="lgGl" style="display:none"></div>
         <div id="lgTrial" style="display:none"></div>
+        <div id="lgFlow" style="display:none"></div>
         <div id="lgClose" style="display:none"></div>
         <div id="lgMasters" style="display:none"></div>
         <div id="lgHistory" style="display:none"></div>
@@ -128,32 +136,36 @@
         qs('lgModalError').style.display = '';
         return;
       }
+      const after = modalAfter;
       closeModal();
       await loadMasters();
-      renderMasters();
+      if (after) await after(); else renderMasters();
     });
   }
 
-  function openModal(title, bodyHtml, onSave) {
+  function openModal(title, bodyHtml, onSave, afterSave) {
     qs('lgModalTitle').textContent = title;
     qs('lgModalBody').innerHTML = bodyHtml;
     qs('lgModalError').style.display = 'none';
     modalSave = onSave;
+    modalAfter = afterSave || null;
     qs('lgModal').style.display = 'flex';
   }
   function closeModal() {
     qs('lgModal').style.display = 'none';
     modalSave = null;
+    modalAfter = null;
   }
 
   function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('#lgTabs .tab-btn').forEach(b => b.classList.toggle('on', b.dataset.lg === tab));
-    const panes = { voucher: 'lgVoucher', gl: 'lgGl', trial: 'lgTrial', close: 'lgClose', masters: 'lgMasters', history: 'lgHistory' };
+    const panes = { voucher: 'lgVoucher', gl: 'lgGl', trial: 'lgTrial', flow: 'lgFlow', close: 'lgClose', masters: 'lgMasters', history: 'lgHistory' };
     Object.keys(panes).forEach(k => { qs(panes[k]).style.display = k === tab ? '' : 'none'; });
     if (tab === 'voucher') showVoucher();
     if (tab === 'gl') renderGl();
     if (tab === 'trial') renderTrial();
+    if (tab === 'flow') renderFlow();
     if (tab === 'close') renderClose();
     if (tab === 'masters') renderMasters();
     if (tab === 'history') renderHistory();
@@ -346,6 +358,111 @@
     downloadCsv(`시산표_${d.period.to}.csv`, rows);
   }
 
+  /* ── 자금 연결 ── */
+  let flowData = null;
+  async function renderFlow() {
+    const el = qs('lgFlow');
+    el.innerHTML = '<div style="color:var(--text-3);padding:12px">불러오는 중…</div>';
+    const res = await api('GET', '/api/admin-ledger-flow');
+    if (!res.ok) { el.innerHTML = `<div style="color:var(--danger);padding:12px;white-space:pre-line">${esc(failText(res))}</div>`; return; }
+    const d = dataOf(res);
+    flowData = d;
+    const sync = d.sync || {};
+    const labels = d.sourceLabels || {};
+    const bySource = Object.keys(sync.bySource || {}).map(k => `${esc(labels[k] || k)} ${sync.bySource[k]}건`).join(', ');
+    const bank = d.bank || {};
+    const diff = bank.difference;
+    const card = (label, value, note, warn) => `
+      <div style="flex:1;min-width:170px;border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:12px;color:var(--text-3)">${label}</div>
+        <div style="font-size:19px;font-weight:700;margin-top:4px${warn ? ';color:#b45309' : ''}">${value}</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:4px;min-height:16px">${note}</div>
+      </div>`;
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="font-size:13px;color:var(--text-2);flex:1">후원, 수입, 지출, 급여, 정산 입금을 매일 새벽 3시에 장부로 옮깁니다. 장부 시작일 ${esc(d.ledgerStart || '')} 이후 건만 대상입니다.</div>
+        <button class="btn-sm btn-sm-primary" type="button" id="lgFlowSync">지금 반영</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        ${card('장부 미반영', `${sync.total || 0}건`, bySource || (sync.lastRun ? `마지막 반영 ${esc(sync.lastRun.at)}` : '반영 기록 없음'), (sync.total || 0) > 0)}
+        ${card('분류 대기 전표', `${sync.drafts || 0}건`, '활동·사업·재원을 채워 제출해 주세요', (sync.drafts || 0) > 0)}
+        ${card('마감된 달 미반영', `${sync.blocked || 0}건`, '마감을 해제해야 반영됩니다', (sync.blocked || 0) > 0)}
+        ${card('장부 통장 잔액', `${won(bank.bookBalance)}원`, bank.bankBalance == null ? '우리은행 파일 업로드 전' : `통장 ${won(bank.bankBalance)}원 (${esc(bank.asOf)})`, false)}
+        ${card('통장과 차이', diff == null ? '—' : `${won(diff)}원`, diff ? '미처리 거래를 확인해 주세요' : '', !!diff)}
+        ${card('결제 정산 미수금', `${won(d.settlement)}원`, '정산 전 금액 또는 수수료', false)}
+      </div>
+
+      <div style="font-weight:600;margin-bottom:6px">미지급 결재</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">승인됐지만 아직 돈이 나가지 않은 결재입니다. 지급 확인을 해야 손익과 예산 집행에 반영됩니다.</div>
+      <table class="data-table" style="width:100%;margin-bottom:18px">
+        <thead><tr><th>결의번호</th><th>제목</th><th>지급처</th><th>예산 과목</th><th>승인일</th><th class="num">금액</th><th></th></tr></thead>
+        <tbody>${(d.unpaid || []).map(r => `<tr>
+          <td style="white-space:nowrap">${esc(r.resolutionNo || r.requestNo)}</td>
+          <td>${esc(r.title)}</td><td>${esc(r.payeeName || '—')}</td><td>${esc(r.budgetName || '—')}</td>
+          <td style="white-space:nowrap">${esc(r.decidedOn || '')}</td>
+          <td class="num" style="white-space:nowrap">${won(r.amount)}원</td>
+          <td style="text-align:right"><button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_LEDGER.openPay(${r.id})">지급 확인</button></td>
+        </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-3)">미지급 결재가 없습니다.</td></tr>'}</tbody>
+      </table>
+
+      <div style="font-weight:600;margin-bottom:6px">결재 없는 출금</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">통장에서 나갔지만 결재나 지출과 연결되지 않은 거래입니다. 수수료처럼 결재 없이 처리할 건은 통장 화면에서 전표로 만듭니다.</div>
+      <table class="data-table" style="width:100%;margin-bottom:18px">
+        <thead><tr><th>날짜</th><th>내용</th><th>상대</th><th>전표</th><th class="num">금액</th></tr></thead>
+        <tbody>${(d.noApproval || []).map(r => `<tr>
+          <td style="white-space:nowrap">${esc(r.date)}</td><td>${esc(r.description)}</td><td>${esc(r.counterpart || '—')}</td>
+          <td>${r.voucherNumber ? esc(r.voucherNumber) : '<span style="color:#b45309">없음</span>'}</td>
+          <td class="num" style="white-space:nowrap">${won(r.amount)}원</td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">없습니다.</td></tr>'}</tbody>
+      </table>
+
+      <div style="font-weight:600;margin-bottom:6px">결재 없는 지출</div>
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>날짜</th><th>내용</th><th>지급처</th><th class="num">금액</th></tr></thead>
+        <tbody>${(d.directExpenses || []).map(r => `<tr>
+          <td style="white-space:nowrap">${esc(r.date)}</td><td>${esc(r.description || '')}</td><td>${esc(r.payeeName || '—')}</td>
+          <td class="num" style="white-space:nowrap">${won(r.amount)}원</td>
+        </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">없습니다.</td></tr>'}</tbody>
+      </table>`;
+    qs('lgFlowSync').addEventListener('click', runSync);
+  }
+
+  async function runSync() {
+    const btn = qs('lgFlowSync');
+    btn.disabled = true;
+    btn.textContent = '반영 중…';
+    const res = await api('POST', '/api/admin-ledger-sync');
+    if (!res.ok) { alert(failText(res)); btn.disabled = false; btn.textContent = '지금 반영'; return; }
+    const d = dataOf(res);
+    alert(`자동 승인 ${d.posted || 0}건, 분류 대기 ${d.drafts || 0}건, 취소 ${d.reversed || 0}건${d.blocked ? `, 마감된 달 미반영 ${d.blocked}건` : ''}`);
+    renderFlow();
+  }
+
+  function openPay(id) {
+    const r = (flowData?.unpaid || []).find(x => x.id === id);
+    if (!r) return;
+    const cash = masters.accounts.filter(a => a.isActive && a.parentCode === '101');
+    const matches = (flowData?.noApproval || []).filter(t => t.status === 'pending' && !t.voucherId);
+    const sorted = [...matches].sort((a, b) => Number(b.amount === r.amount) - Number(a.amount === r.amount));
+    const today = typeof todayKST === 'function' ? todayKST() : new Date().toISOString().slice(0, 10);
+    openModal('지급 확인', `
+      <div style="font-size:13px;margin-bottom:10px">${esc(r.title)} · <strong>${won(r.amount)}원</strong></div>
+      <label class="form-label">지급일</label>
+      <input id="lgPayDate" class="input" type="date" value="${esc(today)}" style="margin-bottom:10px">
+      <label class="form-label">지급 계좌</label>
+      <select id="lgPayAccount" class="input" style="margin-bottom:10px">${cash.map(a =>
+        `<option value="${esc(a.code)}"${a.systemRole === 'cash_default' ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
+      <label class="form-label">통장 출금 연결 (선택)</label>
+      <select id="lgPayBank" class="input">
+        <option value="">연결 안 함</option>
+        ${sorted.map(t => `<option value="${t.id}"${t.amount === r.amount ? ' style="font-weight:600"' : ''}>${esc(t.date)} ${won(t.amount)}원 ${esc(t.counterpart || t.description || '')}</option>`).join('')}
+      </select>
+    `, () => api('POST', '/api/admin-approval-pay', {
+      requestId: id, paidAt: qs('lgPayDate').value, payAccountCode: qs('lgPayAccount').value,
+      bankTxnId: qs('lgPayBank').value ? Number(qs('lgPayBank').value) : undefined,
+    }), renderFlow);
+  }
+
   /* ── 월 마감 ── */
   async function renderClose() {
     const el = qs('lgClose');
@@ -418,7 +535,7 @@
   /* ── 기준 정보 ── */
   function renderMasters() {
     const el = qs('lgMasters');
-    const tabs = [['accounts', '계정과목표'], ['programs', '사업'], ['funds', '재원'], ['years', '회계연도']];
+    const tabs = [['accounts', '계정과목표'], ['programs', '사업'], ['funds', '재원'], ['revenue', '수입 분류'], ['staff', '인건비 배부'], ['years', '회계연도']];
     el.innerHTML = `
       <div style="display:flex;gap:6px;margin-bottom:12px">
         ${tabs.map(([k, label]) => `<button type="button" class="btn-sm ${k === masterTab ? 'btn-sm-primary' : 'btn-sm-ghost'}" data-master="${k}">${label}</button>`).join('')}
@@ -431,6 +548,8 @@
     if (masterTab === 'accounts') renderAccounts();
     if (masterTab === 'programs') renderPrograms();
     if (masterTab === 'funds') renderFunds();
+    if (masterTab === 'revenue') renderRevenueMap();
+    if (masterTab === 'staff') renderStaff();
     if (masterTab === 'years') renderYears();
   }
 
@@ -590,6 +709,69 @@
     }));
   }
 
+  function renderRevenueMap() {
+    const body = qs('lgMasterBody');
+    const revenue = masters.accounts.filter(a => a.kind === 'revenue' && !a.hasChildren && a.isActive);
+    body.innerHTML = `
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">후원 외 수입이 승인되면 분류에 연결된 계정으로 장부에 기록됩니다.</div>
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>수입 분류</th><th>계정과목</th></tr></thead>
+        <tbody>${masters.revenueCategories.map(c => `<tr>
+          <td>${esc(c.name)}</td>
+          <td><select class="input-sm" style="width:260px" ${canManage() ? '' : 'disabled'} onchange="window.SIREN_LEDGER.saveRevenueMap(${c.id}, this.value)">
+            <option value="">선택</option>
+            ${revenue.map(a => `<option value="${esc(a.code)}"${a.code === c.accountCode ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+          </select></td>
+        </tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:var(--text-3)">수입 분류가 없습니다.</td></tr>'}</tbody>
+      </table>`;
+  }
+  async function saveRevenueMap(id, accountCode) {
+    if (!accountCode) return;
+    const res = await api('POST', '/api/admin-ledger-master-save', { type: 'revenue_category', id, accountCode });
+    if (!res.ok) { alert(failText(res)); return; }
+    await loadMasters();
+  }
+
+  function renderStaff() {
+    const body = qs('lgMasterBody');
+    body.innerHTML = `
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">급여가 지급 확정되면 직원별로 전표가 만들어집니다. 정하지 않은 직원은 일반관리, 재원 기부금으로 기록됩니다.</div>
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>직원</th><th>활동</th><th>사업</th><th>재원</th><th></th></tr></thead>
+        <tbody>${masters.staff.map(m => `<tr>
+          <td>${esc(m.name)}</td>
+          <td>${esc(FN_LABEL[m.functionCode] || '일반관리 (기본)')}</td>
+          <td>${esc(masters.programs.find(p => p.id === m.programId)?.name || '')}</td>
+          <td>${esc(masters.funds.find(f => f.id === m.fundId)?.name || '')}</td>
+          <td style="text-align:right">${canManage() ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_LEDGER.editStaff(${m.memberId})">수정</button>` : ''}</td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">직원이 없습니다.</td></tr>'}</tbody>
+      </table>`;
+  }
+  function editStaff(memberId) {
+    const m = masters.staff.find(x => x.memberId === memberId);
+    if (!m) return;
+    openModal(`${m.name} 인건비 배부`, `
+      <label class="form-label">활동</label>
+      <select id="lgStFn" class="input" style="margin-bottom:10px">
+        ${Object.keys(FN_LABEL).map(k => `<option value="${k}"${k === (m.functionCode || 'admin') ? ' selected' : ''}>${FN_LABEL[k]}</option>`).join('')}
+      </select>
+      <label class="form-label">사업 (사업수행일 때)</label>
+      <select id="lgStPg" class="input" style="margin-bottom:10px">
+        <option value="">선택</option>
+        ${masters.programs.filter(p => p.isActive).map(p => `<option value="${p.id}"${p.id === m.programId ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}
+      </select>
+      <label class="form-label">재원</label>
+      <select id="lgStFd" class="input">
+        <option value="">기부금 (기본)</option>
+        ${masters.funds.filter(f => f.isActive).map(f => `<option value="${f.id}"${f.id === m.fundId ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}
+      </select>
+    `, () => api('POST', '/api/admin-ledger-master-save', {
+      type: 'staff', memberId, functionCode: qs('lgStFn').value,
+      programId: qs('lgStPg').value ? Number(qs('lgStPg').value) : undefined,
+      fundId: qs('lgStFd').value ? Number(qs('lgStFd').value) : undefined,
+    }));
+  }
+
   function renderYears() {
     const body = qs('lgMasterBody');
     body.innerHTML = `
@@ -666,6 +848,7 @@
 
   window.SIREN_LEDGER = {
     init, load: init, closeMonth, reopenMonth, editAccount, editProgram, editFund, editYear,
+    openPay, saveRevenueMap, editStaff,
     viewVoucher: async id => {
       if (!voucherReady) { voucherReady = true; await window.SIREN_VOUCHER.initVoucherTab(qs('lgVoucher')); }
       window.SIREN_VOUCHER.openView(id);
