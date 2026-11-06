@@ -77,12 +77,17 @@ export default async function handler(req: Request, _ctx: Context) {
         SELECT id, code, name, account_code FROM revenue_categories WHERE is_active = TRUE ORDER BY sort_order, id`))
         .map((r: any) => ({ id: Number(r.id), code: r.code, name: r.name, accountCode: r.account_code }));
       staff = rowsOf(await db.execute(sql`
-        SELECT m.id, m.name, s.function_code, s.program_id, s.fund_id, s.rule_id
+        SELECT m.id, m.name, s.member_id AS allocated, s.function_code, s.program_id, s.fund_id, s.rule_id,
+               (SELECT e.name FROM employment_contracts c JOIN contract_business_entities e ON e.id = c.entity_id
+                 WHERE c.member_id = m.id AND c.status = 'completed' ORDER BY c.id DESC LIMIT 1) AS employer
           FROM members m
           LEFT JOIN ledger_staff_allocations s ON s.member_id = m.id
          WHERE m.type = 'admin' AND m.status = 'active' AND m.operator_active = TRUE
          ORDER BY m.name`)).map((r: any) => ({
         memberId: Number(r.id), name: r.name, functionCode: r.function_code,
+        employer: r.employer ?? null,
+        /* 판단 기준은 lib/ledger-auto.ts collectPayroll과 같다 */
+        inLedger: r.employer ? String(r.employer).includes("교사유가족협의회") : r.allocated != null,
         programId: r.program_id == null ? null : Number(r.program_id),
         fundId: r.fund_id == null ? null : Number(r.fund_id),
         ruleId: r.rule_id == null ? null : Number(r.rule_id),

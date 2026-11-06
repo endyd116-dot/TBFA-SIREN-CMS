@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.16";
+export const APP_VERSION = "2026-11-06.17";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-ledger-payroll-scope",
+    title: "[관리자] 장부 인건비 — 협의회 소속 급여만 전표로 기록",
+    items: [
+      { text: "다른 사업자와 근로계약을 맺은 직원의 급여는 협의회 장부에 들어가지 않습니다. 장부 › 기준 정보 › 인건비 배부에서 고용 주체와 반영 여부를 볼 수 있습니다", link: "/cms-tbfa.html#ledger" },
+      { text: "금액별 추천 결재선은 사무국장을 먼저 채웁니다" },
+      { text: "홈페이지 아래쪽에 교육부, 국세청, 국민권익위원회 연결을 넣었습니다" },
+    ],
+  },
   {
     key: "2026-11-06-approval-docs-2",
     title: "[관리자] 내부결재 보강 — 사후 품의 연결, 카드 사용 등록, 자동 저장",

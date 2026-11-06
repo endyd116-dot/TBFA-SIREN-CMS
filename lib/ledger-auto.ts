@@ -244,7 +244,9 @@ async function collectRefunds(ctx: Context): Promise<Entry[]> {
   return out;
 }
 
-/* ── 급여: 지급 확정분. 직원별 전표 ── */
+/* ── 급여: 지급 확정분. 직원별 전표 ──
+   급여 관리는 여러 사업자의 직원을 함께 다룬다. 협의회 장부에는 협의회 소속 급여만 넣는다.
+   완료된 근로계약이 있으면 그 사업자로 판단하고, 없으면 인건비 배부를 저장한 직원만 넣는다. */
 async function collectPayroll(ctx: Context, limit: number): Promise<Entry[]> {
   const rows = rowsOf(await db.execute(sql`
     SELECT p.id, p.member_uid, p.pay_year, p.pay_month, p.gross_pay, p.total_deduction, p.net_pay,
@@ -254,8 +256,14 @@ async function collectPayroll(ctx: Context, limit: number): Promise<Entry[]> {
       LEFT JOIN members m ON m.id::text = p.member_uid
       LEFT JOIN ledger_staff_allocations s ON s.member_id::text = p.member_uid
       LEFT JOIN ledger_allocation_rules r ON r.id = s.rule_id AND r.is_active = TRUE
+      LEFT JOIN LATERAL (
+        SELECT e.name FROM employment_contracts c
+          JOIN contract_business_entities e ON e.id = c.entity_id
+         WHERE c.member_id::text = p.member_uid AND c.status = 'completed'
+         ORDER BY c.id DESC LIMIT 1) employer ON TRUE
      WHERE p.status = 'PAID' AND p.paid_at IS NOT NULL
        AND p.paid_at >= (${ctx.start}::date - INTERVAL '1 day')
+       AND (CASE WHEN employer.name IS NOT NULL THEN employer.name LIKE '%교사유가족협의회%' ELSE s.member_id IS NOT NULL END)
        AND ${noVoucher("payroll", sql`p.id::text`)}
      ORDER BY p.id
      LIMIT ${limit}`));

@@ -383,7 +383,8 @@ export async function recommendLine(amount: number, drafterId: number) {
      WHERE is_active = TRUE AND min_amount <= ${amount} AND (max_amount IS NULL OR ${amount} <= max_amount)
      ORDER BY sort_order, min_amount LIMIT 1`))[0];
   if (!line) return { name: null, steps: [] as any[] };
-  const people = await loadPeople();
+  const chief = (p: { title: string | null }) => (String(p.title ?? "").includes("사무국장") ? 0 : 1);
+  const people = (await loadPeople()).sort((a, b) => chief(a) - chief(b));
   const steps: any[] = [];
   for (const role of Array.isArray(line.steps) ? line.steps : []) {
     const person = people.find((p) => p.role === role && p.id !== drafterId && !steps.some((x) => x.memberId === p.id));

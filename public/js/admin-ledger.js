@@ -820,17 +820,19 @@
   function renderStaff() {
     const body = qs('lgMasterBody');
     body.innerHTML = `
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">급여가 지급 확정되면 직원별로 전표가 만들어집니다. 정하지 않은 직원은 일반관리, 재원 기부금으로 기록됩니다. 여러 활동을 맡은 직원은 배분 규칙을 고르면 비율대로 나뉩니다.</div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">협의회 소속 직원의 급여만 지급 확정 때 전표가 됩니다. 완료된 근로계약이 있으면 그 사업자로 판단합니다. 계약이 없는 직원은 여기서 배부를 저장해야 장부에 들어갑니다. 정하지 않은 항목은 일반관리, 기부금으로 기록합니다.</div>
       <table class="data-table" style="width:100%">
-        <thead><tr><th>직원</th><th>활동</th><th>사업</th><th>재원</th><th>배분 규칙</th><th></th></tr></thead>
+        <thead><tr><th>직원</th><th>고용 주체</th><th>장부 반영</th><th>활동</th><th>사업</th><th>재원</th><th>배분 규칙</th><th></th></tr></thead>
         <tbody>${masters.staff.map(m => `<tr>
           <td>${esc(m.name)}</td>
+          <td>${esc(m.employer || '계약 없음')}</td>
+          <td>${m.inLedger ? '반영' : '제외'}</td>
           <td>${esc(FN_LABEL[m.functionCode] || '일반관리 (기본)')}</td>
           <td>${esc(masters.programs.find(p => p.id === m.programId)?.name || '')}</td>
           <td>${esc(masters.funds.find(f => f.id === m.fundId)?.name || '')}</td>
           <td>${esc(masters.allocationRules.find(r => r.id === m.ruleId)?.name || '')}</td>
           <td style="text-align:right">${canManage() ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_LEDGER.editStaff(${m.memberId})">수정</button>` : ''}</td>
-        </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-3)">직원이 없습니다.</td></tr>'}</tbody>
+        </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text-3)">직원이 없습니다.</td></tr>'}</tbody>
       </table>`;
   }
   function editStaff(memberId) {

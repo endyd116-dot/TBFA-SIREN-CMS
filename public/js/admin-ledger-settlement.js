@@ -391,7 +391,7 @@
         <tr><td>일반관리비용 비중</td><td class="num">${pct(r.adminOfExpense)}</td><td></td></tr>
         <tr><td>모금비용 비중</td><td class="num">${pct(r.fundraisingOfExpense)}</td><td></td></tr>
       </tbody></table>
-      <div class="ls-note">참고 기준 ${r.target}%. 법령상 기준은 세무 확인 뒤 맞춥니다.
+      <div class="ls-note">기준 ${r.target}%. 지정 뒤에는 수익사업 지출을 뺀 지출액의 80% 이상을 고유목적사업에 직접 써야 합니다.
         ${isChair() ? '<button class="btn-sm btn-sm-ghost" type="button" data-act="public-target">기준 변경</button>' : ''}</div>
 
       <div class="ls-sub">공시 자료 — ${esc(p.form.label)}</div>
@@ -599,7 +599,7 @@
         await loadPublic();
       }
       if (act === 'public-target') {
-        const v = prompt('사업수행 비율 참고 기준(%)', publicData?.ratios?.target);
+        const v = prompt('사업수행 비율 기준(%)', publicData?.ratios?.target);
         if (v === null) return;
         const r = await api('POST', '/api/admin-ledger-public', { action: 'target_save', target: Number(v) });
         if (!r.ok) alert(failText(r)); else await loadPublic();
