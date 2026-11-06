@@ -10,6 +10,64 @@ import { db } from "../db";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
 
+/** 조회 주체. 트랜잭션 안에서는 tx를 넘긴다(연결 1개 환경) */
+export type QueryRunner = { execute: (query: any) => Promise<any> };
+
+/* 계정 분류 → 예산 관 코드. 같은 계정이 여러 관의 목에 연결돼 있을 때 고른다 */
+const CATEGORY_GWAN: Record<string, string> = { personnel: "1", program: "2", admin_ops: "3", fundraising: "4" };
+
+/** 회계 계정 → 예산 목. 잡비처럼 여러 관에 걸친 계정은 계정 분류와 같은 관의 목을 쓴다. */
+export async function loadAccountToMok(exec: QueryRunner = db): Promise<(code: string, category: string | null) => number | null> {
+  const rows = rowsOf(await exec.execute(sql`
+    SELECT m.account_code, m.budget_account_id, gwan.code AS gwan_code
+      FROM budget_account_code_map m
+      JOIN budget_accounts mok ON mok.id = m.budget_account_id
+      LEFT JOIN budget_accounts hang ON hang.id = mok.parent_id
+      LEFT JOIN budget_accounts gwan ON gwan.id = hang.parent_id
+     ORDER BY m.id`));
+  const byCode = new Map<string, { mok: number; gwan: string }[]>();
+  for (const r of rows) {
+    const list = byCode.get(r.account_code) ?? [];
+    list.push({ mok: Number(r.budget_account_id), gwan: String(r.gwan_code ?? "") });
+    byCode.set(r.account_code, list);
+  }
+  return (code, category) => {
+    const list = byCode.get(code);
+    if (!list?.length) return null;
+    const gwan = category ? CATEGORY_GWAN[category] : undefined;
+    return (gwan && list.find((x) => x.gwan === gwan)?.mok) || list[0].mok;
+  };
+}
+
+/** 지출(expenses)에서 오지 않은 승인 전표의 비용. 급여와 손으로 쓴 전표가 여기 들어온다.
+ *  지출에서 만든 전표와 그 환불·취소는 지출 합계에 이미 있으므로 뺀다. */
+export async function voucherCostsByMok(exec: QueryRunner, year: number): Promise<{ byMok: Map<number, number>; unassigned: number }> {
+  const rows = rowsOf(await exec.execute(sql`
+    SELECT l.account_code, a.category, bl.budget_account_id AS line_mok,
+           COALESCE(SUM(l.debit - l.credit), 0)::bigint AS amount
+      FROM voucher_lines l
+      JOIN vouchers v ON v.id = l.voucher_id
+      JOIN account_codes a ON a.code = l.account_code
+      LEFT JOIN vouchers orig ON orig.id = v.reversal_of_id
+      LEFT JOIN budget_lines bl ON bl.id = COALESCE(v.budget_line_id, orig.budget_line_id)
+     WHERE v.status = 'approved' AND v.is_template = FALSE AND v.fiscal_year = ${year}
+       AND a.statement_line = 'business_expense'
+       AND COALESCE(v.source_type, '') NOT IN ('expense', 'expense_refund')
+       AND COALESCE(orig.source_type, '') NOT IN ('expense', 'expense_refund')
+     GROUP BY l.account_code, a.category, bl.budget_account_id`));
+  const toMok = await loadAccountToMok(exec);
+  const byMok = new Map<number, number>();
+  let unassigned = 0;
+  for (const r of rows) {
+    const amount = Number(r.amount) || 0;
+    if (!amount) continue;
+    const mok = r.line_mok == null ? toMok(r.account_code, r.category) : Number(r.line_mok);
+    if (mok == null) unassigned += amount;
+    else byMok.set(mok, (byMok.get(mok) ?? 0) + amount);
+  }
+  return { byMok, unassigned };
+}
+
 export interface BudgetLineView {
   id: number;
   categoryId: number | null;
@@ -113,6 +171,19 @@ export async function buildBudgetReport(planId: number, year: number): Promise<B
     }
   } catch (err: any) {
     console.warn("[budget-report] 지출 집계 실패 (0으로 계속):", err?.message);
+  }
+
+  /* 급여처럼 지출 없이 전표로만 있는 비용도 집행이다 */
+  try {
+    const { byMok, unassigned: other } = await voucherCostsByMok(db, year);
+    unassigned += other;
+    for (const [mok, amount] of byMok) {
+      const line = lineByAccount.get(mok);
+      if (line) executedByLine.set(line.id, (executedByLine.get(line.id) ?? 0) + amount);
+      else unassigned += amount;
+    }
+  } catch (err: any) {
+    console.warn("[budget-report] 전표 비용 집계 실패 (0으로 계속):", err?.message);
   }
 
   // 예약: 제출된 전표 합. 보조 집계라 실패해도 0으로 계속

@@ -1,8 +1,8 @@
 /**
  * GET /api/admin-finance-report-pdf
- *   ?type=pl       + period|startDate|endDate  → 운영성과표 PDF
+ *   ?type=pl       + period|startDate|endDate  → 운영성과표 PDF (장부 기준)
  *   ?type=budget   + year                      → 예산 대비 실적표 PDF
- *   ?type=balance  + asOf                      → 재정상태표 PDF        (Phase 22-D-R3)
+ *   ?type=balance  + asOf                      → 재무상태표 PDF (장부 기준)
  *   ?type=cashflow + period|startDate|endDate  → 현금흐름표 PDF        (Phase 22-D-R3)
  *
  * Phase 22-B-R3 / 22-D-R3 — NPO 표준 회계 보고서 PDF 생성
@@ -12,10 +12,10 @@
 import { yearKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { donations, otherRevenues, revenueCategories, expenses } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { eq, and, sql } from "drizzle-orm";
-import { buildBudgetReport, expenseLabel, loadExpenseLabelMaps } from "../../lib/finance-budget-report";
+import { sql } from "drizzle-orm";
+import { buildBudgetReport } from "../../lib/finance-budget-report";
+import { balanceSheet, operatingStatement, type StatementRow } from "../../lib/ledger-statements";
 import { resolvePeriod } from "../../lib/period-filter";
 import { PDFDocument, rgb, PDFFont, PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -43,122 +43,6 @@ function jsonError(step: string, err: any) {
 }
 
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")} 원`;
-
-/* ═══════════════ 운영성과표 데이터 (pl-summary 로직 재사용) ═══════════════ */
-async function buildPlData(startDate: string, endDate: string, fiscalYear: number | null) {
-  // 후원 gross
-  let donationGross = 0, donationRefund = 0;
-  try {
-    const rows = await db
-      .select({ total: sql<string>`COALESCE(SUM(${donations.amount}), 0)` })
-      .from(donations)
-      .where(and(
-        eq(donations.status, "completed"),
-        sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
-      ));
-    donationGross = Number(rows[0]?.total || 0);
-  } catch (err) { console.warn("[report-pdf] 후원 집계 실패", err); }
-
-  try {
-    const rows = await db
-      .select({ total: sql<string>`COALESCE(SUM(${donations.amount}), 0)` })
-      .from(donations)
-      .where(and(
-        eq(donations.status, "refunded"),
-        sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
-      ));
-    donationRefund = Number(rows[0]?.total || 0);
-  } catch (err) { console.warn("[report-pdf] 후원 환불 집계 실패", err); }
-
-  // 후원 외 수입 카테고리
-  const revCatMap = new Map<number, { code: string; name: string }>();
-  try {
-    const cats = await db
-      .select({ id: revenueCategories.id, code: revenueCategories.code, name: revenueCategories.name })
-      .from(revenueCategories);
-    for (const c of cats) revCatMap.set(c.id, { code: c.code, name: c.name });
-  } catch (err) { console.warn("[report-pdf] 수입 카테고리 조회 실패", err); }
-
-  let otherGross = 0, otherRefund = 0;
-  const otherCatNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
-  try {
-    const rows = await db
-      .select({
-        categoryId: otherRevenues.categoryId,
-        gross: sql<string>`COALESCE(SUM(${otherRevenues.amount}), 0)`,
-        refund: sql<string>`COALESCE(SUM(${otherRevenues.refundAmount}), 0)`,
-      })
-      .from(otherRevenues)
-      .where(and(
-        eq(otherRevenues.status, "approved"),
-        sql`${otherRevenues.recognizedAt}::date BETWEEN ${startDate}::date AND ${endDate}::date`
-      ))
-      .groupBy(otherRevenues.categoryId);
-    for (const row of rows) {
-      const g = Number(row.gross), r = Number(row.refund);
-      otherGross += g; otherRefund += r;
-      const cat = revCatMap.get(row.categoryId) || { code: String(row.categoryId), name: "기타" };
-      if (!otherCatNetMap.has(row.categoryId)) {
-        otherCatNetMap.set(row.categoryId, { code: cat.code, name: cat.name, gross: 0, refund: 0 });
-      }
-      const e = otherCatNetMap.get(row.categoryId)!;
-      e.gross += g; e.refund += r;
-    }
-  } catch (err) { console.warn("[report-pdf] 후원 외 수입 집계 실패", err); }
-
-  const otherByCategory = Array.from(otherCatNetMap.values())
-    .map(c => ({ code: c.code, name: c.name, net: c.gross - c.refund }))
-    .sort((a, b) => b.net - a.net);
-
-  // 지출 항목 이름: 옛 분류 우선, 없으면 예산 목
-  const labelMaps = await loadExpenseLabelMaps();
-
-  let expenseGross = 0, expenseRefund = 0;
-  const expCatNetMap = new Map<string, { code: string; name: string; gross: number; refund: number }>();
-  try {
-    const conds: any[] = [
-      eq(expenses.status, "approved"),
-      sql`${expenses.occurredAt}::date BETWEEN ${startDate}::date AND ${endDate}::date`,
-    ];
-    if (fiscalYear !== null) conds.push(eq(expenses.fiscalYear, fiscalYear));
-    const rows = await db
-      .select({
-        categoryId: expenses.categoryId,
-        budgetAccountId: expenses.budgetAccountId,
-        gross: sql<string>`COALESCE(SUM(${expenses.amount}), 0)`,
-        refund: sql<string>`COALESCE(SUM(${expenses.refundAmount}), 0)`,
-      })
-      .from(expenses)
-      .where(and(...conds))
-      .groupBy(expenses.categoryId, expenses.budgetAccountId);
-    for (const row of rows) {
-      const g = Number(row.gross), r = Number(row.refund);
-      expenseGross += g; expenseRefund += r;
-      const label = expenseLabel(labelMaps, row.categoryId, row.budgetAccountId);
-      if (!expCatNetMap.has(label.key)) {
-        expCatNetMap.set(label.key, { code: label.code, name: label.name, gross: 0, refund: 0 });
-      }
-      const e = expCatNetMap.get(label.key)!;
-      e.gross += g; e.refund += r;
-    }
-  } catch (err) { console.warn("[report-pdf] 지출 집계 실패", err); }
-
-  const expenseByCategory = Array.from(expCatNetMap.values())
-    .map(c => ({ code: c.code, name: c.name, total: c.gross - c.refund }))
-    .sort((a, b) => b.total - a.total);
-
-  const donationNet = donationGross - donationRefund;
-  const otherNet = otherGross - otherRefund;
-  const revenueTotal = donationNet + otherNet;
-  const expenditureTotal = expenseGross - expenseRefund;
-
-  return {
-    donationNet, otherNet, otherByCategory,
-    revenueTotal,
-    expenseByCategory, expenditureTotal,
-    netIncome: revenueTotal - expenditureTotal,
-  };
-}
 
 /* ═══════════════ 예산 대비 실적표 데이터 (budget-list 로직 재사용) ═══════════════ */
 async function buildBudgetData(year: number) {
@@ -224,11 +108,9 @@ function textRight(ctx: DrawCtx, str: string, rightX: number, size: number, colo
   ctx.page.drawText(str, { x: rightX - w, y: ctx.y, size, font: ctx.font, color });
 }
 
-/* ═══════════════ 운영성과표 PDF ═══════════════ */
-async function renderPlPdf(
-  pdfDoc: PDFDocument, font: PDFFont,
-  data: Awaited<ReturnType<typeof buildPlData>>,
-  periodLabel: string, orgName: string
+/* ═══════════════ 재무제표 PDF (장부 기준) ═══════════════ */
+async function renderStatementPdf(
+  pdfDoc: PDFDocument, font: PDFFont, title: string, subtitle: string, rows: StatementRow[], orgName: string
 ): Promise<void> {
   const ctx: DrawCtx = {
     page: pdfDoc.addPage([595, 842]), font, pdfDoc,
@@ -236,69 +118,38 @@ async function renderPlPdf(
   };
   const rightX = ctx.width - ctx.margin;
   const genAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+  const amount = (n: number) => (n === 0 ? "-" : n < 0 ? `(${Math.abs(n).toLocaleString("ko-KR")})` : n.toLocaleString("ko-KR"));
 
-  // 머리말
   text(ctx, orgName, ctx.margin, 11, rgb(0.3, 0.3, 0.3));
   ctx.y -= 26;
-  text(ctx, "운영성과표 (Statement of Operations)", ctx.margin, 18);
+  text(ctx, title, ctx.margin, 18);
   ctx.y -= 18;
-  text(ctx, `기간: ${periodLabel}`, ctx.margin, 10, rgb(0.3, 0.3, 0.3));
+  text(ctx, subtitle, ctx.margin, 10, rgb(0.3, 0.3, 0.3));
   textRight(ctx, `생성일시: ${genAt}`, rightX, 9, rgb(0.5, 0.5, 0.5));
   ctx.y -= 10;
   hr(ctx, 1, rgb(0.2, 0.2, 0.2));
-  ctx.y -= 28;
-
-  // Ⅰ. 사업수익
-  text(ctx, "Ⅰ. 사업수익", ctx.margin, 13);
-  ctx.y -= 22;
-  text(ctx, "  1. 후원금수익", ctx.margin, 11);
-  textRight(ctx, won(data.donationNet), rightX, 11);
   ctx.y -= 20;
-  text(ctx, "  2. 사업수익 (후원 외)", ctx.margin, 11);
-  textRight(ctx, won(data.otherNet), rightX, 11);
-  ctx.y -= 18;
-  for (const c of data.otherByCategory) {
-    ensureSpace(ctx, 18);
-    text(ctx, `      · ${c.name}`, ctx.margin, 9.5, rgb(0.35, 0.35, 0.35));
-    textRight(ctx, won(c.net), rightX, 9.5, rgb(0.35, 0.35, 0.35));
+  textRight(ctx, "(단위: 원)", rightX, 9, rgb(0.4, 0.4, 0.4));
+  ctx.y -= 16;
+
+  for (const r of rows) {
+    ensureSpace(ctx, 22);
+    const strong = r.type !== "line";
+    const size = strong ? 10.5 : 10;
+    const color = strong ? rgb(0.05, 0.05, 0.05) : rgb(0.25, 0.25, 0.25);
+    ctx.page.drawText(r.label, { x: ctx.margin + r.level * 12, y: ctx.y, size, font: ctx.font, color });
+    if (r.type !== "head") textRight(ctx, amount(r.current.total), rightX, size, color);
+    if (r.type === "total") {
+      ctx.y -= 6;
+      hr(ctx);
+      ctx.y -= 10;
+    }
     ctx.y -= 16;
   }
-  ctx.y -= 4;
-  hr(ctx);
-  ctx.y -= 18;
-  text(ctx, "  사업수익 계", ctx.margin, 11.5, rgb(0.1, 0.1, 0.5));
-  textRight(ctx, won(data.revenueTotal), rightX, 11.5, rgb(0.1, 0.1, 0.5));
-  ctx.y -= 32;
 
-  // Ⅱ. 사업비용
-  ensureSpace(ctx, 60);
-  text(ctx, "Ⅱ. 사업비용", ctx.margin, 13);
-  ctx.y -= 22;
-  if (data.expenseByCategory.length === 0) {
-    text(ctx, "  (집행 내역 없음)", ctx.margin, 10, rgb(0.5, 0.5, 0.5));
-    ctx.y -= 18;
-  }
-  for (const c of data.expenseByCategory) {
-    ensureSpace(ctx, 20);
-    text(ctx, `  · ${c.name}`, ctx.margin, 11);
-    textRight(ctx, won(c.total), rightX, 11);
-    ctx.y -= 20;
-  }
-  ctx.y -= 4;
-  hr(ctx);
-  ctx.y -= 18;
-  text(ctx, "  사업비용 계", ctx.margin, 11.5, rgb(0.5, 0.1, 0.1));
-  textRight(ctx, won(data.expenditureTotal), rightX, 11.5, rgb(0.5, 0.1, 0.1));
-  ctx.y -= 32;
-
-  // Ⅲ. 운영성과
-  ensureSpace(ctx, 40);
-  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
-  ctx.y -= 22;
-  const netColor = data.netIncome >= 0 ? rgb(0.1, 0.35, 0.1) : rgb(0.6, 0.1, 0.1);
-  text(ctx, "Ⅲ. 운영성과 (Ⅰ − Ⅱ)", ctx.margin, 13, netColor);
-  textRight(ctx, won(data.netIncome), rightX, 13, netColor);
-  ctx.y -= 22;
+  ensureSpace(ctx, 30);
+  ctx.y -= 6;
+  text(ctx, "※ 장부의 승인 전표 기준입니다. 장부 시작일 이전 거래는 포함되지 않습니다.", ctx.margin, 8.5, rgb(0.5, 0.5, 0.5));
 }
 
 /* ═══════════════ 예산 대비 실적표 PDF ═══════════════ */
@@ -377,24 +228,6 @@ async function renderBudgetPdf(
   ctx.y -= 22;
 }
 
-/* ═══════════════ 재정상태표 데이터 (balance-sheet 로직 재사용) ═══════════════ */
-async function buildBalanceData(asOf: string) {
-  let cashAsset = 0;
-  let balanceTxnDate: string | null = null;
-  let hasBalanceData = false;
-  const r: any = await db.execute(sql`
-    SELECT balance_after, txn_date FROM bank_transactions
-    WHERE txn_date <= ${asOf} AND balance_after IS NOT NULL
-    ORDER BY txn_date DESC, id DESC LIMIT 1
-  `);
-  const row = (r?.rows ?? r ?? [])[0];
-  if (row) { cashAsset = Number(row.balance_after); balanceTxnDate = row.txn_date; hasBalanceData = true; }
-  return {
-    asOf, balanceTxnDate, hasBalanceData,
-    cashAsset, totalAsset: cashAsset, totalLiability: 0, netAsset: cashAsset,
-  };
-}
-
 /* ═══════════════ 현금흐름표 데이터 (cashflow 로직 재사용) ═══════════════ */
 const INCOME_LABEL: Record<string, string> = {
   donation: "후원금", donation_batch: "후원금 (묶음정산)", revenue: "후원 외 매출",
@@ -457,73 +290,6 @@ async function buildCashflowData(startDate: string, endDate: string) {
     totalInflow, inflowByCategory, totalOutflow, outflowByCategory,
     netCashFlow, closingBalance: finalClosing, closingIsEstimated: !hasClosingData,
   };
-}
-
-/* ═══════════════ 재정상태표 PDF ═══════════════ */
-async function renderBalancePdf(
-  pdfDoc: PDFDocument, font: PDFFont,
-  data: Awaited<ReturnType<typeof buildBalanceData>>, orgName: string
-): Promise<void> {
-  const ctx: DrawCtx = {
-    page: pdfDoc.addPage([595, 842]), font, pdfDoc,
-    y: 842 - 60, width: 595, height: 842, margin: 60,
-  };
-  const rightX = ctx.width - ctx.margin;
-  const genAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-
-  text(ctx, orgName, ctx.margin, 11, rgb(0.3, 0.3, 0.3));
-  ctx.y -= 26;
-  text(ctx, "재정상태표 (Statement of Financial Position)", ctx.margin, 18);
-  ctx.y -= 18;
-  text(ctx, `${data.asOf} 기준 (간이판)`, ctx.margin, 10, rgb(0.3, 0.3, 0.3));
-  textRight(ctx, `생성일시: ${genAt}`, rightX, 9, rgb(0.5, 0.5, 0.5));
-  ctx.y -= 10;
-  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
-  ctx.y -= 28;
-
-  if (!data.hasBalanceData) {
-    text(ctx, "통장 거래 내역이 없습니다.", ctx.margin, 12, rgb(0.5, 0.1, 0.1));
-    ctx.y -= 22;
-    text(ctx, "통장거래내역을 먼저 업로드해 주세요.", ctx.margin, 10, rgb(0.4, 0.4, 0.4));
-    return;
-  }
-
-  // 【자산】
-  text(ctx, "【자산】", ctx.margin, 13);
-  ctx.y -= 22;
-  text(ctx, "  현금성 자산 (통장 잔액)", ctx.margin, 11);
-  textRight(ctx, won(data.cashAsset), rightX, 11);
-  ctx.y -= 18;
-  text(ctx, "  ※ 비현금 자산은 데이터 없음 — 해당 없음", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-  ctx.y -= 18;
-  hr(ctx);
-  ctx.y -= 18;
-  text(ctx, "  자산 총계", ctx.margin, 11.5, rgb(0.1, 0.1, 0.5));
-  textRight(ctx, won(data.totalAsset), rightX, 11.5, rgb(0.1, 0.1, 0.5));
-  ctx.y -= 32;
-
-  // 【부채】
-  text(ctx, "【부채】", ctx.margin, 13);
-  ctx.y -= 22;
-  text(ctx, "  ※ 부채 데이터 없음 — 해당 없음", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-  ctx.y -= 18;
-  hr(ctx);
-  ctx.y -= 18;
-  text(ctx, "  부채 총계", ctx.margin, 11.5, rgb(0.5, 0.1, 0.1));
-  textRight(ctx, won(data.totalLiability), rightX, 11.5, rgb(0.5, 0.1, 0.1));
-  ctx.y -= 32;
-
-  // 【순자산】
-  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
-  ctx.y -= 22;
-  const naColor = data.netAsset >= 0 ? rgb(0.1, 0.35, 0.1) : rgb(0.6, 0.1, 0.1);
-  text(ctx, "【순자산】 (자산 − 부채)", ctx.margin, 13, naColor);
-  textRight(ctx, won(data.netAsset), rightX, 13, naColor);
-  ctx.y -= 30;
-
-  text(ctx, "※ 간이 재정상태표 — 통장 잔액 기반 현금성 자산만 집계.", ctx.margin, 8.5, rgb(0.5, 0.5, 0.5));
-  ctx.y -= 13;
-  text(ctx, "   비현금 자산·부채는 SIREN 데이터 한계상 해당 없음.", ctx.margin, 8.5, rgb(0.5, 0.5, 0.5));
 }
 
 /* ═══════════════ 현금흐름표 PDF ═══════════════ */
@@ -632,7 +398,7 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
     const font = await pdfDoc.embedFont(loadKoreanFont(), { subset: false });
 
     if (type === "pl") {
-      const { startDate, endDate, period, fiscalYear } = resolvePeriod({
+      const { startDate, endDate, period } = resolvePeriod({
         period: url.searchParams.get("period"),
         startDate: url.searchParams.get("startDate"),
         endDate: url.searchParams.get("endDate"),
@@ -640,12 +406,11 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
       });
       let data;
       try {
-        data = await buildPlData(startDate, endDate, fiscalYear);
+        data = await operatingStatement(startDate, endDate);
       } catch (err) {
         return jsonError("build_pl_data", err);
       }
-      const periodLabel = `${startDate} ~ ${endDate} (${period})`;
-      await renderPlPdf(pdfDoc, font, data, periodLabel, orgName);
+      await renderStatementPdf(pdfDoc, font, "운영성과표", `${startDate} ~ ${endDate} (${period})`, data.rows, orgName);
       fileName = `운영성과표_${startDate}_${endDate}.pdf`;
     } else if (type === "budget") {
       const year = parseInt(url.searchParams.get("year") || String(yearKST()));
@@ -662,12 +427,12 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
       const asOf = url.searchParams.get("asOf") || kstNow.toISOString().slice(0, 10);
       let data;
       try {
-        data = await buildBalanceData(asOf);
+        data = await balanceSheet(asOf);
       } catch (err) {
         return jsonError("build_balance_data", err);
       }
-      await renderBalancePdf(pdfDoc, font, data, orgName);
-      fileName = `재정상태표_${asOf}.pdf`;
+      await renderStatementPdf(pdfDoc, font, "재무상태표", `${asOf} 현재`, data.rows, orgName);
+      fileName = `재무상태표_${asOf}.pdf`;
     } else {
       // type === "cashflow"
       const { startDate, endDate, period } = resolvePeriod({

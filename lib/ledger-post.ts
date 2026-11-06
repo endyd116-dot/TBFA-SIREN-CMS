@@ -71,6 +71,44 @@ const toId = (v: unknown): number | null => {
   return Number.isInteger(n) && n > 0 ? n : null;
 };
 
+export interface RuleLine {
+  functionCode: string;
+  programId: number | null;
+  fundId: number | null;
+  ratio: number;
+}
+
+/** 배분 규칙 입력을 검사한다. 비율 합은 100이어야 한다. */
+export function normalizeRuleLines(raw: unknown): RuleLine[] {
+  const lines: RuleLine[] = (Array.isArray(raw) ? raw : []).map((item: any) => ({
+    functionCode: String(item?.functionCode ?? ""),
+    programId: toId(item?.programId),
+    fundId: toId(item?.fundId),
+    ratio: Number(item?.ratio) || 0,
+  })).filter((l) => l.ratio > 0);
+  if (lines.length < 2) throw new LedgerError("배분 대상을 2개 이상 입력하세요.", 400);
+  for (const l of lines) {
+    if (!FUNCTION_CODES.includes(l.functionCode)) throw new LedgerError("활동을 고르세요.", 400);
+    if (l.functionCode === "service" && !l.programId) throw new LedgerError("사업수행은 사업을 골라야 합니다.", 400);
+    if (l.functionCode !== "service") l.programId = null;
+  }
+  const sum = Math.round(lines.reduce((t, l) => t + l.ratio, 0) * 100) / 100;
+  if (sum !== 100) throw new LedgerError(`비율의 합이 100이어야 합니다. 지금 ${sum}`, 400);
+  return lines;
+}
+
+/** 금액을 비율대로 나눈다. 반올림 차이는 가장 큰 몫에 더해 합계가 항상 맞게 한다. */
+export function splitByRatio<T extends { ratio: number }>(amount: number, lines: T[]): (T & { amount: number })[] {
+  const parts = lines.map((l) => ({ ...l, amount: Math.floor((amount * l.ratio) / 100) }));
+  const left = amount - parts.reduce((t, p) => t + p.amount, 0);
+  if (left && parts.length) {
+    let biggest = 0;
+    parts.forEach((p, i) => { if (p.ratio > parts[biggest].ratio) biggest = i; });
+    parts[biggest].amount += left;
+  }
+  return parts.filter((p) => p.amount > 0);
+}
+
 /** 화면·AI 입력을 줄 형식으로 정리한다. 금액이 없는 빈 줄은 버린다. */
 export function normalizeLines(raw: unknown): LedgerLine[] {
   if (!Array.isArray(raw)) return [];

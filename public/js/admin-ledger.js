@@ -1,5 +1,5 @@
 /* admin-ledger.js — 재정 관리 › 장부 (2026-11-06)
- * 전표 / 총계정원장 / 시산표 / 월 마감 / 기준 정보 / 변경 이력
+ * 전표 / 총계정원장 / 시산표 / 자금 연결 / 월 마감 / 결산 / 기준 정보 / 변경 이력
  * 설계: docs/active/2026-11-06-ledger-foundation-design.md
  * window.SIREN_LEDGER = { init, load }
  */
@@ -7,7 +7,7 @@
   'use strict';
 
   let myRole = null;
-  let masters = { accounts: [], programs: [], funds: [], functions: [], fiscalYears: [], charterGap: null, revenueCategories: [], staff: [] };
+  let masters = { accounts: [], programs: [], funds: [], functions: [], fiscalYears: [], charterGap: null, revenueCategories: [], staff: [], allocationRules: [] };
   let currentTab = 'voucher';
   let masterTab = 'accounts';
   let voucherReady = false;
@@ -25,11 +25,14 @@
   const ACTION_LABEL = {
     created: '추가', updated: '수정', submitted: '제출', approved: '승인', rejected: '반려',
     reversed: '반대 전표로 취소', deleted: '삭제', month_closed: '월 마감', month_reopened: '마감 해제',
-    paid: '지급 확인', auto_posted: '자동 전표 반영',
+    paid: '지급 확인', auto_posted: '자동 전표 반영', refund_confirmed: '반환 확인',
+    settlement_locked: '결산 확정', settlement_reopened: '확정 해제', settlement_audit: '감사 기록',
+    settlement_board: '이사회 의결 기록', settlement_assembly: '총회 승인 기록', settlement_submit: '제출 기록',
   };
   const ENTITY_LABEL = {
     voucher: '전표', program: '사업', fund: '재원', fiscal_year: '회계연도', account: '계정과목',
     approval: '결재', ledger_sync: '자동 전표', revenue_category: '수입 분류', staff_allocation: '인건비 배부',
+    settlement: '결산', allocation_rule: '배분 규칙',
   };
 
   function api(method, path, body) {
@@ -65,7 +68,7 @@
     masters = {
       accounts: d.accounts || [], programs: d.programs || [], funds: d.funds || [],
       functions: d.functions || [], fiscalYears: d.fiscalYears || [], charterGap: d.charterGap || null,
-      revenueCategories: d.revenueCategories || [], staff: d.staff || [],
+      revenueCategories: d.revenueCategories || [], staff: d.staff || [], allocationRules: d.allocationRules || [],
     };
   }
 
@@ -96,6 +99,7 @@
           <button class="tab-btn" data-lg="trial" type="button">시산표</button>
           <button class="tab-btn" data-lg="flow" type="button">자금 연결</button>
           <button class="tab-btn" data-lg="close" type="button">월 마감</button>
+          <button class="tab-btn" data-lg="settle" type="button">결산</button>
           <button class="tab-btn" data-lg="masters" type="button">기준 정보</button>
           <button class="tab-btn" data-lg="history" type="button">변경 이력</button>
         </div>
@@ -104,6 +108,7 @@
         <div id="lgTrial" style="display:none"></div>
         <div id="lgFlow" style="display:none"></div>
         <div id="lgClose" style="display:none"></div>
+        <div id="lgSettle" style="display:none"></div>
         <div id="lgMasters" style="display:none"></div>
         <div id="lgHistory" style="display:none"></div>
       </div>
@@ -160,13 +165,14 @@
   function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('#lgTabs .tab-btn').forEach(b => b.classList.toggle('on', b.dataset.lg === tab));
-    const panes = { voucher: 'lgVoucher', gl: 'lgGl', trial: 'lgTrial', flow: 'lgFlow', close: 'lgClose', masters: 'lgMasters', history: 'lgHistory' };
+    const panes = { voucher: 'lgVoucher', gl: 'lgGl', trial: 'lgTrial', flow: 'lgFlow', close: 'lgClose', settle: 'lgSettle', masters: 'lgMasters', history: 'lgHistory' };
     Object.keys(panes).forEach(k => { qs(panes[k]).style.display = k === tab ? '' : 'none'; });
     if (tab === 'voucher') showVoucher();
     if (tab === 'gl') renderGl();
     if (tab === 'trial') renderTrial();
     if (tab === 'flow') renderFlow();
     if (tab === 'close') renderClose();
+    if (tab === 'settle' && window.SIREN_SETTLEMENT) window.SIREN_SETTLEMENT.render(qs('lgSettle'), { role: myRole, masters });
     if (tab === 'masters') renderMasters();
     if (tab === 'history') renderHistory();
   }
@@ -405,6 +411,17 @@
         </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-3)">미지급 결재가 없습니다.</td></tr>'}</tbody>
       </table>
 
+      ${(d.refunds || []).length ? `<div style="font-weight:600;margin-bottom:6px">반환 확인 대기</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">지급한 뒤 취소된 결재입니다. 집행액은 그대로이고, 실제로 돈이 돌아온 것을 확인해야 줄어듭니다.</div>
+      <table class="data-table" style="width:100%;margin-bottom:18px">
+        <thead><tr><th>결의번호</th><th>제목</th><th>지급처</th><th>지급일</th><th class="num">금액</th><th></th></tr></thead>
+        <tbody>${d.refunds.map(r => `<tr>
+          <td style="white-space:nowrap">${esc(r.resolutionNo || '')}</td><td>${esc(r.title)}</td><td>${esc(r.payeeName || '—')}</td>
+          <td style="white-space:nowrap">${esc(r.paidOn || '')}</td><td class="num" style="white-space:nowrap">${won(r.amount)}원</td>
+          <td style="text-align:right"><button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_LEDGER.openRefund(${r.id})">반환 확인</button></td>
+        </tr>`).join('')}</tbody>
+      </table>` : ''}
+
       <div style="font-weight:600;margin-bottom:6px">결재 없는 출금</div>
       <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">통장에서 나갔지만 결재나 지출과 연결되지 않은 거래입니다. 수수료처럼 결재 없이 처리할 건은 통장 화면에서 전표로 만듭니다.</div>
       <table class="data-table" style="width:100%;margin-bottom:18px">
@@ -457,9 +474,28 @@
         <option value="">연결 안 함</option>
         ${sorted.map(t => `<option value="${t.id}"${t.amount === r.amount ? ' style="font-weight:600"' : ''}>${esc(t.date)} ${won(t.amount)}원 ${esc(t.counterpart || t.description || '')}</option>`).join('')}
       </select>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:12px">
+        <input id="lgPayEvidence" type="checkbox"> 지급 증빙을 확인했습니다
+      </label>
+      <div style="font-size:12px;color:var(--text-3);margin-top:6px">실제 지급액이 승인액과 다르면 체크하지 말고 정정하거나 취소 후 다시 기안합니다.</div>
     `, () => api('POST', '/api/admin-approval-pay', {
       requestId: id, paidAt: qs('lgPayDate').value, payAccountCode: qs('lgPayAccount').value,
+      evidenceChecked: qs('lgPayEvidence').checked,
       bankTxnId: qs('lgPayBank').value ? Number(qs('lgPayBank').value) : undefined,
+    }), renderFlow);
+  }
+
+  function openRefund(id) {
+    const r = (flowData?.refunds || []).find(x => x.id === id);
+    if (!r) return;
+    openModal('반환 확인', `
+      <div style="font-size:13px;margin-bottom:10px">${esc(r.title)} · 지급액 <strong>${won(r.amount)}원</strong></div>
+      <label class="form-label">실제 돌아온 금액</label>
+      <input id="lgRefundAmount" class="input" type="number" min="0" value="${r.amount}" style="margin-bottom:10px">
+      <label class="form-label">메모 (돌아오지 않았으면 사유 필수)</label>
+      <input id="lgRefundNote" class="input" maxlength="300">
+    `, () => api('POST', '/api/admin-approval-refund', {
+      requestId: id, refundAmount: Number(qs('lgRefundAmount').value), note: qs('lgRefundNote').value,
     }), renderFlow);
   }
 
@@ -535,7 +571,7 @@
   /* ── 기준 정보 ── */
   function renderMasters() {
     const el = qs('lgMasters');
-    const tabs = [['accounts', '계정과목표'], ['programs', '사업'], ['funds', '재원'], ['revenue', '수입 분류'], ['staff', '인건비 배부'], ['years', '회계연도']];
+    const tabs = [['accounts', '계정과목표'], ['programs', '사업'], ['funds', '재원'], ['revenue', '수입 분류'], ['rules', '배분 규칙'], ['staff', '인건비 배부'], ['years', '회계연도']];
     el.innerHTML = `
       <div style="display:flex;gap:6px;margin-bottom:12px">
         ${tabs.map(([k, label]) => `<button type="button" class="btn-sm ${k === masterTab ? 'btn-sm-primary' : 'btn-sm-ghost'}" data-master="${k}">${label}</button>`).join('')}
@@ -549,6 +585,7 @@
     if (masterTab === 'programs') renderPrograms();
     if (masterTab === 'funds') renderFunds();
     if (masterTab === 'revenue') renderRevenueMap();
+    if (masterTab === 'rules') renderRules();
     if (masterTab === 'staff') renderStaff();
     if (masterTab === 'years') renderYears();
   }
@@ -732,19 +769,66 @@
     await loadMasters();
   }
 
+  function renderRules() {
+    const body = qs('lgMasterBody');
+    const describe = r => (r.lines || []).map(l => `${FN_LABEL[l.functionCode] || ''}${l.programId ? ' ' + (masters.programs.find(p => p.id === Number(l.programId))?.name || '') : ''} ${l.ratio}%`).join(', ');
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:13px;color:var(--text-2);flex:1">임차료나 인건비처럼 여러 활동에 걸친 비용을 나누는 기준입니다. 업무시간, 사용 면적처럼 합리적인 기준을 적고 같은 기준을 계속 씁니다(회계기준 제30조). 규칙은 주석에 표시됩니다.</div>
+        ${canManage() ? '<button class="btn-sm btn-sm-primary" type="button" id="lgRuleAdd">+ 규칙 추가</button>' : ''}
+      </div>
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>이름</th><th>기준</th><th>배분</th><th>사용</th><th></th></tr></thead>
+        <tbody>${masters.allocationRules.map(r => `<tr>
+          <td>${esc(r.name)}</td><td>${esc(r.basis)}</td><td>${esc(describe(r))}</td><td>${r.isActive ? '사용' : '숨김'}</td>
+          <td style="text-align:right">${canManage() ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_LEDGER.editRule(${r.id})">수정</button>` : ''}</td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">등록된 규칙이 없습니다.</td></tr>'}</tbody>
+      </table>`;
+    qs('lgRuleAdd')?.addEventListener('click', () => editRule(0));
+  }
+  function ruleLineHtml(l) {
+    return `<div class="lg-rule-line" style="display:flex;gap:6px;margin-bottom:6px">
+      <select class="input lg-rl-fn" style="flex:1">${Object.keys(FN_LABEL).map(k => `<option value="${k}"${k === l.functionCode ? ' selected' : ''}>${FN_LABEL[k]}</option>`).join('')}</select>
+      <select class="input lg-rl-pg" style="flex:1"><option value="">사업 없음</option>${masters.programs.filter(p => p.isActive).map(p => `<option value="${p.id}"${p.id === Number(l.programId) ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+      <input class="input lg-rl-ratio" type="number" min="0" max="100" step="0.1" value="${esc(l.ratio ?? '')}" placeholder="%" style="width:80px">
+    </div>`;
+  }
+  function editRule(id) {
+    const r = masters.allocationRules.find(x => x.id === id) || { name: '', basis: '', lines: [], isActive: true };
+    const lines = r.lines.length ? r.lines : [{ functionCode: 'admin', ratio: 60 }, { functionCode: 'service', ratio: 40 }];
+    openModal(id ? '배분 규칙 수정' : '배분 규칙 추가', `
+      <label class="form-label">이름</label><input id="lgRlName" class="input" maxlength="120" value="${esc(r.name)}" style="margin-bottom:10px">
+      <label class="form-label">기준</label><input id="lgRlBasis" class="input" maxlength="300" value="${esc(r.basis)}" placeholder="예: 최근 3개월 업무시간 비율" style="margin-bottom:10px">
+      <label class="form-label">배분 (합계 100)</label>
+      <div id="lgRlLines">${lines.map(ruleLineHtml).join('')}</div>
+      <button class="btn-sm btn-sm-ghost" type="button" id="lgRlAdd" style="margin-bottom:10px">+ 줄 추가</button>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input id="lgRlActive" type="checkbox"${r.isActive ? ' checked' : ''}> 사용</label>
+    `, () => api('POST', '/api/admin-ledger-docs', {
+      type: 'rule', id: id || undefined, name: qs('lgRlName').value, basis: qs('lgRlBasis').value,
+      isActive: qs('lgRlActive').checked,
+      lines: [...document.querySelectorAll('#lgRlLines .lg-rule-line')].map(el => ({
+        functionCode: el.querySelector('.lg-rl-fn').value,
+        programId: el.querySelector('.lg-rl-pg').value ? Number(el.querySelector('.lg-rl-pg').value) : null,
+        ratio: Number(el.querySelector('.lg-rl-ratio').value),
+      })),
+    }));
+    qs('lgRlAdd').addEventListener('click', () => qs('lgRlLines').insertAdjacentHTML('beforeend', ruleLineHtml({ functionCode: 'service' })));
+  }
+
   function renderStaff() {
     const body = qs('lgMasterBody');
     body.innerHTML = `
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">급여가 지급 확정되면 직원별로 전표가 만들어집니다. 정하지 않은 직원은 일반관리, 재원 기부금으로 기록됩니다.</div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">급여가 지급 확정되면 직원별로 전표가 만들어집니다. 정하지 않은 직원은 일반관리, 재원 기부금으로 기록됩니다. 여러 활동을 맡은 직원은 배분 규칙을 고르면 비율대로 나뉩니다.</div>
       <table class="data-table" style="width:100%">
-        <thead><tr><th>직원</th><th>활동</th><th>사업</th><th>재원</th><th></th></tr></thead>
+        <thead><tr><th>직원</th><th>활동</th><th>사업</th><th>재원</th><th>배분 규칙</th><th></th></tr></thead>
         <tbody>${masters.staff.map(m => `<tr>
           <td>${esc(m.name)}</td>
           <td>${esc(FN_LABEL[m.functionCode] || '일반관리 (기본)')}</td>
           <td>${esc(masters.programs.find(p => p.id === m.programId)?.name || '')}</td>
           <td>${esc(masters.funds.find(f => f.id === m.fundId)?.name || '')}</td>
+          <td>${esc(masters.allocationRules.find(r => r.id === m.ruleId)?.name || '')}</td>
           <td style="text-align:right">${canManage() ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_LEDGER.editStaff(${m.memberId})">수정</button>` : ''}</td>
-        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">직원이 없습니다.</td></tr>'}</tbody>
+        </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-3)">직원이 없습니다.</td></tr>'}</tbody>
       </table>`;
   }
   function editStaff(memberId) {
@@ -761,14 +845,20 @@
         ${masters.programs.filter(p => p.isActive).map(p => `<option value="${p.id}"${p.id === m.programId ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}
       </select>
       <label class="form-label">재원</label>
-      <select id="lgStFd" class="input">
+      <select id="lgStFd" class="input" style="margin-bottom:10px">
         <option value="">기부금 (기본)</option>
         ${masters.funds.filter(f => f.isActive).map(f => `<option value="${f.id}"${f.id === m.fundId ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}
+      </select>
+      <label class="form-label">배분 규칙 (고르면 위 활동·사업 대신 비율로 나눕니다)</label>
+      <select id="lgStRule" class="input">
+        <option value="">쓰지 않음</option>
+        ${masters.allocationRules.filter(r => r.isActive).map(r => `<option value="${r.id}"${r.id === m.ruleId ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}
       </select>
     `, () => api('POST', '/api/admin-ledger-master-save', {
       type: 'staff', memberId, functionCode: qs('lgStFn').value,
       programId: qs('lgStPg').value ? Number(qs('lgStPg').value) : undefined,
       fundId: qs('lgStFd').value ? Number(qs('lgStFd').value) : undefined,
+      ruleId: qs('lgStRule').value ? Number(qs('lgStRule').value) : undefined,
     }));
   }
 
@@ -848,7 +938,7 @@
 
   window.SIREN_LEDGER = {
     init, load: init, closeMonth, reopenMonth, editAccount, editProgram, editFund, editYear,
-    openPay, saveRevenueMap, editStaff,
+    openPay, openRefund, saveRevenueMap, editStaff, editRule,
     viewVoucher: async id => {
       if (!voucherReady) { voucherReady = true; await window.SIREN_VOUCHER.initVoucherTab(qs('lgVoucher')); }
       window.SIREN_VOUCHER.openView(id);

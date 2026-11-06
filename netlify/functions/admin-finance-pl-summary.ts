@@ -5,6 +5,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { eq, and, sql } from "drizzle-orm";
 import { expenseLabel, loadExpenseLabelMaps } from "../../lib/finance-budget-report";
+import { voucherCostsInPeriod } from "../../lib/ledger-statements";
 import { resolvePeriod } from "../../lib/period-filter";
 import { getCache, setCache } from "../../lib/cache";
 
@@ -205,6 +206,20 @@ export default async function handler(req: Request): Promise<Response> {
     }
   } catch (err: any) {
     console.warn("[pl-summary] 지출 집계 실패", err);
+  }
+
+  /* 급여처럼 지출 없이 전표로만 있는 비용 */
+  try {
+    const costs = await voucherCostsInPeriod(startDate, endDate);
+    for (const c of costs) {
+      if (expenseByMonth[c.month]) expenseByMonth[c.month].gross += c.amount;
+      expenseGross += c.amount;
+      const entry = expCatNetMap.get("voucher") ?? { code: "voucher", name: "급여 등 전표 비용", gross: 0, refund: 0 };
+      entry.gross += c.amount;
+      expCatNetMap.set("voucher", entry);
+    }
+  } catch (err: any) {
+    console.warn("[pl-summary] 전표 비용 집계 실패", err?.message);
   }
 
   const expenseByCategory = Array.from(expCatNetMap.values())

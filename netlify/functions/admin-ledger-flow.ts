@@ -95,6 +95,16 @@ export default async function handler(req: Request, _ctx: Context) {
       programName: r.program_name, fundName: r.fund_name,
     })), [] as any[]);
 
+    /* 지급 뒤 취소돼 실제 반환을 확인해야 하는 결재 */
+    const refunds = await safe("반환 확인 대기", async () => rowsOf(await db.execute(sql`
+      SELECT r.id, r.resolution_no, r.title, r.amount, r.payee_name, r.paid_at
+        FROM approval_requests r
+       WHERE r.refund_status = 'required'
+       ORDER BY r.updated_at DESC, r.id DESC LIMIT 100`)).map((r: any) => ({
+      id: Number(r.id), resolutionNo: r.resolution_no, title: r.title, amount: Number(r.amount),
+      payeeName: r.payee_name, paidOn: r.paid_at ? ymd(r.paid_at) : null,
+    })), [] as any[]);
+
     /* 장부 기간 안의 출금 중 결재·지출과 연결되지 않은 것 */
     const noApproval = await safe("결재 없는 출금", async () => rowsOf(await db.execute(sql`
       SELECT b.id, b.txn_date, b.amount, b.description, b.counterpart_name, b.status, b.voucher_id,
@@ -126,7 +136,7 @@ export default async function handler(req: Request, _ctx: Context) {
       data: {
         ledgerStart: start, sourceLabels: SOURCE_LABEL,
         sync: { ...pending, drafts, lastRun },
-        bank, settlement, unpaid, noApproval, directExpenses,
+        bank, settlement, unpaid, refunds, noApproval, directExpenses,
       },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {

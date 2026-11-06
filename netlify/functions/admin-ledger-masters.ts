@@ -9,6 +9,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
 import { LEDGER_FUNCTIONS } from "../../lib/ledger-post";
 import { charterGap, loadFiscalYears } from "../../lib/ledger-report";
+import { loadAllocationRules } from "../../lib/ledger-settlement";
 
 export const config = { path: "/api/admin-ledger-masters" };
 
@@ -70,12 +71,13 @@ export default async function handler(req: Request, _ctx: Context) {
     /* 수입 분류 연결과 인건비 배부: 보조 조회 */
     let revenueCategories: any[] = [];
     let staff: any[] = [];
+    let allocationRules: any[] = [];
     try {
       revenueCategories = rowsOf(await db.execute(sql`
         SELECT id, code, name, account_code FROM revenue_categories WHERE is_active = TRUE ORDER BY sort_order, id`))
         .map((r: any) => ({ id: Number(r.id), code: r.code, name: r.name, accountCode: r.account_code }));
       staff = rowsOf(await db.execute(sql`
-        SELECT m.id, m.name, s.function_code, s.program_id, s.fund_id
+        SELECT m.id, m.name, s.function_code, s.program_id, s.fund_id, s.rule_id
           FROM members m
           LEFT JOIN ledger_staff_allocations s ON s.member_id = m.id
          WHERE m.type = 'admin' AND m.status = 'active' AND m.operator_active = TRUE
@@ -83,7 +85,9 @@ export default async function handler(req: Request, _ctx: Context) {
         memberId: Number(r.id), name: r.name, functionCode: r.function_code,
         programId: r.program_id == null ? null : Number(r.program_id),
         fundId: r.fund_id == null ? null : Number(r.fund_id),
+        ruleId: r.rule_id == null ? null : Number(r.rule_id),
       }));
+      allocationRules = await loadAllocationRules();
     } catch (err: any) {
       console.warn("[ledger-masters] 수입 분류·배부 조회 실패:", err?.message);
     }
@@ -100,7 +104,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
     return new Response(jsonKST({
       ok: true,
-      data: { accounts, programs, funds, functions: LEDGER_FUNCTIONS, fiscalYears, charterGap: gap, revenueCategories, staff },
+      data: { accounts, programs, funds, functions: LEDGER_FUNCTIONS, fiscalYears, charterGap: gap, revenueCategories, staff, allocationRules },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return jsonError(step, err);

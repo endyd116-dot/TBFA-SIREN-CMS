@@ -1,10 +1,12 @@
 /**
  * POST /api/admin-approval-pay
- * body: { requestId, paidAt:'YYYY-MM-DD', payAccountCode?, bankTxnId? }
+ * body: { requestId, paidAt:'YYYY-MM-DD', evidenceChecked:true, payAccountCode?, bankTxnId? }
  *
  * 지급 확인. 승인된 결재의 돈이 실제로 나간 시점에 지출을 만들고 장부에 옮긴다.
  * 승인만으로는 예약일 뿐이며, 이 처리가 끝나야 손익·집행에 들어간다.
  * 통장 출금을 연결하면 그 거래는 처리 완료가 되고 결재 없는 출금에서 빠진다.
+ * 설계도 10·14쪽: 지급일 입력과 증빙 확인 뒤 처리하고, 전용 권한(finance_payment_confirm)으로 막는다.
+ * 금액은 승인액 그대로다. 실제 지급액이 다르면 체크하지 않고 정정 또는 취소·재기안한다.
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
@@ -13,6 +15,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
 import { LedgerError, ledgerActor, ledgerErrorBody, recordHistory } from "../../lib/ledger-post";
 import { syncLedger } from "../../lib/ledger-auto";
+import { budgetPosition, lockBudget, recordBudgetLedger } from "../../lib/budget-ledger";
 
 export const config = { path: "/api/admin-approval-pay" };
 
@@ -35,6 +38,9 @@ export default async function handler(req: Request, _ctx: Context) {
   if (!requestId || !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) {
     return new Response(jsonKST({ ok: false, error: "requestId, paidAt(YYYY-MM-DD) 필수" }), { status: 400, headers: JSON_HEADERS });
   }
+  if (body?.evidenceChecked !== true) {
+    return new Response(jsonKST({ ok: false, error: "증빙을 확인한 뒤 체크해 주세요" }), { status: 400, headers: JSON_HEADERS });
+  }
 
   const myId = Number(auth.ctx.admin.uid);
   const actor = ledgerActor(auth);
@@ -47,6 +53,11 @@ export default async function handler(req: Request, _ctx: Context) {
       if (!r) throw new LedgerError("결재를 찾을 수 없습니다", 404);
       if (r.status !== "approved") throw new LedgerError("최종 승인된 결재만 지급 확인할 수 있습니다.");
       if (r.payment_status !== "unpaid") throw new LedgerError("이미 지급 확인된 결재입니다.");
+
+      const year = Number(r.fiscal_year);
+      const budgetAccountId = r.budget_account_id == null ? null : Number(r.budget_account_id);
+      await lockBudget(tx, year, budgetAccountId);
+      const position = await budgetPosition(tx, year, budgetAccountId);
 
       let cashCode = payAccountCode;
       if (bankTxnId) {
@@ -81,6 +92,10 @@ export default async function handler(req: Request, _ctx: Context) {
            SET payment_status = 'paid', paid_at = ${paidAt}, paid_by = ${myId}, bank_txn_id = ${bankTxnId},
                pay_account_code = ${cashCode}, expense_id = ${expenseId}, updated_at = NOW()
          WHERE id = ${requestId}`);
+      await recordBudgetLedger(tx, {
+        year, budgetAccountId, documentId: requestId, documentNo: r.resolution_no, type: "execute",
+        amount: Number(r.amount), before: position, paidOn: paidAt, actor, key: `execute:approval:${requestId}`,
+      });
       await recordHistory(tx, {
         entity: "approval", entityId: requestId, action: "paid", actor,
         after: { resolutionNo: r.resolution_no, amount: Number(r.amount), paidAt, expenseId, bankTxnId },

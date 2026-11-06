@@ -3,6 +3,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
+import { voucherCostsByMok } from "../../lib/finance-budget-report";
 
 export const config = { path: "/api/admin-budget-plan-create" };
 
@@ -61,6 +62,9 @@ export default async function handler(req: Request, _ctx: Context) {
     for (const r of (actuals?.rows ?? actuals ?? [])) {
       prevActualMap.set(Number(r.budget_account_id), Number(r.actual));
     }
+    /* 급여처럼 전표로만 있는 비용도 전년 실적이다 */
+    const { byMok } = await voucherCostsByMok(db, prevYear);
+    for (const [mok, amount] of byMok) prevActualMap.set(mok, (prevActualMap.get(mok) ?? 0) + amount);
   } catch (err: any) {
     console.warn("전년 실적 집계 실패 (빈 값으로 계속):", err?.message);
   }

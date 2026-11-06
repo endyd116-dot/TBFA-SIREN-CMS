@@ -4,7 +4,8 @@
  *
  * 3계층 직책: operator(기안)/admin(국장·1차)/super_admin(이사장·최종).
  * - 현재 단계 직책을 승인 권한 있는 사람만 결재(super_admin 전권·위임 반영).
- * - 마지막 단계 승인 시: 미지급 상태로 예약하고 지출결의서를 발행한다. 지출은 지급 확인 때 만든다.
+ * - 마지막 단계 승인 시: 예산을 잠그고 사용가능액을 다시 계산한 뒤 미지급 상태로 예약하고 지출결의서를 발행한다.
+ *   지출은 지급 확인 때 만든다. 승인된 예산안이 없는 연도는 사용가능액을 판단할 수 없어 검사를 건너뛴다(설계도 10·14쪽).
  * - (2026-11-06 이전 동작) 마지막 단계 승인 시: 지출(expenses) 생성·예산 목에 집행 물림 + 지출결의서 정식번호 발행.
  *
  * 2026-11-06: 상태 확인부터 지출 생성·번호 발행까지 한 트랜잭션으로 묶었다.
@@ -21,6 +22,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
 import { createNotification, notifyMany } from "../../lib/notify";
 import { buildAndStoreResolutionPdf } from "../../lib/resolution-pdf-store";
+import { budgetPosition, lockBudget, recordBudgetLedger } from "../../lib/budget-ledger";
 
 export const config = { path: "/api/admin-approval-decide" };
 
@@ -145,13 +147,28 @@ export default async function handler(req: Request, _ctx: Context) {
 
       /* ── 최종 승인: 지출결의서 번호 발행. 지출은 지급 확인 때 만든다(승인 = 예약) ── */
       const expenseId: number | null = null;
-      const resolutionNo = await nextResolutionNo(tx, Number(r.fiscal_year));
+      const year = Number(r.fiscal_year);
+      const budgetAccountId = r.budget_account_id == null ? null : Number(r.budget_account_id);
+      const amount = Number(r.amount);
+      await lockBudget(tx, year, budgetAccountId);
+      const position = await budgetPosition(tx, year, budgetAccountId);
+      if (position.hasPlan && amount > position.available) {
+        throw new DecideStop(
+          `예산 사용가능액을 넘어 승인할 수 없습니다. 사용가능액 ${position.available.toLocaleString("ko-KR")}원, 결재 금액 ${amount.toLocaleString("ko-KR")}원`,
+          422,
+        );
+      }
+      const resolutionNo = await nextResolutionNo(tx, year);
       await tx.execute(sql`
         UPDATE approval_requests
            SET status = 'approved', decided_at = NOW(), updated_at = NOW(),
                payment_status = 'unpaid', resolution_no = ${resolutionNo}, resolution_issued_at = NOW()
          WHERE id = ${requestId}
       `);
+      await recordBudgetLedger(tx, {
+        year, budgetAccountId, documentId: requestId, documentNo: resolutionNo, type: "reserve", amount,
+        before: position, actor: { id: myId, name: me.name ?? "" }, key: `reserve:approval:${requestId}`,
+      });
       return { kind: "approved", r, expenseId, resolutionNo };
     });
   } catch (err: any) {

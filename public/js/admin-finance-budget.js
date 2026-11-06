@@ -7,6 +7,9 @@
   let currentPlanId = null;   // 편집 중인 budget_plan id
   let planList     = [];      // 목록 캐시
   let lineEdits    = {};      // { lineId: amount } 편성 편집 중 값
+  let extras       = null;    // 수입 예산·목 나누기·전기이월
+  let ledgerMasters = null;   // 수익 계정·사업·재원 목록
+  let composeLines = [];      // 편집 중 예산안의 목 줄
 
   /* ── API 헬퍼 ── */
   function api(method, path, body) {
@@ -306,6 +309,7 @@
         <td style="font-weight:700;color:#7a1f2b">관 · ${escapeHtml(g.name)}</td>
         <td></td>
         <td class="num" style="font-weight:700"><span class="bp-gwan-sum" data-g="${gk}">${fmtKRW(gwanSum[gk] || 0)}</span></td>
+        <td></td>
       </tr>`;
       Object.keys(g.hangs).forEach(hk => {
         const h = g.hangs[hk];
@@ -313,6 +317,7 @@
           <td style="padding-left:24px;font-weight:600;color:#b45309">항 · ${escapeHtml(h.name)}</td>
           <td></td>
           <td class="num" style="font-weight:600;color:#b45309"><span class="bp-hang-sum" data-h="${hk}">${fmtKRW(hangSum[hk] || 0)}</span></td>
+          <td></td>
         </tr>`;
         h.lines.forEach(l => {
           const prev = l.prevYearActual || 0;
@@ -324,6 +329,8 @@
             <td class="num">${editable
               ? `<input type="number" class="input-sm bp-line-input" style="width:150px;text-align:right" data-lid="${l.id}" data-g="${gk}" data-h="${hk}" value="${plan_}" min="0">`
               : fmtKRW(plan_)}</td>
+            <td style="white-space:nowrap"><span class="bp-split-tag" data-lid="${l.id}" style="font-size:12px;color:var(--text-3)"></span>
+              ${editable ? `<button class="btn-sm btn-sm-ghost bp-split-btn" type="button" data-lid="${l.id}">나누기</button>` : ''}</td>
           </tr>`;
         });
       });
@@ -344,6 +351,7 @@
             <th>예산과목 (관 · 항 · 목)</th>
             <th class="num">전년 실적</th>
             <th class="num">편성 금액 (원)</th>
+            <th>사업·활동·재원</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -352,14 +360,21 @@
             <td>총계</td>
             <td></td>
             <td class="num" id="bpComposeTotal">${fmtKRW(totalPlanned)}</td>
+            <td></td>
           </tr>
         </tfoot>
       </table>
+      <div id="bpExtras"></div>
       ${status === 'rejected' && (plan?.rejection_reason || plan?.rejectionReason)
         ? `<div style="margin-bottom:12px;font-size:13px;color:var(--danger);background:#fee2e2;border-radius:8px;padding:10px 14px">반려 사유: ${escapeHtml(plan?.rejection_reason || plan?.rejectionReason)}</div>`
         : ''}
       <div style="display:flex;gap:8px;justify-content:flex-end">${submitBtn}</div>
     `;
+
+    composeLines = lines;
+    await loadExtras(editable);
+    bodyEl.querySelectorAll('.bp-split-btn').forEach(b =>
+      b.addEventListener('click', () => openSplit(Number(b.dataset.lid), editable)));
 
     if (editable) {
       const recompute = () => {
@@ -383,6 +398,150 @@
         saveDraft(true);
       });
     }
+  }
+
+  /* ── 수입 예산, 전기이월, 수지 합계, 목 나누기 ── */
+  const FN_NAME = { service: '사업수행', admin: '일반관리', fundraising: '모금' };
+
+  async function loadExtras(editable) {
+    const box = document.getElementById('bpExtras');
+    if (!box) return;
+    const [ex, ms] = await Promise.all([
+      api('GET', `/api/admin-budget-plan-extras?planId=${currentPlanId}`),
+      ledgerMasters ? Promise.resolve(null) : api('GET', '/api/admin-ledger-masters'),
+    ]);
+    if (ms && ms.ok) ledgerMasters = ms.data?.data || ms.data;
+    if (!ex.ok) { box.innerHTML = `<div style="color:var(--danger);font-size:13px;margin-bottom:12px">수입 예산을 불러오지 못했습니다. ${escapeHtml(ex.error || '')}</div>`; return; }
+    extras = ex.data?.data || ex.data;
+    renderExtras(editable);
+  }
+
+  function renderExtras(editable) {
+    const box = document.getElementById('bpExtras');
+    if (!box || !extras) return;
+    const accounts = (ledgerMasters?.accounts || []).filter(a => a.kind === 'revenue' && a.isActive
+      && !(ledgerMasters.accounts || []).some(b => b.parentCode === a.code));
+    const funds = (ledgerMasters?.funds || []).filter(f => f.isActive);
+    const prevOf = code => (extras.prevRevenue || []).find(p => p.accountCode === code)?.amount || 0;
+    const row = l => `<tr class="bp-rev-row">
+      <td>${editable ? `<select class="input-sm bp-rev-acc" style="width:100%">${accounts.map(a => `<option value="${escapeHtml(a.code)}"${a.code === l.accountCode ? ' selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}</select>` : escapeHtml(l.accountName || '')}</td>
+      <td>${editable ? `<select class="input-sm bp-rev-fund" style="width:100%"><option value="">재원 선택</option>${funds.map(f => `<option value="${f.id}"${f.id === l.fundId ? ' selected' : ''}>${escapeHtml(f.name)}</option>`).join('')}</select>` : escapeHtml(funds.find(f => f.id === l.fundId)?.name || '')}</td>
+      <td class="num" style="color:var(--text-2)">${fmtKRW(l.prevYearActual || prevOf(l.accountCode))}</td>
+      <td class="num">${editable ? `<input type="number" class="input-sm bp-rev-amt" style="width:150px;text-align:right" min="0" value="${l.plannedAmount || 0}">` : fmtKRW(l.plannedAmount)}</td>
+      <td>${editable ? '<button class="btn-sm btn-sm-ghost bp-rev-del" type="button">삭제</button>' : ''}</td>
+    </tr>`;
+    const st = extras.statement || { revenueTotal: 0, expenseTotal: 0, carryIn: 0, carryOut: 0 };
+    box.innerHTML = `
+      <div style="font-weight:600;margin:6px 0">수입 예산</div>
+      <table class="data-table" style="width:100%;margin-bottom:8px">
+        <thead><tr><th>수입 과목</th><th>재원</th><th class="num">전년 실적</th><th class="num">예산액 (원)</th><th></th></tr></thead>
+        <tbody id="bpRevBody">${(extras.revenueLines || []).map(row).join('')
+          || (editable ? '' : '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">수입 예산이 없습니다.</td></tr>')}</tbody>
+      </table>
+      ${editable ? `<div style="display:flex;gap:6px;margin-bottom:14px">
+        <button class="btn-sm btn-sm-ghost" type="button" id="bpRevAdd">+ 수입 과목 추가</button>
+        <button class="btn-sm btn-sm-primary" type="button" id="bpRevSave">수입 예산 저장</button></div>` : ''}
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:13px">
+        <span style="font-weight:600">전기이월금</span>
+        ${editable ? `<input type="number" id="bpCarry" class="input-sm" style="width:150px;text-align:right" value="${extras.plan.carryIn || 0}">
+          <button class="btn-sm btn-sm-ghost" type="button" id="bpCarrySave">저장</button>
+          ${extras.cashAtPrevEnd ? `<button class="btn-sm btn-sm-ghost" type="button" id="bpCarryFill">전년 말 잔액 ${fmtKRW(extras.cashAtPrevEnd)} 넣기</button>` : ''}` : fmtKRW(extras.plan.carryIn)}
+      </div>
+      <div style="font-size:13px;margin-bottom:14px">전기이월 ${fmtKRW(st.carryIn)} + 수입 ${fmtKRW(st.revenueTotal)} − 지출 ${fmtKRW(st.expenseTotal)} = <strong>차기이월 ${fmtKRW(st.carryOut)}</strong>
+        <span style="color:var(--text-3)">저장된 값 기준</span></div>`;
+
+    /* 목 줄 표시 */
+    document.querySelectorAll('.bp-split-tag').forEach(el => {
+      const lid = Number(el.dataset.lid);
+      const line = composeLines.find(l => l.id === lid);
+      const splits = (extras.splits || []).filter(s => s.lineId === lid);
+      if (!splits.length) { el.textContent = ''; el.style.color = 'var(--text-3)'; return; }
+      const sum = splits.reduce((t, s) => t + s.amount, 0);
+      const mismatch = line && sum !== (line.plannedAmount || 0);
+      el.textContent = mismatch ? '나눈 합계가 편성액과 다릅니다' : `${splits.length}개로 나눔`;
+      el.style.color = mismatch ? 'var(--danger)' : 'var(--text-3)';
+    });
+
+    if (!editable) return;
+    const blank = { accountCode: accounts[0]?.code, plannedAmount: 0 };
+    document.getElementById('bpRevAdd')?.addEventListener('click', () => {
+      document.getElementById('bpRevBody').insertAdjacentHTML('beforeend', row(blank));
+    });
+    document.getElementById('bpRevBody')?.addEventListener('click', e => {
+      if (e.target.classList.contains('bp-rev-del')) e.target.closest('tr').remove();
+    });
+    document.getElementById('bpRevSave')?.addEventListener('click', async () => {
+      const lines = [...document.querySelectorAll('#bpRevBody .bp-rev-row')].map(tr => ({
+        accountCode: tr.querySelector('.bp-rev-acc').value,
+        fundId: tr.querySelector('.bp-rev-fund').value ? Number(tr.querySelector('.bp-rev-fund').value) : null,
+        plannedAmount: parseInt(tr.querySelector('.bp-rev-amt').value) || 0,
+        prevYearActual: prevOf(tr.querySelector('.bp-rev-acc').value),
+      }));
+      await saveExtras({ action: 'revenue', lines }, editable);
+    });
+    document.getElementById('bpCarrySave')?.addEventListener('click', () =>
+      saveExtras({ action: 'carry', carryIn: parseInt(document.getElementById('bpCarry').value) || 0 }, editable));
+    document.getElementById('bpCarryFill')?.addEventListener('click', () =>
+      saveExtras({ action: 'carry', carryIn: extras.cashAtPrevEnd }, editable));
+  }
+
+  async function saveExtras(payload, editable) {
+    const res = await api('POST', '/api/admin-budget-plan-extras', { planId: currentPlanId, ...payload });
+    if (!res.ok) { alert(res.data?.error || res.error || '저장 실패'); return false; }
+    extras = res.data?.data || res.data;
+    renderExtras(editable);
+    return true;
+  }
+
+  function openSplit(lineId, editable) {
+    const line = composeLines.find(l => l.id === lineId);
+    if (!line) return;
+    const input = document.querySelector(`.bp-line-input[data-lid="${lineId}"]`);
+    const planned = line.plannedAmount || 0;
+    if (input && (parseInt(input.value) || 0) !== planned) { alert('편성 금액을 먼저 임시저장한 뒤 나누어 주세요.'); return; }
+    const programs = (ledgerMasters?.programs || []).filter(p => p.isActive);
+    const funds = (ledgerMasters?.funds || []).filter(f => f.isActive);
+    const saved = (extras?.splits || []).filter(s => s.lineId === lineId);
+    const rowHtml = s => `<div class="bp-sp-row" style="display:flex;gap:6px;margin-bottom:6px">
+      <select class="input-sm bp-sp-fn" style="flex:1"><option value="">활동</option>${Object.keys(FN_NAME).map(k => `<option value="${k}"${k === s.functionCode ? ' selected' : ''}>${FN_NAME[k]}</option>`).join('')}</select>
+      <select class="input-sm bp-sp-pg" style="flex:1"><option value="">사업</option>${programs.map(p => `<option value="${p.id}"${p.id === s.programId ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}</select>
+      <select class="input-sm bp-sp-fd" style="flex:1"><option value="">재원</option>${funds.map(f => `<option value="${f.id}"${f.id === s.fundId ? ' selected' : ''}>${escapeHtml(f.name)}</option>`).join('')}</select>
+      <input class="input-sm bp-sp-amt" type="number" min="0" value="${s.amount || ''}" style="width:120px;text-align:right">
+    </div>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-backdrop';
+    wrap.style.display = 'flex';
+    wrap.innerHTML = `<div class="modal" style="max-width:640px">
+      <div class="modal-head"><span class="modal-title">${escapeHtml(line.mokName || '')} 나누기</span><button class="modal-close" type="button" data-close>×</button></div>
+      <div class="modal-body">
+        <div style="font-size:13px;margin-bottom:8px">편성액 <strong>${fmtKRW(planned)}</strong>을 사업·활동·재원별로 나눕니다. 합계가 편성액과 같아야 합니다.</div>
+        <div id="bpSpRows">${(saved.length ? saved : [{}]).map(rowHtml).join('')}</div>
+        <button class="btn-sm btn-sm-ghost" type="button" id="bpSpAdd">+ 줄 추가</button>
+      </div>
+      <div id="bpSpError" style="color:var(--danger);font-size:13px;padding:0 20px 8px;display:none"></div>
+      <div class="modal-foot"><button class="btn-sm btn-sm-ghost" type="button" data-close>취소</button><button class="btn-sm btn-sm-primary" type="button" id="bpSpSave">저장</button></div>
+    </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => wrap.remove()));
+    wrap.querySelector('#bpSpAdd').addEventListener('click', () => wrap.querySelector('#bpSpRows').insertAdjacentHTML('beforeend', rowHtml({})));
+    wrap.querySelector('#bpSpSave').addEventListener('click', async () => {
+      const splits = [...wrap.querySelectorAll('.bp-sp-row')].map(r => ({
+        functionCode: r.querySelector('.bp-sp-fn').value || null,
+        programId: r.querySelector('.bp-sp-pg').value ? Number(r.querySelector('.bp-sp-pg').value) : null,
+        fundId: r.querySelector('.bp-sp-fd').value ? Number(r.querySelector('.bp-sp-fd').value) : null,
+        amount: parseInt(r.querySelector('.bp-sp-amt').value) || 0,
+      }));
+      const res = await api('POST', '/api/admin-budget-plan-extras', { planId: currentPlanId, action: 'splits', lineId, splits });
+      if (!res.ok) {
+        const el = wrap.querySelector('#bpSpError');
+        el.textContent = res.data?.error || res.error || '저장 실패';
+        el.style.display = '';
+        return;
+      }
+      extras = res.data?.data || res.data;
+      wrap.remove();
+      renderExtras(editable);
+    });
   }
 
   async function saveDraft(doSubmit) {

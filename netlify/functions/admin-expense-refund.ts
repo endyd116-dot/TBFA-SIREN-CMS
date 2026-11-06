@@ -5,6 +5,8 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { roleForbidden } from "../../lib/admin-role";
 import { eq } from "drizzle-orm";
+import { syncLedger } from "../../lib/ledger-auto";
+import { budgetPosition, recordBudgetLedger } from "../../lib/budget-ledger";
 
 export const config = { path: "/api/admin-expense-refund" };
 
@@ -88,6 +90,23 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const r = updated[0];
+
+  /* 환입은 예산 원장에 남기고 장부에 바로 옮긴다. 실패해도 환불 처리는 유효하고 야간 반영에서 처리된다 */
+  try {
+    const budgetAccountId = (r as any).budgetAccountId == null ? null : Number((r as any).budgetAccountId);
+    const year = Number(r.fiscalYear);
+    const position = await budgetPosition(db, year, budgetAccountId);
+    await recordBudgetLedger(db, {
+      year, budgetAccountId, documentType: "expense", documentId: Number(r.id), type: "refund", amount: incremental,
+      before: { ...position, executed: position.executed + incremental },
+      actor: { id: Number(auth.ctx.admin.uid), name: auth.ctx.member.name ?? "" },
+      key: `refund:expense:${r.id}:${newTotalRefund}`,
+    });
+    await syncLedger({ only: ["expense_refund"] });
+  } catch (err: any) {
+    console.warn("[expense-refund] 원장·장부 반영 실패:", err?.message);
+  }
+
   return new Response(jsonKST({
     ok: true,
     data: {

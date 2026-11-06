@@ -58,6 +58,7 @@ export const PERMISSION_CATALOG: PermissionDef[] = [
   /* ── 재정 ── */
   { key: "finance_view",            label: "재정 조회(손익·결제내역·보고서)",   category: "finance", adminDefault: true, operatorDefault: false },
   { key: "finance_bookkeeping",     label: "재정 기록(지출·예산·전표·통장)",     category: "finance", adminDefault: true, operatorDefault: false },
+  { key: "finance_payment_confirm", label: "지출완료 확인(사무국장)",            category: "finance", adminDefault: true, operatorDefault: false },
   { key: "finance_ledger_manage",   label: "장부 관리(월 마감·사업·재원·계정과목)", category: "finance", adminDefault: true, operatorDefault: false },
   { key: "finance_approval_submit", label: "지출 결재 기안 올리기",              category: "finance", adminDefault: true, operatorDefault: true },
   { key: "finance_refund",          label: "후원 환불 처리",                     category: "finance", adminDefault: true, operatorDefault: false },

@@ -6,6 +6,7 @@ import { requireRole, roleForbidden } from "../../lib/admin-role";
 import { eq } from "drizzle-orm";
 
 import { syncLedger } from "../../lib/ledger-auto";
+import { budgetPosition, recordBudgetLedger } from "../../lib/budget-ledger";
 
 export const config = { path: "/api/admin-expense-approve" };
 
@@ -85,6 +86,21 @@ export default async function handler(req: Request): Promise<Response> {
 
   /* 승인된 지출은 바로 장부에 옮긴다. 실패해도 야간 반영에서 처리된다 */
   if (action === "approve") {
+    try {
+      const budgetAccountId = (r as any).budgetAccountId == null ? null : Number((r as any).budgetAccountId);
+      const year = Number(r.fiscalYear);
+      const position = await budgetPosition(db, year, budgetAccountId);
+      /* 승인이 이미 반영된 뒤라 집행 전 금액으로 되돌려 기록한다 */
+      await recordBudgetLedger(db, {
+        year, budgetAccountId, documentType: "expense", documentId: Number(r.id), type: "execute", amount: Number(r.amount),
+        before: { ...position, executed: position.executed - Number(r.amount), reserved: position.reserved + Number(r.amount) },
+        paidOn: String(r.occurredAt ?? "").slice(0, 10) || null,
+        actor: { id: Number(auth.ctx.admin.uid), name: auth.ctx.member.name ?? "" },
+        key: `execute:expense:${r.id}`, note: "직접 등록 지출",
+      });
+    } catch (err: any) {
+      console.warn("[expense-approve] 예산 원장 기록 실패:", err?.message);
+    }
     try { await syncLedger({ only: ["expense"] }); }
     catch (err: any) { console.warn("[expense-approve] 장부 반영 실패(야간 재시도):", err?.message); }
   }

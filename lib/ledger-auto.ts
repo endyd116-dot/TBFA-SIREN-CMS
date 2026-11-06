@@ -12,7 +12,7 @@ import { nextVoucherNumber } from "./voucher-number";
 import { loadFiscalYears, type FiscalYear } from "./ledger-report";
 import {
   type LedgerAccount, type LedgerActor, type LedgerLine,
-  headerFromLines, lineProblems, loadAccounts, recordHistory, reverseVoucher, storedLine, ymd,
+  headerFromLines, lineProblems, loadAccounts, recordHistory, reverseVoucher, splitByRatio, storedLine, ymd,
 } from "./ledger-post";
 
 const rowsOf = (r: any): any[] => r?.rows ?? r ?? [];
@@ -249,10 +249,11 @@ async function collectPayroll(ctx: Context, limit: number): Promise<Entry[]> {
   const rows = rowsOf(await db.execute(sql`
     SELECT p.id, p.member_uid, p.pay_year, p.pay_month, p.gross_pay, p.total_deduction, p.net_pay,
            p.performance_bonus, p.perfect_bonus, ${kstDate(sql`p.paid_at`)} AS paid_on,
-           m.name AS member_name, s.function_code, s.program_id, s.fund_id
+           m.name AS member_name, s.function_code, s.program_id, s.fund_id, r.lines AS rule_lines
       FROM payroll_slips p
       LEFT JOIN members m ON m.id::text = p.member_uid
       LEFT JOIN ledger_staff_allocations s ON s.member_id::text = p.member_uid
+      LEFT JOIN ledger_allocation_rules r ON r.id = s.rule_id AND r.is_active = TRUE
      WHERE p.status = 'PAID' AND p.paid_at IS NOT NULL
        AND p.paid_at >= (${ctx.start}::date - INTERVAL '1 day')
        AND ${noVoucher("payroll", sql`p.id::text`)}
@@ -272,9 +273,16 @@ async function collectPayroll(ctx: Context, limit: number): Promise<Entry[]> {
       programId: r.program_id == null ? null : Number(r.program_id),
       fundId: r.fund_id == null ? (ctx.funds.get("F02") ?? null) : Number(r.fund_id),
     };
-    const lines: LedgerLine[] = [];
-    if (gross - bonus > 0) lines.push(line("5011", gross - bonus, 0, tags));
-    if (bonus > 0) lines.push(line("5015", bonus, 0, tags));
+    const rule = Array.isArray(r.rule_lines) ? r.rule_lines : [];
+    const cost = (code: string, amount: number): LedgerLine[] => {
+      if (amount <= 0) return [];
+      if (!rule.length) return [line(code, amount, 0, tags)];
+      return splitByRatio(amount, rule as { ratio: number; functionCode: string; programId: number | null; fundId: number | null }[])
+        .map((p) => line(code, p.amount, 0, {
+          functionCode: p.functionCode, programId: p.programId ?? null, fundId: p.fundId ?? tags.fundId,
+        }));
+    };
+    const lines: LedgerLine[] = [...cost("5011", gross - bonus), ...cost("5015", bonus)];
     if (deduction > 0) lines.push(line(withholding, 0, deduction));
     if (net > 0) lines.push(line(cash, 0, net));
     out.push({

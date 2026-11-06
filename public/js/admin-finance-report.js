@@ -88,6 +88,38 @@
     `;
   }
 
+  /* ── 장부 재무제표 표 ──
+     공식 재무제표는 장부에서 나온다. 화면·엑셀이 같은 행을 쓴다. */
+  function ledgerNotice(d) {
+    const start = d?.ledgerStart;
+    if (!start) return '';
+    return `<div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a5ec4;line-height:1.6">
+      장부 기준 재무제표입니다. 장부 시작일(${start}) 이전 거래는 포함되지 않습니다. 이전 기간의 후원·지출은 손익 현황에서 볼 수 있습니다.
+      결산 서류는 장부 › 결산에서 만듭니다.
+    </div>`;
+  }
+  function amountText(n) {
+    const v = fmtNum(n);
+    return v < 0 ? `(${(-v).toLocaleString('ko-KR')})` : v === 0 ? '-' : v.toLocaleString('ko-KR');
+  }
+  function ledgerRowsHtml(rows) {
+    return (rows || []).map(r => {
+      const strong = r.type === 'total' || r.type === 'subtotal' || r.type === 'head';
+      const cls = r.type === 'head' ? 'fr-section' : r.type === 'total' ? 'fr-subtotal' : '';
+      return `<tr class="${cls}">
+        <td style="padding-left:${8 + (r.level || 0) * 16}px;${strong ? 'font-weight:600' : ''}">${r.label}${r.warning ? ` <span class="print-hide" style="color:var(--danger);font-size:11px;font-weight:400">${r.warning}</span>` : ''}</td>
+        <td class="num">${r.type === 'head' ? '' : amountText(r.current?.total)}</td>
+      </tr>`;
+    }).join('');
+  }
+  function ledgerExcel(title, sub, rows, fileLabel) {
+    const aoa = [[orgName], [title], [sub], ['생성일시', nowStr()], [], ['과목', '금액(원)']];
+    (rows || []).forEach(r => aoa.push(['  '.repeat(r.level || 0) + r.label, r.type === 'head' ? '' : fmtNum(r.current?.total)]));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), title);
+    XLSX.writeFile(wb, `SIREN_${title}_${String(fileLabel).replace(/[~\s]/g, '')}.xlsx`);
+  }
+
   /* ── 탭 전환 ── */
   function switchTab(tab) {
     currentTab = tab;
@@ -108,14 +140,14 @@
      ════════════════════════════════════════════ */
   async function loadPl() {
     const pd = getFrPeriodQs();
-    const params = new URLSearchParams({ period: pd.period });
+    const params = new URLSearchParams({ doc: 'operating', period: pd.period });
     if (pd.startDate) params.set('startDate', pd.startDate);
     if (pd.endDate)   params.set('endDate',   pd.endDate);
 
     const pane = document.getElementById('frPane-pl');
     if (pane) pane.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:40px">불러오는 중…</div>`;
 
-    const res = await apiFetch('/api/admin-finance-pl-summary?' + params);
+    const res = await apiFetch('/api/admin-ledger-statements?' + params);
     if (!res.ok) {
       if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">운영성과표 조회 실패: ${res.data?.error || res.error || ''}</div>`;
       return;
@@ -129,106 +161,13 @@
     lastPlData = pl;
     const pane = document.getElementById('frPane-pl');
     if (!pane) return;
-
-    const rev = pl.revenue || {};
-    const don = rev.donations || {};
-    const oth = rev.other || {};
-    const exp = pl.expenditure || {};
-
-    // Ⅰ 사업수익
-    const donNet      = fmtNum(don.net);
-    const othNet      = fmtNum(oth.net);
-    const revTotalNet = fmtNum(rev.totalNet);
-
-    const othCatRows = (oth.byCategory || []).map(c =>
-      `<tr>
-        <td class="fr-indent2">· ${c.name}</td>
-        <td class="num"></td>
-        <td class="num">${fmtKRW(c.net)}</td>
-      </tr>`
-    ).join('');
-
-    // Ⅱ 사업비용 — NPO 4분류로 매핑
-    const expByCat = exp.byCategory || [];
-    const expClassMap = {};
-    let expClassified = 0;
-    for (const c of expByCat) {
-      const amt = fmtNum(c.total != null ? c.total : c.amount);
-      const key = NPO_EXP_CLASSES.some(x => x.code === c.code) ? c.code : '__etc';
-      expClassMap[key] = (expClassMap[key] || 0) + amt;
-    }
-    const expClassRows = NPO_EXP_CLASSES.map((cls, idx) => {
-      const amt = fmtNum(expClassMap[cls.code]);
-      expClassified += amt;
-      return `<tr>
-        <td class="fr-indent1">${idx + 1}. ${cls.label}</td>
-        <td class="num"></td>
-        <td class="num">${fmtKRW(amt)}</td>
-      </tr>`;
-    }).join('');
-    const etcExp = fmtNum(expClassMap['__etc']);
-    const etcRow = etcExp > 0
-      ? `<tr><td class="fr-indent1">5. 기타비용</td><td class="num"></td><td class="num">${fmtKRW(etcExp)}</td></tr>`
-      : '';
-    const expTotal = fmtNum(exp.total);
-
-    // Ⅲ 운영성과
-    const result      = fmtNum(pl.netIncome);
-    const resultColor = result >= 0 ? 'var(--success)' : 'var(--danger)';
-    const resultLabel = result >= 0 ? '운영성과 (잉여)' : '운영성과 (부족)';
-
     pane.innerHTML = `
       ${reportHeaderHtml('운영성과표', pl.__periodLabel)}
-
-      <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a5ec4;line-height:1.6">
-        <strong>운영성과표 = 수익(승인·완료된 거래) − 비용(승인된 지출)</strong>.
-        후원·후원 외 매출·지출의 상태가 <strong>"승인"</strong> 인 행만 집계됩니다.
-        직접 계좌이체로 신청만 하고 입금 확인 안 된 건(<code>pending_bank</code>)은 매출로 잡히지 않습니다 — [입금 매칭·통과]에서 통과 처리해야 합산됩니다.
-      </div>
-
+      ${ledgerNotice(pl)}
       <table class="data-table report-table fr-statement" style="width:100%">
-        <thead>
-          <tr><th style="width:60%">계정과목</th><th class="num">소계</th><th class="num">금액</th></tr>
-        </thead>
-        <tbody>
-          <!-- Ⅰ 사업수익 -->
-          <tr class="fr-section"><td colspan="3">Ⅰ. 사업수익</td></tr>
-          <tr>
-            <td class="fr-indent1">1. 후원금수익</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(donNet)}</td>
-          </tr>
-          <tr>
-            <td class="fr-indent1">2. 사업수익 (후원 외)</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(othNet)}</td>
-          </tr>
-          ${othCatRows}
-          <tr class="fr-subtotal">
-            <td>사업수익 계</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(revTotalNet)}</td>
-          </tr>
-
-          <!-- Ⅱ 사업비용 -->
-          <tr class="fr-section"><td colspan="3">Ⅱ. 사업비용</td></tr>
-          ${expClassRows}
-          ${etcRow}
-          <tr class="fr-subtotal">
-            <td>사업비용 계</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(expTotal)}</td>
-          </tr>
-
-          <!-- Ⅲ 운영성과 -->
-          <tr class="fr-result" style="background:${result >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)'}">
-            <td colspan="2">Ⅲ. ${resultLabel} (Ⅰ − Ⅱ)</td>
-            <td class="num" style="color:${resultColor};font-size:15px;font-weight:700">${fmtKRW(result)}</td>
-          </tr>
-        </tbody>
+        <thead><tr><th style="width:70%">과목</th><th class="num">금액(원)</th></tr></thead>
+        <tbody>${ledgerRowsHtml(pl.rows)}</tbody>
       </table>
-
-      <div class="fr-note">※ 수익·비용은 모두 환불 차감 후 순액 기준입니다.</div>
     `;
   }
 
@@ -328,95 +267,31 @@
   }
 
   /* ════════════════════════════════════════════
-     재정상태표 (간이판 — 통장 잔액 기반 현금성 자산)
+     재무상태표 (장부 기준)
      ════════════════════════════════════════════ */
   async function loadBalance() {
     const pane = document.getElementById('frPane-balance');
     if (pane) pane.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:40px">불러오는 중…</div>`;
 
-    const res = await apiFetch('/api/admin-finance-balance-sheet');
+    const res = await apiFetch('/api/admin-ledger-statements?doc=balance');
     if (!res.ok) {
-      if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">재정상태표 조회 실패: ${res.data?.error || res.error || ''}</div>`;
+      if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">재무상태표 조회 실패: ${res.data?.error || res.error || ''}</div>`;
       return;
     }
-    const bs = res.data?.data || res.data || res;
-    renderBalance(bs);
+    renderBalance(res.data?.data || res.data || res);
   }
 
   function renderBalance(bs) {
     lastBalanceData = bs;
     const pane = document.getElementById('frPane-balance');
     if (!pane) return;
-
-    const asset_   = bs.assets || {};
-    const liab_    = bs.liabilities || {};
-    const asOf      = bs.asOf || bs.asOfDate || bs.as_of_date || bs.date || '—';
-    const cashAsset = fmtNum(asset_.cash ?? bs.cashAssets ?? bs.cash_assets ?? bs.cashAsset ?? bs.bankBalance ?? bs.bank_balance ?? 0);
-    const totalAssets = fmtNum(asset_.total ?? bs.totalAssets ?? bs.total_assets ?? cashAsset);
-    const totalLiab   = fmtNum(liab_.total ?? bs.totalLiabilities ?? bs.total_liabilities ?? 0);
-    const netAssets   = fmtNum(bs.netAsset ?? bs.netAssets ?? bs.net_assets ?? (totalAssets - totalLiab));
-
-    /* 통장별 잔액 내역 (있으면) */
-    const accounts = bs.accounts || bs.bankAccounts || bs.bank_accounts || [];
-    const acctRows = accounts.map(a => `<tr>
-      <td class="fr-indent2">· ${a.name || a.bankName || a.bank_name || a.accountName || '통장'}</td>
-      <td class="num"></td>
-      <td class="num">${fmtKRW(fmtNum(a.balance ?? a.balanceAfter ?? a.balance_after ?? 0))}</td>
-    </tr>`).join('');
-
     pane.innerHTML = `
-      ${reportHeaderHtml('재정상태표', `${asOf} 기준`)}
-
-      <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7d5400;line-height:1.6">
-        <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
-        후원·후원외 매출·지출 입력값이 아니라 실제 통장의 잔액 변동만 반영하므로,
-        IBK CSV를 한 번도 업로드하지 않았다면 자산이 0으로 표시됩니다.
-        [입금 매칭·통과 → 자료 업로드·통과]에서 IBK 거래내역 CSV를 통과 처리해야 채워집니다.
-      </div>
-
+      ${reportHeaderHtml('재무상태표', `${bs.asOf} 현재`)}
+      ${ledgerNotice(bs)}
       <table class="data-table report-table fr-statement" style="width:100%">
-        <thead>
-          <tr><th style="width:60%">계정과목</th><th class="num">소계</th><th class="num">금액</th></tr>
-        </thead>
-        <tbody>
-          <tr class="fr-section"><td colspan="3">【자산】</td></tr>
-          <tr>
-            <td class="fr-indent1">현금성 자산 (통장 잔액)</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(cashAsset)}</td>
-          </tr>
-          ${acctRows}
-          <tr>
-            <td class="fr-indent1" style="color:var(--text-3)">비현금 자산</td>
-            <td class="num"></td>
-            <td class="num" style="color:var(--text-3)">해당 없음</td>
-          </tr>
-          <tr class="fr-subtotal">
-            <td>자산 총계</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(totalAssets)}</td>
-          </tr>
-
-          <tr class="fr-section"><td colspan="3">【부채】</td></tr>
-          <tr>
-            <td class="fr-indent1" style="color:var(--text-3)">부채</td>
-            <td class="num"></td>
-            <td class="num" style="color:var(--text-3)">해당 없음</td>
-          </tr>
-          <tr class="fr-subtotal">
-            <td>부채 총계</td>
-            <td class="num"></td>
-            <td class="num">${fmtKRW(totalLiab)}</td>
-          </tr>
-
-          <tr class="fr-result">
-            <td colspan="2">【순자산】 (자산 − 부채)</td>
-            <td class="num" style="font-size:15px;font-weight:700">${fmtKRW(netAssets)}</td>
-          </tr>
-        </tbody>
+        <thead><tr><th style="width:70%">과목</th><th class="num">금액(원)</th></tr></thead>
+        <tbody>${ledgerRowsHtml(bs.rows)}</tbody>
       </table>
-
-      <div class="fr-note">※ 간이 재정상태표입니다. 통장 잔액을 현금성 자산으로 집계하며, 비현금 자산·부채는 데이터가 없어 "해당 없음"으로 표기합니다.</div>
     `;
   }
 
@@ -528,7 +403,7 @@
   function printReport() {
     if (currentTab === 'pl'       && !lastPlData)       { alert('먼저 운영성과표를 조회해 주세요.'); return; }
     if (currentTab === 'budget'   && !lastBudgetData)   { alert('먼저 예산 대비 실적표를 조회해 주세요.'); return; }
-    if (currentTab === 'balance'  && !lastBalanceData)  { alert('먼저 재정상태표를 조회해 주세요.'); return; }
+    if (currentTab === 'balance'  && !lastBalanceData)  { alert('먼저 재무상태표를 조회해 주세요.'); return; }
     if (currentTab === 'cashflow' && !lastCashflowData) { alert('먼저 현금흐름표를 조회해 주세요.'); return; }
     window.print();
   }
@@ -546,7 +421,7 @@
       if (!lastBudgetData) { alert('먼저 예산 대비 실적표를 조회해 주세요.'); return; }
       exportExcelBudget();
     } else if (currentTab === 'balance') {
-      if (!lastBalanceData) { alert('먼저 재정상태표를 조회해 주세요.'); return; }
+      if (!lastBalanceData) { alert('먼저 재무상태표를 조회해 주세요.'); return; }
       exportExcelBalance();
     } else {
       if (!lastCashflowData) { alert('먼저 현금흐름표를 조회해 주세요.'); return; }
@@ -556,36 +431,7 @@
 
   function exportExcelBalance() {
     const bs = lastBalanceData;
-    const asset_   = bs.assets || {};
-    const liab_    = bs.liabilities || {};
-    const asOf      = bs.asOf || bs.asOfDate || bs.as_of_date || bs.date || '';
-    const cashAsset = fmtNum(asset_.cash ?? bs.cashAssets ?? bs.cash_assets ?? bs.cashAsset ?? bs.bankBalance ?? bs.bank_balance ?? 0);
-    const totalAssets = fmtNum(asset_.total ?? bs.totalAssets ?? bs.total_assets ?? cashAsset);
-    const totalLiab   = fmtNum(liab_.total ?? bs.totalLiabilities ?? bs.total_liabilities ?? 0);
-    const netAssets   = fmtNum(bs.netAsset ?? bs.netAssets ?? bs.net_assets ?? (totalAssets - totalLiab));
-    const accounts = bs.accounts || bs.bankAccounts || bs.bank_accounts || [];
-
-    const aoa = [
-      [orgName],
-      ['재정상태표'],
-      ['기준일', asOf],
-      ['생성일시', nowStr()],
-      [],
-      ['계정과목', '금액(원)'],
-      ['【자산】', ''],
-      ['  현금성 자산 (통장 잔액)', cashAsset],
-      ...accounts.map(a => ['    · ' + (a.name || a.bankName || a.bank_name || a.accountName || '통장'),
-        fmtNum(a.balance ?? a.balanceAfter ?? a.balance_after ?? 0)]),
-      ['  비현금 자산', '해당 없음'],
-      ['  자산 총계', totalAssets],
-      ['【부채】', ''],
-      ['  부채', '해당 없음'],
-      ['  부채 총계', totalLiab],
-      ['【순자산】 (자산 − 부채)', netAssets],
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '재정상태표');
-    XLSX.writeFile(wb, `SIREN_재정상태표_${String(asOf).replace(/[~\s]/g, '')}.xlsx`);
+    ledgerExcel('재무상태표', `${bs.asOf} 현재`, bs.rows, bs.asOf);
   }
 
   function exportExcelCashflow() {
@@ -623,41 +469,8 @@
   }
 
   function exportExcelPl() {
-    const pl  = lastPlData;
-    const rev = pl.revenue || {};
-    const don = rev.donations || {};
-    const oth = rev.other || {};
-    const exp = pl.expenditure || {};
-
-    const expByCat = exp.byCategory || [];
-    const expClassMap = {};
-    for (const c of expByCat) {
-      const amt = fmtNum(c.total != null ? c.total : c.amount);
-      const key = NPO_EXP_CLASSES.some(x => x.code === c.code) ? c.code : '__etc';
-      expClassMap[key] = (expClassMap[key] || 0) + amt;
-    }
-
-    const aoa = [
-      [orgName],
-      ['운영성과표'],
-      ['기간', pl.__periodLabel || ''],
-      ['생성일시', nowStr()],
-      [],
-      ['계정과목', '금액(원)'],
-      ['Ⅰ. 사업수익', ''],
-      ['  1. 후원금수익', fmtNum(don.net)],
-      ['  2. 사업수익 (후원 외)', fmtNum(oth.net)],
-      ...(oth.byCategory || []).map(c => ['    · ' + c.name, fmtNum(c.net)]),
-      ['  사업수익 계', fmtNum(rev.totalNet)],
-      ['Ⅱ. 사업비용', ''],
-      ...NPO_EXP_CLASSES.map((cls, i) => [`  ${i + 1}. ${cls.label}`, fmtNum(expClassMap[cls.code])]),
-      ...(fmtNum(expClassMap['__etc']) > 0 ? [['  5. 기타비용', fmtNum(expClassMap['__etc'])]] : []),
-      ['  사업비용 계', fmtNum(exp.total)],
-      ['Ⅲ. 운영성과 (Ⅰ − Ⅱ)', fmtNum(pl.netIncome)],
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '운영성과표');
-    XLSX.writeFile(wb, `SIREN_운영성과표_${(pl.__periodLabel || '').replace(/[~\s]/g, '')}.xlsx`);
+    const pl = lastPlData;
+    ledgerExcel('운영성과표', pl.__periodLabel || '', pl.rows, pl.__periodLabel || '');
   }
 
   function exportExcelBudget() {
@@ -713,9 +526,9 @@
       url = '/api/admin-finance-report-pdf?type=budget&year=' + pd.year;
       fname = `SIREN_예산대비실적표_${pd.year}.pdf`;
     } else if (currentTab === 'balance') {
-      if (!lastBalanceData) { alert('먼저 재정상태표를 조회해 주세요.'); return; }
-      url = '/api/admin-finance-report-pdf?type=balance';
-      fname = `SIREN_재정상태표_${(lastBalanceData.asOf || lastBalanceData.asOfDate || lastBalanceData.as_of_date || lastBalanceData.date || '').replace(/[~\s]/g, '')}.pdf`;
+      if (!lastBalanceData) { alert('먼저 재무상태표를 조회해 주세요.'); return; }
+      url = '/api/admin-finance-report-pdf?type=balance&asOf=' + encodeURIComponent(lastBalanceData.asOf || '');
+      fname = `SIREN_재무상태표_${String(lastBalanceData.asOf || '').replace(/[~\s]/g, '')}.pdf`;
     } else {
       if (!lastCashflowData) { alert('먼저 현금흐름표를 조회해 주세요.'); return; }
       const params = new URLSearchParams({ type: 'cashflow', period: pd.period });
@@ -835,7 +648,7 @@
         <div class="content-tabs print-hide" style="margin-bottom:20px">
           <button type="button" class="ct-tab on" id="frTab-pl"       onclick="window.SIREN_FINANCE_REPORT.switchTab('pl')">운영성과표</button>
           <button type="button" class="ct-tab"    id="frTab-budget"   onclick="window.SIREN_FINANCE_REPORT.switchTab('budget')">예산 대비 실적표</button>
-          <button type="button" class="ct-tab"    id="frTab-balance"  onclick="window.SIREN_FINANCE_REPORT.switchTab('balance')">재정상태표</button>
+          <button type="button" class="ct-tab"    id="frTab-balance"  onclick="window.SIREN_FINANCE_REPORT.switchTab('balance')">재무상태표</button>
           <button type="button" class="ct-tab"    id="frTab-cashflow" onclick="window.SIREN_FINANCE_REPORT.switchTab('cashflow')">현금흐름표</button>
         </div>
 

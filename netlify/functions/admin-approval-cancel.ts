@@ -4,7 +4,8 @@
  *
  * - cancel: 이미 최종 승인되어 지출결의서(정식 결의번호)가 발행된 건을 무효화.
  *   결의번호·발행 PDF는 감사 흔적으로 그대로 남기고 status만 'canceled'로 바꾼다.
- *   연결된 expenses.status도 'canceled'로 바꿔 예산 집행 합계(SUM WHERE status='approved')에서 자동 제외.
+ *   미지급 건은 예약만 해제한다. 지급된 건은 집행액을 그대로 두고 «반환 확인 필요»로 표시한다.
+ *   실제로 돈이 돌아온 것을 확인하기 전에는 자동으로 되돌리지 않는다(설계도 10·11쪽, admin-approval-refund).
  *   이사장(super_admin) 전용 — 이미 확정된 금액을 되돌리는 조작이라 가장 높은 권한만 허용.
  * - delete: 아직 결의번호가 발행되지 않은 건(대기중·반려)만 완전 삭제.
  *   결의번호가 한 번이라도 발행된 문서는 삭제 자체를 막는다(회계 문서 번호 결번 방지) —
@@ -15,7 +16,8 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
-import { syncLedger } from "../../lib/ledger-auto";
+import { ledgerActor } from "../../lib/ledger-post";
+import { budgetPosition, lockBudget, recordBudgetLedger } from "../../lib/budget-ledger";
 import { createNotification } from "../../lib/notify";
 import { logAdminAction } from "../../lib/audit";
 
@@ -63,26 +65,37 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (action === "cancel") {
     if (me.role !== "super_admin") return bad("결재취소는 이사장(super_admin) 전용입니다", 403);
+    let refundNeeded = false;
 
     try {
       // 지출과 결재 상태를 함께 바꾼다. 요청 행을 잠가 동시 취소를 막는다.
       const stale = await db.transaction(async (tx) => {
         const cur = (await rowsOf(await tx.execute(sql`
-          SELECT status, expense_id FROM approval_requests WHERE id = ${requestId} FOR UPDATE
+          SELECT status, payment_status, fiscal_year, budget_account_id, amount, resolution_no
+            FROM approval_requests WHERE id = ${requestId} FOR UPDATE
         `)))[0];
         if (!cur || cur.status !== "approved") return cur?.status ?? "없음";
-        if (cur.expense_id) {
-          await tx.execute(sql`UPDATE expenses SET status = 'canceled', updated_at = NOW() WHERE id = ${cur.expense_id}`);
+        refundNeeded = cur.payment_status === "paid";
+        if (refundNeeded) {
+          await tx.execute(sql`
+            UPDATE approval_requests SET status = 'canceled', refund_status = 'required', updated_at = NOW() WHERE id = ${requestId}
+          `);
+          return null;
         }
+        const year = Number(cur.fiscal_year);
+        const budgetAccountId = cur.budget_account_id == null ? null : Number(cur.budget_account_id);
+        await lockBudget(tx, year, budgetAccountId);
+        const position = await budgetPosition(tx, year, budgetAccountId);
         await tx.execute(sql`
           UPDATE approval_requests SET status = 'canceled', payment_status = 'none', updated_at = NOW() WHERE id = ${requestId}
         `);
+        await recordBudgetLedger(tx, {
+          year, budgetAccountId, documentId: requestId, documentNo: cur.resolution_no, type: "release",
+          amount: Number(cur.amount), before: position, actor: ledgerActor(auth),
+          key: `release:approval:${requestId}`, note: reason,
+        });
         return null;
       });
-      /* 지급된 건이면 장부에도 반대 전표를 남긴다. 실패해도 야간 반영에서 처리된다 */
-      if (!stale && r.expense_id) {
-        try { await syncLedger(); } catch (e) { console.warn("[approval-cancel] 장부 반영 실패(야간 재시도):", e); }
-      }
       if (stale) return bad(`최종 승인된 건만 취소할 수 있습니다 (현재 상태: ${stale})`, 409);
       await logAdminAction(req, myId, me.name || "", "approval_cancel", {
         target: String(requestId), detail: { resolutionNo: r.resolution_no, amount: Number(r.amount), reason },
@@ -92,13 +105,13 @@ export default async function handler(req: Request, _ctx: Context) {
           recipientId: Number(r.drafter_id), recipientType: "operator",
           category: "system", severity: "warning",
           title: "지출결의서 취소됨",
-          message: `"${r.title}" (${r.resolution_no || ""}) 결재가 취소됐어요.${reason ? " 사유: " + reason : ""}`,
+          message: `"${r.title}" (${r.resolution_no || ""}) 결재가 취소됐어요.${refundNeeded ? " 이미 지급된 건이라 실제 반환을 확인해야 합니다." : ""}${reason ? " 사유: " + reason : ""}`,
           link: "/cms-tbfa.html#approval-resolutions", refTable: "approval_requests", refId: requestId,
         });
       }
     } catch (err: any) { return jsonError("cancel", err); }
 
-    return new Response(jsonKST({ ok: true, data: { status: "canceled" } }),
+    return new Response(jsonKST({ ok: true, data: { status: "canceled", refundRequired: refundNeeded } }),
       { headers: { "Content-Type": "application/json" } });
   }
 

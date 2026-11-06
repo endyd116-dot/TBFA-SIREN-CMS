@@ -4,7 +4,7 @@
  * body: { type: 'program'|'fund', id?, code?, name?, segment?, charterRef?, disclosureCode?,
  *         description?, restricted?, isActive?, sortOrder?, reason? }
  *       { type: 'revenue_category', id, accountCode }   수입 분류 ↔ 계정과목
- *       { type: 'staff', memberId, functionCode, programId?, fundId? }   인건비 배부
+ *       { type: 'staff', memberId, functionCode, programId?, fundId?, ruleId? }   인건비 배부. ruleId가 있으면 규칙 비율로 나눈다
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
@@ -110,17 +110,18 @@ async function saveStaff(tx: any, body: any, actor: any, reason: string | null) 
   const functionCode = ["service", "admin", "fundraising"].includes(body?.functionCode) ? body.functionCode : "";
   const programId = functionCode === "service" ? (Number(body?.programId) || null) : null;
   const fundId = Number(body?.fundId) || null;
+  const ruleId = Number(body?.ruleId) || null;
   if (!memberId || !functionCode) throw new LedgerError("직원과 활동을 고르세요.", 400);
   if (functionCode === "service" && !programId) throw new LedgerError("사업수행이면 사업을 고르세요.", 400);
   await tx.execute(sql`
-    INSERT INTO ledger_staff_allocations (member_id, function_code, program_id, fund_id, updated_at)
-    VALUES (${memberId}, ${functionCode}, ${programId}, ${fundId}, NOW())
+    INSERT INTO ledger_staff_allocations (member_id, function_code, program_id, fund_id, rule_id, updated_at)
+    VALUES (${memberId}, ${functionCode}, ${programId}, ${fundId}, ${ruleId}, NOW())
     ON CONFLICT (member_id) DO UPDATE SET
       function_code = EXCLUDED.function_code, program_id = EXCLUDED.program_id,
-      fund_id = EXCLUDED.fund_id, updated_at = NOW()`);
+      fund_id = EXCLUDED.fund_id, rule_id = EXCLUDED.rule_id, updated_at = NOW()`);
   await recordHistory(tx, {
     entity: "staff_allocation", entityId: memberId, action: "updated", actor, reason,
-    after: { functionCode, programId, fundId },
+    after: { functionCode, programId, fundId, ruleId },
   });
   return { id: memberId };
 }
