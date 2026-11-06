@@ -95,56 +95,43 @@ export default async function handler(req: Request, _ctx: Context) {
   const boardRequired = line.board_required === true || line.board_required === "t";
   const approvalLineId = Number(line.id);
 
-  /* ===== 5) request_no 생성 + 6) 요청 INSERT (UNIQUE 충돌 시 1회 재시도) ===== */
-  const pad4 = (n: number) => String(n).padStart(4, "0");
+  /* ===== 5~7) 번호 발급 + 요청·단계 INSERT를 한 트랜잭션으로 =====
+     개수가 아니라 최대 번호로 발급한다. 개수로 발급하면 기안 삭제 뒤 같은 번호가 나와 새 기안이 막힌다. */
   const stepsJson = JSON.stringify(steps);
-
-  const insertRequest = async (requestNo: string): Promise<number> => {
-    const res: any = await db.execute(sql`
-      INSERT INTO approval_requests
-        (request_no, title, amount, description, budget_account_id, fiscal_year,
-         occurred_at, payee_name, evidence_url, drafter_id, drafter_name,
-         approval_line_id, board_required, steps, current_step, status, created_at, updated_at)
-      VALUES
-        (${requestNo}, ${title}, ${amount}, ${description}, ${budgetAccountId}, ${fiscalYear},
-         ${occurredAt}, ${payeeName}, ${evidenceUrl}, ${drafterId}, ${drafterName},
-         ${approvalLineId}, ${boardRequired}, ${stepsJson}::jsonb, 0, 'pending', NOW(), NOW())
-      RETURNING id
-    `);
-    return Number(rowsOf(res)[0].id);
-  };
-
-  const genRequestNo = async (): Promise<string> => {
-    const cntRes: any = await db.execute(sql`
-      SELECT COUNT(*)::int AS c FROM approval_requests WHERE fiscal_year = ${fiscalYear}
-    `);
-    const seq = (Number(rowsOf(cntRes)[0]?.c) || 0) + 1;
-    return `REQ-${fiscalYear}-${pad4(seq)}`;
-  };
-
   let newId: number;
   let requestNo: string;
   try {
-    requestNo = await genRequestNo();
-    try {
-      newId = await insertRequest(requestNo);
-    } catch (dupErr: any) {
-      // UNIQUE 충돌 추정 → 개수 재조회 후 1회 재시도
-      requestNo = await genRequestNo();
-      newId = await insertRequest(requestNo);
-    }
-  } catch (err: any) { return jsonError("insert_request", err); }
-
-  /* ===== 7) 단계별 approval_request_steps INSERT ===== */
-  try {
-    for (let i = 0; i < steps.length; i++) {
-      await db.execute(sql`
-        INSERT INTO approval_request_steps (request_id, step_index, role, decision)
-        VALUES (${newId}, ${i}, ${steps[i]}, 'pending')
-        ON CONFLICT (request_id, step_index) DO NOTHING
+    const created = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"approval-request:" + fiscalYear}))`);
+      const maxRes: any = await tx.execute(sql`
+        SELECT COALESCE(MAX(CAST(SPLIT_PART(request_no, '-', 3) AS INTEGER)), 0) AS maxn
+          FROM approval_requests WHERE request_no LIKE ${`REQ-${fiscalYear}-%`}
       `);
-    }
-  } catch (err: any) { return jsonError("insert_steps", err); }
+      const no = `REQ-${fiscalYear}-${String((Number(rowsOf(maxRes)[0]?.maxn) || 0) + 1).padStart(4, "0")}`;
+      const res: any = await tx.execute(sql`
+        INSERT INTO approval_requests
+          (request_no, title, amount, description, budget_account_id, fiscal_year,
+           occurred_at, payee_name, evidence_url, drafter_id, drafter_name,
+           approval_line_id, board_required, steps, current_step, status, created_at, updated_at)
+        VALUES
+          (${no}, ${title}, ${amount}, ${description}, ${budgetAccountId}, ${fiscalYear},
+           ${occurredAt}, ${payeeName}, ${evidenceUrl}, ${drafterId}, ${drafterName},
+           ${approvalLineId}, ${boardRequired}, ${stepsJson}::jsonb, 0, 'pending', NOW(), NOW())
+        RETURNING id
+      `);
+      const id = Number(rowsOf(res)[0].id);
+      for (let i = 0; i < steps.length; i++) {
+        await tx.execute(sql`
+          INSERT INTO approval_request_steps (request_id, step_index, role, decision)
+          VALUES (${id}, ${i}, ${steps[i]}, 'pending')
+          ON CONFLICT (request_id, step_index) DO NOTHING
+        `);
+      }
+      return { id, no };
+    });
+    newId = created.id;
+    requestNo = created.no;
+  } catch (err: any) { return jsonError("insert_request", err); }
 
   /* ===== 8) 첫 단계 결재 대상 인앱 알림 (격리) ===== */
   try {

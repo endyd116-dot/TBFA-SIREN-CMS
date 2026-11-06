@@ -4539,13 +4539,15 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
       ...(fiscalYear !== null ? [sql`e.fiscal_year = ${fiscalYear}`] : []),
     ];
     const expR: any = await db.execute(sql`
-      SELECT c.code, c.name,
+      SELECT COALESCE(c.code, ba.code, 'unclassified') AS code,
+             COALESCE(c.name, ba.name, '미분류') AS name,
              COALESCE(SUM(e.amount), 0) AS gross,
              COALESCE(SUM(e.refund_amount), 0) AS refund
         FROM expenses e
         LEFT JOIN expense_categories c ON c.id = e.category_id
+        LEFT JOIN budget_accounts ba ON ba.id = e.budget_account_id
        WHERE ${sql.join(expConds, sql` AND `)}
-       GROUP BY c.code, c.name
+       GROUP BY COALESCE(c.code, ba.code, 'unclassified'), COALESCE(c.name, ba.name, '미분류')
     `);
     const expRows = expR?.rows ?? expR ?? [];
     let expGross = 0; let expRefund = 0;

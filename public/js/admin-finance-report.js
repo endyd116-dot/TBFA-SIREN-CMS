@@ -282,7 +282,7 @@
       const rate      = fmtNum(item.rate);
       const rc = rate >= 90 ? 'var(--danger)' : rate >= 70 ? '#f59e0b' : 'var(--success)';
       return `<tr>
-        <td>${item.categoryName || item.categoryCode || '—'}${anomalyBadge(item.categoryCode || item.categoryName)}</td>
+        <td>${item.path ? `<span style="color:var(--text-3);font-size:12px">${item.path} › </span>` : ''}${item.categoryName || item.categoryCode || '—'}${anomalyBadge(item.categoryCode || item.categoryName)}</td>
         <td class="num">${fmtKRW(planned)}</td>
         <td class="num">${fmtKRW(executed)}</td>
         <td class="num" style="color:${remaining < 0 ? 'var(--danger)' : 'inherit'}">${fmtKRW(remaining)}</td>
@@ -306,7 +306,7 @@
       <table class="data-table report-table fr-statement" style="width:100%">
         <thead>
           <tr>
-            <th>계정과목</th>
+            <th>예산 과목</th>
             <th class="num">편성액</th>
             <th class="num">집행액</th>
             <th class="num">잔여액</th>

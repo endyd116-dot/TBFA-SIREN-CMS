@@ -1,9 +1,10 @@
 import { jsonKST } from "../../lib/kst";
 import { db } from "../../db";
-import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
+import { donations, otherRevenues, revenueCategories, expenses } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { eq, and, sql } from "drizzle-orm";
+import { expenseLabel, loadExpenseLabelMaps } from "../../lib/finance-budget-report";
 import { resolvePeriod } from "../../lib/period-filter";
 import { getCache, setCache } from "../../lib/cache";
 
@@ -159,17 +160,10 @@ export default async function handler(req: Request): Promise<Response> {
   const expenseByMonth: Record<number, { gross: number; refund: number }> = {};
   for (let m = 1; m <= 12; m++) expenseByMonth[m] = { gross: 0, refund: 0 };
 
-  const expCatMap = new Map<number, { code: string; name: string }>();
-  try {
-    const cats = await db
-      .select({ id: expenseCategories.id, code: expenseCategories.code, name: expenseCategories.name })
-      .from(expenseCategories);
-    for (const c of cats) expCatMap.set(c.id, { code: c.code, name: c.name });
-  } catch (err: any) {
-    console.warn("[pl-summary] 지출 카테고리 조회 실패", err);
-  }
+  // 지출 항목 이름: 옛 분류 우선, 없으면 예산 목 (결재 지출은 예산 목만 가진다)
+  const labelMaps = await loadExpenseLabelMaps();
 
-  const expCatNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
+  const expCatNetMap = new Map<string, { code: string; name: string; gross: number; refund: number }>();
   try {
     // fiscal_year 필터: year 모드(하위호환 포함)에서만 추가
     const expConditions: any[] = [
@@ -183,16 +177,16 @@ export default async function handler(req: Request): Promise<Response> {
     const expRows = await db
       .select({
         categoryId: expenses.categoryId,
+        budgetAccountId: expenses.budgetAccountId,
         month: sql<string>`EXTRACT(MONTH FROM ${expenses.occurredAt}::date)`,
         gross: sql<string>`COALESCE(SUM(${expenses.amount}), 0)`,
         refund: sql<string>`COALESCE(SUM(${expenses.refundAmount}), 0)`,
       })
       .from(expenses)
       .where(and(...expConditions))
-      .groupBy(expenses.categoryId, sql`EXTRACT(MONTH FROM ${expenses.occurredAt}::date)`);
+      .groupBy(expenses.categoryId, expenses.budgetAccountId, sql`EXTRACT(MONTH FROM ${expenses.occurredAt}::date)`);
 
     for (const row of expRows) {
-      const catId = row.categoryId;
       const m = Number(row.month);
       const g = Number(row.gross);
       const r = Number(row.refund);
@@ -201,11 +195,11 @@ export default async function handler(req: Request): Promise<Response> {
       expenseGross += g;
       expenseRefund += r;
 
-      const cat = expCatMap.get(catId) || { code: String(catId), name: "기타" };
-      if (!expCatNetMap.has(catId)) {
-        expCatNetMap.set(catId, { code: cat.code, name: cat.name, gross: 0, refund: 0 });
+      const label = expenseLabel(labelMaps, row.categoryId, row.budgetAccountId);
+      if (!expCatNetMap.has(label.key)) {
+        expCatNetMap.set(label.key, { code: label.code, name: label.name, gross: 0, refund: 0 });
       }
-      const entry = expCatNetMap.get(catId)!;
+      const entry = expCatNetMap.get(label.key)!;
       entry.gross += g;
       entry.refund += r;
     }

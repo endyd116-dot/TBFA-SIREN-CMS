@@ -109,8 +109,8 @@
           </div>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._detail(${r.id})">상세</button>
-            ${canAct ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'approve')">승인</button>
-                        <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'reject')">반려</button>` : ''}
+            ${canAct ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'approve',${Number(r.currentStep) || 0})">승인</button>
+                        <button class="btn-sm btn-sm-danger" type="button" onclick="window.SIREN_APPROVAL._decide(${r.id},'reject',${Number(r.currentStep) || 0})">반려</button>` : ''}
             ${box === 'drafts' && r.status === 'rejected'
               ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_APPROVAL._resubmit(${r.id})">재상신</button>` : ''}
             ${box === 'drafts' && !r.resolutionNo && (r.status === 'pending' || r.status === 'rejected')
@@ -281,11 +281,11 @@
     m.querySelector('#apDetClose').onclick = () => { m.innerHTML = ''; };
   }
 
-  async function decide(id, kind) {
+  async function decide(id, kind, expectedStep) {
     let comment = '';
     if (kind === 'reject') { comment = prompt('반려 사유를 입력하세요'); if (comment == null) return; }
     else { if (!confirm('이 지출을 승인하시겠습니까?')) return; }
-    const res = await api('POST', '/api/admin-approval-decide', { requestId: id, decision: kind, comment });
+    const res = await api('POST', '/api/admin-approval-decide', { requestId: id, decision: kind, comment, expectedStep });
     if (!res.ok) { alert('처리 실패: ' + (res.data?.error || res.error || '')); return; }
     const d = res.data?.data || {};
     if (d.resolutionNo) alert(`최종 승인 완료. 지출결의서 ${d.resolutionNo} 발행.`);

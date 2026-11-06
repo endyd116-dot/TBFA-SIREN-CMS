@@ -12,9 +12,10 @@
 import { yearKST, jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
+import { donations, otherRevenues, revenueCategories, expenses } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { eq, and, sql } from "drizzle-orm";
+import { buildBudgetReport, expenseLabel, loadExpenseLabelMaps } from "../../lib/finance-budget-report";
 import { resolvePeriod } from "../../lib/period-filter";
 import { PDFDocument, rgb, PDFFont, PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -109,17 +110,11 @@ async function buildPlData(startDate: string, endDate: string, fiscalYear: numbe
     .map(c => ({ code: c.code, name: c.name, net: c.gross - c.refund }))
     .sort((a, b) => b.net - a.net);
 
-  // 지출 카테고리
-  const expCatMap = new Map<number, { code: string; name: string }>();
-  try {
-    const cats = await db
-      .select({ id: expenseCategories.id, code: expenseCategories.code, name: expenseCategories.name })
-      .from(expenseCategories);
-    for (const c of cats) expCatMap.set(c.id, { code: c.code, name: c.name });
-  } catch (err) { console.warn("[report-pdf] 지출 카테고리 조회 실패", err); }
+  // 지출 항목 이름: 옛 분류 우선, 없으면 예산 목
+  const labelMaps = await loadExpenseLabelMaps();
 
   let expenseGross = 0, expenseRefund = 0;
-  const expCatNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
+  const expCatNetMap = new Map<string, { code: string; name: string; gross: number; refund: number }>();
   try {
     const conds: any[] = [
       eq(expenses.status, "approved"),
@@ -129,20 +124,21 @@ async function buildPlData(startDate: string, endDate: string, fiscalYear: numbe
     const rows = await db
       .select({
         categoryId: expenses.categoryId,
+        budgetAccountId: expenses.budgetAccountId,
         gross: sql<string>`COALESCE(SUM(${expenses.amount}), 0)`,
         refund: sql<string>`COALESCE(SUM(${expenses.refundAmount}), 0)`,
       })
       .from(expenses)
       .where(and(...conds))
-      .groupBy(expenses.categoryId);
+      .groupBy(expenses.categoryId, expenses.budgetAccountId);
     for (const row of rows) {
       const g = Number(row.gross), r = Number(row.refund);
       expenseGross += g; expenseRefund += r;
-      const cat = expCatMap.get(row.categoryId) || { code: String(row.categoryId), name: "기타" };
-      if (!expCatNetMap.has(row.categoryId)) {
-        expCatNetMap.set(row.categoryId, { code: cat.code, name: cat.name, gross: 0, refund: 0 });
+      const label = expenseLabel(labelMaps, row.categoryId, row.budgetAccountId);
+      if (!expCatNetMap.has(label.key)) {
+        expCatNetMap.set(label.key, { code: label.code, name: label.name, gross: 0, refund: 0 });
       }
-      const e = expCatNetMap.get(row.categoryId)!;
+      const e = expCatNetMap.get(label.key)!;
       e.gross += g; e.refund += r;
     }
   } catch (err) { console.warn("[report-pdf] 지출 집계 실패", err); }
@@ -177,50 +173,16 @@ async function buildBudgetData(year: number) {
     return { noPlan: true, year };
   }
 
-  const lineRows: any = await db.execute(sql`
-    SELECT bl.id, bl.category_id, bl.planned_amount,
-           ec.code AS category_code, ec.name AS category_name
-    FROM budget_lines bl
-    JOIN expense_categories ec ON ec.id = bl.category_id
-    WHERE bl.plan_id = ${Number(plan.id)}
-    ORDER BY ec.sort_order, ec.id
-  `);
-  const lines = lineRows?.rows ?? lineRows ?? [];
-
-  const execByCatId = new Map<number, number>();
-  try {
-    const execRows: any = await db.execute(sql`
-      SELECT category_id, COALESCE(SUM(amount - refund_amount), 0)::bigint AS executed
-      FROM expenses WHERE fiscal_year = ${year} AND status = 'approved'
-      GROUP BY category_id
-    `);
-    for (const r of (execRows?.rows ?? execRows ?? [])) {
-      execByCatId.set(Number(r.category_id), Number(r.executed));
-    }
-  } catch (err: any) { console.warn("[report-pdf] expenses 집계 실패", err?.message); }
-
-  const items = lines.map((r: any) => {
-    const planned = Number(r.planned_amount);
-    const executed = execByCatId.get(Number(r.category_id)) ?? 0;
-    return {
-      categoryName: r.category_name,
-      plannedAmount: planned,
-      executedAmount: executed,
-      remaining: planned - executed,
-      rate: planned > 0 ? Math.round((executed / planned) * 100) : 0,
-    };
-  });
-
-  const totalPlanned = items.reduce((s: number, i: any) => s + i.plannedAmount, 0);
-  const totalExecuted = items.reduce((s: number, i: any) => s + i.executedAmount, 0);
+  const report = await buildBudgetReport(Number(plan.id), year);
 
   return {
     noPlan: false, year,
     planTitle: plan.title,
-    items,
-    totalPlanned, totalExecuted,
-    totalRemaining: totalPlanned - totalExecuted,
-    executionRate: totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0,
+    items: report.items,
+    totalPlanned: report.totalPlanned,
+    totalExecuted: report.totalExecuted,
+    totalRemaining: report.totalRemaining,
+    executionRate: report.executionRate,
   };
 }
 

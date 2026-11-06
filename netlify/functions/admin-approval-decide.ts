@@ -1,10 +1,17 @@
 /**
  * POST /api/admin-approval-decide — 지출 결재 승인/반려
- * body: { requestId, decision: 'approve'|'reject', comment? }
+ * body: { requestId, decision: 'approve'|'reject', comment?, expectedStep? }
  *
  * 3계층 직책: operator(기안)/admin(국장·1차)/super_admin(이사장·최종).
  * - 현재 단계 직책을 승인 권한 있는 사람만 결재(super_admin 전권·위임 반영).
  * - 마지막 단계 승인 시: 지출(expenses) 생성·예산 목에 집행 물림 + 지출결의서 정식번호 발행.
+ *
+ * 2026-11-06: 상태 확인부터 지출 생성·번호 발행까지 한 트랜잭션으로 묶었다.
+ * - 요청 행을 잠가 동시 클릭이 지출을 두 번 만들지 못하게 한다.
+ * - expectedStep이 있으면 화면이 본 단계와 현재 단계가 같을 때만 처리한다
+ *   (이사장의 중복 클릭이 다음 단계까지 넘겨 버리는 것을 막는다).
+ * - 결의번호는 연도별 잠금 안에서 MAX+1로 발급한다.
+ * - DB 연결이 1개라 트랜잭션 안에서는 tx만 쓰고, 알림·PDF는 커밋 뒤에 처리한다.
  */
 import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
@@ -27,21 +34,43 @@ function bad(msg: string, status = 400) {
   return new Response(jsonKST({ ok: false, error: msg }),
     { status, headers: { "Content-Type": "application/json" } });
 }
-async function rowsOf(q: any): Promise<any[]> { return q?.rows ?? q ?? []; }
+function rowsOf(q: any): any[] { return q?.rows ?? q ?? []; }
+
+/** 트랜잭션을 되돌리고 사용자에게 안내할 때 쓴다 */
+class DecideStop extends Error {
+  constructor(message: string, public status = 400) { super(message); }
+}
 
 /* 현재 단계 직책 R을 이 관리자가 결재할 수 있는가 */
-async function canDecide(role: string, memberId: number, stepRole: string): Promise<boolean> {
+async function canDecide(tx: any, role: string, memberId: number, stepRole: string): Promise<boolean> {
   if (role === "super_admin") return true;          // 이사장 전권
   if (role === stepRole) return true;               // 국장은 admin 단계
   // 위임(전결·대결): 오늘 유효한 위임이 있으면 해당 직책 결재 가능
-  const del: any = await db.execute(sql`
+  const del: any = await tx.execute(sql`
     SELECT 1 FROM approval_delegations
      WHERE is_active = TRUE AND delegate_role = ${stepRole} AND to_member_id = ${memberId}
        AND (NOW() AT TIME ZONE 'Asia/Seoul')::date BETWEEN start_at AND end_at
      LIMIT 1
   `);
-  return (await rowsOf(del)).length > 0;
+  return rowsOf(del).length > 0;
 }
+
+/* 제YYYY-NNNN호 발급. 호출한 트랜잭션이 끝날 때까지 같은 연도 발급을 직렬화한다. */
+async function nextResolutionNo(tx: any, fiscalYear: number): Promise<string> {
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"approval-resolution:" + fiscalYear}))`);
+  const res: any = await tx.execute(sql`
+    SELECT COALESCE(MAX(CAST(SUBSTRING(resolution_no FROM '-([0-9]+)호') AS INTEGER)), 0) AS maxn
+      FROM approval_requests
+     WHERE fiscal_year = ${fiscalYear} AND resolution_no IS NOT NULL
+  `);
+  const seq = (Number(rowsOf(res)[0]?.maxn) || 0) + 1;
+  return `제${fiscalYear}-${String(seq).padStart(4, "0")}호`;
+}
+
+type Outcome =
+  | { kind: "rejected"; r: any }
+  | { kind: "advanced"; r: any; nextIdx: number; nextRole: string }
+  | { kind: "approved"; r: any; expenseId: number | null; resolutionNo: string };
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") return bad("POST 메서드만 허용", 405);
@@ -56,56 +85,95 @@ export default async function handler(req: Request, _ctx: Context) {
   const requestId = Number(body.requestId);
   const decision = String(body.decision || "");
   const comment = body.comment ? String(body.comment).slice(0, 1000) : null;
+  const expectedStep = body.expectedStep == null ? null : Number(body.expectedStep);
   if (!requestId || (decision !== "approve" && decision !== "reject")) {
     return bad("requestId·decision('approve'|'reject') 필수");
   }
 
-  // 요청 로드
-  let r: any;
+  let outcome: Outcome;
   try {
-    const rows = await rowsOf(await db.execute(sql`
-      SELECT id, title, amount, status, steps, current_step, board_required,
-             budget_account_id, fiscal_year, occurred_at, payee_name, description,
-             evidence_url, drafter_id, drafter_name, resolution_no, created_at
-        FROM approval_requests WHERE id = ${requestId} LIMIT 1
-    `));
-    r = rows[0];
-  } catch (err: any) { return jsonError("select_request", err); }
-  if (!r) return bad("결재 요청을 찾을 수 없습니다", 404);
-  if (r.status !== "pending") return bad(`이미 처리된 결재입니다 (상태: ${r.status})`, 409);
+    outcome = await db.transaction(async (tx): Promise<Outcome> => {
+      const rows = rowsOf(await tx.execute(sql`
+        SELECT id, title, amount, status, steps, current_step, board_required,
+               budget_account_id, fiscal_year, occurred_at, payee_name, description,
+               evidence_url, drafter_id, drafter_name, resolution_no, created_at
+          FROM approval_requests WHERE id = ${requestId} FOR UPDATE
+      `));
+      const r = rows[0];
+      if (!r) throw new DecideStop("결재 요청을 찾을 수 없습니다", 404);
+      if (r.status !== "pending") throw new DecideStop(`이미 처리된 결재입니다 (상태: ${r.status})`, 409);
 
-  const steps: string[] = Array.isArray(r.steps) ? r.steps : [];
-  const curIdx = Number(r.current_step) || 0;
-  const stepRole = steps[curIdx];
-  if (!stepRole) return jsonError("step", new Error("결재 단계 정보 오류"));
+      const steps: string[] = Array.isArray(r.steps) ? r.steps : [];
+      const curIdx = Number(r.current_step) || 0;
+      const stepRole = steps[curIdx];
+      if (!stepRole) throw new Error("결재 단계 정보 오류");
+      if (expectedStep !== null && expectedStep !== curIdx) {
+        throw new DecideStop("이미 다음 단계로 넘어간 결재입니다. 목록을 새로고침해 주세요", 409);
+      }
+      if (!(await canDecide(tx, me.role ?? "", myId, stepRole))) {
+        throw new DecideStop("이 단계를 결재할 권한이 없습니다", 403);
+      }
 
-  // 권한 확인
-  try {
-    if (!(await canDecide(me.role ?? "", myId, stepRole))) {
-      return bad("이 단계를 결재할 권한이 없습니다", 403);
-    }
-  } catch (err: any) { return jsonError("check_perm", err); }
+      // 단계 이력 기록
+      await tx.execute(sql`
+        UPDATE approval_request_steps
+           SET decision = ${decision === "approve" ? "approved" : "rejected"},
+               decided_by = ${myId}, decided_by_name = ${me.name ?? null},
+               comment = ${comment}, decided_at = NOW()
+         WHERE request_id = ${requestId} AND step_index = ${curIdx}
+      `);
 
-  const nowSql = sql`NOW()`;
+      /* ── 반려 ── */
+      if (decision === "reject") {
+        await tx.execute(sql`
+          UPDATE approval_requests SET status = 'rejected', decided_at = NOW(), updated_at = NOW()
+           WHERE id = ${requestId}
+        `);
+        return { kind: "rejected", r };
+      }
 
-  // 단계 이력 기록
-  try {
-    await db.execute(sql`
-      UPDATE approval_request_steps
-         SET decision = ${decision === "approve" ? "approved" : "rejected"},
-             decided_by = ${myId}, decided_by_name = ${me.name ?? null},
-             comment = ${comment}, decided_at = ${nowSql}
-       WHERE request_id = ${requestId} AND step_index = ${curIdx}
-    `);
-  } catch (err: any) { return jsonError("update_step", err); }
+      /* ── 승인: 다음 단계로 ── */
+      if (curIdx < steps.length - 1) {
+        const nextIdx = curIdx + 1;
+        await tx.execute(sql`
+          UPDATE approval_requests SET current_step = ${nextIdx}, updated_at = NOW()
+           WHERE id = ${requestId}
+        `);
+        return { kind: "advanced", r, nextIdx, nextRole: steps[nextIdx] };
+      }
 
-  /* ── 반려 ── */
-  if (decision === "reject") {
-    try {
-      await db.execute(sql`
-        UPDATE approval_requests SET status = 'rejected', decided_at = ${nowSql}, updated_at = ${nowSql}
+      /* ── 최종 승인: 지출 생성(예산 목 물림) + 지출결의서 정식번호 발행 ── */
+      const exRows = rowsOf(await tx.execute(sql`
+        INSERT INTO expenses
+          (fiscal_year, occurred_at, category_id, budget_account_id, amount, payee_name,
+           description, receipt_url, status, recorded_by, recorded_at, approved_by, approved_at)
+        VALUES
+          (${Number(r.fiscal_year)}, COALESCE(${r.occurred_at}, (NOW() AT TIME ZONE 'Asia/Seoul')::date), NULL,
+           ${r.budget_account_id}, ${Number(r.amount)}, ${r.payee_name ?? null},
+           ${r.title}, ${r.evidence_url ?? null}, 'approved', ${r.drafter_id ?? null}, NOW(),
+           ${myId}, NOW())
+        RETURNING id
+      `));
+      const expenseId = exRows[0] ? Number(exRows[0].id) : null;
+      const resolutionNo = await nextResolutionNo(tx, Number(r.fiscal_year));
+      await tx.execute(sql`
+        UPDATE approval_requests
+           SET status = 'approved', decided_at = NOW(), updated_at = NOW(),
+               expense_id = ${expenseId}, resolution_no = ${resolutionNo}, resolution_issued_at = NOW()
          WHERE id = ${requestId}
       `);
+      return { kind: "approved", r, expenseId, resolutionNo };
+    });
+  } catch (err: any) {
+    if (err instanceof DecideStop) return bad(err.message, err.status);
+    return jsonError("transaction", err);
+  }
+
+  /* ── 커밋 뒤 처리: 실패해도 결재 결과는 유효 ── */
+  const r = outcome.r;
+
+  if (outcome.kind === "rejected") {
+    try {
       if (r.drafter_id) {
         await createNotification({
           recipientId: Number(r.drafter_id), recipientType: "operator",
@@ -115,27 +183,17 @@ export default async function handler(req: Request, _ctx: Context) {
           link: "/cms-tbfa.html#approval-drafts", refTable: "approval_requests", refId: requestId,
         });
       }
-    } catch (err: any) { return jsonError("reject", err); }
+    } catch (e) { console.warn("[approval-decide] 반려 알림 실패(무시):", e); }
     return new Response(jsonKST({ ok: true, data: { status: "rejected" } }),
       { headers: { "Content-Type": "application/json" } });
   }
 
-  /* ── 승인 ── */
-  const isFinal = curIdx >= steps.length - 1;
-
-  if (!isFinal) {
-    // 다음 단계로 진행 + 다음 결재자 알림
+  if (outcome.kind === "advanced") {
     try {
-      const nextIdx = curIdx + 1;
-      await db.execute(sql`
-        UPDATE approval_requests SET current_step = ${nextIdx}, updated_at = ${nowSql}
-         WHERE id = ${requestId}
-      `);
-      const nextRole = steps[nextIdx];
-      const approvers = await rowsOf(await db.execute(sql`
+      const approvers = rowsOf(await db.execute(sql`
         SELECT id FROM members
          WHERE type = 'admin' AND operator_active = TRUE AND status = 'active'
-           AND role IN (${nextRole}, 'super_admin')
+           AND role IN (${outcome.nextRole}, 'super_admin')
       `));
       const ids = approvers.map((a: any) => Number(a.id));
       if (ids.length) {
@@ -146,65 +204,31 @@ export default async function handler(req: Request, _ctx: Context) {
           link: "/cms-tbfa.html#approval-inbox", refTable: "approval_requests", refId: requestId,
         });
       }
-    } catch (err: any) { return jsonError("advance", err); }
-    return new Response(jsonKST({ ok: true, data: { status: "pending", advancedTo: curIdx + 1 } }),
+    } catch (e) { console.warn("[approval-decide] 다음 단계 알림 실패(무시):", e); }
+    return new Response(jsonKST({ ok: true, data: { status: "pending", advancedTo: outcome.nextIdx } }),
       { headers: { "Content-Type": "application/json" } });
   }
 
-  /* ── 최종 승인: 지출 생성(예산 목 물림) + 지출결의서 정식번호 발행 ── */
-  let expenseId: number | null = null;
-  let resolutionNo: string | null = null;
+  // 지출결의서 PDF 생성 → R2 박제 (실패해도 승인·결의번호는 유효)
+  // 생성 로직은 재발행과 공용(lib/resolution-pdf-store) — 두 경로가 항상 동일하게.
   try {
-    // 1) 지출 생성 (승인 상태로) — budget_account_id로 예산 목에 집행 물림
-    const exRows = await rowsOf(await db.execute(sql`
-      INSERT INTO expenses
-        (fiscal_year, occurred_at, category_id, budget_account_id, amount, payee_name,
-         description, receipt_url, status, recorded_by, recorded_at, approved_by, approved_at)
-      VALUES
-        (${Number(r.fiscal_year)}, COALESCE(${r.occurred_at}, (NOW() AT TIME ZONE 'Asia/Seoul')::date), NULL,
-         ${r.budget_account_id}, ${Number(r.amount)}, ${r.payee_name ?? null},
-         ${r.title}, ${r.evidence_url ?? null}, 'approved', ${r.drafter_id ?? null}, ${nowSql},
-         ${myId}, ${nowSql})
-      RETURNING id
-    `));
-    expenseId = exRows[0] ? Number(exRows[0].id) : null;
+    await buildAndStoreResolutionPdf(requestId, myId);
+  } catch (e) { console.warn("[approval-decide] 결의서 PDF 실패(무시):", e); }
 
-    // 2) 지출결의서 정식번호 발행 (제YYYY-NNNN호)
-    const seqRows = await rowsOf(await db.execute(sql`
-      SELECT COUNT(*)::int AS n FROM approval_requests
-       WHERE fiscal_year = ${Number(r.fiscal_year)} AND resolution_no IS NOT NULL
-    `));
-    const seq = (Number(seqRows[0]?.n) || 0) + 1;
-    resolutionNo = `제${r.fiscal_year}-${String(seq).padStart(4, "0")}호`;
-
-    // 3) 요청 확정
-    await db.execute(sql`
-      UPDATE approval_requests
-         SET status = 'approved', decided_at = ${nowSql}, updated_at = ${nowSql},
-             expense_id = ${expenseId}, resolution_no = ${resolutionNo}, resolution_issued_at = ${nowSql}
-       WHERE id = ${requestId}
-    `);
-
-    // 4) 지출결의서 PDF 생성 → R2 박제 (실패해도 승인·결의번호는 유효)
-    //    생성 로직은 재발행과 공용(lib/resolution-pdf-store) — 두 경로가 항상 동일하게.
-    try {
-      await buildAndStoreResolutionPdf(requestId, myId);
-    } catch (e) { console.warn("[approval-decide] 결의서 PDF 실패(무시):", e); }
-
-    // 5) 기안자 알림 (최종 승인 + 결의번호)
+  try {
     if (r.drafter_id) {
       await createNotification({
         recipientId: Number(r.drafter_id), recipientType: "operator",
         category: "system", severity: "info",
         title: "지출 결재 승인 완료",
-        message: `"${r.title}" 지출이 최종 승인됐어요. 지출결의서 ${resolutionNo} 발행 완료.`,
+        message: `"${r.title}" 지출이 최종 승인됐어요. 지출결의서 ${outcome.resolutionNo} 발행 완료.`,
         link: "/cms-tbfa.html#approval-resolutions", refTable: "approval_requests", refId: requestId,
       });
     }
-  } catch (err: any) { return jsonError("final_approve", err); }
+  } catch (e) { console.warn("[approval-decide] 승인 알림 실패(무시):", e); }
 
   return new Response(jsonKST({
     ok: true,
-    data: { status: "approved", expenseId, resolutionNo },
+    data: { status: "approved", expenseId: outcome.expenseId, resolutionNo: outcome.resolutionNo },
   }), { headers: { "Content-Type": "application/json" } });
 }

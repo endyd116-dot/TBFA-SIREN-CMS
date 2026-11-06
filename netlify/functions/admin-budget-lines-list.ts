@@ -3,6 +3,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
+import { loadBudgetLineViews } from "../../lib/finance-budget-report";
 
 export const config = { path: "/api/admin-budget-lines-list" };
 
@@ -53,36 +54,32 @@ export default async function handler(req: Request, _ctx: Context) {
     }), { headers: { "Content-Type": "application/json" } });
   }
 
-  // ── 편성 항목 (분류명 join) ──────────────────────────────
-  let lines: any[] = [];
+  // ── 편성 항목 (관·항·목 + 옛 분류) ──
+  let lines: { id: number; categoryId: number | null; budgetAccountId: number | null;
+               categoryCode: string | null; categoryName: string; plannedAmount: number }[] = [];
   try {
-    const r: any = await db.execute(sql`
-      SELECT bl.id, bl.category_id, bl.planned_amount,
-             ec.code AS category_code, ec.name AS category_name
-      FROM budget_lines bl
-      JOIN expense_categories ec ON ec.id = bl.category_id
-      WHERE bl.plan_id = ${Number(plan.id)}
-      ORDER BY ec.sort_order, ec.id`);
-    lines = (r?.rows ?? r ?? []).map((x: any) => ({
-      id:            Number(x.id),
-      categoryId:    Number(x.category_id),
-      categoryCode:  x.category_code,
-      categoryName:  x.category_name,
-      plannedAmount: Number(x.planned_amount),
+    lines = (await loadBudgetLineViews(Number(plan.id))).map((l) => ({
+      id: l.id, categoryId: l.categoryId, budgetAccountId: l.budgetAccountId,
+      categoryCode: l.categoryCode, categoryName: l.categoryName, plannedAmount: l.plannedAmount,
     }));
   } catch (err) {
     return jsonError("select_lines", err);
   }
 
-  // ── AI 1차 추천: 계정과목 분류 → 같은 분류의 예산 항목 ───
+  // ── AI 1차 추천: 계정과목 → 예산 목 매핑 우선, 없으면 옛 분류 일치 ──
   let suggestedLineId: number | null = null;
   if (accountCode) {
     try {
-      const r: any = await db.execute(sql`
-        SELECT category FROM account_codes WHERE code = ${accountCode} LIMIT 1`);
-      const cat = (r?.rows ?? r ?? [])[0]?.category;
-      if (cat) {
-        const match = lines.find((l) => l.categoryCode === cat);
+      const mapped: any = await db.execute(sql`
+        SELECT budget_account_id FROM budget_account_code_map WHERE account_code = ${accountCode}`);
+      const ids = new Set((mapped?.rows ?? mapped ?? []).map((x: any) => Number(x.budget_account_id)));
+      const byMok = lines.find((l) => l.budgetAccountId != null && ids.has(l.budgetAccountId));
+      if (byMok) suggestedLineId = byMok.id;
+      if (!suggestedLineId) {
+        const r: any = await db.execute(sql`
+          SELECT category FROM account_codes WHERE code = ${accountCode} LIMIT 1`);
+        const cat = (r?.rows ?? r ?? [])[0]?.category;
+        const match = cat ? lines.find((l) => l.categoryCode === cat) : undefined;
         if (match) suggestedLineId = match.id;
       }
     } catch { /* 추천 실패해도 목록은 정상 반환 */ }

@@ -62,15 +62,23 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (action === "cancel") {
     if (me.role !== "super_admin") return bad("결재취소는 이사장(super_admin) 전용입니다", 403);
-    if (r.status !== "approved") return bad(`최종 승인된 건만 취소할 수 있습니다 (현재 상태: ${r.status})`, 409);
 
     try {
-      if (r.expense_id) {
-        await db.execute(sql`UPDATE expenses SET status = 'canceled', updated_at = NOW() WHERE id = ${r.expense_id}`);
-      }
-      await db.execute(sql`
-        UPDATE approval_requests SET status = 'canceled', updated_at = NOW() WHERE id = ${requestId}
-      `);
+      // 지출과 결재 상태를 함께 바꾼다. 요청 행을 잠가 동시 취소를 막는다.
+      const stale = await db.transaction(async (tx) => {
+        const cur = (await rowsOf(await tx.execute(sql`
+          SELECT status, expense_id FROM approval_requests WHERE id = ${requestId} FOR UPDATE
+        `)))[0];
+        if (!cur || cur.status !== "approved") return cur?.status ?? "없음";
+        if (cur.expense_id) {
+          await tx.execute(sql`UPDATE expenses SET status = 'canceled', updated_at = NOW() WHERE id = ${cur.expense_id}`);
+        }
+        await tx.execute(sql`
+          UPDATE approval_requests SET status = 'canceled', updated_at = NOW() WHERE id = ${requestId}
+        `);
+        return null;
+      });
+      if (stale) return bad(`최종 승인된 건만 취소할 수 있습니다 (현재 상태: ${stale})`, 409);
       await logAdminAction(req, myId, me.name || "", "approval_cancel", {
         target: String(requestId), detail: { resolutionNo: r.resolution_no, amount: Number(r.amount), reason },
       });

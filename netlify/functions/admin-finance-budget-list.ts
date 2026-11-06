@@ -3,6 +3,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
+import { buildBudgetReport } from "../../lib/finance-budget-report";
 
 export const config = { path: "/api/admin-finance-budget-list" };
 
@@ -70,87 +71,14 @@ export default async function handler(req: Request, _ctx: Context) {
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 
-  // 2. budget_lines 조회
-  let lines: any[] = [];
+  // 2. 편성 항목·집행·예약 집계 (관·항·목 + 옛 분류, 화면·PDF 공용)
+  let report: Awaited<ReturnType<typeof buildBudgetReport>>;
   try {
-    const lineRows: any = await db.execute(sql`
-      SELECT
-        bl.id, bl.category_id, bl.planned_amount, bl.prev_year_actual, bl.note,
-        ec.code AS category_code, ec.name AS category_name
-      FROM budget_lines bl
-      JOIN expense_categories ec ON ec.id = bl.category_id
-      WHERE bl.plan_id = ${Number(plan.id)}
-      ORDER BY ec.sort_order, ec.id
-    `);
-    lines = lineRows?.rows ?? lineRows ?? [];
+    report = await buildBudgetReport(Number(plan.id), year);
   } catch (err: any) {
-    return jsonError("select_lines", err);
+    return jsonError("build_report", err);
   }
-
-  // 3. expenses 집계 (status='approved', fiscal_year 매칭)
-  let execByCatId: Map<number, number> = new Map();
-  try {
-    const execRows: any = await db.execute(sql`
-      SELECT category_id, COALESCE(SUM(amount - refund_amount), 0)::bigint AS executed
-      FROM expenses
-      WHERE fiscal_year = ${year} AND status = 'approved'
-      GROUP BY category_id
-    `);
-    for (const r of (execRows?.rows ?? execRows ?? [])) {
-      execByCatId.set(Number(r.category_id), Number(r.executed));
-    }
-  } catch (err: any) {
-    console.warn("expenses 집계 실패 (0으로 계속):", err?.message);
-  }
-
-  // 3-b. Phase 22-D-R3 예산 잠금 — vouchers 집계 (budget_line_id 기준)
-  //   reserved = submitted 전표 합 (승인 전 예약), 보조 집계라 실패해도 0으로 계속
-  const reservedByLineId: Map<number, number> = new Map();
-  try {
-    const vRows: any = await db.execute(sql`
-      SELECT budget_line_id,
-             COALESCE(SUM(amount) FILTER (WHERE status = 'submitted'), 0)::bigint AS reserved
-      FROM vouchers
-      WHERE budget_line_id IS NOT NULL
-        AND fiscal_year = ${year}
-        AND is_template = FALSE
-      GROUP BY budget_line_id
-    `);
-    for (const r of (vRows?.rows ?? vRows ?? [])) {
-      reservedByLineId.set(Number(r.budget_line_id), Number(r.reserved));
-    }
-  } catch (err: any) {
-    console.warn("vouchers 예약액 집계 실패 (0으로 계속):", err?.message);
-  }
-
-  // 4. 결합
-  const items = lines.map((r: any) => {
-    const planned  = Number(r.planned_amount);
-    const executed = execByCatId.get(Number(r.category_id)) ?? 0;
-    const remaining = planned - executed;
-    const reserved  = reservedByLineId.get(Number(r.id)) ?? 0;
-    const available = planned - reserved - executed;
-    return {
-      id:             Number(r.id),
-      categoryId:     Number(r.category_id),
-      categoryCode:   r.category_code,
-      categoryName:   r.category_name,
-      plannedAmount:  planned,
-      executedAmount: executed,
-      remaining,
-      rate:           planned > 0 ? Math.round((executed / planned) * 100) : 0,
-      prevYearActual: Number(r.prev_year_actual),
-      note:           r.note,
-      // Phase 22-D-R3 예산 잠금 (신규 키 — 기존 키 변경 없음)
-      reserved,
-      available,
-      overBudget:     available < 0,
-    };
-  });
-
-  const totalPlanned  = items.reduce((s, i) => s + i.plannedAmount, 0);
-  const totalExecuted = items.reduce((s, i) => s + i.executedAmount, 0);
-  const totalReserved = items.reduce((s, i) => s + i.reserved, 0);
+  const { items, totalPlanned, totalExecuted, totalReserved } = report;
 
   return new Response(jsonKST({
     ok: true,
@@ -167,11 +95,11 @@ export default async function handler(req: Request, _ctx: Context) {
       items,
       totalPlanned,
       totalExecuted,
-      totalRemaining: totalPlanned - totalExecuted,
-      executionRate: totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0,
+      totalRemaining: report.totalRemaining,
+      executionRate: report.executionRate,
       // Phase 22-D-R3 예산 잠금
       totalReserved,
-      totalAvailable: totalPlanned - totalReserved - totalExecuted,
+      totalAvailable: report.totalAvailable,
     },
   }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
