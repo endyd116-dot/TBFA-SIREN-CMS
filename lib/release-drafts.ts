@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.3";
+export const APP_VERSION = "2026-11-06.4";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-npo-proposal-renewal",
+    title: "[관리자] NPO 제안서(/2) 전면 재제작 — 공감에서 시작해 지금·개선 후·AI 도입 후를 한눈에",
+    items: [
+      { text: "tbfa.co.kr/2 제안서를 29장으로 새로 만들었습니다. 사무국의 하루와 현장에서 자주 듣는 여섯 마디(회원·후원·잠재후원·너처링·내부 운영·인력)에서 시작해, 각 애로를 «지금 → 시스템 도입 후 → AI까지 더하면» 세 칸으로 보여 줍니다" },
+      { text: "SIREN 실운영 규모, 고객 여정 화면 예시, 단체 맞춤 개발 사례, 함께워크 제품군(SIREN·AM·AC·ON·SI), 금액 큰 순 레퍼런스, 요금제와 KOSA 산식 비용 근거, 인건비 관점 계산을 담았습니다" },
+      { text: "열면 바로 슬라이드로 넘겨 볼 수 있습니다. 좌우 화살표·아래 점·키보드는 예전과 같고, 손가락 넘기기와 전체 화면 발표를 더했습니다. 주소 끝에 #쪽번호를 붙이면 그 쪽이 바로 열립니다" },
+      { text: "위쪽 버튼의 PDF·PPT 내보내기는 예전처럼 한 번에 전체 쪽을 파일로 받습니다" },
+      { text: "화면 그림은 새로 그린 예시이고 이름·금액도 예시입니다. 외부 제출 전 레퍼런스와 일정 표현을 한 번 확인해 주세요" },
+    ],
+  },
   {
     key: "2026-11-06-npo-pricing",
     title: "[관리자] NPO 제안서(/2) 요금제 개편 — 구축비 + 월 운영비 구조 공개",
