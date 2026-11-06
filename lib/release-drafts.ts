@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-06.10";
+export const APP_VERSION = "2026-11-06.11";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-06-ledger-polish",
+    title: "[관리자] 장부 전표 목록 표시 개선, 운영자 메뉴얼에 장부 안내 추가",
+    items: [
+      { text: "전표 목록의 날짜·금액 줄바꿈과 비어 보이던 인쇄 버튼을 고치고 첫 로딩 안내를 넣었습니다" },
+      { text: "작성중 전표를 지우면 변경 이력에 삭제 기록이 남습니다" },
+      { text: "운영자 메뉴얼에 장부 절을 추가했습니다" },
+    ],
+  },
   {
     key: "2026-11-06-ledger-foundation",
     title: "[관리자] 재정 관리에 장부 추가 — 복식 전표, 총계정원장, 시산표, 월 마감, 기준 정보",

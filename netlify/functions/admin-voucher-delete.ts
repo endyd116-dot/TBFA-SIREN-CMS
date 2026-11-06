@@ -2,6 +2,7 @@ import { jsonKST } from "../../lib/kst";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { ledgerActor, recordHistory } from "../../lib/ledger-post";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-voucher-delete" };
@@ -32,7 +33,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   try {
     const rows: any = await db.execute(sql`
-      SELECT id, status, voucher_number, created_by FROM vouchers WHERE id = ${id} LIMIT 1
+      SELECT id, status, voucher_number, created_by, voucher_date, description, amount FROM vouchers WHERE id = ${id} LIMIT 1
     `);
     const voucher = (rows?.rows ?? rows ?? [])[0];
     if (!voucher) {
@@ -51,6 +52,14 @@ export default async function handler(req: Request, _ctx: Context) {
                admin_account_code = NULL, admin_budget_id = NULL, confirmed_by = NULL, confirmed_at = NULL
          WHERE voucher_id = ${id}`);
       await tx.execute(sql`DELETE FROM vouchers WHERE id = ${id}`);
+      /* 작성 기록이 남아 있으므로 삭제도 남긴다. 전표가 사라져도 이력으로 추적한다 */
+      await recordHistory(tx, {
+        entity: "voucher", entityId: id, action: "deleted", actor: ledgerActor(auth),
+        before: {
+          voucherNumber: voucher.voucher_number, voucherDate: voucher.voucher_date,
+          description: voucher.description, amount: Number(voucher.amount),
+        },
+      });
     });
 
     return new Response(jsonKST({

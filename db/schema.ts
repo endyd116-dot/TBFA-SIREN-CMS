@@ -3113,6 +3113,15 @@ export const accountCodes = pgTable("account_codes", {
               // 'personnel'|'program'|'admin_ops'|'fundraising'|'income'
   isActive:   boolean("is_active").default(true).notNull(),
   sortOrder:  integer("sort_order").default(0).notNull(),
+
+  /* === 장부 뼈대 === (2026-11-06) 마이그: migrate-ledger-foundation
+     category 값에 'asset'|'liability'|'net_asset'|'non_operating' 추가 */
+  kind:            varchar("kind", { length: 20 }).notNull(),             // 'asset'|'liability'|'net_asset'|'revenue'|'expense'
+  normalSide:      varchar("normal_side", { length: 6 }).notNull(),       // 'debit'|'credit'
+  statementLine:   varchar("statement_line", { length: 40 }).notNull(),   // 재무제표·공시 칸
+  nature:          varchar("nature", { length: 20 }),                     // 'distribution'|'personnel'|'facility'|'other'
+  defaultFunction: varchar("default_function", { length: 20 }),           // 'service'|'admin'|'fundraising'
+  systemRole:      varchar("system_role", { length: 40 }),                // 시스템이 찾는 계정 (유일)
 }, (t) => ({
   codeIdx:     index("account_codes_code_idx").on(t.code),
   categoryIdx: index("account_codes_category_idx").on(t.category),
@@ -3160,6 +3169,15 @@ export const vouchers = pgTable("vouchers", {
      마이그: migrate-phase22d-r3-recurring (적용 완료 후 활성) */
   recurringDay:    integer("recurring_day"),                                 // 매월 자동 생성일 (1~31, 0=말일)
   recurringActive: boolean("recurring_active").default(false).notNull(),      // 자동 생성 ON/OFF
+
+  /* === 장부 뼈대 === (2026-11-06) 마이그: migrate-ledger-foundation
+     금액·계정의 기준은 voucher_lines. account_code·amount는 기존 화면용 대표값 */
+  voucherType:  varchar("voucher_type", { length: 20 }).default("expense").notNull(),
+                // 'expense'|'income'|'transfer'|'opening'|'reversal'
+  sourceType:   varchar("source_type", { length: 30 }),                     // 자동 전표 출처
+  sourceId:     varchar("source_id", { length: 60 }),
+  reversalOfId: integer("reversal_of_id"),                                  // → vouchers.id (DB FK)
+  reversedById: integer("reversed_by_id"),                                  // → vouchers.id (DB FK)
 }, (t) => ({
   voucherNumberIdx: index("vouchers_number_idx").on(t.voucherNumber),
   dateIdx:          index("vouchers_date_idx").on(t.voucherDate),
@@ -5246,3 +5264,90 @@ export const donorStageEvents = pgTable("donor_stage_events", {
 
 export type DonorStageEvent    = typeof donorStageEvents.$inferSelect;
 export type NewDonorStageEvent = typeof donorStageEvents.$inferInsert;
+
+/* =========================================================
+   === 장부 뼈대 === (2026-11-06)
+   마이그: migrate-ledger-foundation (적용 완료)
+   설계: docs/active/2026-11-06-ledger-foundation-design.md
+   승인 전표 보호, 차변·대변 일치, 마감 잠금, 이력 보호는 DB 트리거가 맡는다.
+   ========================================================= */
+export const ledgerPrograms = pgTable("ledger_programs", {
+  id:             serial("id").primaryKey(),
+  code:           varchar("code", { length: 20 }).notNull().unique(),
+  name:           varchar("name", { length: 120 }).notNull(),
+  segment:        varchar("segment", { length: 10 }).default("public").notNull(),  // 'public'|'other'
+  charterRef:     varchar("charter_ref", { length: 30 }),                          // 정관 근거. 비면 근거 없음
+  disclosureCode: varchar("disclosure_code", { length: 10 }),                      // 공시 사업 코드
+  description:    text("description"),
+  isActive:       boolean("is_active").default(true).notNull(),
+  sortOrder:      integer("sort_order").default(0).notNull(),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export type LedgerProgram = typeof ledgerPrograms.$inferSelect;
+
+export const ledgerFunds = pgTable("ledger_funds", {
+  id:         serial("id").primaryKey(),
+  code:       varchar("code", { length: 20 }).notNull().unique(),
+  name:       varchar("name", { length: 120 }).notNull(),
+  restricted: boolean("restricted").default(false).notNull(),
+  isSystem:   boolean("is_system").default(false).notNull(),
+  isActive:   boolean("is_active").default(true).notNull(),
+  sortOrder:  integer("sort_order").default(0).notNull(),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:  timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export type LedgerFund = typeof ledgerFunds.$inferSelect;
+
+export const ledgerFiscalYears = pgTable("ledger_fiscal_years", {
+  year:          integer("year").primaryKey(),
+  startDate:     date("start_date").notNull(),
+  endDate:       date("end_date").notNull(),
+  closedThrough: date("closed_through"),                                   // 이 날까지 마감
+  status:        varchar("status", { length: 10 }).default("open").notNull(),  // 'open'|'closed'
+  closedBy:      integer("closed_by"),
+  closedAt:      timestamp("closed_at", { withTimezone: true }),
+  note:          text("note"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export type LedgerFiscalYear = typeof ledgerFiscalYears.$inferSelect;
+
+export const voucherLines = pgTable("voucher_lines", {
+  id:           serial("id").primaryKey(),
+  voucherId:    integer("voucher_id").notNull().references(() => vouchers.id, { onDelete: "cascade" }),
+  lineNo:       integer("line_no").notNull(),
+  accountCode:  varchar("account_code", { length: 20 }).notNull(),         // → account_codes.code (DB FK)
+  debit:        bigint("debit", { mode: "number" }).default(0).notNull(),
+  credit:       bigint("credit", { mode: "number" }).default(0).notNull(),
+  functionCode: varchar("function_code", { length: 20 }),                  // 'service'|'admin'|'fundraising'
+  programId:    integer("program_id").references(() => ledgerPrograms.id),
+  fundId:       integer("fund_id").references(() => ledgerFunds.id),
+  segment:      varchar("segment", { length: 10 }).default("public").notNull(),  // 'public'|'other'
+  memo:         varchar("memo", { length: 200 }),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  voucherNoUq: uniqueIndex("voucher_lines_no_uq").on(t.voucherId, t.lineNo),
+  voucherIdx:  index("voucher_lines_voucher_idx").on(t.voucherId),
+  accountIdx:  index("voucher_lines_account_idx").on(t.accountCode),
+  programIdx:  index("voucher_lines_program_idx").on(t.programId),
+  fundIdx:     index("voucher_lines_fund_idx").on(t.fundId),
+}));
+export type VoucherLine = typeof voucherLines.$inferSelect;
+
+export const ledgerHistory = pgTable("ledger_history", {
+  id:         bigint("id", { mode: "number" }).primaryKey(),               // BIGSERIAL
+  entity:     varchar("entity", { length: 30 }).notNull(),
+  entityId:   varchar("entity_id", { length: 40 }).notNull(),
+  action:     varchar("action", { length: 30 }).notNull(),
+  actorId:    integer("actor_id"),
+  actorName:  varchar("actor_name", { length: 100 }),
+  reason:     text("reason"),
+  beforeData: jsonb("before_data"),
+  afterData:  jsonb("after_data"),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  entityIdx: index("ledger_history_entity_idx").on(t.entity, t.entityId, t.createdAt),
+}));
+export type LedgerHistory = typeof ledgerHistory.$inferSelect;
+/* === 장부 뼈대 끝 === */

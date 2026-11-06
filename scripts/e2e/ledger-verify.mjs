@@ -46,7 +46,11 @@ async function main() {
   const snapshot = async () => {
     const pl = await api('GET', `/api/admin-finance-pl-summary?year=${thisYear}`);
     const budget = await api('GET', `/api/admin-finance-budget-list?year=${thisYear}`);
-    return JSON.stringify({ pl: pl.data?.expense ?? pl.data?.expenses ?? pl.data?.summary ?? null, budget: budget.data?.totalExecuted ?? null });
+    return JSON.stringify({
+      expenditure: pl.data?.expenditure?.total ?? null,
+      net: pl.data?.netIncome ?? null,
+      executed: budget.data?.totalExecuted ?? null,
+    });
   };
   const before = await snapshot();
 
@@ -195,6 +199,8 @@ async function main() {
   });
   const scrapDel = await api('DELETE', `/api/admin-voucher-delete?id=${scrap.data?.voucherId}`);
   check('Q7 작성중 전표는 분개와 함께 삭제', scrapDel.ok, reasonOf(scrapDel));
+  const scrapHistory = await api('GET', `/api/admin-ledger-history?entity=voucher&entityId=${scrap.data?.voucherId}`);
+  check('Q7 삭제도 이력에 남음', (scrapHistory.data?.items || []).some((h) => h.action === 'deleted'));
 
   /* Q14 동시 승인 */
   const race = await voucher({
@@ -315,7 +321,7 @@ async function main() {
 
   /* Q15 기존 화면 숫자 */
   const after = await snapshot();
-  check('Q15 손익·예산 집행 숫자 변화 없음', before === after, `${before} / ${after}`);
+  check('Q15 손익·예산 집행 숫자 변화 없음', before === after && !before.includes('"net":null'), `${before} / ${after}`);
 
   console.log(`\n결과: 통과 ${pass} / 실패 ${fail}`);
   if (failures.length) console.log('실패 항목:', failures.join(', '));

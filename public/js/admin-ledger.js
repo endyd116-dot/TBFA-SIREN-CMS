@@ -23,7 +23,7 @@
   };
   const ACTION_LABEL = {
     created: '추가', updated: '수정', submitted: '제출', approved: '승인', rejected: '반려',
-    reversed: '반대 전표로 취소', month_closed: '월 마감', month_reopened: '마감 해제',
+    reversed: '반대 전표로 취소', deleted: '삭제', month_closed: '월 마감', month_reopened: '마감 해제',
   };
   const ENTITY_LABEL = { voucher: '전표', program: '사업', fund: '재원', fiscal_year: '회계연도', account: '계정과목' };
 
@@ -163,6 +163,7 @@
     if (!window.SIREN_VOUCHER) return;
     if (!voucherReady) {
       voucherReady = true;
+      qs('lgVoucher').innerHTML = '<div style="color:var(--text-3);padding:12px">전표를 불러오는 중…</div>';
       window.SIREN_VOUCHER.initVoucherTab(qs('lgVoucher'));
     } else {
       window.SIREN_VOUCHER.loadVoucherList();

@@ -22,7 +22,7 @@
   const TYPE_LABEL  = { expense: '지출', income: '수입', transfer: '대체', opening: '개시', reversal: '취소' };
   const HISTORY_LABEL = {
     created: '작성', updated: '수정', submitted: '제출', approved: '승인',
-    rejected: '반려', reversed: '반대 전표로 취소',
+    rejected: '반려', reversed: '반대 전표로 취소', deleted: '삭제',
   };
 
   /* ── API 헬퍼 ── */
@@ -611,15 +611,15 @@
 
       return `<tr>
         <td><input type="checkbox" class="vc-row-check" value="${v.id}"></td>
-        <td style="font-family:monospace;font-size:12px">${escapeHtml(v.voucher_number || v.voucherNumber || '')}</td>
-        <td>${fmtDate(v.voucher_date || v.voucherDate)}</td>
+        <td style="font-family:monospace;font-size:12px;white-space:nowrap">${escapeHtml(v.voucher_number || v.voucherNumber || '')}</td>
+        <td style="white-space:nowrap">${fmtDate(v.voucher_date || v.voucherDate)}</td>
         <td>${escapeHtml(v.description || '')}</td>
         <td>${escapeHtml(v.payee_name || v.payeeName || '—')}</td>
-        <td>${escapeHtml(TYPE_LABEL[vType] || vType)}</td>
+        <td style="white-space:nowrap">${escapeHtml(TYPE_LABEL[vType] || vType)}</td>
         <td>${escapeHtml(v.account_name || v.accountName || accCode || '')}${anomalyBadge(accCode)}</td>
-        <td class="num">${fmtKRW(v.amount)}</td>
+        <td class="num" style="white-space:nowrap">${fmtKRW(v.amount)}</td>
         <td style="font-size:12px;color:var(--text-2)">${escapeHtml(budgetName)}</td>
-        <td><span style="padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;color:${color};background:${bg}">${label}</span>${cancelled}</td>
+        <td style="white-space:nowrap"><span style="padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;color:${color};background:${bg}">${label}</span>${cancelled}</td>
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
     }).join('');
@@ -645,7 +645,7 @@
     }
 
     btns.push(`<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_VOUCHER.openView(${id})" style="margin-left:4px">보기</button>`);
-    btns.push(`<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_VOUCHER.printVoucher(${id})" style="margin-left:4px" title="지출결의서 인쇄"></button>`);
+    btns.push(`<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_VOUCHER.printVoucher(${id})" style="margin-left:4px">인쇄</button>`);
 
     return btns.join('');
   }
