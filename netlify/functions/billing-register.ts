@@ -145,7 +145,7 @@ export default async (req: Request) => {
     const reg = await registerTrade({
       shopOrderNo: pgOrderNo,
       amount: data.amount,
-      goodsName: "교사유가족협의회 정기 후원회원 회비",
+      goodsName: "교사유가족협의회 정기 회원회비",
       returnUrl: `${SITE_URL}/api/billing-approve`,
       isBillingKey: true, // 정기 빌키 등록창 (payMethodTypeCode 81·amount 0·certType 0)
       customerName: data.name,

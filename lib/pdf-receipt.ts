@@ -358,7 +358,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const kstDate = data.donationDate instanceof Date && !isNaN(data.donationDate.getTime()) ? new Date(rawDate.getTime() + 9 * 60 * 60 * 1000) : issueDate;
   const donDateStr = `${kstDate.getUTCFullYear()}년 ${kstDate.getUTCMonth() + 1}월 ${kstDate.getUTCDate()}일`;
   drawLabelValue("납부일자", donDateStr, 50, y, 70, 210);
-  drawLabelValue("후원유형", data.donationType === "regular" ? "정기후원" : "일시후원", 330, y, 70, 165);
+  drawLabelValue("회비 구분", data.donationType === "regular" ? "정기 회비" : "일시 회비", 330, y, 70, 165);
   y -= 25;
   const amountStr = `₩ ${data.amount.toLocaleString()} (금 ${numberToKorean(data.amount)} 원정)`;
   drawLabelValue("납부금액", amountStr, 50, y, 70, 425);

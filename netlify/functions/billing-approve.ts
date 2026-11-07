@@ -142,7 +142,7 @@ export default async (req: Request) => {
       billingKey: billKey,
       shopOrderNo: chargeOrderNo,
       amount,
-      goodsName: "교사유가족협의회 정기 회비 (1회차)",
+      goodsName: "교사유가족협의회 정기 회원회비 (1회차)",
       customerName: donation.donorName,
       customerEmail: donation.donorEmail || undefined,
     });

@@ -338,7 +338,7 @@ export async function amStartKiccPayment(intentId: string): Promise<{ authPageUr
   const reg = await registerTrade({
     shopOrderNo: pgOrderNo,
     amount: row.amount,
-    goodsName: row.type === "regular" ? "교사유가족협의회 정기 후원회원 회비" : "교사유가족협의회 후원회원 회비",
+    goodsName: row.type === "regular" ? "교사유가족협의회 정기 회원회비" : "교사유가족협의회 회원회비",
     returnUrl: `${SITE_URL}/api/${row.type === "regular" ? "billing-approve" : "donate-kicc-approve"}`,
     isBillingKey: row.type === "regular",
     customerName: m?.name || row.donorName,

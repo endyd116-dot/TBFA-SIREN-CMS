@@ -127,7 +127,8 @@ export default async (req: Request) => {
     const reg = await registerTrade({
       shopOrderNo: pgOrderNo,
       amount: data.amount,
-      goodsName: "교사유가족협의회 후원",
+      /* 결제사에 보이는 상품명. 결제사 입점 조건상 «후원» 표현 없이 «회원회비»로 적는다(2026-11-08) */
+      goodsName: data.type === "regular" ? "교사유가족협의회 정기 회원회비" : "교사유가족협의회 회원회비",
       returnUrl: `${SITE_URL}/api/donate-kicc-approve`,
       customerName: data.name,
       customerEmail: data.email,
