@@ -195,7 +195,7 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
             ${ladderCol("정기 후원회원 (월 회비)", x.ladder.monthlyHint || "", x.ladder.regular || [])}
             ${ladderCol("일시 후원회원", "한 번만", x.ladder.onetime || [])}
           </div>
-          <p class="lt-ladder-note">${esc(x.ladder.minNote || "최소 1,000원부터 가능합니다")} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
+          <p class="lt-ladder-note">${esc(x.ladder.minNote || "최소 10,000원부터 가능합니다")} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
         </section>` : ""}
 
         <section class="lt-recent" id="ltRecent"${(recent.length || bySchool.length) ? "" : " hidden"}>

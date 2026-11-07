@@ -122,7 +122,7 @@ export const LANTERN: CampaignExtras = {
     ],
     regularDefault: 10000,
     onetimeDefault: 30000,
-    minNote: "최소 1,000원부터 가능합니다",
+    minNote: "최소 10,000원부터 가능합니다",
     monthlyHint: "월 1만 원 = 하루 330원",
   },
   org: { name: "사단법인 교사유가족협의회", businessNo: "381-82-00754", representative: "박두용" },
@@ -134,7 +134,7 @@ export const LANTERN: CampaignExtras = {
   postbackUrl: (process.env.WITHWORK_LIT_RETURN_URL || `${WITHWORK_BASE}/api/lit-return`).trim(),
   certificate: { tagline: "함께 지키는 사람", campaignLabel: "등불의 기적" },
   bylawsUrl: process.env.LANTERN_BYLAWS_URL || "/resources.html",
-  feeNotice: "이 캠페인은 후원회원 모집 캠페인입니다. 모인 후원은 회칙에 따른 특별회비로 순직자 예우와 유가족 지원에 쓰입니다.",
+  feeNotice: "이 캠페인은 후원회원 모집 캠페인입니다. 모인 후원은 회칙에 따른 특별회비로 순직자 예우와 유가족 지원에 쓰입니다. 일시 후원회원은 납부일부터 1년, 정기 후원회원은 매월 납부하는 동안 회원 자격이 유지됩니다.",
   campaignUrl: `${SITE_BASE}/campaign.html?slug=${encodeURIComponent(LANTERN_SLUG)}`,
   memorialUrl: `${SITE_BASE}/memorial.html`,
 };
@@ -223,7 +223,7 @@ function cleanSteps(v: any, fallback: AmountStep[]): AmountStep[] {
   const out: AmountStep[] = [];
   for (const s of v.slice(0, 6)) {
     const amount = Math.round(Number(s?.amount));
-    if (!Number.isFinite(amount) || amount < 1000 || amount > 100_000_000) continue;
+    if (!Number.isFinite(amount) || amount < 10_000 || amount > 100_000_000) continue;
     out.push({ amount, impact: str(s?.impact, 80) });
   }
   return out.length ? out : fallback;

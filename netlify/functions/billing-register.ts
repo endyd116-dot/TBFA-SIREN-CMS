@@ -31,7 +31,7 @@ const registerSchema = z.object({
   name: z.string().trim().min(2).max(50),
   phone: z.string().trim().regex(/^[0-9\-+\s()]{8,20}$/),
   email: z.string().trim().toLowerCase().email(),
-  amount: z.number().int().min(1000).max(100_000_000),
+  amount: z.number().int().min(10000, "최소 10,000원").max(100_000_000),
   isAnonymous: z.boolean().optional().default(false),
   campaignId: z.number().int().positive().nullable().optional(),
   sourceMeta: z.record(z.any()).optional(),

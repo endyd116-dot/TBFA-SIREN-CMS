@@ -38,8 +38,8 @@ export default async (req: Request) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return badRequest("올바른 이메일을 입력해주세요");
     }
-    if (!Number.isFinite(amount) || amount < 1000 || amount > 100000000) {
-      return badRequest("금액은 1,000원 ~ 1억원 사이여야 합니다");
+    if (!Number.isFinite(amount) || amount < 10000 || amount > 100000000) {
+      return badRequest("금액은 10,000원 ~ 1억원 사이여야 합니다");
     }
     if (!depositorName) return badRequest("입금자명을 입력해주세요");
 

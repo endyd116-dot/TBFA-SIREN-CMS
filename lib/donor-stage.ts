@@ -13,7 +13,7 @@
 //   ② 카드 해지 이력 또는 효성 해지/정지/만료 →
 //        한 번이라도 완료 후원·효성 수납이 있고 마지막 납부가 LAPSE_MONTHS 안이면 prospect_cancelled,
 //        한 번도 낸 적 없거나 LAPSE_MONTHS 넘게 후원이 없으면 potential  (★ 정기→잠재 자동 역방향)
-//   ③ 완료된 일시 후원이 있으면 prospect_onetime
+//   ③ 완료된 일시 후원이 있고 마지막 납부가 ONETIME_MONTHS 안이면 prospect_onetime, 넘었으면 potential (★ 일시 회원 자격 만료 → 잠재)
 //   ④ 그 외: 잠재 행이 연결돼 있으면 potential, 없으면 member
 //
 // 수동 지정(override) — 운영자가 단계를 직접 옮기면(donor_stage_events source='manual', is_override=true)
@@ -22,6 +22,7 @@
 // 표가 아직 없으면(마이그 전) 이력·수동 지정 없이 자동 판정만 동작한다(fail-open·예외 없음).
 import { sql } from "drizzle-orm";
 import { db } from "../db";
+import { toKST } from "./kst";
 
 export type DonorStage = "potential" | "prospect_onetime" | "prospect_cancelled" | "regular" | "member";
 export const STAGE_LABEL: Record<DonorStage, string> = {
@@ -29,8 +30,17 @@ export const STAGE_LABEL: Record<DonorStage, string> = {
 };
 /** 운영자가 수동으로 고를 수 있는 단계 */
 export const MANUAL_STAGES: DonorStage[] = ["potential", "prospect_onetime", "prospect_cancelled", "regular"];
-/** 해지 뒤 이 개월수 넘게 후원이 없으면 예비(해지) → 잠재로 자동 이동 */
-export const LAPSE_MONTHS = 24;
+/** 해지 뒤 이 개월수 넘게 회비 납부가 없으면 예비(해지) → 잠재로 자동 이동 (2026-11-08 회비 규칙에 맞춰 24 → 12) */
+export const LAPSE_MONTHS = 12;
+/** 일시 후원회원의 자격 유효기간(개월). 마지막 납부일부터 이 기간이 지나면 잠재로 내려간다 (2026-11-08 Swain: 일시 = 납부일부터 1년) */
+export const ONETIME_MONTHS = 12;
+
+/** 일시 후원회원 자격 만료일(한국 날짜). 마지막 납부일 + ONETIME_MONTHS개월 */
+export function onetimeValidUntil(lastPaid: string | Date): string {
+  const d = toKST(new Date(lastPaid));
+  d.setUTCMonth(d.getUTCMonth() + ONETIME_MONTHS);
+  return d.toISOString().slice(0, 10);
+}
 
 const rowsOf = (r: any): any[] => (r?.rows ?? r ?? []) as any[];
 const missingTable = (e: any) => /relation "donor_stage_events" does not exist/i.test(String(e?.message || e));
@@ -79,7 +89,8 @@ export const AUTO_STAGE_CASE_SQL = `
         CASE WHEN (s.paid_cnt > 0 OR s.hy_received > 0)
                   AND (s.last_paid IS NULL OR s.last_paid >= NOW() - INTERVAL '${LAPSE_MONTHS} months')
              THEN 'prospect_cancelled' ELSE 'potential' END
-      WHEN s.onetime_cnt > 0 THEN 'prospect_onetime'
+      WHEN s.onetime_cnt > 0 AND s.last_paid >= NOW() - INTERVAL '${ONETIME_MONTHS} months' THEN 'prospect_onetime'
+      WHEN s.onetime_cnt > 0 THEN 'potential'
       WHEN s.has_pd THEN 'potential'
       ELSE 'member'
     END`;

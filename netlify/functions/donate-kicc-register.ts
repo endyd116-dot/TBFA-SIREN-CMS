@@ -31,7 +31,7 @@ const registerSchema = z.object({
   name: z.string().trim().min(2, "이름은 2자 이상").max(50, "이름은 50자 이하"),
   phone: z.string().trim().regex(/^[0-9\-+\s()]{8,20}$/, "연락처 형식이 올바르지 않습니다"),
   email: z.string().trim().toLowerCase().email("이메일 형식이 올바르지 않습니다"),
-  amount: z.number().int().min(1000, "최소 1,000원").max(100_000_000, "최대 1억원"),
+  amount: z.number().int().min(10000, "최소 10,000원").max(100_000_000, "최대 1억원"),
   type: z.enum(["onetime", "regular"]).default("onetime"),
   isAnonymous: z.boolean().optional().default(false),
   campaignId: z.number().int().positive().optional(),

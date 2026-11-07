@@ -7,7 +7,7 @@
  *   정기(regular)            : 활성 카드 빌링키 또는 효성 약정 active
  *   예비·해지(prospect/cancelled): 카드 해지 이력·효성 해지/정지/만료 + 낸 적 있고 마지막 납부가 LAPSE_MONTHS 안
  *   잠재(none + 잠재 행)      : 해지됐는데 한 번도 낸 적 없거나 LAPSE_MONTHS 넘게 후원이 없음(★ 자동 역방향) · 잠재 행만 연결된 회원
- *   예비·일시(prospect/onetime): 완료된 일시 후원 1건+
+ *   예비·일시(prospect/onetime): 완료된 일시 후원 1건+ 이고 마지막 납부가 ONETIME_MONTHS(12개월) 안 — 넘으면 잠재(★ 일시 회원 자격 만료)
  *   회원(none)               : 위 어느 것도 아님(후원 단계 아님)
  *
  * 수동 지정(운영자 단계 이동)은 donor_stage_events에 남고, 그 당시 자동 판정(auto_baseline)이 바뀔 때까지 유지된다.
@@ -59,7 +59,7 @@ export async function reevaluateDonorType(memberId: number): Promise<void> {
     const neverPaid = auto.signals.paidCount === 0 && auto.signals.hyosungReceived === 0;
     await ensurePotentialRowForMember(memberId, {
       eventName: "자동 전환(잠재)", entryPath: "auto_stage",
-      memo: `[자동] ${neverPaid ? "후원 이력 없이 해지되어" : `${LAPSE_MONTHS}개월 넘게 후원이 없어`} 잠재로 이동`,
+      memo: `[자동] ${neverPaid ? "후원 이력 없이 해지되어" : `${LAPSE_MONTHS}개월 넘게 회비 납부가 없어(회원 자격 만료)`} 잠재로 이동`,
     }).catch((e: any) => console.warn("[donor-status] 잠재 행 생성 실패", e?.message || e));
   }
 
@@ -166,7 +166,7 @@ export async function reevaluateAllDonorTypes(): Promise<BulkReevaluateSummary> 
     SELECT m.name, m.phone,
            CASE WHEN COALESCE(m.email, '') ILIKE '%@noemail.%' OR COALESCE(m.email, '') ILIKE '%@lantern.invalid' THEN NULL ELSE m.email END,
            '자동 전환(잠재)', 'auto_stage', NOW(),
-           '[자동] 후원 이력 없이 해지되었거나 ${LAPSE_MONTHS}개월 넘게 후원이 없어 잠재로 이동(일괄 재평가)', m.id, NOW(), NOW(), NOW()
+           '[자동] 후원 이력 없이 해지되었거나 ${LAPSE_MONTHS}개월 넘게 회비 납부가 없어(회원 자격 만료) 잠재로 이동(일괄 재평가)', m.id, NOW(), NOW(), NOW()
       FROM fin f JOIN members m ON m.id = f.id
      WHERE f.stage = 'potential'
        AND NOT EXISTS (SELECT 1 FROM potential_donors pd WHERE pd.linked_member_id = m.id)

@@ -112,8 +112,8 @@
   <script src="/js/icons.js?v=20260820-ssr" defer></script>
   <script src="/js/lib-kst.js?v=3-kst-input" defer></script>
 <script src="/js/common.js?v=20261007-init" defer></script>
-<script src="/js/auth.js?v=20261031-member" defer></script>
-<script src="/js/donate.js?v=20261101-join3" defer></script>
+<script src="/js/auth.js?v=20261108-fee" defer></script>
+<script src="/js/donate.js?v=20261108-fee" defer></script>
 <script>
 (function(){
   const TYPE_LABEL = { fundraising: '모금', memorial: '추모', awareness: '인식 개선' };
@@ -311,7 +311,7 @@
             ${ladderCol('정기 후원회원 (월 회비)', x.ladder.monthlyHint || '', x.ladder.regular || [])}
             ${ladderCol('일시 후원회원', '한 번만', x.ladder.onetime || [])}
           </div>
-          <p class="lt-ladder-note">${escapeHtml(x.ladder.minNote || '최소 1,000원부터 가능합니다')} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
+          <p class="lt-ladder-note">${escapeHtml(x.ladder.minNote || '최소 10,000원부터 가능합니다')} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
         </section>` : ''}
 
         <section class="lt-recent" id="ltRecent" hidden>

@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-07.2";
+export const APP_VERSION = "2026-11-08.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,17 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-08-member-fee-terms",
+    title: "[회원·관리자] 후원회원 자격 기간 — 정기는 매월 납부하는 동안, 일시는 납부일부터 1년",
+    items: [
+      { text: "일시 후원회원은 회비 납부일부터 1년간 회원 자격이 유지되고, 만료 30일 전에 안내를 받습니다. 다시 납부하면 그날부터 1년입니다", link: "/mypage.html" },
+      { text: "정기 후원회원은 매월 회비를 납부하는 동안 유지됩니다. 마이페이지 회비 납부 내역 위에 자격 안내가 보입니다" },
+      { text: "회비 최소 금액이 1만 원으로 바뀌었습니다. 결제 화면과 등불 캠페인 사다리는 그대로 1만 원부터입니다" },
+      { text: "관리자: 납부 없이 12개월이 지난 회원은 잠재 후원자로 자동 전환됩니다(종전 24개월). 알림 설정에 «후원회원 자격 만료 예정 안내» 항목이 생겼습니다", link: "/cms-tbfa.html#settings-notifications" },
+      { text: "결제사에 보내는 상품명을 «교사유가족협의회 회원회비»로 통일했습니다(결제사 입점 조건)" },
+    ],
+  },
   {
     key: "2026-11-07-payroll-approval",
     title: "[관리자] 급여 지급 결재 — 급여 대장을 결재 한 장으로, 승인 뒤 한꺼번에 지급 처리",

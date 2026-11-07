@@ -27,6 +27,8 @@ export enum NotifyEvent {
   LEAVE_REQUESTED             = "leave.requested",        // 직원→어드민 (결재 대기 알림)
   LEAVE_DECIDED               = "leave.decided",          // 어드민→직원 (승인/반려 결과)
   MEMBER_SIGNUP               = "member.signup",          // 직원 가입→슈퍼어드민 (신규 회원 가입 알림)
+  /* 2026-11-08 회비 규칙 — 일시 후원회원 자격 만료 30일 전 안내 (cron-billing-upcoming) */
+  MEMBERSHIP_EXPIRING         = "membership.expiring",
 }
 
 export type ChannelName = "inapp" | "email" | "sms" | "kakao";
@@ -66,4 +68,5 @@ export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
   [NotifyEvent.LEAVE_REQUESTED]:            ["inapp", "email"],          // 직원→어드민 결재 대기
   [NotifyEvent.LEAVE_DECIDED]:              ["inapp", "email"],          // 어드민→직원 결과 통지
   [NotifyEvent.MEMBER_SIGNUP]:              ["inapp", "email"],          // 신규 가입→슈퍼어드민
+  [NotifyEvent.MEMBERSHIP_EXPIRING]:        ["inapp", "email", "sms"],   // 일시 후원회원 자격 만료 예정 (알림톡 템플릿 없음 → 문자)
 };

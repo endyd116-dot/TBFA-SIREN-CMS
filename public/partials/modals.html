@@ -359,8 +359,9 @@
             <input type="radio" name="dtype" id="dt1" value="regular" checked>
             <label for="dt1">정기 후원회원 (월 회비 자동결제)</label>
             <input type="radio" name="dtype" id="dt2" value="onetime">
-            <label for="dt2">일시 후원회원</label>
+            <label for="dt2">일시 후원회원 (한 번 납부 · 1년)</label>
           </div>
+          <small class="amt-min-note" style="display:block;margin-top:6px">정기 후원회원은 매월 납부하는 동안, 일시 후원회원은 납부일부터 1년간 회원 자격이 유지됩니다. 회비는 1만 원 이상 자유입니다.</small>
         </div>
         <div class="fg">
           <label>회비 금액 <span class="hint" id="amtLadderHint" hidden></span></label>
@@ -373,8 +374,8 @@
             <button type="button" class="amt" data-amt="500000">500,000원</button>
           </div>
           <div class="amt-impact" id="amtImpact" hidden></div>
-          <input type="number" name="amount" id="customAmt" placeholder="직접 입력 (원)" value="30000" min="1000" max="100000000" required>
-          <small class="amt-min-note" id="amtMinNote" hidden>최소 1,000원부터 가능합니다</small>
+          <input type="number" name="amount" id="customAmt" placeholder="직접 입력 (원)" value="30000" min="10000" max="100000000" required>
+          <small class="amt-min-note" id="amtMinNote" hidden>최소 10,000원부터 가능합니다</small>
         </div>
 
         <!-- Phase L: 결제 방식 선택 -->

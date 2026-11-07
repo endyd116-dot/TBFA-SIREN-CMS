@@ -1208,6 +1208,24 @@ document.addEventListener('change', async function (e) {
       }
     }
 
+    /* 2026-11-08 회비 규칙: 회원 자격 안내 — 정기는 매월 납부하는 동안, 일시는 납부일부터 1년 */
+    const table = panel?.querySelector('table.tbl');
+    if (table) {
+      let note = panel.querySelector('#mpMembership');
+      if (!note) {
+        note = document.createElement('div');
+        note.id = 'mpMembership';
+        note.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:8px;background:var(--bg-2, #f6f4f1);font-size:13px;color:var(--text-2)';
+        table.parentNode.insertBefore(note, table);
+      }
+      const ms = res.data.data.membership;
+      note.textContent = !ms ? ''
+        : ms.kind === 'regular' ? '정기 후원회원 · 매월 회비를 납부하는 동안 회원 자격이 유지됩니다.'
+        : ms.kind === 'onetime' ? `일시 후원회원 · 회원 자격 ${ms.validUntil}까지 (납부일부터 1년, 다시 납부하면 그날부터 1년)`
+        : ms.kind === 'expired' ? `회원 자격이 ${ms.validUntil}에 만료되었습니다. 회비를 다시 납부하시면 납부일부터 1년간 유지됩니다.` : '';
+      note.hidden = !note.textContent;
+    }
+
     const tbody = panel?.querySelector('table.tbl tbody');
     if (tbody) {
       if (list.length === 0) {

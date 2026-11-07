@@ -98,7 +98,7 @@
     if (step) {
       box.textContent = '이 금액이면 — ' + step.impact;
       box.hidden = false;
-    } else if (v >= 1000) {
+    } else if (v >= 10000) {
       box.textContent = '직접 정하신 마음, 감사합니다. 이 금액도 같은 곳에 쓰입니다.';
       box.hidden = false;
     } else {
@@ -154,7 +154,7 @@
         hint.textContent = h;
         hint.hidden = !h;
       }
-      if (minNote) { minNote.textContent = _lantern.ladder.minNote || '최소 1,000원부터 가능합니다'; minNote.hidden = false; }
+      if (minNote) { minNote.textContent = _lantern.ladder.minNote || '최소 10,000원부터 가능합니다'; minNote.hidden = false; }
       updateImpact();
       return;
     }
@@ -730,7 +730,7 @@
       }
 
       if (!data.name || !data.phone) return window.SIREN.toast('이름과 연락처를 입력해 주세요');
-      if (!amount || amount < 1000) return window.SIREN.toast('회비는 1,000원 이상 입력해 주세요');
+      if (!amount || amount < 10000) return window.SIREN.toast('회비는 10,000원 이상 입력해 주세요');
       if (amount > 100000000) return window.SIREN.toast('1회 최대 회비는 1억원입니다');
 
       const email = (data.email || '').trim() || (auth?.user?.email || '') || (_member?.email || '');

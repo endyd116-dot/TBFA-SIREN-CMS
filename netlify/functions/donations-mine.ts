@@ -5,6 +5,7 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { authenticateUser } from "../../lib/auth";
+import { computeAutoStage, onetimeValidUntil } from "../../lib/donor-stage";
 import {
   ok, unauthorized, serverError,
   corsPreflight, methodNotAllowed,
@@ -60,7 +61,19 @@ export default async (req: Request) => {
         )
       );
 
+    /* 3. 회원 자격 (2026-11-08 회비 규칙): 정기 = 매월 납부하는 동안, 일시 = 마지막 납부일부터 1년. 계산이 실패해도 내역은 보여 준다 */
+    let membership: { kind: "regular" | "onetime" | "expired"; validUntil: string | null } | null = null;
+    try {
+      const auto = await computeAutoStage(auth.uid);
+      if (auto?.stage === "regular") membership = { kind: "regular", validUntil: null };
+      else if (auto?.stage === "prospect_onetime" && auto.signals.lastPaid) membership = { kind: "onetime", validUntil: onetimeValidUntil(auto.signals.lastPaid) };
+      else if (auto && auto.signals.onetimeCount > 0 && auto.signals.lastPaid) membership = { kind: "expired", validUntil: onetimeValidUntil(auto.signals.lastPaid) };
+    } catch (err) {
+      console.warn("[donations-mine] 회원 자격 계산 실패(내역만 응답):", err);
+    }
+
     return ok({
+      membership,
       list: list.map(d => ({
         id: d.id,
         donationNo: `D-${String(d.id).padStart(7, "0")}`,

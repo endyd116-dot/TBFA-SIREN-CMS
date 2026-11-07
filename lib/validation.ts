@@ -64,7 +64,7 @@ export const donateSchema = z.object({
   name: nameField,
   phone: phoneField,
   email: emailField.optional().or(z.literal("")),
-  amount: z.number().int().min(1000, "최소 1,000원 이상").max(100_000_000, "최대 1억원 이하"),
+  amount: z.number().int().min(10000, "최소 10,000원 이상").max(100_000_000, "최대 1억원 이하"),
   type: z.enum(["regular", "onetime"]),
   payMethod: z.enum(["cms", "card", "bank"]),
   isAnonymous: z.boolean().optional().default(false),

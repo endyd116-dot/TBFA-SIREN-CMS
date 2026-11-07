@@ -68,6 +68,11 @@ export function dispatch(opts: DispatchOptions): void {
   );
 }
 
+/** 끝날 때까지 기다리는 발송. 크론·서버리스 함수는 응답 전에 발송을 마쳐야 유실되지 않는다(2026-11-08) */
+export function dispatchAndWait(opts: DispatchOptions): Promise<void> {
+  return _dispatch(opts).catch(err => { console.error("[notify-dispatcher] dispatch error:", err); });
+}
+
 /* =========================================================
    내부: 채널 결정 (Phase 9-B)
    - 마이그레이션 전: 테이블 접근 실패 → EVENT_CHANNEL_POLICY 폴백

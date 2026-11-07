@@ -15,7 +15,7 @@
   /* R45 US-058: 키를 NotifyEvent 정규값(점 표기)으로 통일 — 기존 underscore 키(donation_confirmed·
      support_status_change·incident_reply·workspace_mention)는 디스패처(점 표기)와 불일치해 수신거부가 무시됐음. */
   const CATEGORY = {
-    billing:   ["billing.success", "billing.failed", "billing.canceled", "card.expiring", "billing.upcoming", "donation.receipt_annual"],
+    billing:   ["billing.success", "billing.failed", "billing.canceled", "card.expiring", "billing.upcoming", "membership.expiring", "donation.receipt_annual"],
     service:   ["support.reply", "siren.assigned", "legal.assigned",
                 "member.eligibility_decided", "comment.report_resolved", "donor.info_changed"],
     workspace: ["workspace.mention", "workspace.activity"],
@@ -25,6 +25,7 @@
     "billing.failed":             "결제 실패",
     "billing.canceled":           "결제 취소",
     "billing.upcoming":           "정기결제 예정 안내",
+    "membership.expiring":        "후원회원 자격 만료 예정 안내",
     "card.expiring":              "카드 만료 예정",
     "donation.receipt_annual":    "연말 기부금 영수증 안내",
     "support.reply":              "유가족 지원 회신",

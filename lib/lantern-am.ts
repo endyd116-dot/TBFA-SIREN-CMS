@@ -172,7 +172,7 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
   const monthly = body.monthly === true;
   const method = String(body.method || "") as AmPayMethod;
 
-  if (!Number.isInteger(amount) || amount < 1000 || amount > 100_000_000) throw new AmError(400, "금액은 1,000원 이상 1억원 이하의 정수여야 합니다");
+  if (!Number.isInteger(amount) || amount < 10000 || amount > 100_000_000) throw new AmError(400, "금액은 10,000원 이상 1억원 이하의 정수여야 합니다");
   const allowed: AmPayMethod[] = monthly ? ["card", "easy", "cms"] : ["card", "easy", "transfer", "bank"];
   if (!allowed.includes(method)) throw new AmError(400, `${monthly ? "정기" : "일시"} 후원에서 고를 수 없는 방식입니다: ${method || "(없음)"}`);
 
