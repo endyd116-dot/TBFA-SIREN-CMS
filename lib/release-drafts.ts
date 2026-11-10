@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-08.1";
+export const APP_VERSION = "2026-11-10.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,14 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-10-payroll-contract-month",
+    title: "[관리자] 재계약한 직원의 급여 소속 — 계약 시작일이 속한 달부터",
+    items: [
+      { text: "직원이 다른 사업자에서 사단법인으로 근로계약을 다시 맺으면, 계약 시작일이 속한 달의 급여부터 사단법인 급여로 봅니다. 그 전 달 급여는 그때 계약의 사업자 기준입니다", link: "/cms-tbfa.html#payroll" },
+      { text: "사단법인 급여만 지급 결재에 올라가고 장부에 기록됩니다. 근로계약 관리의 사단법인 정보(고유번호·주소)를 바로잡았습니다", link: "/cms-tbfa.html#contract" },
+    ],
+  },
   {
     key: "2026-11-08-member-fee-terms",
     title: "[회원·관리자] 후원회원 자격 기간 — 정기는 매월 납부하는 동안, 일시는 납부일부터 1년",

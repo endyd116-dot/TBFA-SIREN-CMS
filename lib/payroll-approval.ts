@@ -24,16 +24,26 @@ export const ORG_BIZ_NO = "3818200754";
 const PAY_ACCOUNT = "5011";
 const BONUS_ACCOUNT = "5015";
 
-/** 사단법인 소속 판정에 쓰는 조인. 별칭 s(인건비 배부)와 employer(완료 계약의 사업자 번호)를 만든다 */
-export const orgPayrollJoins = (memberUid: any) => sql`
+/** 급여 명세가 속한 달의 말일. 별칭 p는 payroll_slips다 */
+export const PAY_MONTH_END = sql`((make_date(p.pay_year, p.pay_month, 1) + INTERVAL '1 month' - INTERVAL '1 day')::date)`;
+
+/* 근로계약의 시작일(계약 조건 «계약시작일», 2026-07-01 또는 20260701). 숫자 8자리로 읽히지 않으면 NULL — 기간을 따지지 않고 유효로 본다 */
+const CONTRACT_START = sql`(CASE WHEN regexp_replace(COALESCE(c.fields->>'계약시작일', ''), '[^0-9]', '', 'g') ~ '^[0-9]{8}$'
+  THEN to_date(regexp_replace(c.fields->>'계약시작일', '[^0-9]', '', 'g'), 'YYYYMMDD') END)`;
+
+/** 사단법인 소속 판정에 쓰는 조인. 별칭 s(인건비 배부)와 employer(그 달에 유효한 완료 계약의 사업자 번호)를 만든다.
+ *  asOf(기본: 급여 명세 달의 말일)까지 시작한 완료 계약 가운데 가장 늦게 시작한 계약을 쓴다.
+ *  2026-11-10: 사업자를 바꿔 재계약해도 재계약 전 달의 급여는 그때 계약의 사업자로 판단한다. */
+export const orgPayrollJoins = (memberUid: any, asOf: any = PAY_MONTH_END) => sql`
   LEFT JOIN ledger_staff_allocations s ON s.member_id::text = ${memberUid}
   LEFT JOIN LATERAL (
     SELECT regexp_replace(COALESCE(e.biz_no, ''), '[^0-9]', '', 'g') AS biz_no FROM employment_contracts c
       JOIN contract_business_entities e ON e.id = c.entity_id
      WHERE c.member_id::text = ${memberUid} AND c.status = 'completed'
-     ORDER BY c.id DESC LIMIT 1) employer ON TRUE`;
+       AND (${CONTRACT_START} IS NULL OR ${CONTRACT_START} <= ${asOf})
+     ORDER BY ${CONTRACT_START} DESC NULLS LAST, c.id DESC LIMIT 1) employer ON TRUE`;
 
-/** 완료된 근로계약이 있으면 그 사업자의 번호로 판단하고, 없으면 인건비 배부를 저장한 직원만 사단법인 소속으로 본다 */
+/** 그 달에 유효한 완료 근로계약이 있으면 그 사업자의 번호로 판단하고, 없으면 인건비 배부를 저장한 직원만 사단법인 소속으로 본다 */
 export const ORG_PAYROLL = sql`(CASE WHEN employer.biz_no IS NOT NULL THEN employer.biz_no = ${ORG_BIZ_NO} ELSE s.member_id IS NOT NULL END)`;
 
 export interface PayrollRow {
