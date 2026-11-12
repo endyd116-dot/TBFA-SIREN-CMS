@@ -24,6 +24,12 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-memorial-settings": "cms_memorial",
   "/api/admin-memorial-moderation": "cms_memorial",
   "/api/admin-memorial-spotlights": "cms_memorial",
+  /* ★ 2026-11-12: 추모관 v2·v3에서 생긴 관리자 경로도 같은 권한으로(그동안 빠져 있어 활성 관리자면 누구나 통과) */
+  "/api/admin-memorial-family-notes": "cms_memorial",
+  "/api/admin-memorial-family-moods": "cms_memorial",
+  "/api/admin-memorial-teacher-photos": "cms_memorial",
+  "/api/admin-memorial-teacher-sections": "cms_memorial",
+  "/api/admin-memorial-timeline": "cms_memorial",
   "/api/admin-family-stories": "cms_family_stories",
   "/api/admin-family-story-ai": "cms_family_stories",
   "/api/admin/receipt-settings": "receipt_config",

@@ -283,7 +283,7 @@
       (mine ? '<span class="mem2-badge-mine">내가 남긴 마음</span>' : '') +
       '</div>' +
       '<p class="mem2-msg-body">' + esc(m.content || '') + '</p>' +
-      '<button type="button" class="mem2-locate" data-m2-locate="' + esc(m.id) + '">이 마음의 별 보기 →</button>' +
+      '<button type="button" class="mem2-locate" data-m2-locate="' + esc(m.id) + '">이 마음의 등불 보기 →</button>' +
       '</article>';
   }
 
@@ -375,9 +375,9 @@
       var hit = SKY.focusMine();
       if (hit) {
         scrollToBackdrop(hit.y);
-        flashNote('<b>찾았습니다</b>밝게 빛나는 것이 당신의 별입니다.' +
+        flashNote('<b>찾았습니다</b>밝게 빛나는 것이 당신의 등불입니다.' +
           (hit.text ? '<br><span style="opacity:.8">“' + esc(hit.text) + '”</span>' : ''));
-        if (box) { box.innerHTML = '✨ 당신의 별이 잠시 밝아집니다.'; show(box, true); }
+        if (box) { box.innerHTML = '✨ 당신의 등불이 잠시 밝아집니다.'; show(box, true); }
       } else if (MINE.offered > 0) {
         if (box) {
           box.innerHTML = '당신이 밝힌 등불도 이 안에 함께 있습니다. ' +
@@ -476,7 +476,7 @@
     var box = $('m2NightMine');
     if (box) {
       box.innerHTML = '✦ 당신의 등불이 더해졌습니다. ' +
-        '<button type="button" class="mem2-ghost" id="m2JumpStar">내 별 보러 가기</button>';
+        '<button type="button" class="mem2-ghost" id="m2JumpStar">내 등불 보러 가기</button>';
       show(box, true);
       var j = $('m2JumpStar');
       if (j) j.addEventListener('click', function () { var f = $('m2FindStar'); if (f) f.click(); });
