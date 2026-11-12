@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-12.2";
+export const APP_VERSION = "2026-11-12.3";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,16 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-12-memorial-music",
+    title: "[관리자] 추모관 배경 음악 — 음원 파일 올리기·유튜브 주소 재생",
+    items: [
+      { text: "추모관 설정 › BGM 트랙 목록에서 «음원 파일 올리기»로 mp3·m4a 등 음원을 바로 올릴 수 있습니다(30MB까지). 올리면 주소가 저절로 채워집니다", link: "/admin-memorial.html" },
+      { text: "유튜브 주소를 넣어도 그 곡이 나옵니다. 유튜브 정책상 음악을 켜면 화면 오른쪽 아래에 작은 재생 창이 함께 뜹니다" },
+      { text: "줄마다 «음원 파일 / 유튜브 / 재생할 수 없는 주소»가 표시되고, 재생할 수 없는 주소는 저장 전에 알려 줍니다" },
+      { text: "추모관 오른쪽 위 음악 단추에 소리 아이콘과 «추모 음악 켜기/끄기» 안내가 보입니다" },
+    ],
+  },
   {
     key: "2026-11-12-card-pause-memorial",
     title: "[회원·관리자] 카드 결제 잠시 멈춤 · 추모관 등불 표현과 사진 크게 보기",
