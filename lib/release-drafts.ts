@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-12.3";
+export const APP_VERSION = "2026-11-12.4";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-12-memorial-letter-photo",
+    title: "[추모관] 기억의 편지에 사진 한 장 붙이기 — 운영자 확인 뒤 공개",
+    items: [
+      { text: "선생님 화면 «나만의 서신 작성하기»에서 로그인 없이 편지에 사진 한 장을 붙일 수 있습니다(JPG·PNG·WEBP, 5MB까지). 사진이 있는 편지는 운영자가 확인한 뒤 공개됩니다" },
+      { text: "공개된 사진 편지는 사진이 봉투 표지가 되고, 열면 원래 비율로 크게 보이며, 사진을 누르면 원본이 새 창으로 열립니다" },
+      { text: "관리자: 추모관 › 메시지·편지 모더레이션 맨 위 «사진 편지 검토 대기»에서 [공개]·[사진 빼고 공개]·[숨김]을 고릅니다. 목록에서 공개된 사진을 내리거나 다시 실을 수도 있습니다" },
+    ],
+  },
   {
     key: "2026-11-12-memorial-music",
     title: "[관리자] 추모관 배경 음악 — 음원 파일 올리기·유튜브 주소 재생",
