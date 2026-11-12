@@ -563,32 +563,203 @@ function loadSettings() {
     tracks.forEach(function (t) { addBgmRow(t); });
   }).catch(function (e) { toast('설정 로드 실패: ' + e.message, 'error'); });
 }
+/* ─── ★ 2026-11-12 BGM 트랙: 음원 파일 올리기 · 유튜브 주소 · 줄마다 종류 표시 ───
+   대표 결정: 관리자가 음원 파일을 직접 올리거나, 유튜브 주소를 넣으면 그 노래가 나오게.
+   - 음원 파일은 관리자 전용 경로(/api/admin-memorial-bgm-upload)로 받은 주소에 브라우저가 R2로 바로 올린다
+     (함수 본문 6MB 한도 우회) → 확인이 끝나면 그 줄 URL 칸에 재생 주소(/api/blob-image?id=N)가 들어간다.
+   - 트랙 주소 판별 규칙은 lib/memorial-bgm.ts · public/js/memorial-bgm.js 와 같다(바꾸면 세 곳 함께). */
+var BGM_MAX_BYTES = 30 * 1024 * 1024;
+var BGM_EXT_TYPE = { mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg', oga: 'audio/ogg', wav: 'audio/wav' };
+var BGM_FILE_ACCEPT = '.mp3,.m4a,.mp4,.aac,.ogg,.oga,.wav';
+var BGM_TYPE_MSG = 'mp3 · m4a · mp4(음성) · aac · ogg · wav 파일만 올릴 수 있습니다.';
+var BGM_KIND_LABEL = { audio: '음원 파일', youtube: '유튜브', invalid: '재생할 수 없는 주소' };
+var BGM_YT_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+var BGM_YT_HOSTS = ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com'];
+var _bgmUploading = 0;
+
+function bgmFileExt(name) {
+  var m = /\.([a-z0-9]{1,8})$/i.exec(String(name || '').trim());
+  return m ? m[1].toLowerCase() : '';
+}
+/* 유튜브 주소 → 영상 번호(11자) · list= 등 다른 매개변수는 무시 */
+function bgmYouTubeId(raw) {
+  var s = String(raw || '').trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s) && /^(?:www\.|m\.|music\.)?(?:youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(s)) s = 'https://' + s;
+  var u;
+  try { u = new URL(s); } catch (e) { return null; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+  var host = u.hostname.toLowerCase().replace(/^www\./, '');
+  var id = '';
+  if (host === 'youtu.be') {
+    id = u.pathname.split('/')[1] || '';
+  } else if (BGM_YT_HOSTS.indexOf(host) >= 0) {
+    if (/^\/watch\/?$/.test(u.pathname)) id = u.searchParams.get('v') || '';
+    else {
+      var m = /^\/(?:shorts|embed|live|v|e)\/([^/?#]+)/.exec(u.pathname);
+      if (m) id = m[1];
+    }
+  }
+  return BGM_YT_ID_RE.test(id) ? id : null;
+}
+/* 'audio'(음원 파일) | 'youtube' | 'invalid'(재생할 수 없는 주소) | 'empty' */
+function bgmKindOf(raw) {
+  var s = String(raw || '').trim();
+  if (!s) return 'empty';
+  if (s.length > 2000) return 'invalid';
+  if (bgmYouTubeId(s)) return 'youtube';
+  var isRootPath = /^\/(?!\/)/.test(s);
+  var isAbsolute = /^https?:\/\//i.test(s);
+  if (!isRootPath && !isAbsolute) return 'invalid';
+  var u;
+  try { u = new URL(s, 'https://tbfa.co.kr'); } catch (e) { return 'invalid'; }
+  var host = u.hostname.toLowerCase().replace(/^www\./, '');
+  if (isAbsolute && (host === 'youtu.be' || BGM_YT_HOSTS.indexOf(host) >= 0)) return 'invalid';
+  if (u.pathname === '/api/blob-image' && /^\d+$/.test(u.searchParams.get('id') || '')) return 'audio';
+  if (BGM_EXT_TYPE[bgmFileExt(u.pathname)]) return 'audio';
+  return 'invalid';
+}
+
+function updateBgmKind(row) {
+  var kind = bgmKindOf(row.querySelector('.bgm-url').value);
+  var el = row.querySelector('.bgm-kind');
+  el.className = 'bgm-kind' + (kind === 'empty' ? '' : ' ' + kind);
+  el.textContent = BGM_KIND_LABEL[kind] || '';
+  row.classList.toggle('bgm-invalid', kind === 'invalid');
+}
+function setBgmStatus(row, msg, type) {
+  var el = row.querySelector('.bgm-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'bgm-status' + (type ? ' ' + type : '');
+}
+
 function addBgmRow(data) {
   data = data || {};
   var row = document.createElement('div');
   row.className = 'dyn-row bgm';
   row.innerHTML =
-    '<input type="text" class="bgm-title" placeholder="곡 제목" value="' + esc(data.title || '') + '">' +
-    '<input type="text" class="bgm-url" placeholder="/assets/audio/memorial-1.mp3" value="' + esc(data.url || '') + '">' +
-    '<button type="button" class="dyn-del" title="삭제">×</button>';
+    '<input type="text" class="bgm-title" placeholder="곡 제목" maxlength="100" value="' + esc(data.title || '') + '">' +
+    '<input type="text" class="bgm-url" placeholder="유튜브 주소 또는 «음원 파일 올리기»" value="' + esc(data.url || '') + '">' +
+    '<button type="button" class="btn btn-ghost btn-sm bgm-upload">음원 파일 올리기</button>' +
+    '<input type="file" class="bgm-file" accept="' + BGM_FILE_ACCEPT + '" style="display:none">' +
+    '<button type="button" class="dyn-del" title="삭제">×</button>' +
+    '<div class="bgm-meta"><span class="bgm-kind"></span><span class="bgm-status"></span></div>';
   row.querySelector('.dyn-del').addEventListener('click', function () { row.remove(); });
+  var urlEl = row.querySelector('.bgm-url');
+  urlEl.addEventListener('input', function () { updateBgmKind(row); setBgmStatus(row, ''); });
+  var fileEl = row.querySelector('.bgm-file');
+  row.querySelector('.bgm-upload').addEventListener('click', function () { fileEl.value = ''; fileEl.click(); });
+  fileEl.addEventListener('change', function () {
+    var f = fileEl.files && fileEl.files[0];
+    if (f) uploadBgmFile(row, f);
+  });
   document.getElementById('bgmRows').appendChild(row);
+  updateBgmKind(row);
+  return row;
 }
+
+function bgmErrMsg(res, fallback) {
+  var d = (res && res.data) || {};
+  var msg = d.error || d.message || (fallback + ' (HTTP ' + (res && res.status) + ')');
+  if (d.detail) msg += ' — ' + String(d.detail).slice(0, 160);
+  return msg;
+}
+/* 받은 사전 서명 주소로 R2에 바로 올리기 (진행률 표시 위해 XHR) */
+function bgmPutFile(uploadUrl, file, contentType, onProgress) {
+  return new Promise(function (resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl, true);
+    xhr.setRequestHeader('Content-Type', contentType);
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = function () {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error('저장소에 올리지 못했습니다 (HTTP ' + xhr.status + ')'));
+    };
+    xhr.onerror = function () { reject(new Error('저장소에 연결하지 못했습니다')); };
+    xhr.send(file);
+  });
+}
+
+function uploadBgmFile(row, file) {
+  var btn = row.querySelector('.bgm-upload');
+  if (!BGM_EXT_TYPE[bgmFileExt(file.name)]) {
+    setBgmStatus(row, BGM_TYPE_MSG, 'error'); toast(BGM_TYPE_MSG, 'error'); return;
+  }
+  if (!file.size) {
+    setBgmStatus(row, '빈 파일입니다.', 'error'); toast('빈 파일입니다.', 'error'); return;
+  }
+  if (file.size > BGM_MAX_BYTES) {
+    setBgmStatus(row, '음원 파일은 30MB 이하만 올릴 수 있습니다.', 'error');
+    toast('음원 파일은 30MB 이하만 올릴 수 있습니다.', 'error');
+    return;
+  }
+
+  _bgmUploading++;
+  btn.disabled = true;
+  setBgmStatus(row, '올리는 중… 0%');
+  var blobId = null;
+  callApi('POST', '/api/admin-memorial-bgm-upload', {
+    action: 'presign', originalName: file.name, mimeType: file.type || '', sizeBytes: file.size
+  }).then(function (res) {
+    if (!res.ok) throw new Error(bgmErrMsg(res, '올릴 주소를 받지 못했습니다'));
+    blobId = pick(res, 'id');
+    var uploadUrl = pick(res, 'uploadUrl');
+    var contentType = pick(res, 'contentType') || BGM_EXT_TYPE[bgmFileExt(file.name)];
+    if (!blobId || !uploadUrl) throw new Error('올릴 주소 응답이 비어 있습니다');
+    return bgmPutFile(uploadUrl, file, contentType, function (pct) { setBgmStatus(row, '올리는 중… ' + pct + '%'); });
+  }).then(function () {
+    setBgmStatus(row, '확인 중…');
+    return callApi('POST', '/api/admin-memorial-bgm-upload', { action: 'confirm', id: blobId });
+  }).then(function (res) {
+    if (!res.ok) throw new Error(bgmErrMsg(res, '올린 파일을 확인하지 못했습니다'));
+    var url = pick(res, 'url') || ('/api/blob-image?id=' + blobId);
+    row.querySelector('.bgm-url').value = url;
+    var titleEl = row.querySelector('.bgm-title');
+    if (!titleEl.value.trim()) titleEl.value = file.name.replace(/\.[^.]+$/, '').slice(0, 100);
+    updateBgmKind(row);
+    setBgmStatus(row, '«' + file.name + '» 올림 — «설정 저장»을 눌러야 추모관에 반영됩니다.', 'ok');
+    toast('음원 파일을 올렸습니다. «설정 저장»을 눌러 주세요.', 'success');
+  }).catch(function (e) {
+    setBgmStatus(row, '올리기 실패: ' + e.message, 'error');
+    toast('음원 파일 올리기 실패: ' + e.message, 'error');
+  }).then(function () {
+    _bgmUploading = Math.max(0, _bgmUploading - 1);
+    btn.disabled = false;
+  });
+}
+
+/* 빈 줄은 무시 · 재생할 수 없는 주소는 bad 로 모은다(저장 막음) */
 function collectBgm() {
   var rows = document.querySelectorAll('#bgmRows .dyn-row');
   var out = [];
-  Array.prototype.forEach.call(rows, function (r) {
+  var bad = [];
+  Array.prototype.forEach.call(rows, function (r, i) {
     var title = r.querySelector('.bgm-title').value.trim();
     var url = r.querySelector('.bgm-url').value.trim();
-    if (url) out.push({ title: title || '추모 음악', url: url });
+    if (!url) return;
+    if (bgmKindOf(url) === 'invalid') { bad.push({ n: i + 1, row: r }); return; }
+    out.push({ title: title || '추모 음악', url: url });
   });
-  return out;
+  return { tracks: out, bad: bad };
 }
 function saveSettings() {
+  if (_bgmUploading > 0) { toast('음원 파일을 올리는 중입니다. 끝난 뒤 저장해 주세요.', 'error'); return; }
+  var bgm = collectBgm();
+  if (bgm.bad.length) {
+    bgm.bad.forEach(function (b) { updateBgmKind(b.row); });
+    toast('재생할 수 없는 주소가 있습니다 (' + bgm.bad.map(function (b) { return b.n; }).join(', ') +
+      '번째 트랙). 음원 파일을 올리거나 유튜브 주소를 넣어 주세요.', 'error');
+    var firstUrl = bgm.bad[0].row.querySelector('.bgm-url');
+    if (firstUrl) firstUrl.focus();
+    return;
+  }
   var payload = {
     heroYoutubeId: document.getElementById('sHeroYoutubeId').value.trim() || null,
     heroCopy: document.getElementById('sHeroCopy').value.trim() || null,
-    bgmTracks: collectBgm(),
+    bgmTracks: bgm.tracks,
     showTeacherOffering: !!(document.getElementById('sShowTeacherOffering') || {}).checked,
     /* ★ 2026-08-28 추모관 v2 — 밤·여명·아침 구간 문구 */
     hallCopy: collectHallCopy()
@@ -626,7 +797,9 @@ function collectHallCopy() {
   /* 세 구간 모두 비어 있으면 아예 안 보낸다 — 서버가 기본 문구를 쓴다 */
   var any = false;
   Object.keys(c).forEach(function (k) {
-    Object.keys(c[k]).forEach(function (f) { if (c[k][f]) any = true; });
+    /* ★ 2026-11-12 fix: 선생님 화면 문구를 모두 비워 두면 teacher 가 null 이라 여기서 오류가 나
+       «설정 저장»이 아무 반응 없이 멈췄다(BGM 트랙도 저장 불가). 빈 구간은 건너뛴다. */
+    Object.keys(c[k] || {}).forEach(function (f) { if (c[k][f]) any = true; });
   });
   return any ? c : null;
 }

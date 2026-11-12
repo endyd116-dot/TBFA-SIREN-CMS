@@ -4,6 +4,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { memorialSettings } from "../../db/schema";
 import { getMemorialDisplay, saveMemorialDisplay, displayColumnsReady } from "../../lib/memorial-display";
+import { normalizeBgmTracksForSave } from "../../lib/memorial-bgm";
 import { eq, desc } from "drizzle-orm";
 
 export const config = { path: "/api/admin-memorial-settings" };
@@ -62,7 +63,20 @@ export default async function handler(req: Request, _ctx: Context) {
     const updates: Record<string, any> = { updatedAt: new Date() };
     if (body.heroYoutubeId !== undefined) updates.heroYoutubeId = (body.heroYoutubeId || "").toString().slice(0, 20) || null;
     if (body.heroCopy !== undefined)      updates.heroCopy = (body.heroCopy || "").toString().slice(0, 300) || null;
-    if (body.bgmTracks !== undefined)     updates.bgmTracks = Array.isArray(body.bgmTracks) ? body.bgmTracks : [];
+    /* ★ 2026-11-12: BGM 트랙 — 빈 줄은 버리고, 재생할 수 없는 주소(음원 파일·유튜브가 아닌 주소)가 있으면 저장을 막는다
+       (관리자 화면도 같은 검사를 먼저 한다 · 규칙 단일 출처 lib/memorial-bgm.ts) */
+    if (body.bgmTracks !== undefined) {
+      const bgm = normalizeBgmTracksForSave(body.bgmTracks);
+      if (!bgm.ok) {
+        return new Response(jsonKST({
+          ok: false,
+          error: bgm.error || "BGM 트랙을 확인해 주세요",
+          step: "validate_bgm",
+          invalidRows: bgm.invalidRows || [],
+        }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      updates.bgmTracks = bgm.tracks || [];
+    }
     /* 문구를 전부 비우면 null 로 저장한다 — 그러면 화면이 기본 문구를 쓴다 */
     if (body.hallCopy !== undefined)      updates.hallCopy = (body.hallCopy && typeof body.hallCopy === "object") ? body.hallCopy : null;
 

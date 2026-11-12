@@ -67,10 +67,29 @@ tr:last-child td { border-bottom:none; }
 /* 타임라인 / BGM 동적 행 */
 .row-list { display:flex; flex-direction:column; gap:8px; }
 .dyn-row { display:grid; grid-template-columns:120px 1fr 1.4fr auto; gap:8px; align-items:center; }
-.dyn-row.bgm { grid-template-columns:1fr 1.6fr auto; }
+.dyn-row.bgm { grid-template-columns:1fr 1.6fr auto auto; row-gap:4px; }
 .dyn-row input { padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:12.5px; font-family:inherit; box-sizing:border-box; width:100%; }
 .dyn-del { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; border-radius:6px; width:30px; height:32px; cursor:pointer; font-size:14px; }
 @media (max-width:600px){ .dyn-row, .dyn-row.bgm { grid-template-columns:1fr; } }
+/* ★ 2026-11-12 BGM 트랙 — 음원 파일 올리기 · 줄마다 종류 표시(음원 파일 / 유튜브 / 재생할 수 없는 주소) */
+.dyn-row.bgm .bgm-upload { white-space:nowrap; }
+.dyn-row.bgm .bgm-upload:disabled { opacity:.55; cursor:wait; }
+.dyn-row.bgm.bgm-invalid .bgm-url { border-color:#f87171; background:#fff7f7; }
+.bgm-meta { grid-column:1 / -1; display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:0; }
+.bgm-meta:has(.bgm-kind:empty):has(.bgm-status:empty) { display:none; }
+.bgm-kind { display:inline-block; padding:1px 8px; border-radius:20px; font-size:11px; font-weight:700; line-height:1.6; }
+.bgm-kind:empty { display:none; }
+.bgm-kind.audio { background:#dcfce7; color:#166534; }
+.bgm-kind.youtube { background:#e0e7ff; color:#3730a3; }
+.bgm-kind.invalid { background:#fee2e2; color:#b91c1c; }
+.bgm-status { font-size:11.5px; color:#6b7280; }
+.bgm-status.ok { color:#15803d; }
+.bgm-status.error { color:#b91c1c; }
+@media (max-width:600px){
+  .dyn-row.bgm { grid-template-columns:1fr auto; }
+  .dyn-row.bgm .bgm-title, .dyn-row.bgm .bgm-url { grid-column:1 / -1; }
+  .dyn-row.bgm .bgm-upload { justify-self:start; }
+}
 
 /* 모더레이션 필터 */
 .mod-filter { display:flex; gap:8px; margin-bottom:16px; }
@@ -804,7 +823,8 @@ tr:last-child td { border-bottom:none; }
       <label>BGM 트랙 목록</label>
       <div class="row-list" id="bgmRows"></div>
       <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addBgmRow()">+ 트랙 추가</button>
-      <div class="hint">음원 파일을 <code>/assets/audio/</code> 에 올린 뒤 제목과 URL(예: /assets/audio/memorial-1.mp3)을 등록하세요. 비워두면 BGM이 표시되지 않습니다.</div>
+      <div class="hint">음원 파일을 올리거나 유튜브 주소를 넣으세요. 유튜브는 음악을 켜면 작은 재생 창이 함께 뜹니다(유튜브 정책). 사이트에 쓰는 음악은 저작권을 확인해 주세요.</div>
+      <div class="hint">올릴 수 있는 파일: mp3 · m4a · mp4(음성) · aac · ogg · wav, 한 파일 30MB까지. 올린 뒤 «설정 저장»을 눌러야 추모관에 반영됩니다.</div>
     </div>
 
     <div class="form-actions">
@@ -815,6 +835,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20261112-mem2"></script>
+<script src="/js/admin-memorial.js?v=20261112-bgm2"></script>
 </body>
 </html>
