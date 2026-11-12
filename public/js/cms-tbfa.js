@@ -3183,7 +3183,7 @@ async function renderPotentialDonor() {
     }
     return pdHead + '<tr>'
       + '<td style="font-family:Inter;font-size:11.5px">PD-' + String(d.id).padStart(5,'0') + '</td>'
-      + '<td><strong class="cj-link" title="고객 여정 보기" onclick="openCustomerJourney({potentialId:' + d.id + ', name:\'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\'})">' + escapeHtml(d.name || '') + '</strong></td>'
+      + '<td><strong class="cj-link" title="고객 여정 보기" onclick="openCustomerJourney({potentialId:' + d.id + ', name:' + escapeHtml(JSON.stringify(String(d.name || ''))) + '})">' + escapeHtml(d.name || '') + '</strong></td>'
       + '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.phone || '—') + '</td>'
       + '<td style="font-size:12px;color:#444">' + escapeHtml(d.email || '—') + '</td>'
       + '<td style="font-size:12px;color:#666;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.address || '') + '">' + escapeHtml(d.address || '—') + '</td>'
@@ -3192,7 +3192,7 @@ async function renderPotentialDonor() {
       + '<td style="font-size:12px;color:#666">' + escapeHtml(d.entryPath || '—') + '</td>'
       + '<td>' + stageBadge + '</td>'
       + '<td style="font-size:12px;color:#666;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.memo || '') + '">' + escapeHtml(d.memo || '—') + '</td>'
-      + '<td><button class="cms-btn-link" style="color:#1a5ec4" onclick="openCustomerJourney({potentialId:' + d.id + '})">여정</button> <button class="cms-btn-link" onclick="pdEditRow(' + d.id + ')">수정</button> <button class="cms-btn-link" style="color:#c5293a" onclick="pdDeleteRow(' + d.id + ', \'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\')">삭제</button></td>'
+      + '<td><button class="cms-btn-link" style="color:#1a5ec4" onclick="openCustomerJourney({potentialId:' + d.id + '})">여정</button> <button class="cms-btn-link" onclick="pdEditRow(' + d.id + ')">수정</button> <button class="cms-btn-link" style="color:#c5293a" onclick="pdDeleteRow(' + d.id + ', ' + escapeHtml(JSON.stringify(String(d.name || ''))) + ')">삭제</button></td>'
       + '</tr>';
   }).join('');
 
