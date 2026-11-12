@@ -10,12 +10,14 @@
  * 응답: { authPageUrl, pgOrderNo, donationId, amount }
  *
  * 보안: returnUrl = 백엔드 핸들러(/api/donate-kicc-approve). 승인은 register 때 저장한 금액 기준.
+ * 2026-11-12: «카드 결제 받기»(lib/donation-card · 기본 꺼짐)가 꺼져 있으면 400 { ok:false, error, step:"card_disabled" }.
  */
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, donations, members } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import { isMembershipRequired } from "../../lib/donation-membership";
+import { isCardPaymentEnabled, cardDisabledResponse } from "../../lib/donation-card";
 import { safeValidate } from "../../lib/validation";
 import { ok, badRequest, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
@@ -44,6 +46,10 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
+    /* 2026-11-12: 카드 결제는 KG이니시스가 열릴 때까지 닫아 둔다 — 스위치가 꺼져 있으면(기본·조회 실패 포함)
+       주문 행을 만들기 전에 거절한다. 화면을 우회한 요청도 여기서 막힌다 */
+    if (!(await isCardPaymentEnabled())) return cardDisabledResponse();
+
     const body = await parseJson(req);
     if (!body) return badRequest("요청 본문이 비어있습니다");
 

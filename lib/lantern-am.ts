@@ -5,6 +5,8 @@
 //  [W3-2] amCreateIntent   — 결제 의도: bank(입금 대기)·cms(효성)·card/easy/transfer(KICC 지금 · 포트원 준비되면 스위치)
 //         amIntentSummary  — 결제 페이지용 공개 요약(개인정보 0)
 //         amStartKiccPayment — 미리 채워진 결제 페이지에서 KICC 결제창 주소 발급
+//         ※ 2026-11-12 «카드 결제 받기»(lib/donation-card · 기본 꺼짐)가 꺼져 있으면 정기는 cms만, 일시는 bank만 받는다.
+//           card/easy/transfer(포트원 단계 포함)와 KICC 결제창 발급은 AmError(400, 안내 문구, "card_disabled")로 거절.
 //  [W3-3] amSaveNote       — 「선생님께 한마디」·공개 동의
 //  absorbLanternIntent     — 입금 확인·효성 명세 반영으로 «완료» 행이 생길 때 대기 중 의도를 이어 붙여 등불을 켠다
 //
@@ -27,6 +29,7 @@ import { notifyAllOperators } from "./notify";
 import { registerTrade, generateShopOrderNo } from "./kicc";
 import { recalcCampaignStatsSafe } from "./campaign-stats";
 import { generateTransactionId } from "../db";
+import { isCardPaymentEnabled, CARD_DISABLED_MESSAGE, CARD_DISABLED_STEP } from "./donation-card";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -161,6 +164,9 @@ export interface AmIntentResult {
   bankAccount?: { bank: string; number: string; holder: string; guideText?: string };
 }
 
+/** 카드 계열(KICC 지금 · 포트원 준비되면) — «카드 결제 받기» 스위치를 따른다 */
+const CARD_METHODS: AmPayMethod[] = ["card", "easy", "transfer"];
+
 function portoneConfigured(): boolean {
   return !!((process.env.PORTONE_STORE_ID || "").trim() && (process.env.PORTONE_CHANNEL_KEY || "").trim());
 }
@@ -175,6 +181,11 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
   if (!Number.isInteger(amount) || amount < 10000 || amount > 100_000_000) throw new AmError(400, "금액은 10,000원 이상 1억원 이하의 정수여야 합니다");
   const allowed: AmPayMethod[] = monthly ? ["card", "easy", "cms"] : ["card", "easy", "transfer", "bank"];
   if (!allowed.includes(method)) throw new AmError(400, `${monthly ? "특별회원(월 정기회비)" : "일반회원(연회비)"}에서 고를 수 없는 방식입니다: ${method || "(없음)"}`);
+  /* 2026-11-12: 카드 결제 꺼짐(기본) — 정기는 효성 CMS(cms)만, 일시는 계좌 직접 입금(bank)만. 포트원 단계의 카드도 같은 스위치.
+     어떤 행도 만들기 전에 거절한다 */
+  if (CARD_METHODS.includes(method) && !(await isCardPaymentEnabled())) {
+    throw new AmError(400, CARD_DISABLED_MESSAGE, CARD_DISABLED_STEP);
+  }
 
   const campaignId = await lanternCampaignId(extras);
   const intentId = newIntentId();
@@ -320,6 +331,9 @@ export async function amIntentSummary(intentId: string) {
 /* 미리 채워진 결제 페이지 → KICC 결제창 주소 */
 export async function amStartKiccPayment(intentId: string): Promise<{ authPageUrl: string; pgOrderNo: string }> {
   if (!isIntentId(intentId)) throw new AmError(400, "intent 형식이 올바르지 않습니다");
+  /* 2026-11-12: 카드 결제 꺼짐(기본)이면 KICC 결제창을 열지 않는다 — 꺼지기 전에 만들어 둔 카드 의도도 여기서 막힌다.
+     lantern-pay.html 은 거절 응답의 error 글자를 그대로 보여 준다 */
+  if (!(await isCardPaymentEnabled())) throw new AmError(400, CARD_DISABLED_MESSAGE, CARD_DISABLED_STEP);
   const row = await findDonationByIntent(intentId);
   if (!row) throw new AmError(404, "결제 정보를 찾을 수 없습니다", "intent");
   if (row.status === "completed") throw new AmError(409, "이미 결제가 완료된 건입니다", "completed");

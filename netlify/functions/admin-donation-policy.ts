@@ -4,6 +4,7 @@
  * PATCH /api/admin/donation-policy   — 정책 수정 (super_admin만)
  *
  * 2026-05: 효성 카운트다운 메시지/초수 추가
+ * 2026-11-12: «카드 결제 받기»(cardEnabled) 스위치 — site_settings 저장(lib/donation-card) · 기본 꺼짐
  */
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -54,6 +55,7 @@ function validateUrl(v: any): { ok: true; url: string | null } | { ok: false; re
 }
 
 import { isMembershipRequired, setMembershipRequired } from "../../lib/donation-membership";
+import { isCardPaymentEnabled, setCardPaymentEnabled } from "../../lib/donation-card";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -89,6 +91,7 @@ export default async (req: Request) => {
             modalTitle: "",
             modalSubtitle: "",
             requireMembership: await isMembershipRequired(),
+            cardEnabled: await isCardPaymentEnabled(),
             stampBlobId: null,
             updatedAt: null,
             updatedBy: null,
@@ -115,6 +118,7 @@ export default async (req: Request) => {
           modalTitle: (row as any).modalTitle,
           modalSubtitle: (row as any).modalSubtitle,
           requireMembership: await isMembershipRequired(),
+          cardEnabled: await isCardPaymentEnabled(),
           stampBlobId: (row as any).stampBlobId,
           updatedAt: (row as any).updatedAt,
           updatedBy: (row as any).updatedBy,
@@ -205,6 +209,15 @@ export default async (req: Request) => {
         }
       }
 
+      /* 2026-11-12: «카드 결제 받기» 스위치 — 정책 행과 별도(site_settings) 저장·즉시 반영.
+         위 검증이 모두 통과한 뒤에 저장한다(검증 실패로 거절됐는데 스위치만 바뀌는 일이 없도록) */
+      let cardChanged: boolean | null = null;
+      if (body.cardEnabled !== undefined) {
+        const v = body.cardEnabled === true || body.cardEnabled === "true";
+        await setCardPaymentEnabled(v, admin.uid);
+        cardChanged = v;
+      }
+
       let result: any;
       if (!existing) {
         const insertPayload: any = {
@@ -241,7 +254,7 @@ export default async (req: Request) => {
       const changedKeys = Object.keys(updateData).filter(k => k !== "updatedAt" && k !== "updatedBy");
       await logAdminAction(req, admin.uid, admin.name, "donation_policy_update", {
         target: "donation_policies#1",
-        detail: { changedFields: changedKeys, minAmount: updateData.minAmount, maxAmount: updateData.maxAmount, requireMembership: membershipChanged },
+        detail: { changedFields: changedKeys, minAmount: updateData.minAmount, maxAmount: updateData.maxAmount, requireMembership: membershipChanged, cardEnabled: cardChanged },
       });
 
       return ok({
@@ -262,6 +275,7 @@ export default async (req: Request) => {
           modalTitle: result.modalTitle,
           modalSubtitle: result.modalSubtitle,
           requireMembership: membershipChanged ?? (await isMembershipRequired()),
+          cardEnabled: cardChanged ?? (await isCardPaymentEnabled()),
           stampBlobId: result.stampBlobId,
           updatedAt: result.updatedAt,
           updatedBy: result.updatedBy,

@@ -1168,6 +1168,9 @@ const OPERATOR_CATEGORIES = [
     setVal('dpBankGuideText', p.bankGuideText);
     const rmEl = document.getElementById('dpRequireMembership');
     if (rmEl) rmEl.checked = p.requireMembership !== false;
+    /* 2026-11-12: «카드 결제 받기» — 값이 없으면 꺼짐으로 보인다(서버 기본값과 같다) */
+    const ceEl = document.getElementById('dpCardEnabled');
+    if (ceEl) ceEl.checked = p.cardEnabled === true;
     setVal('dpHyosungUrl', p.hyosungUrl);
     setVal('dpHyosungGuideText', p.hyosungGuideText);
     setVal('dpHyosungCountdownMessage', p.hyosungCountdownMessage);
@@ -1239,6 +1242,7 @@ const OPERATOR_CATEGORIES = [
       bankAccountHolder: document.getElementById('dpBankAccountHolder').value.trim(),
       bankGuideText: document.getElementById('dpBankGuideText').value.trim(),
       requireMembership: !!(document.getElementById('dpRequireMembership') && document.getElementById('dpRequireMembership').checked),
+      cardEnabled: !!(document.getElementById('dpCardEnabled') && document.getElementById('dpCardEnabled').checked),
       hyosungUrl: document.getElementById('dpHyosungUrl').value.trim(),
       hyosungGuideText: document.getElementById('dpHyosungGuideText').value.trim(),
       hyosungCountdownMessage: document.getElementById('dpHyosungCountdownMessage').value.trim(),

@@ -3,6 +3,8 @@
    (★ R40: 토스 SDK 팝업 → KICC authPageUrl 리다이렉트 전면 교체)
    (★ 2026-09-06 「등불의 기적」: 캠페인 extras 로 «후원회원 가입 먼저»(S5)·
       정기/일시 금액 사다리(S2)·랜딩 파라미터 동봉(S6-b))
+   (★ 2026-11-12 «카드 결제 받기» 스위치: 정책 cardEnabled 가 false(기본·못 읽음 포함)면
+      카드 선택지를 숨기고 특별회원은 효성 CMS, 일반회원은 직접 계좌이체를 고른다)
    ========================================================= */
 (function () {
   'use strict';
@@ -40,6 +42,16 @@
     if (!_policyCache) return true;
     return _policyCache.requireMembership !== false;
   }
+
+  /* 2026-11-12: «카드 결제 받기» — 후원 정책 전역 스위치(기본 꺼짐). 다른 사업자 명의 정산을 막으려 KG 카드 결제가 열릴 때까지 꺼 둔다.
+     정책을 아직 못 읽었거나 값이 없으면 카드를 숨기는 쪽(안전한 쪽) */
+  function cardEnabled() {
+    const v = _policyCache ? _policyCache.cardEnabled : undefined;
+    return v === true || v === 'true';
+  }
+  /* 카드가 꺼져 있을 때 대신 고르는 결제 수단 — 특별회원(정기)은 효성 CMS, 일반회원(한 번)은 직접 계좌이체 */
+  const CARD_FALLBACK = { payMethodChoice: 'hyosung_cms', onetimeChoice: 'bank_transfer' };
+  const CARD_DISABLED_TOAST = '지금은 카드 결제를 받지 않습니다. 계좌 자동이체(효성 CMS) 또는 계좌이체를 이용해 주세요.';
 
   async function loadPolicy() {
     if (_policyCache) return _policyCache;
@@ -625,9 +637,43 @@
     else openModalById('donateModal');
   }
 
+  /* «카드 결제 받기» 스위치를 창에 반영 — 꺼짐: 카드 칸 숨김·선택 불가 + 대신 고를 칸 자동 선택.
+     켜짐: 카드 칸을 다시 보이고, 꺼져 있던 동안 대신 골라 둔 것이면(사용자가 고른 게 아니면) 원래 기본(카드)으로 되돌린다.
+     열려 있는 창에서는 사용자가 보는 선택을 바꾸지 않는다(카드 칸 보이기·숨기기만) */
+  function applyCardSwitch(modal) {
+    const on = cardEnabled();
+    const open = modal.classList.contains('show');
+    Object.keys(CARD_FALLBACK).forEach((name) => {
+      const card = modal.querySelector('input[name="' + name + '"][value="card"]');
+      const alt = modal.querySelector('input[name="' + name + '"][value="' + CARD_FALLBACK[name] + '"]');
+      if (!card || !alt) return;
+      const box = card.closest('label');
+      if (box) {
+        /* 파셜 CSS 가 결제 칸에 display:flex !important 를 걸어 두어 인라인 display:none·hidden 속성은 진다
+           → 숨길 때는 인라인 !important 로 숨기고, 보일 때는 원래 인라인 display 로 되돌린다 */
+        if (box.dataset.cardDisplay === undefined) box.dataset.cardDisplay = box.style.display || '';
+        if (on) {
+          box.style.removeProperty('display');
+          if (box.dataset.cardDisplay) box.style.display = box.dataset.cardDisplay;
+        } else {
+          box.style.setProperty('display', 'none', 'important');
+        }
+      }
+      card.disabled = !on;
+      if (!on) {
+        if (!alt.checked) { alt.checked = true; alt.dataset.autoPicked = '1'; }
+      } else if (!open && alt.dataset.autoPicked === '1') {
+        if (alt.checked) card.checked = true;
+        delete alt.dataset.autoPicked;
+      }
+    });
+  }
+
   function updatePayMethodVisibility() {
     const modal = document.getElementById('donateModal');
     if (!modal) return;
+
+    applyCardSwitch(modal);
 
     const dtype = modal.querySelector('input[name="dtype"]:checked')?.value || 'regular';
     const regularBox = document.getElementById('regularPayMethods');
@@ -664,10 +710,21 @@
   }
 
   function setupTypeToggle() {
+    /* 결제 수단 칸을 사용자가 누르면(이미 골라져 있던 칸이라 change 가 안 생겨도) «대신 골라 둔» 표시를 지운다 */
+    document.addEventListener('click', (e) => {
+      const r = e.target && e.target.closest
+        ? e.target.closest('#donateModal input[name="payMethodChoice"], #donateModal input[name="onetimeChoice"]')
+        : null;
+      if (r) document.querySelectorAll('#donateModal input[name="' + r.name + '"]').forEach((x) => { delete x.dataset.autoPicked; });
+    });
     document.addEventListener('change', (e) => {
       if (e.target.name === 'dtype'
           || e.target.name === 'payMethodChoice'
           || e.target.name === 'onetimeChoice') {
+        if (e.target.name !== 'dtype') {
+          /* 사용자가 직접 고른 결제 수단은 스위치가 켜져도 되돌리지 않는다 */
+          document.querySelectorAll('#donateModal input[name="' + e.target.name + '"]').forEach((r) => { delete r.dataset.autoPicked; });
+        }
         updatePayMethodVisibility();
         if (e.target.name === 'dtype') {
           /* 탭을 바꾸면 그 탭의 기본 칸으로 초기화 */
@@ -716,8 +773,16 @@
       const data = Object.fromEntries(new FormData(form).entries());
       const amount = Number(data.amount);
       const dtype = data.dtype || 'regular';
-      const payChoice = data.payMethodChoice || 'card';
-      const onetimeChoice = data.onetimeChoice || 'card';
+      const cardOn = cardEnabled();
+      /* 선택이 비어 있으면 기본값 — 카드가 꺼져 있으면 효성 CMS / 직접 계좌이체 */
+      const payChoice = data.payMethodChoice || (cardOn ? 'card' : CARD_FALLBACK.payMethodChoice);
+      const onetimeChoice = data.onetimeChoice || (cardOn ? 'card' : CARD_FALLBACK.onetimeChoice);
+
+      /* 2026-11-12: 카드 결제 받기가 꺼져 있으면 카드 경로로 보내지 않는다(서버도 거절한다) */
+      if (!cardOn && ((dtype === 'regular' && payChoice === 'card') || (dtype === 'onetime' && onetimeChoice === 'card'))) {
+        updatePayMethodVisibility();
+        return window.SIREN.toast(CARD_DISABLED_TOAST);
+      }
       const isAnonymous = !!data.isAnonymous;
       const auth = window.SIREN_AUTH;
       const isLoggedIn = !!(auth && auth.isLoggedIn());
@@ -786,6 +851,8 @@
         console.error('[Donate]', err);
         window.SIREN.toast(err.message || '처리 중 오류가 발생했습니다');
         restoreBtn();
+        /* 카드 꺼짐 거절이면 카드 칸 숨김·계좌이체 선택·단추 문구를 복원 «뒤에» 맞춘다 */
+        if (err && err.cardDisabled) updatePayMethodVisibility();
       }
     });
   }
@@ -817,7 +884,13 @@
 
     if (!res.ok || json.ok === false || !d.authPageUrl) {
       if (json.detail && json.detail.needMembership) { await routeSteps(); }
-      throw new Error(json.error || d.error || '결제 준비 실패');
+      const err = new Error(json.error || d.error || '결제 준비 실패');
+      /* 창을 연 뒤 운영자가 카드 결제를 끈 경우 — 카드 칸을 숨기고 직접 계좌이체를 고른다(안내는 서버 글자 그대로) */
+      if (json.step === 'card_disabled') {
+        if (_policyCache) _policyCache.cardEnabled = false;
+        err.cardDisabled = true;
+      }
+      throw err;
     }
 
     window.SIREN.toast('결제창으로 이동합니다...');
@@ -1170,7 +1243,13 @@
       if (seed) setCampaign(seed);
       /* 정책(어드민 설정값)은 미리 받아 두고, 오면 열리기 전에 창에 반영한다 */
       setupBankQuick();
-      loadPolicy().then(() => { _prepared = false; prepareModal(); }).catch(() => {});
+      loadPolicy().then(() => {
+        _prepared = false;
+        prepareModal();
+        /* 창이 이미 열려 있으면 prepareModal 이 손대지 않으니 결제 수단(카드 스위치)만 맞춘다 */
+        const m = document.getElementById('donateModal');
+        if (m && m.classList.contains('show')) updatePayMethodVisibility();
+      }).catch(() => {});
       /* 2026-11-01: 주소에 ?donate=1 이 있으면 후원회원 되기 창을 바로 연다 — PG 심사·안내 링크용
          (예: /campaign.html?slug=등불의-기적&donate=1). 창 DOM(파셜)이 늦게 생겨도 생길 때까지 기다린다 */
       try {

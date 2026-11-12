@@ -6,6 +6,9 @@
 //   → 효성(정기 계좌 자동이체): { ok:true, intentId, provider:"hyosung", redirectUrl }
 //   → KICC 단계: { ok:true, intentId, provider:"kicc", redirectUrl }   // 회원·금액 미리 채워진 SIREN 결제 페이지
 //   → 포트원 단계: { ok:true, intentId, provider:"portone", payload }  // SDK v2 인자 그대로(PORTONE_* env 등록 시 자동 스위치)
+//   ※ 2026-11-12 «카드 결제 받기» 꺼짐(기본 · /api/donation-policy 의 cardEnabled=false):
+//     정기(monthly:true)는 "cms"만, 일시는 "bank"만 받는다. card·easy·transfer →
+//     400 { ok:false, error:"지금은 카드 결제를 받지 않습니다. 계좌 자동이체(효성 CMS) 또는 계좌이체를 이용해 주세요.", step:"card_disabled" }
 //
 // GET /api/lantern-payment-intent?intent=<id> — 결제 페이지용 공개 요약(개인정보 0 · 이름 마스킹)
 

@@ -382,7 +382,9 @@
         <div class="fg" id="payMethodGroup">
           <label>결제 방식</label>
 
-          <!-- 정기 후원회원: 카드 자동결제 vs 효성 CMS+ 선택 -->
+          <!-- 정기 후원회원: 카드 자동결제 vs 효성 CMS+ 선택
+               2026-11-12: 정책 스위치 «카드 결제 받기»(cardEnabled)가 꺼져 있으면(기본·못 읽음 포함) donate.js 가
+               카드 칸(value="card")을 숨기고 선택 못 하게 한 뒤 효성 CMS+ 를 고른다 -->
           <div id="regularPayMethods" style="display:flex;flex-direction:column;gap:8px">
             <label class="pay-method-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--line);border-radius:8px;cursor:pointer;transition:all 0.15s">
               <input type="radio" name="payMethodChoice" value="card" checked style="margin-top:3px">
@@ -413,7 +415,8 @@
             </label>
           </div>
 
-                    <!-- M-4 / R45: 일시 후원회원: 카드·간편결제 vs 직접 계좌이체 선택 -->
+                    <!-- M-4 / R45: 일시 후원회원: 카드·간편결제 vs 직접 계좌이체 선택
+               2026-11-12: «카드 결제 받기»가 꺼져 있으면 donate.js 가 카드·간편결제 칸을 숨기고 직접 계좌이체(입금자명 칸)를 고른다 -->
           <div id="onetimePayMethods" style="display:none;flex-direction:column;gap:8px">
             <label class="pay-method-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--line);border-radius:8px;cursor:pointer;transition:all 0.15s">
               <input type="radio" name="onetimeChoice" value="card" checked style="margin-top:3px">

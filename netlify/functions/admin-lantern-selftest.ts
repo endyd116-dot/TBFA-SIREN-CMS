@@ -15,6 +15,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { LANTERN, LANTERN_NOTICES } from "../../lib/campaign-extras";
 import { amUpsertMember, amCreateIntent, amSaveNote, amIntentSummary } from "../../lib/lantern-am";
 import { resolveMemberHash } from "../../lib/lantern";
+import { isCardPaymentEnabled, CARD_DISABLED_STEP } from "../../lib/donation-card";
 
 export const config = { path: "/api/admin-lantern-selftest" };
 
@@ -29,6 +30,8 @@ export default async (req: Request) => {
   const status = {
     amSecretSet: !!(process.env.SIREN_AM_POSTBACK_SECRET || "").trim(),
     portoneConfigured: !!((process.env.PORTONE_STORE_ID || "").trim() && (process.env.PORTONE_CHANNEL_KEY || "").trim()),
+    /* 2026-11-12: «카드 결제 받기» 스위치 — 꺼짐이면 아래 정기 카드 의도는 «거절»이 정상 */
+    cardEnabled: await isCardPaymentEnabled(),
     endpoints: ["/api/lantern-member", "/api/lantern-payment-intent", "/api/lantern-member-note", "/api/lantern-pay-start", "/lantern-pay.html"],
     slug: LANTERN.slug,
   };
@@ -86,9 +89,20 @@ export default async (req: Request) => {
     const sum = await amIntentSummary(it.intentId);
     steps.push({ step: "GET ?intent= 요약", ok: sum.status === "pending_bank" && sum.maskedName.includes("○"), maskedName: sum.maskedName, returnUrl: sum.returnUrl });
 
-    /* 정기 카드 의도(KICC) — 행만 만들고 결제창은 열지 않는다 */
-    const it2 = await amCreateIntent({ memberId: m1.memberId, amount: 10000, monthly: true, method: "card", am_lp: LANTERN.landing.lp, gate: "2" });
-    steps.push({ step: "W3-2 lantern-payment-intent(monthly card)", ok: (it2.provider === "kicc" && !!it2.redirectUrl) || it2.provider === "portone", provider: it2.provider, redirectUrl: it2.redirectUrl });
+    /* 정기 카드 의도(KICC) — 행만 만들고 결제창은 열지 않는다.
+       2026-11-12: «카드 결제 받기»가 꺼져 있으면 거절(step card_disabled)이 정상 — 행이 생기지 않아야 한다 */
+    if (status.cardEnabled) {
+      const it2 = await amCreateIntent({ memberId: m1.memberId, amount: 10000, monthly: true, method: "card", am_lp: LANTERN.landing.lp, gate: "2" });
+      steps.push({ step: "W3-2 lantern-payment-intent(monthly card)", ok: (it2.provider === "kicc" && !!it2.redirectUrl) || it2.provider === "portone", provider: it2.provider, redirectUrl: it2.redirectUrl });
+    } else {
+      let rejectedStep = "";
+      try {
+        await amCreateIntent({ memberId: m1.memberId, amount: 10000, monthly: true, method: "card", am_lp: LANTERN.landing.lp, gate: "2" });
+      } catch (e: any) {
+        rejectedStep = String(e?.step || "");
+      }
+      steps.push({ step: "W3-2 lantern-payment-intent(monthly card) — 카드 결제 꺼짐 → 거절", ok: rejectedStep === CARD_DISABLED_STEP, rejectedStep });
+    }
 
     /* [W3-3] 한마디 */
     const nt = await amSaveNote({ memberId: m1.memberId, donationId: it.donationId, note: "선생님, 이제 여기는 걱정 마세요.", publicConsent: true });

@@ -4793,6 +4793,16 @@
                 </label>
               </div>
 
+              <!-- 카드 결제 받기 (2026-11-12 Swain — KG이니시스 카드 결제가 열릴 때까지 꺼 둔다 · 저장 위치 site_settings donation.cardEnabled) -->
+              <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="credit-card"></span> 카드 결제</div>
+              <div class="dp-form-grid">
+                <label for="dpCardEnabled">카드 결제 받기</label>
+                <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;line-height:1.6">
+                  <input type="checkbox" id="dpCardEnabled" style="margin-top:4px">
+                  <span>카드·간편결제·실시간 계좌이체(KICC). 꺼 두면 결제 창에 효성 CMS와 직접 계좌이체만 보입니다. KG 카드 결제가 열리면 켭니다.<br />꺼 두면 서버도 새 카드 결제 요청(일반회원 카드·간편결제, 특별회원 카드 등록, 「등불의 기적」 랜딩의 카드·간편결제·실시간 계좌이체)을 거절합니다. 이미 등록된 정기 카드의 자동 청구·카드 변경·해지는 그대로입니다. 저장 후 1분 안에 모든 화면에 반영됩니다.</span>
+                </label>
+              </div>
+
               <!-- 효성 CMS+ -->
               <div class="dp-section-title"><span class="siren-icon-wrap" data-icon="atm"></span> 효성 CMS+ 정기 후원</div>
               <div class="dp-form-grid">
@@ -5889,7 +5899,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260712-noemoji"></script>
-  <script src="/js/admin.js?v=20261101-join"></script>
+  <script src="/js/admin.js?v=20261112-card"></script>
   <script src="/js/admin-chat.js?v=20260712-noemoji"></script>
   <script src="/js/admin-siren.js?v=2027-05-17-r2"></script>
   <script src="/js/editor.js?v=20260819-popup"></script>

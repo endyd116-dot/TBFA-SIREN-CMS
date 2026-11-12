@@ -9,6 +9,8 @@
  *
  * Body: { name, phone, email, amount, isAnonymous? }
  * 응답: { authPageUrl, pgOrderNo, customerKey, memberIdent }
+ * 2026-11-12: «카드 결제 받기»(lib/donation-card · 기본 꺼짐)가 꺼져 있으면 400 { ok:false, error, step:"card_disabled" }.
+ *   이미 등록된 정기 카드의 자동 청구(cron-kicc-billing)·해지는 이 API를 거치지 않으므로 영향 없음.
  */
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
@@ -16,6 +18,7 @@ import { z } from "zod";
 import { db, members, billingKeys, donations } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import { isMembershipRequired } from "../../lib/donation-membership";
+import { isCardPaymentEnabled, cardDisabledResponse } from "../../lib/donation-card";
 import { safeValidate } from "../../lib/validation";
 import { ok, badRequest, forbidden, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
@@ -48,6 +51,10 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
+    /* 2026-11-12: 정기 카드 등록도 KG이니시스가 열릴 때까지 닫아 둔다 — 특별회원은 효성 CMS 계좌 자동이체로.
+       스위치가 꺼져 있으면(기본·조회 실패 포함) 주문 행·customerKey를 만들기 전에 거절한다 */
+    if (!(await isCardPaymentEnabled())) return cardDisabledResponse();
+
     const body = await parseJson(req);
     if (!body) return badRequest("요청 본문이 비어있습니다");
 

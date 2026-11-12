@@ -1,6 +1,7 @@
 // netlify/functions/donation-policy.ts
 // Phase M-4 + 2026-05: 후원 정책 조회 (공개 API)
 // - 효성 카운트다운 메시지/초수 응답 추가
+// - 2026-11-12: cardEnabled(«카드 결제 받기» 스위치 · 기본 꺼짐) 추가 — 기존 키는 그대로
 
 import type { Context } from "@netlify/functions";
 import { ok, corsPreflight, methodNotAllowed } from "../../lib/response";
@@ -21,6 +22,8 @@ const FALLBACK_POLICY = {
   hyosungCountdownMessage: "자동이체를 위해 외부페이지로 이동합니다.",
   hyosungCountdownSeconds: 5,
   requireMembership: true,
+  /* 2026-11-12: «카드 결제 받기» 스위치 — 못 읽으면 꺼짐(결제 창은 효성 CMS·직접 계좌이체만) */
+  cardEnabled: false,
   bylawsUrl: process.env.LANTERN_BYLAWS_URL || "/resources.html",
   modalTitle: "회원 되기",
   modalSubtitle: "여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.",
@@ -64,6 +67,15 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[donation-policy] 가입 필수 스위치 조회 실패(기본 켬):", e?.message);
     }
 
+    /* 2026-11-12: «카드 결제 받기» 스위치(site_settings) — 행이 없거나 조회 실패면 꺼짐(안전한 쪽) */
+    let cardEnabled = false;
+    try {
+      const c = await import("../../lib/donation-card");
+      cardEnabled = await c.isCardPaymentEnabled();
+    } catch (e: any) {
+      console.warn("[donation-policy] 카드 결제 스위치 조회 실패(꺼짐):", e?.message);
+    }
+
     let row: any = null;
     try {
       const result = await db
@@ -78,7 +90,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     if (!row) {
-      return ok({ ...FALLBACK_POLICY, requireMembership }, "기본 정책 (미설정)");
+      return ok({ ...FALLBACK_POLICY, requireMembership, cardEnabled }, "기본 정책 (미설정)");
     }
 
     /* 카운트다운 초수 안전 검증 (1~30 범위) */
@@ -100,6 +112,7 @@ export default async (req: Request, _ctx: Context) => {
       hyosungCountdownMessage: row.hyosungCountdownMessage || FALLBACK_POLICY.hyosungCountdownMessage,
       hyosungCountdownSeconds: safeCdSec,
       requireMembership,
+      cardEnabled,
       bylawsUrl: FALLBACK_POLICY.bylawsUrl,
       modalTitle: row.modalTitle || FALLBACK_POLICY.modalTitle,
       modalSubtitle: row.modalSubtitle || FALLBACK_POLICY.modalSubtitle,
