@@ -12,7 +12,7 @@
   /* 등불 캠페인 상태 — 캠페인 페이지가 sessionStorage(siren_preselect_campaign)에 extras 를 실어 보낸다 */
   let _campaignInfo = null;   // { id, slug, title, extras }
   let _lantern = null;        // extras (theme 'lantern') 또는 null
-  let _member = null;         // 후원회원 가입/로그인 확인된 회원 { id, name, phone, email }
+  let _member = null;         // 회원 가입/로그인 확인된 회원 { id, name, phone, email }
   let _loginWatch = null;
 
   /* ★ 2026-09-06 깜빡임 FIX — 창을 «열기 전에» 완성해 두기 위한 상태
@@ -68,7 +68,7 @@
         hyosungGuideText: '효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다.',
         hyosungCountdownMessage: '자동이체를 위해 외부페이지로 이동합니다.',
         hyosungCountdownSeconds: 5,
-        modalTitle: '후원회원 되기',
+        modalTitle: '회원 되기',
         modalSubtitle: '여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.',
       };
       return _policyCache;
@@ -201,7 +201,7 @@
         const open = box.hidden;
         if (open) { fillBankQuick(box); loadPolicy().then(() => fillBankQuick(box)).catch(() => {}); }
         box.hidden = !open;
-        toggle.textContent = open ? '계좌 안내 닫기' : '후원 계좌 보기';
+        toggle.textContent = open ? '계좌 안내 닫기' : '납부 계좌 보기';
         return;
       }
       const copy = e.target.closest('.bank-quick-copy');
@@ -303,7 +303,7 @@
     const smsLbl = document.getElementById('sjSmsLabel');
     if (smsLbl && smsLbl.firstChild && smsLbl.dataset) smsLbl.firstChild.textContent = (_lantern ? smsLbl.dataset.lantern : smsLbl.dataset.general) + ' ';
     const sjBadge = document.getElementById('sjBadge');
-    if (sjBadge) sjBadge.textContent = _lantern ? '🕯️ 후원회원 가입' : '🤝 후원회원 가입';
+    if (sjBadge) sjBadge.textContent = _lantern ? '🕯️ 회원 가입' : '🤝 회원 가입';
     const privacyLine = document.getElementById('sjPrivacy')?.closest('label');
     const bylaws = document.getElementById('sjBylaws');
     const privacy = document.getElementById('sjPrivacy');
@@ -369,7 +369,7 @@
       const name = String(data.name || '').trim();
       const phone = String(data.phone || '').trim();
       const email = String(data.email || '').trim();
-      if (!data.agreeBylaws) return window.SIREN.toast('회칙(정관)에 따른 후원회원 가입에 동의해 주세요');
+      if (!data.agreeBylaws) return window.SIREN.toast('회칙(정관)에 따른 회원 가입에 동의해 주세요');
       if (mode === 'new') {
         if (!name || name.length < 2) return window.SIREN.toast('이름을 입력해 주세요');
         if (!phone) return window.SIREN.toast('연락처를 입력해 주세요');
@@ -417,7 +417,7 @@
           if (window.SIREN_AUTH && typeof window.SIREN_AUTH.fetchMe === 'function') await window.SIREN_AUTH.fetchMe();
           if (typeof window.refreshHeaderAuthUI === 'function') window.refreshHeaderAuthUI();
         } catch (_) {}
-        window.SIREN.toast(json.message || (mode === 'agree' ? '회칙 동의가 저장되었습니다' : '후원회원 가입이 완료되었습니다'));
+        window.SIREN.toast(json.message || (mode === 'agree' ? '회칙 동의가 저장되었습니다' : '회원 가입이 완료되었습니다'));
         lockIdentity(_member);
         showStep(1);
       } catch (err) {
@@ -482,8 +482,8 @@
       if (_lantern && _lantern.notices && _lantern.notices.NOTICE_PAY) noticePay.textContent = _lantern.notices.NOTICE_PAY;
     }
     if (_lantern) {
-      if (badge) { badge.textContent = '🕯️ ' + (_lantern.certificate?.campaignLabel || _campaignInfo?.title || '캠페인') + ' · 후원회원 회비'; badge.hidden = false; badge.style.display = ''; }
-      if (h2) h2.textContent = (_campaignInfo?.title || '등불의 기적') + ' — 후원회원으로 함께하기';
+      if (badge) { badge.textContent = '🕯️ ' + (_lantern.certificate?.campaignLabel || _campaignInfo?.title || '캠페인') + ' · 회비'; badge.hidden = false; badge.style.display = ''; }
+      if (h2) h2.textContent = (_campaignInfo?.title || '등불의 기적') + ' — 회원으로 함께하기';
       if (sub) sub.textContent = _lantern.headline || '';
       /* 정기(월 자동결제)가 첫 번째·기본 */
       const reg = modal.querySelector('input[name="dtype"][value="regular"]');
@@ -724,7 +724,7 @@
 
       /* 등불 캠페인(S5): 후원회원 가입(회칙 동의)이 먼저 */
       if (membershipRequired() && !isLoggedIn && !_member) {
-        window.SIREN.toast('후원회원 가입을 먼저 완료해 주세요');
+        window.SIREN.toast('회원 가입을 먼저 완료해 주세요');
         await routeSteps();
         return;
       }
@@ -734,7 +734,7 @@
       if (amount > 100000000) return window.SIREN.toast('1회 최대 회비는 1억원입니다');
 
       const email = (data.email || '').trim() || (auth?.user?.email || '') || (_member?.email || '');
-      if (!email) return window.SIREN.toast('이메일을 입력해 주세요 (후원 안내 발송용)');
+      if (!email) return window.SIREN.toast('이메일을 입력해 주세요 (회원 안내 발송용)');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return window.SIREN.toast('올바른 이메일 형식을 입력해 주세요');
       if (!data.agreePersonal) return window.SIREN.toast('개인정보 수집·이용에 동의해 주세요');
 
@@ -1056,7 +1056,7 @@
     if (step1) step1.classList.remove('active');
     if (step2) step2.classList.add('active');
 
-    window.SIREN.toast(opts.toast || '후원이 완료되었습니다 감사합니다');
+    window.SIREN.toast(opts.toast || '회비 납부가 완료되었습니다. 감사합니다');
 
     if (typeof window.SIREN_REFRESH_MYPAGE === 'function') {
       setTimeout(() => window.SIREN_REFRESH_MYPAGE(), 500);
@@ -1134,7 +1134,7 @@
       if (list.length === 0) { wrap.style.display = 'none'; return; }
 
       const TYPE_ICON = { fundraising: '', memorial: '', awareness: '' };
-      select.innerHTML = '<option value="">캠페인 선택 안 함 (일반 후원)</option>' +
+      select.innerHTML = '<option value="">캠페인 선택 안 함</option>' +
         list.map(c => {
           const icon = TYPE_ICON[c.type] || '';
           const pctText = c.progressPercent !== null && c.progressPercent !== undefined ? ` (${c.progressPercent}%)` : '';

@@ -135,7 +135,8 @@ export async function loadDetailSeed(pagePath: string, key: string): Promise<any
           .limit(1);
         if (!row) return null;
 
-        const { resolveCampaignExtras, toPublicExtras } = await import("./campaign-extras");
+        const { resolveCampaignExtras, toPublicExtras, publicGoalAmount } = await import("./campaign-extras");
+        (row as any).goalAmount = publicGoalAmount(row.goalAmount);   /* KG: 공개 화면 목표 표시 안 함(서버 렌더·#cmpData 모두) */
         const extras = await resolveCampaignExtras({ id: row.id, slug: row.slug });
         const seed: any = { kind: "campaign", campaign: row, extras: toPublicExtras(extras), faqs: [], stats: null };
         if (extras) {

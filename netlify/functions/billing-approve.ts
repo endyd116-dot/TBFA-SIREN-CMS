@@ -83,7 +83,7 @@ export default async (req: Request) => {
           .set({ status: "failed", failureReason: (p.resMsg || "빌키 등록 인증 실패").slice(0, 500), updatedAt: new Date() } as any)
           .where(eq(donations.pgOrderNo, pgOrderNo));
       }
-      return failRedirect(p.resMsg || "정기 후원회원 등록이 취소되었습니다");
+      return failRedirect(p.resMsg || "특별회원 등록이 취소되었습니다");
     }
     if (!authorizationId || !pgOrderNo) return failRedirect("결제 정보가 누락되었습니다");
 
@@ -142,7 +142,7 @@ export default async (req: Request) => {
       billingKey: billKey,
       shopOrderNo: chargeOrderNo,
       amount,
-      goodsName: "교사유가족협의회 정기 회원회비 (1회차)",
+      goodsName: "교사유가족협의회 특별회원 월 정기회비 (1회차)",
       customerName: donation.donorName,
       customerEmail: donation.donorEmail || undefined,
     });
@@ -199,7 +199,7 @@ export default async (req: Request) => {
               severity: "warning",
             },
           });
-        } catch (e) { console.warn("[billing-approve] 첫결제실패 후원자 알림 예외(무시):", e); }
+        } catch (e) { console.warn("[billing-approve] 첫결제실패 회원 알림 예외(무시):", e); }
       }
       try {
         await notifyAllSuperAdmins({
@@ -330,8 +330,8 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "새 정기 후원회원",
-        message: `방금 새 정기 후원회원이 등록됐어요. ${updated.donorName}님 월 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
+        title: "새 특별회원",
+        message: `방금 새 특별회원이 등록됐어요. ${updated.donorName}님 월 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
         link: "/admin.html#donations",
         refTable: "donations",
         refId: updated.id,
@@ -367,8 +367,8 @@ export default async (req: Request) => {
               changeField: "결제 카드",
               changeValue: `${cardCompany} ${cardNumberMasked} · 월 ${Number(amount).toLocaleString()}원`,
               changedAt: now,
-              title: "후원 정보 변경 처리 완료",
-              message: "후원 결제 정보가 변경되었습니다.",
+              title: "납부 정보 변경 처리 완료",
+              message: "회비 결제 정보가 변경되었습니다.",
               link: "/mypage.html",
               category: "donation",
               severity: "info",
@@ -383,7 +383,7 @@ export default async (req: Request) => {
     return successRedirect(updated.id, lanternRedirectParams(lantern));
   } catch (err) {
     console.error("[billing-approve]", err);
-    return failRedirect("정기 후원회원 등록 중 오류가 발생했습니다");
+    return failRedirect("특별회원 등록 중 오류가 발생했습니다");
   }
 };
 

@@ -14,6 +14,7 @@
 //      조회 실패·항목 0건이면 아무것도 바꾸지 않는다(기존 안내 문구 유지).
 
 import { esc, replaceById } from "./shell-html";
+import { publicGoalAmount } from "./campaign-extras";
 
 /* ------------------------------------------------------------------ */
 /* 공통 도우미                                                          */
@@ -164,7 +165,7 @@ function renderMediaGrid(list: any[]): string {
 function renderCampaignCards(list: any[]): string {
   return list
     .map((c) => {
-      const goal = Number(c.goalAmount || 0);
+      const goal = publicGoalAmount(c.goalAmount);   /* KG: 공개 화면 목표 표시 안 함 */
       const now = Number(c.raisedAmount || 0);
       const pct = goal > 0 ? Math.min(100, Math.round((now / goal) * 100)) : 0;
       return (

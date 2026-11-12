@@ -76,12 +76,12 @@ export default async (req: Request) => {
         detail: { reason: "not_owner" },
         success: false,
       });
-      return forbidden("본인의 정기 후원회원만 해지할 수 있습니다");
+      return forbidden("본인의 특별회원만 해지할 수 있습니다");
     }
 
     /* 6. 이미 해지됨 차단 */
     if (!billing.isActive) {
-      return badRequest("이미 해지된 정기 후원회원입니다");
+      return badRequest("이미 해지된 특별회원입니다");
     }
 
     /* 7. 해지 처리 */

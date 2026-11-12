@@ -440,14 +440,14 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:18px;font-weight:700;color:#7a1f2b;margin-bottom:12px">' +
-        escapeHtml(notice.title || '사이렌 후원회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 일반·특별회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:18px">' +
         safeMessage +
       '</div>' +
       '<a href="' + escapeHtml(notice.ctaUrl || '/support.html') + '" ' +
          'style="display:inline-block;padding:12px 28px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">' +
-        escapeHtml(notice.ctaText || '후원회원 되기') + ' →' +
+        escapeHtml(notice.ctaText || '회원 되기') + ' →' +
       '</a>';
   }
   

@@ -15,7 +15,7 @@
 <script src="/js/pwa.js?v=3" defer></script>
 <title>마이페이지 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="나의 회비 납부 내역과 후원회원 회비 납부 확인서를 관리하세요.">
+<meta name="description" content="나의 회비 납부 내역과 회비 납부 확인서를 관리하세요.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -858,7 +858,7 @@
           <!-- 1. 내 회비 납부 내역 -->
             <div class="mp-panel" data-mp-panel="donations">
                  <h3 class="serif">내 회비 납부 내역</h3>
-                 <p class="sub">최근 1년간의 후원 기록을 확인하실 수 있습니다.</p>
+                 <p class="sub">최근 1년간의 회비 납부 기록을 확인하실 수 있습니다.</p>
 
             <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
              <div class="kpi"><div class="kpi-label">누적 회비</div><div class="kpi-value">0원</div></div>
@@ -900,7 +900,7 @@
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                   <div style="font-size:48px"><span class="siren-icon-wrap" data-icon="file-text"></span></div>
                   <div style="flex:1;min-width:200px">
-                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 후원회원 회비 납부 확인서</div>
+                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 회비 납부 확인서</div>
                     <div style="font-size:13px;color:var(--text-2)">총 납부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
                   </div>
                   <button type="button" class="btn btn-primary" onclick="var li=document.querySelector('#mpMenu li[data-mp=donations]'); if (li) li.click();">회비 납부 내역에서 건별 발급</button>
@@ -956,13 +956,13 @@
                 <span style="display:inline-block;width:4px;height:24px;background:var(--info,#1a5ec4);border-radius:2px"></span>
                 <h3 class="serif" style="margin:0"><span class="siren-icon-wrap" data-icon="message-circle"></span> 1:1 상담</h3>
               </div>
-              <p class="sub">후원 방법, 홈페이지 이용, 회원 가입 등 <strong>일반 문의</strong>에 대해 관리자와 1:1 채팅으로 상담하실 수 있습니다.</p>
+              <p class="sub">회비 납부 방법, 홈페이지 이용, 회원 가입 등 <strong>일반 문의</strong>에 대해 관리자와 1:1 채팅으로 상담하실 수 있습니다.</p>
 
               <div class="panel" style="background:linear-gradient(135deg,#fff,#eef4fc);border-color:#cee0f2;margin-bottom:18px;padding:16px 20px">
                 <div style="display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
                   <div style="font-size:32px"><span class="siren-icon-wrap" data-icon="mail"></span></div>
                   <div style="flex:1">
-                    홈페이지 이용·후원 절차·기부금 영수증 등 <strong style="color:var(--info,#1a5ec4)">일반적인 궁금증</strong>은 채팅 상담을 통해 빠르게 안내받으실 수 있습니다.<br />
+                    홈페이지 이용·회비 납부 절차·납부 확인서 등 <strong style="color:var(--info,#1a5ec4)">일반적인 궁금증</strong>은 채팅 상담을 통해 빠르게 안내받으실 수 있습니다.<br />
                     <span style="color:var(--text-3);font-size:12px">※ 특정 프로그램(심리상담/법률자문/장학)에 신청하시려면 '<span class="siren-icon-wrap" data-icon="target"></span> 내 지원 내역'을 이용해 주세요.</span>
                   </div>
                   <button class="btn btn-primary" id="btnNewChat" style="white-space:nowrap">+ 새 상담 시작</button>
@@ -1164,7 +1164,7 @@
       <div style="padding:24px">
         <button class="chat-cat-btn" data-cat="support_donation">
           <span class="emoji"><span class="siren-icon-wrap" data-icon="gift"></span></span>
-          <span class="label">후원회원 관련 문의<div class="desc">정기/일시 회비, 납부 확인서 발급, 회원 정보 변경 등</div></span>
+          <span class="label">회원 관련 문의<div class="desc">특별·일반회원 회비, 납부 확인서 발급, 회원 정보 변경 등</div></span>
         </button>
         <button class="chat-cat-btn" data-cat="support_homepage">
           <span class="emoji"><span class="siren-icon-wrap" data-icon="globe"></span></span>
@@ -1280,11 +1280,11 @@
   </div>
 
   <script src="/js/common.js?v=20261007-init"></script>
-  <script src="/js/auth.js?v=20261108-fee"></script>
+  <script src="/js/auth.js?v=20261112-kg"></script>
   <script src="/js/support.js?v=5"></script>
-  <script src="/js/donate.js?v=20261108-fee"></script>
+  <script src="/js/donate.js?v=20261112-kg"></script>
   <script src="/js/mypage-lantern.js?v=20261031-member" defer></script>
-  <script src="/js/chat-user.js?v=20260712-noemoji"></script>
+  <script src="/js/chat-user.js?v=20261112-kg"></script>
   <script src="/js/mypage-applications.js?v=20260712-noemoji"></script>
   <script src="/js/mypage-eligibility.js?v=20260712-noemoji"></script>
   <!-- 6순위 #8: 전문가 상담 -->
@@ -1294,7 +1294,7 @@
   <!-- Phase 21 R3+R4: 운영자 부재 토글 + WBS 기본 보기 모드 카드 (운영자만 자동 마운트) -->
   <script src="/js/mypage-out-of-office.js?v=3" defer></script>
   <!-- R12: 알림 탭 -->
-  <script src="/js/mypage-notifications.js?v=1" defer></script>
+  <script src="/js/mypage-notifications.js?v=20261112-kg" defer></script>
 
   <script>
     /* ── 포인트·배지·랭킹·메시지 로더 (전역 — SIREN_PAGE_INIT 바깥) ── */
@@ -1455,7 +1455,7 @@
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         set('receiptAmount', (stats.totalAmount || 0).toLocaleString() + '원');
         set('receiptCount', stats.totalCount || 0);
-        set('receiptYear', `${new Date().getFullYear() - 1}년 후원회원 회비 납부 확인서`);
+        set('receiptYear', `${new Date().getFullYear() - 1}년 회비 납부 확인서`);
         return true;
       };
       let rTries = 0;

@@ -17,9 +17,9 @@ const rowsOf = (r: any): any[] => (r?.rows ?? r ?? []) as any[];
 
 /** 만들 수 있는 설정 키 — 새 섹션을 추가할 때 여기에 함께 등록한다 */
 const ALLOWED: Record<string, { scope: string; valueType: "text" | "json"; description: string }> = {
-  "home.bankBanner.visible": { scope: "home", valueType: "text", description: "홈 후원 계좌 안내 배너 노출(true/false)" },
-  "home.bankBanner.title": { scope: "home", valueType: "text", description: "홈 후원 계좌 안내 배너 제목" },
-  "home.bankBanner.lead": { scope: "home", valueType: "text", description: "홈 후원 계좌 안내 배너 문구" },
+  "home.bankBanner.visible": { scope: "home", valueType: "text", description: "홈 회비 납부 계좌 안내 배너 노출(true/false)" },
+  "home.bankBanner.title": { scope: "home", valueType: "text", description: "홈 회비 납부 계좌 안내 배너 제목" },
+  "home.bankBanner.lead": { scope: "home", valueType: "text", description: "홈 회비 납부 계좌 안내 배너 문구" },
 };
 
 export default async function handler(req: Request, _ctx: Context) {

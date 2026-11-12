@@ -17,7 +17,7 @@ import {
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 /* 2026-09-06 「등불의 기적」: 캠페인별 확장 설정(테마·금액 사다리·후원회원 가입 등)을 함께 내려준다 */
-import { resolveCampaignExtras, toPublicExtras } from "../../lib/campaign-extras";
+import { resolveCampaignExtras, toPublicExtras, publicGoalAmount } from "../../lib/campaign-extras";
 
 const VALID_TYPES = ["fundraising", "memorial", "awareness"];
 
@@ -57,7 +57,7 @@ export default async (req: Request) => {
           .where(eq(campaigns.id, c.id));
       } catch (_) {}
 
-      const goalAmount = c.goalAmount || 0;
+      const goalAmount = publicGoalAmount(c.goalAmount);   /* KG: 공개 화면 목표 표시 안 함 */
       const raisedAmount = c.raisedAmount || 0;
       const progressPercent = goalAmount > 0
         ? Math.min(100, Math.round((raisedAmount / goalAmount) * 100 * 10) / 10)
@@ -119,10 +119,11 @@ export default async (req: Request) => {
         .limit(5);
 
       const enriched = await Promise.all(list.map(async (c: any) => {
-        const goal = c.goalAmount || 0;
+        const goal = publicGoalAmount(c.goalAmount);   /* KG: 공개 화면 목표 표시 안 함 */
         const raised = c.raisedAmount || 0;
         return {
           ...c,
+          goalAmount: goal,
           progressPercent: goal > 0 ? Math.min(100, Math.round((raised / goal) * 100 * 10) / 10) : null,
           remainingDays: c.endDate
             ? Math.max(0, Math.ceil((new Date(c.endDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
@@ -190,10 +191,11 @@ export default async (req: Request) => {
       .offset((page - 1) * limit);
 
     const enriched = list.map((c: any) => {
-      const goal = c.goalAmount || 0;
+      const goal = publicGoalAmount(c.goalAmount);   /* KG: 공개 화면 목표 표시 안 함 */
       const raised = c.raisedAmount || 0;
       return {
         ...c,
+        goalAmount: goal,
         progressPercent: goal > 0 ? Math.min(100, Math.round((raised / goal) * 100 * 10) / 10) : null,
         remainingDays: c.endDate
           ? Math.max(0, Math.ceil((new Date(c.endDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))

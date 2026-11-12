@@ -98,7 +98,7 @@ export default async (req: Request) => {
     });
   } catch (err) {
     console.error("[donations-mine]", err);
-    return serverError("후원 내역 조회 중 오류가 발생했습니다", err);
+    return serverError("회비 납부 내역 조회 중 오류가 발생했습니다", err);
   }
 };
 

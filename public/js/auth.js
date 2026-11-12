@@ -422,8 +422,8 @@ document.addEventListener('change', async function (e) {
           var sourceLabel = matched.isHyosung ? '효성으로' : '';
           setStatus(
             '' + escapeHtml(matched.name) + '님, 환영합니다!<br/>' +
-            '이미 ' + sourceLabel + ' 회비를 납부해 주시는 후원회원이시군요 (' + matched.donationCount + '회). ' +
-            '이메일·비밀번호를 추가하시면 마이페이지에서 후원 이력·납부 확인서를 직접 관리하실 수 있어요.',
+            '이미 ' + sourceLabel + ' 회비를 납부해 주시는 회원이시군요 (' + matched.donationCount + '회). ' +
+            '이메일·비밀번호를 추가하시면 마이페이지에서 회비 납부 이력·납부 확인서를 직접 관리하실 수 있어요.',
             'var(--success)'
           );
           /* 이름 필드 자동 채움 (read-only는 아님 — 사용자 확인 후 수정 가능) */
@@ -564,7 +564,7 @@ document.addEventListener('change', async function (e) {
     if (nameEl) nameEl.textContent = `${Auth.user.name}님`;
     const typeEl = document.querySelector('.mp-user span');
     if (typeEl) {
-      const map = { regular:'정기 후원회원', family:'유가족 회원', volunteer:'봉사자', admin:'관리자' };
+      const map = { regular:'회원', family:'유가족 회원', volunteer:'봉사자', admin:'관리자' };
       typeEl.textContent = map[Auth.user.type] || '회원';
     }
 
@@ -998,7 +998,7 @@ document.addEventListener('change', async function (e) {
       <div class="${cardClass}">
         <div class="mp-billing-header">
           <div>
-            <div class="mp-billing-title">정기 후원회원</div>
+            <div class="mp-billing-title">특별회원</div>
             <div class="mp-billing-subtitle">
               ${stats.monthsActive}개월간 함께해 주셔서 감사합니다 · 누적 ₩${(stats.totalAmount || 0).toLocaleString()}
             </div>
@@ -1040,14 +1040,14 @@ document.addEventListener('change', async function (e) {
       <div class="mp-billing-empty">
         <div class="icon"></div>
         <div class="title">
-          ${hasHistory ? '현재 활성화된 정기 회비가 없습니다' : '정기 후원회원이 되어 보세요'}
+          ${hasHistory ? '현재 활성화된 정기 회비가 없습니다' : '특별회원이 되어 보세요'}
         </div>
         <div class="desc">
           ${hasHistory
-            ? '새로 정기 후원회원이 되시려면 홈에서 «후원회원 되기» 버튼을 눌러주세요.'
+            ? '새로 특별회원이 되시려면 홈에서 «회원 되기» 버튼을 눌러주세요.'
             : '매월 자동 결제로 유가족 지원에 꾸준히 동참해 주세요.<br />언제든 해지 가능합니다.'}
         </div>
-        <a href="/index.html" class="btn-start">정기 후원회원 되기</a>
+        <a href="/index.html" class="btn-start">특별회원 되기</a>
       </div>
     `;
   }
@@ -1220,8 +1220,8 @@ document.addEventListener('change', async function (e) {
       }
       const ms = res.data.data.membership;
       note.textContent = !ms ? ''
-        : ms.kind === 'regular' ? '정기 후원회원 · 매월 회비를 납부하는 동안 회원 자격이 유지됩니다.'
-        : ms.kind === 'onetime' ? `일시 후원회원 · 회원 자격 ${ms.validUntil}까지 (납부일부터 1년, 다시 납부하면 그날부터 1년)`
+        : ms.kind === 'regular' ? '특별회원 · 매월 회비를 납부하는 동안 회원 자격이 유지됩니다.'
+        : ms.kind === 'onetime' ? `일반회원 · 회원 자격 ${ms.validUntil}까지 (납부일부터 1년, 다시 납부하면 그날부터 1년)`
         : ms.kind === 'expired' ? `회원 자격이 ${ms.validUntil}에 만료되었습니다. 회비를 다시 납부하시면 납부일부터 1년간 유지됩니다.` : '';
       note.hidden = !note.textContent;
     }

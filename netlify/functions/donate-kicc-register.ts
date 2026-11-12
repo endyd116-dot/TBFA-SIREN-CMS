@@ -71,13 +71,13 @@ export default async (req: Request) => {
         campaignExtras = await resolveCampaignExtras({ id: data.campaignId, slug: cRow?.slug });
       } catch { /* 보조 조회 실패는 무시 */ }
       if (campaignExtras?.requireMembership && !memberId) {
-        return badRequest("후원회원 가입(회칙 동의) 후 결제할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+        return badRequest("회원 가입(회칙 동의) 후 결제할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
       }
     }
 
     /* 2026-10-31 A안: 후원 정책 «후원회원 가입 필수»(기본 켬) — 입구와 무관하게 비회원 요청은 받지 않는다 */
     if (!memberId && (await isMembershipRequired())) {
-      return badRequest("후원회원 가입(회칙 동의) 후 결제할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      return badRequest("회원 가입(회칙 동의) 후 결제할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
     }
 
     /* shopOrderNo(=pgOrderNo) 생성 (중복 방지) */
@@ -115,7 +115,7 @@ export default async (req: Request) => {
         isAnonymous: data.isAnonymous === true,
       } as any)
       .returning({ id: donations.id, pgOrderNo: donations.pgOrderNo, amount: donations.amount });
-    if (!donation) throw new Error("후원 정보 저장 실패");
+    if (!donation) throw new Error("납부 정보 저장 실패");
 
     /* 랜딩 파라미터 보관(S6-b) — 등불 캠페인일 때만·형식 검증 통과분만 */
     if (campaignExtras) {
@@ -128,7 +128,7 @@ export default async (req: Request) => {
       shopOrderNo: pgOrderNo,
       amount: data.amount,
       /* 결제사에 보이는 상품명. 결제사 입점 조건상 «후원» 표현 없이 «회원회비»로 적는다(2026-11-08) */
-      goodsName: data.type === "regular" ? "교사유가족협의회 정기 회원회비" : "교사유가족협의회 회원회비",
+      goodsName: data.type === "regular" ? "교사유가족협의회 특별회원 월 정기회비" : "교사유가족협의회 일반회원 연회비",
       returnUrl: `${SITE_URL}/api/donate-kicc-approve`,
       customerName: data.name,
       customerEmail: data.email,

@@ -75,7 +75,7 @@ export default async (req: Request) => {
           .limit(1);
         if (activeKey) {
           return forbidden(
-            `이미 정기 후원회원으로 등록되어 있습니다 (월 ${activeKey.amount.toLocaleString()}원). ` +
+            `이미 특별회원으로 등록되어 있습니다 (월 ${activeKey.amount.toLocaleString()}원). ` +
               "변경하려면 마이페이지에서 먼저 해지 후 다시 등록해 주세요.",
           );
         }
@@ -91,13 +91,13 @@ export default async (req: Request) => {
         campaignExtras = await resolveCampaignExtras({ id: campaignId, slug: cRow?.slug });
       } catch { /* 보조 조회 실패는 무시 */ }
       if (campaignExtras?.requireMembership && !memberId) {
-        return badRequest("후원회원 가입(회칙 동의) 후 정기 회비를 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+        return badRequest("회원 가입(회칙 동의) 후 정기 회비를 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
       }
     }
 
     /* 2026-10-31 A안: 후원 정책 «후원회원 가입 필수»(기본 켬) — 입구와 무관하게 비회원 요청은 받지 않는다 */
     if (!memberId && (await isMembershipRequired())) {
-      return badRequest("후원회원 가입(회칙 동의) 후 정기 회비를 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      return badRequest("회원 가입(회칙 동의) 후 정기 회비를 등록할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
     }
 
     /* customerKey 생성 (중복 방지) */
@@ -145,7 +145,7 @@ export default async (req: Request) => {
     const reg = await registerTrade({
       shopOrderNo: pgOrderNo,
       amount: data.amount,
-      goodsName: "교사유가족협의회 정기 회원회비",
+      goodsName: "교사유가족협의회 특별회원 월 정기회비",
       returnUrl: `${SITE_URL}/api/billing-approve`,
       isBillingKey: true, // 정기 빌키 등록창 (payMethodTypeCode 81·amount 0·certType 0)
       customerName: data.name,
@@ -157,7 +157,7 @@ export default async (req: Request) => {
         .update(donations)
         .set({ status: "failed", failureReason: (reg.errorMessage || "빌키 등록 준비 실패").slice(0, 500), updatedAt: new Date() } as any)
         .where(eq(donations.pgOrderNo, pgOrderNo));
-      return badRequest(reg.errorMessage || "정기 후원회원 등록 준비에 실패했습니다", { code: reg.errorCode });
+      return badRequest(reg.errorMessage || "특별회원 등록 준비에 실패했습니다", { code: reg.errorCode });
     }
 
     await logUserAction(req, memberId, memberName, "billing_register", {
@@ -167,11 +167,11 @@ export default async (req: Request) => {
 
     return ok(
       { authPageUrl: reg.authPageUrl, pgOrderNo, customerKey, memberIdent: memberId ? `M-${memberId}` : "GUEST" },
-      "정기 후원회원 등록 준비 완료",
+      "특별회원 등록 준비 완료",
     );
   } catch (err) {
     console.error("[billing-register]", err);
-    return serverError("정기 후원회원 등록 준비 중 오류가 발생했습니다", err);
+    return serverError("특별회원 등록 준비 중 오류가 발생했습니다", err);
   }
 };
 

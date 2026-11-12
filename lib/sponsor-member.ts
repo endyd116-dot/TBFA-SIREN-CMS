@@ -120,11 +120,11 @@ export async function sendSponsorWelcomeMail(member: { id: number; email: string
 
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
-      <strong>${esc(member.name)}</strong> 님, 후원회원이 되어 주셔서 감사합니다.
+      <strong>${esc(member.name)}</strong> 님, 회원이 되어 주셔서 감사합니다.
     </p>
     <p style="margin:0 0 20px;color:#525252;line-height:1.8;">
-      ${generic ? "사단법인 교사유가족협의회" : `「${esc(campaignTitle)}」`} 후원회원 가입이 완료되었습니다.<br />
-      회칙에 따라 후원회원으로 등록되었으며, 회비 납부 내역·정기 회비 해지${generic ? "" : "·등불 증서"}는 마이페이지에서 언제든 확인하실 수 있습니다.
+      ${generic ? "사단법인 교사유가족협의회" : `「${esc(campaignTitle)}」`} 회원 가입이 완료되었습니다.<br />
+      회칙에 따라 회원으로 등록되었으며, 회비 납부 내역·정기 회비 해지${generic ? "" : "·등불 증서"}는 마이페이지에서 언제든 확인하실 수 있습니다.
     </p>
     <div style="margin:20px 0;padding:16px 20px;background:#fef9f5;border:1px solid #f0e0d4;border-radius:8px;font-size:13px;color:#525252;line-height:1.8;">
       <strong style="color:#0f0f0f;">마이페이지 비밀번호 설정</strong><br />
@@ -143,9 +143,9 @@ export async function sendSponsorWelcomeMail(member: { id: number; email: string
   `;
   await sendEmail({
     to: member.email,
-    subject: `[${ORG_NAME}] 후원회원 가입을 환영합니다`,
+    subject: `[${ORG_NAME}] 회원 가입을 환영합니다`,
     html: baseLayout({
-      title: "후원회원이 되어 주셔서 감사합니다",
+      title: "회원이 되어 주셔서 감사합니다",
       bodyHtml,
       ctaText: "마이페이지 바로가기",
       ctaUrl: `${SITE_URL}/mypage.html`,
@@ -190,7 +190,7 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
        인증된 번호로 둔다(일시 후원회원과 같은 기준). 카톡 광고성 동의 시각은 «소식 수신» 체크 때만 */
     phoneVerifiedAt: new Date(),
     kakaoMarketingConsentAt: input.agreeSms === true ? new Date() : null,
-    memo: `후원회원 가입 — ${input.campaignTitle}${schoolName ? ` · ${schoolName}` : ""}${input.source === "am_modal" ? " · 랜딩 모달" : ""}`,
+    memo: `회원 가입 — ${input.campaignTitle}${schoolName ? ` · ${schoolName}` : ""}${input.source === "am_modal" ? " · 랜딩 모달" : ""}`,
   } as any).returning({ id: members.id, email: members.email, name: members.name, phone: members.phone, type: members.type, status: members.status });
 
   await saveSponsorFields(created.id, schoolName, true);
@@ -201,8 +201,8 @@ export async function createSponsorMember(input: CreateSponsorInput): Promise<Sp
     await notifyAllOperators({
       category: "member",
       severity: "info",
-      title: input.generic ? `🤝 후원회원 가입 — 홈페이지` : `🕯️ 후원회원 가입 — ${input.campaignTitle}`,
-      message: `${created.name}님이 후원회원으로 가입했어요.${schoolName ? ` (${schoolName})` : ""}${input.source === "am_modal" ? " — 랜딩 모달" : ""}`,
+      title: input.generic ? `🤝 회원 가입 — 홈페이지` : `🕯️ 회원 가입 — ${input.campaignTitle}`,
+      message: `${created.name}님이 회원으로 가입했어요.${schoolName ? ` (${schoolName})` : ""}${input.source === "am_modal" ? " — 랜딩 모달" : ""}`,
       link: "/admin.html#members",
       refTable: "members",
       refId: created.id,

@@ -43,7 +43,7 @@
   function categoryLabel(cat) {
     const map = {
       workspace: '워크스페이스', legal: '법률', incident: '사건신고',
-      harassment: '괴롭힘신고', donation: '후원', system: '시스템',
+      harassment: '괴롭힘신고', donation: '회비', system: '시스템',
     };
     return map[cat] || cat || '';
   }

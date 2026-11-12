@@ -70,14 +70,23 @@ export const RECEIPT_NOTICE =
   "저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다. 지정되는 날, 이 자리에서 바로 알려드리겠습니다.";
 
 /* [W1] 필수 고지 6문장 — AM 통보문 ⑧ 계약과 글자 그대로(AM 모달·SIREN 모달 동일). 바꾸면 AM에 먼저 회신. */
+/* 2026-11-12 KG이니시스 입점 조건(«목표달성이 있는 내용은 진행 불가») — 공개 화면에는 캠페인 목표 금액·달성률을
+   내보내지 않는다. 관리자 화면·내부 집계·AM 실값 계약(/api/campaign-stats 의 goalKrw)은 그대로 둔다.
+   공개 API(campaigns)·서버 렌더(shell-detail·shell-lists·home-content)가 publicGoalAmount()를 거치고,
+   화면 코드는 원래부터 «목표 0이면 숨김»이라 따로 손대지 않아도 사라진다. 다시 보이게 하려면 true. */
+export const SHOW_CAMPAIGN_GOAL_PUBLIC = false;
+export function publicGoalAmount(v: any): number {
+  return SHOW_CAMPAIGN_GOAL_PUBLIC ? Number(v || 0) : 0;
+}
+
 export const LANTERN_NOTICES = {
-  NOTICE_ORG: "이 가입은 사단법인 교사유가족협의회(381-82-00754)의 후원회원 가입입니다. 함께워크(withwork)는 화면만 제공하고, 회원 정보와 회비 납부 내역은 교사유가족협의회 홈페이지(tbfa.co.kr)에 등록·보관됩니다.",
-  CONSENT_BYLAWS: "사단법인 교사유가족협의회 회칙(정관)에 따라 후원회원으로 가입하는 데 동의합니다.",
-  CONSENT_PRIVACY: "개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 후원회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제)",
+  NOTICE_ORG: "이 가입은 사단법인 교사유가족협의회(381-82-00754)의 회원 가입입니다. 함께워크(withwork)는 화면만 제공하고, 회원 정보와 회비 납부 내역은 교사유가족협의회 홈페이지(tbfa.co.kr)에 등록·보관됩니다.",
+  CONSENT_BYLAWS: "사단법인 교사유가족협의회 회칙(정관)에 따라 회원으로 가입하는 데 동의합니다.",
+  CONSENT_PRIVACY: "개인정보 수집·이용 동의 — 수집 항목: 이름·연락처·이메일·학교명(선택) / 목적: 회원 관리·회비 청구·소식 발송 / 보관: 교사유가족협의회 회원 명부(탈퇴 시까지) / 처리 위탁: 함께워크(화면 제공)·결제대행사(결제)",
   CONSENT_SMS: "협의회 소식·분기 «등불 보고»를 문자·카카오톡으로 받겠습니다.",
   /* AM 회신 ⑨(2026-09-06 05:40): 명세서 문장은 포트원(사단법인 명의 PG) 전환 때만 켠다 — KICC 단계엔 0. 회비 문장은 항상 */
   NOTICE_PAY_STATEMENT: "카드 명세서에는 사단법인 교사유가족협의회로 표시됩니다.",
-  NOTICE_PAY_FEE: "회비는 특별회비이며 현재 기부금영수증(세액공제)은 발급되지 않습니다.",
+  NOTICE_PAY_FEE: "회비는 회원 회비로, 현재 기부금영수증(세액공제)은 발급되지 않습니다.",
   NOTICE_DONE: "회비 납부 내역·해지·증서는 교사유가족협의회 홈페이지 마이페이지에서 보실 수 있습니다.",
 } as const;
 
@@ -104,8 +113,8 @@ export const LANTERN: CampaignExtras = {
   slug: LANTERN_SLUG,
   theme: "lantern",
   requireMembership: true,
-  eyebrow: "교사유가족협의회 후원회원 캠페인",
-  subtitle: "아이들의 미래를 밝히신 그 숭고한 등불 — 교사유가족협의회 후원회원 캠페인",
+  eyebrow: "교사유가족협의회 회원 캠페인",
+  subtitle: "아이들의 미래를 밝히신 그 숭고한 등불 — 교사유가족협의회 회원 캠페인",
   headline: "그 여름의 질문을 3년째 붙들고 있는 가족들이 있습니다",
   ladder: {
     regular: [
@@ -134,7 +143,7 @@ export const LANTERN: CampaignExtras = {
   postbackUrl: (process.env.WITHWORK_LIT_RETURN_URL || `${WITHWORK_BASE}/api/lit-return`).trim(),
   certificate: { tagline: "함께 지키는 사람", campaignLabel: "등불의 기적" },
   bylawsUrl: process.env.LANTERN_BYLAWS_URL || "/resources.html",
-  feeNotice: "이 캠페인은 후원회원 모집 캠페인입니다. 모인 후원은 회칙에 따른 특별회비로 순직자 예우와 유가족 지원에 쓰입니다. 일시 후원회원은 납부일부터 1년, 정기 후원회원은 매월 납부하는 동안 회원 자격이 유지됩니다.",
+  feeNotice: "이 캠페인은 회원 모집 캠페인입니다. 모인 회비는 회칙에 따라 순직자 예우와 유가족 지원에 쓰입니다. 일반회원은 납부일부터 1년, 특별회원은 매월 납부하는 동안 회원 자격이 유지됩니다.",
   campaignUrl: `${SITE_BASE}/campaign.html?slug=${encodeURIComponent(LANTERN_SLUG)}`,
   memorialUrl: `${SITE_BASE}/memorial.html`,
 };

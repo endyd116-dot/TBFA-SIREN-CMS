@@ -46,7 +46,7 @@
               <span style="color:var(--text-3)">${pct}%</span>
             </div>`
           : `<div style="font-size:12px;color:var(--text-2)">
-              ${c.donorCount || 0}명 후원
+              ${c.donorCount || 0}명 참여
               ${c.remainingDays !== null ? ` · D-${c.remainingDays}` : ''}
             </div>`;
 

@@ -74,11 +74,11 @@ export function renderCampaignDefault(c: CampaignView): string {
          <div class="cmp-stats-row">
            <div class="cmp-stats-item"><div class="cmp-stats-label">현재 모금액</div><div class="cmp-stats-value brand">${won(raised)}</div></div>
            <div class="cmp-stats-item"><div class="cmp-stats-label">목표 금액</div><div class="cmp-stats-value">${won(goal)}</div></div>
-           <div class="cmp-stats-item"><div class="cmp-stats-label">후원자</div><div class="cmp-stats-value">${num(c.donorCount)}명</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">참여 회원</div><div class="cmp-stats-value">${num(c.donorCount)}명</div></div>
            ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ""}
          </div>`
     : `<div class="cmp-stats-row">
-           <div class="cmp-stats-item"><div class="cmp-stats-label">참여 후원자</div><div class="cmp-stats-value brand">${num(c.donorCount)}명</div></div>
+           <div class="cmp-stats-item"><div class="cmp-stats-label">참여 회원</div><div class="cmp-stats-value brand">${num(c.donorCount)}명</div></div>
            ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ""}
          </div>`;
 
@@ -102,7 +102,7 @@ export function renderCampaignDefault(c: CampaignView): string {
       ${isClosed
         ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. </div>'
         : `<button class="cmp-cta" data-cmp-donate="${Number(c.id)}" data-cmp-slug="${esc(c.slug)}" data-cmp-title="${esc(c.title)}">
-            이 캠페인의 후원회원 되기
+            이 캠페인에서 회원 되기
           </button>
           <p class="cmp-receipt-note">${esc(RECEIPT_NOTICE)}</p>`
       }
@@ -151,7 +151,7 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
   const ctaBtn = (sub: string) => isClosed
     ? '<div style="padding:26px;border:1px solid var(--lt-hr);color:var(--lt-dim);text-align:center">이 캠페인은 종료되었습니다. 함께해 주신 모든 분들께 감사드립니다.</div>'
     : `<button class="lt-cta" data-cmp-donate="${Number(c.id)}" data-cmp-slug="${esc(c.slug)}" data-cmp-title="${esc(c.title)}">
-           후원회원으로 함께하기
+           회원으로 함께하기
            <small>${esc(sub)}</small>
          </button>`;
 
@@ -164,7 +164,7 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
   return `
       <section class="lt-hero" ${thumb ? `style="background-image:url('${thumb}')"` : ""}>
         <div class="lt-hero-in">
-          <div class="lt-eyebrow">${esc(x.eyebrow || "교사유가족협의회 후원회원 캠페인")}</div>
+          <div class="lt-eyebrow">${esc(x.eyebrow || "교사유가족협의회 회원 캠페인")}</div>
           <h1 class="lt-title"><span class="orn">✦</span>${esc(c.title)}</h1>
           <p class="lt-headline">${esc(x.headline || c.summary || "")}</p>
           ${x.subtitle ? `<p class="lt-subtitle">${esc(x.subtitle)}</p>` : ""}
@@ -174,14 +174,14 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
       <div class="lt-in">
         <section class="lt-stats">
           <div class="lt-stats-grid">
-            <div class="lt-stat"><b id="ltMembers">${num(members)}</b><span>개의 등불이 켜졌습니다</span><small>후원회원 수 · 정기+일시</small></div>
-            <div class="lt-stat"><b id="ltMonthly">${monthly}</b><span>정기 후원회원</span><small>매달 함께 지키는 사람</small></div>
+            <div class="lt-stat"><b id="ltMembers">${num(members)}</b><span>개의 등불이 켜졌습니다</span><small>회원 수 · 특별+일반</small></div>
+            <div class="lt-stat"><b id="ltMonthly">${monthly}</b><span>특별회원</span><small>매달 함께 지키는 사람</small></div>
           </div>
           ${goal > 0 ? `
           <div class="lt-progress"><i id="ltProgressBar" style="width:${pct}%"></i></div>
           <div class="lt-progress-lab"><span>모인 회비 <b id="ltRaised">${won(raised)}</b></span><span><span id="ltPct">${pct}</span>% · 목표 ${won(goal)}</span></div>` : ""}
           <div class="lt-cta-wrap">
-            ${ctaBtn("월 1만 원부터 · 한 번의 후원도 환영합니다")}
+            ${ctaBtn("월 1만 원부터 · 연회비 한 번 납부도 환영합니다")}
             <p class="lt-cta-sub">가입 즉시 등불 증서가 발급되고, 정기 회비는 마이페이지에서 언제든 한 번에 해지하실 수 있습니다.</p>
           </div>
         </section>
@@ -190,12 +190,12 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
 
         ${x.ladder ? `
         <section class="lt-ladder">
-          <h3>후원이 하는 일</h3>
+          <h3>회비가 하는 일</h3>
           <div class="lt-ladder-grid">
-            ${ladderCol("정기 후원회원 (월 회비)", x.ladder.monthlyHint || "", x.ladder.regular || [])}
-            ${ladderCol("일시 후원회원", "한 번만", x.ladder.onetime || [])}
+            ${ladderCol("특별회원 (월 정기회비)", x.ladder.monthlyHint || "", x.ladder.regular || [])}
+            ${ladderCol("일반회원", "연회비 · 1년", x.ladder.onetime || [])}
           </div>
-          <p class="lt-ladder-note">${esc(x.ladder.minNote || "최소 10,000원부터 가능합니다")} · 큰 마음은 직접 입력으로 후원하실 수 있습니다.</p>
+          <p class="lt-ladder-note">${esc(x.ladder.minNote || "최소 10,000원부터 가능합니다")} · 큰 마음은 직접 입력으로 납부하실 수 있습니다.</p>
         </section>` : ""}
 
         <section class="lt-recent" id="ltRecent"${(recent.length || bySchool.length) ? "" : " hidden"}>
@@ -205,7 +205,7 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
         </section>
 
         <section class="lt-notice">
-          <h3>후원회원 모집 안내</h3>
+          <h3>회원 모집 안내</h3>
           <p><b>${esc(notice)}</b></p>
           ${x.feeNotice ? `<p>${esc(x.feeNotice)}</p>` : ""}
           ${x.org ? `<div class="lt-org">${esc(x.org.name)} · 사업자등록번호 ${esc(x.org.businessNo)} · 대표 ${esc(x.org.representative)}</div>` : ""}

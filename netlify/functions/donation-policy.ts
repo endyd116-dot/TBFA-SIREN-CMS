@@ -22,7 +22,7 @@ const FALLBACK_POLICY = {
   hyosungCountdownSeconds: 5,
   requireMembership: true,
   bylawsUrl: process.env.LANTERN_BYLAWS_URL || "/resources.html",
-  modalTitle: "후원회원 되기",
+  modalTitle: "회원 되기",
   modalSubtitle: "여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.",
 };
 

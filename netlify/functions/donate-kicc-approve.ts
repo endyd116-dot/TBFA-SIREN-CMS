@@ -137,7 +137,7 @@ export default async (req: Request) => {
         .update(donations)
         .set({ payMethod: "vbank", pgTid: result.pgTid, failureReason: "미지원 결제수단(가상계좌)", updatedAt: new Date() } as any)
         .where(eq(donations.id, donation.id));
-      return failRedirect("현재 후원은 카드·간편결제만 지원합니다");
+      return failRedirect("현재 회비 납부는 카드·간편결제만 지원합니다");
     }
 
     /* 확정 */
@@ -209,7 +209,7 @@ export default async (req: Request) => {
           await db.insert(memberPointLogs).values({
             memberId: updated.memberId,
             delta: pts,
-            reason: "후원 완료",
+            reason: "회비 납부 완료",
             eventType: "donation_complete",
             referenceId: updated.id,
           } as any);
@@ -239,8 +239,8 @@ export default async (req: Request) => {
       await notifyAllOperators({
         category: "donation",
         severity: "info",
-        title: "새 일시 후원회원",
-        message: `방금 일시 후원회원 회비가 들어왔어요. ${updated.donorName}님 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
+        title: "새 일반회원",
+        message: `방금 일반회원 회비가 들어왔어요. ${updated.donorName}님 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
         link: "/admin.html#donations",
         refTable: "donations",
         refId: updated.id,

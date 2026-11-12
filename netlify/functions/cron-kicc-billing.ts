@@ -198,7 +198,7 @@ async function processBillingTarget(target: BillingTarget, summary: BillingSumma
       billingKey: target.billingKey,
       shopOrderNo: orderNo,
       amount: target.amount,
-      goodsName: `교사유가족협의회 정기 회원회비 ${yearMonth.slice(0, 4)}년 ${yearMonth.slice(4)}월`,
+      goodsName: `교사유가족협의회 특별회원 월 정기회비 ${yearMonth.slice(0, 4)}년 ${yearMonth.slice(4)}월`,
       customerName: target.memberName,
       customerEmail: target.memberEmail,
     });

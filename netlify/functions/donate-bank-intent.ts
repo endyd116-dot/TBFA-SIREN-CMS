@@ -49,7 +49,7 @@ export default async (req: Request) => {
 
     /* 2026-10-31 A안: 후원 정책 «후원회원 가입 필수»(기본 켬) — 입구와 무관하게 비회원 요청은 받지 않는다 */
     if (!memberId && (await isMembershipRequired())) {
-      return badRequest("후원회원 가입(회칙 동의) 후 계좌이체를 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      return badRequest("회원 가입(회칙 동의) 후 계좌이체를 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
     }
 
     /* 계좌 정책 조회 */

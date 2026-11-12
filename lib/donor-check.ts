@@ -40,7 +40,7 @@ export async function hasAnyCompletedDonation(memberId: number): Promise<DonorCh
       donationCount: count,
     };
   } catch (e) {
-    console.error("[donor-check] 후원 내역 조회 예외:", e);
+    console.error("[donor-check] 회비 납부 내역 조회 예외:", e);
     /* 안전 폴백: 조회 실패 시 비후원자로 처리 */
     return { isDonor: false, donationCount: 0 };
   }
@@ -62,14 +62,14 @@ export function getNonDonorPremiumNotice(category: "incident" | "harassment" | "
   };
 
   return {
-    title: "사이렌 후원 회원 전용 서비스",
+    title: "사이렌 일반·특별회원 전용 서비스",
     message:
-      `AI 분석 결과는 사이렌 후원 회원에게 제공되는 우대 서비스입니다.\n\n` +
+      `AI 분석 결과는 사이렌 일반·특별회원에게 제공되는 우대 서비스입니다.\n\n` +
       `${categoryLabel[category] || "이 도메인"}은 정상적으로 접수되었으며, ` +
       `운영진의 검토 후 답변을 받으실 수 있습니다.\n\n` +
-      `1회 이상 후원하시면 즉시 AI 분석 결과를 받아보실 수 있습니다. ` +
+      `1회 이상 회비를 납부하시면 즉시 AI 분석 결과를 받아보실 수 있습니다. ` +
       `여러분의 따뜻한 마음이 더 많은 교사 가족에게 도움이 됩니다.`,
-    ctaText: "후원회원 되기",
+    ctaText: "회원 되기",
     ctaUrl: "/support.html",
   };
 }

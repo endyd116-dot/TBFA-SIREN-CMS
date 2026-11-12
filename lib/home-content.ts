@@ -11,6 +11,7 @@
  */
 import { sql } from "drizzle-orm";
 import { db } from "../db";
+import { publicGoalAmount } from "./campaign-extras";
 
 export interface HomeKeyRow {
   key: string;
@@ -85,8 +86,8 @@ export async function buildHomeContent(useDraft: boolean): Promise<any> {
     const bank = await getDonationBankInfo();
     tree.bankBanner = {
       visible: bb.visible === undefined || bb.visible === null || bb.visible === "" ? true : bb.visible === true,
-      title: bb.title || "후원 계좌 안내",
-      lead: bb.lead || "후원회원 가입 없이 계좌이체로 함께하실 수도 있습니다. 입금자명을 남겨 주시면 확인 후 안내드립니다.",
+      title: bb.title || "회비 납부 계좌 안내",
+      lead: bb.lead || "회원 가입 없이 계좌이체로 함께하실 수도 있습니다. 입금자명을 남겨 주시면 확인 후 안내드립니다.",
       bank,
     };
   } catch (e) {
@@ -108,13 +109,17 @@ export async function buildHomeContent(useDraft: boolean): Promise<any> {
       if (camp) {
         if (!tree.specialBanner) tree.specialBanner = {};
         tree.specialBanner.title = camp.title || tree.specialBanner.title;
-        tree.specialBanner.goalAmount = Number(camp.goal_amount || 0);
+        tree.specialBanner.goalAmount = publicGoalAmount(camp.goal_amount);   /* KG: 공개 화면 목표 표시 안 함 */
         tree.specialBanner.raisedAmount = Number(camp.raised_amount || 0);
         tree.specialBanner._linkedFrom = "campaign:" + camp.id;
       }
     }
   } catch (e) {
     console.warn("[home-content] linked campaign 조회 실패", e);
+  }
+  /* KG: 운영자가 배너에 목표를 직접 적었어도 공개 화면에는 목표·진행률을 내보내지 않는다 */
+  if (tree.specialBanner && typeof tree.specialBanner === "object") {
+    tree.specialBanner.goalAmount = publicGoalAmount(tree.specialBanner.goalAmount);
   }
 
   return {

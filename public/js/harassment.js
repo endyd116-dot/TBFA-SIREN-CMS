@@ -63,7 +63,7 @@
   let _editor = null;
   let _attachments = null;
   let _lastReportId = null;
-  let _donorStatusCache = null;  /* 3-3: 후원자 상태 캐시 */
+  let _donorStatusCache = null;  /* 3-3: 회원 상태 캐시 */
 
   /* 3-3: 후원자 상태 조회 */
   async function loadDonorStatus() {
@@ -90,7 +90,7 @@
     if (modal) {
       modal.classList.add('show');
     } else {
-      alert('AI 분석은 후원회원 전용 서비스입니다. 일반 신고는 가능합니다.');
+      alert('AI 분석은 일반·특별회원 전용 서비스입니다. 일반 신고는 가능합니다.');
     }
   }
 
@@ -345,14 +345,14 @@
     const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
     box.innerHTML =
       '<div style="font-family:\'Noto Serif KR\',serif;font-size:19px;font-weight:700;color:#7a1f2b;margin-bottom:14px">' +
-        escapeHtml(notice.title || '사이렌 후원회원 전용 서비스') +
+        escapeHtml(notice.title || '사이렌 일반·특별회원 전용 서비스') +
       '</div>' +
       '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:20px">' +
         safeMessage +
       '</div>' +
       '<a href="' + escapeHtml(notice.ctaUrl || '/support.html') + '" ' +
          'style="display:inline-block;padding:14px 32px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">' +
-        escapeHtml(notice.ctaText || '후원회원 되기') + ' →' +
+        escapeHtml(notice.ctaText || '회원 되기') + ' →' +
       '</a>';
   }
 

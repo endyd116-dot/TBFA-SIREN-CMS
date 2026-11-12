@@ -67,7 +67,7 @@
         '<div class="lc-name">' + esc(name) + ' 님</div>' +
         '<div class="lc-tag">' + esc((d.certificate && d.certificate.tagline) || '함께 지키는 사람') + '</div>' +
         '<div class="lc-foot">교사유가족협의회 · ' + esc((d.certificate && d.certificate.campaignLabel) || '등불의 기적') + '</div>' +
-        '<div class="lc-date">' + esc(fmtDate(d.at)) + (d.monthly ? ' · 정기 후원회원' : ' · 일시 후원회원') + '</div>' +
+        '<div class="lc-date">' + esc(fmtDate(d.at)) + (d.monthly ? ' · 특별회원' : ' · 일반회원') + '</div>' +
       '</div>'
     );
   }
@@ -197,7 +197,7 @@
     ctx.font = '400 28px "Noto Sans KR", sans-serif';
     ctx.fillText('교사유가족협의회 · ' + ((d.certificate && d.certificate.campaignLabel) || '등불의 기적'), W / 2, 1140);
     ctx.fillStyle = '#8b8880';
-    ctx.fillText(fmtDate(d.at) + (d.monthly ? ' · 정기 후원회원' : ' · 일시 후원회원'), W / 2, 1190);
+    ctx.fillText(fmtDate(d.at) + (d.monthly ? ' · 특별회원' : ' · 일반회원'), W / 2, 1190);
     ctx.fillStyle = '#5c5a55';
     ctx.font = '400 24px "Noto Sans KR", sans-serif';
     ctx.fillText('tbfa.co.kr', W / 2, 1250);

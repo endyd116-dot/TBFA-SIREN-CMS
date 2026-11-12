@@ -72,7 +72,7 @@ export default async (req: Request) => {
     const schoolName = String(body.schoolName || "").trim().slice(0, 150) || null;
     const campaignSlug = String(body.campaignSlug || "").trim();
     const extras = await resolveCampaignExtras({ slug: campaignSlug });
-    const campaignTitle = extras ? extras.certificate.campaignLabel : "홈페이지 후원회원 가입";
+    const campaignTitle = extras ? extras.certificate.campaignLabel : "홈페이지 회원 가입";
 
     if (!agreeBylaws) return badRequest("회칙(정관)에 동의해 주세요");
 
@@ -138,7 +138,7 @@ export default async (req: Request) => {
     });
 
     const user = { id: created.id, name: created.name, email: created.email, phone, type: created.type };
-    const res = ok({ mode: "created", member: { ...user, schoolName }, user }, "후원회원 가입이 완료되었습니다");
+    const res = ok({ mode: "created", member: { ...user, schoolName }, user }, "회원 가입이 완료되었습니다");
     res.headers.set("Set-Cookie", cookie);
     return res;
   } catch (err: any) {

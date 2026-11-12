@@ -88,11 +88,11 @@ export default async (_req: Request) => {
           params: {
             memberName: name,
             expiresOn,
-            title: "후원회원 자격 만료 예정 안내",
-            message: `후원회원 자격이 ${expiresOn}에 만료됩니다. 회비를 다시 납부하시면 납부일부터 1년 연장됩니다.`,
-            smsBody: `[교사유가족협의회] ${name}님, 후원회원 자격이 ${expiresOn}에 만료됩니다. 회비를 다시 납부하시면 납부일부터 1년 연장됩니다. tbfa.co.kr`,
+            title: "회원 자격 만료 예정 안내",
+            message: `회원 자격이 ${expiresOn}에 만료됩니다. 회비를 다시 납부하시면 납부일부터 1년 연장됩니다.`,
+            smsBody: `[교사유가족협의회] ${name}님, 회원 자격이 ${expiresOn}에 만료됩니다. 회비를 다시 납부하시면 납부일부터 1년 연장됩니다. tbfa.co.kr`,
             emailBody: `<p>${esc(name)}님, 안녕하세요. 사단법인 교사유가족협의회입니다.</p>`
-              + `<p>회원님의 후원회원 자격이 <strong>${expiresOn}</strong>에 만료됩니다. 회비를 다시 납부하시면 납부일부터 1년간 회원 자격이 이어집니다.</p>`
+              + `<p>회원님의 회원 자격이 <strong>${expiresOn}</strong>에 만료됩니다. 회비를 다시 납부하시면 납부일부터 1년간 회원 자격이 이어집니다.</p>`
               + `<p>홈페이지 <a href="https://tbfa.co.kr/mypage.html">마이페이지</a>에서 납부 내역을 확인하실 수 있습니다. 함께해 주셔서 감사합니다.</p>`,
             link: "/mypage.html",
             category: "billing",

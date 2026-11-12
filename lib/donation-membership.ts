@@ -45,7 +45,7 @@ export async function setMembershipRequired(value: boolean, adminId: number | nu
   } else {
     await db.execute(sql`
       INSERT INTO site_settings (scope, key, value_type, value_text, description, sort_order, is_active, updated_at, updated_by)
-      VALUES (${SCOPE}, ${KEY}, 'text', ${text}, ${"후원회원 가입 필수(모든 입구) — 후원 정책 화면에서 관리"}, 0, true, NOW(), ${adminId})`);
+      VALUES (${SCOPE}, ${KEY}, 'text', ${text}, ${"회원 가입 필수(모든 입구) — 후원 정책 화면에서 관리"}, 0, true, NOW(), ${adminId})`);
   }
   cache = { value, at: Date.now() };
 }

@@ -66,7 +66,7 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!d) {
       return new Response(
-        jsonKST({ ok: false, error: "후원 내역을 찾을 수 없습니다" }),
+        jsonKST({ ok: false, error: "회비 납부 내역을 찾을 수 없습니다" }),
         { status: 404, headers: { "content-type": "application/json" } }
       );
     }
@@ -100,7 +100,7 @@ export default async (req: Request, _ctx: Context) => {
       return new Response(
         jsonKST({
           ok: false,
-          error: "결제 완료된 후원만 납부 확인서 발급이 가능합니다",
+          error: "결제 완료된 회비만 납부 확인서 발급이 가능합니다",
           currentStatus: (d as any).status,
         }),
         { status: 400, headers: { "content-type": "application/json" } }

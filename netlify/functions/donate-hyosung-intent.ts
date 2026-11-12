@@ -67,13 +67,13 @@ export default async (req: Request) => {
         campaignExtras = await resolveCampaignExtras({ id: campaignId, slug: cRow?.slug });
       } catch { /* 보조 조회 실패는 무시 */ }
       if (campaignExtras?.requireMembership && !memberId) {
-        return badRequest("후원회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+        return badRequest("회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
       }
     }
 
     /* 2026-10-31 A안: 후원 정책 «후원회원 가입 필수»(기본 켬) — 입구와 무관하게 비회원 요청은 받지 않는다 */
     if (!memberId && (await isMembershipRequired())) {
-      return badRequest("후원회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
+      return badRequest("회원 가입(회칙 동의) 후 신청할 수 있습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.", { needMembership: true });
     }
 
     /* DB 저장 (pending_hyosung 상태) */
@@ -116,7 +116,7 @@ export default async (req: Request) => {
         category: "donation",
         severity: "info",
         title: "효성 CMS+ 신청 의향 접수",
-        message: `${name}님이 월 ${amount.toLocaleString()}원 효성 CMS+ 정기 후원회원 신청 의향을 보였습니다.`,
+        message: `${name}님이 월 ${amount.toLocaleString()}원 효성 CMS+ 특별회원 신청 의향을 보였습니다.`,
         link: "/admin.html#hyosung",
         refTable: "donations",
         refId: (record as any).id,
@@ -142,7 +142,7 @@ export default async (req: Request) => {
             await db.insert(memberPointLogs).values({
               memberId,
               delta: pts,
-              reason: "후원 완료 (효성 CMS)",
+              reason: "회비 납부 완료 (효성 CMS)",
               eventType: "donation_complete",
               referenceId: (record as any).id,
             } as any);

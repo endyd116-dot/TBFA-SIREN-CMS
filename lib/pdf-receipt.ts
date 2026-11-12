@@ -62,11 +62,19 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
   const envOrgAddr = process.env.ORG_ADDRESS || "(샘플) 서울특별시 ○○구 ○○로 ○○";
   const envOrgPhone = process.env.ORG_PHONE || "(샘플) 02-0000-0000";
 
-  /* 새 기본값 — 「후원회원 회비 납부 확인서」 (2026-09-07 Swain: «후원금» 표기는 기부금품법 오해 소지 → «후원회원 회비») */
-  const defaultTitle = "후원회원 회비 납부 확인서";
-  const defaultSubtitle = "(사단법인 교사유가족협의회 후원회원 회비 납부 내역)";
-  const defaultProofText = "위와 같이 후원회원 회비를 납부하였음을 확인합니다.";
-  const defaultDonationLabel = "특별회비(후원회원)";
+  /* 새 기본값 — 「회비 납부 확인서」 (2026-11-12 KG이니시스 입점 B안: 공개 문구에서 «후원» 표현을 없앤다.
+     회원 종류 = 일반회원(연회비·1년)·특별회원(월 정기회비). 그 전 2026-09-07 «후원회원 회비 납부 확인서») */
+  const defaultTitle = "회비 납부 확인서";
+  const defaultSubtitle = "(사단법인 교사유가족협의회 회비 납부 내역)";
+  const defaultProofText = "위와 같이 회비를 납부하였음을 확인합니다.";
+  const defaultDonationLabel = "회원 회비";
+  /* 바로 전 기본값(2026-09-07~11-12) — 저장소에 이 값이 그대로 있으면 «설정 안 함»으로 보고 새 기본값을 쓴다 */
+  const PREV_DEFAULTS = new Set([
+    "후원회원 회비 납부 확인서",
+    "(사단법인 교사유가족협의회 후원회원 회비 납부 내역)",
+    "위와 같이 후원회원 회비를 납부하였음을 확인합니다.",
+    "특별회비(후원회원)",
+  ]);
   const defaultFooter: string[] = [
     "• 본 확인서는 세액공제용 기부금영수증이 아닙니다. 협의회가 공익법인(지정기부금단체)으로 지정되면 별도로 발급해 드립니다.",
     "• 본 확인서는 발급기관에서 전자 발급되었으며, 확인서 번호로 진위를 확인할 수 있습니다.",
@@ -113,8 +121,9 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
       }
       const pick = (v: any, legacy: string, def: string) => {
         const s = String(v || "").trim();
-        if (designated) return s && s !== def ? s : legacy;
-        return s && s !== legacy ? s : def;
+        const isDefault = s === def || PREV_DEFAULTS.has(s);
+        if (designated) return s && !isDefault ? s : legacy;
+        return s && s !== legacy && !isDefault ? s : def;
       };
 
       /* M-14: 직인 BLOB 키 조회 */
@@ -358,7 +367,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const kstDate = data.donationDate instanceof Date && !isNaN(data.donationDate.getTime()) ? new Date(rawDate.getTime() + 9 * 60 * 60 * 1000) : issueDate;
   const donDateStr = `${kstDate.getUTCFullYear()}년 ${kstDate.getUTCMonth() + 1}월 ${kstDate.getUTCDate()}일`;
   drawLabelValue("납부일자", donDateStr, 50, y, 70, 210);
-  drawLabelValue("회비 구분", data.donationType === "regular" ? "정기 회비" : "일시 회비", 330, y, 70, 165);
+  drawLabelValue("회비 구분", data.donationType === "regular" ? "특별회원 월 정기회비" : "일반회원 연회비", 330, y, 70, 165);
   y -= 25;
   const amountStr = `₩ ${data.amount.toLocaleString()} (금 ${numberToKorean(data.amount)} 원정)`;
   drawLabelValue("납부금액", amountStr, 50, y, 70, 425);

@@ -542,7 +542,7 @@
             const b = bb.bank;
             const copyText = (b.bankName || '') + ' ' + (b.accountNo || '') + ' (' + (b.holder || '') + ')';
             slot.innerHTML = `
-              <section class="block bank-banner-sec" aria-label="후원 계좌 안내">
+              <section class="block bank-banner-sec" aria-label="회비 납부 계좌 안내">
                 <div class="container">
                   <div class="bank-banner">
                     <div class="bank-banner-text">

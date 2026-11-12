@@ -53,7 +53,7 @@ const MEMBER_TYPE_CONFIG = {
     initialStatus: "active" as const,
     subtype: null as string | null,
     memberCategory: "sponsor" as string,
-    displayName: "일반 후원자",
+    displayName: "일반 이용자",
     icon: "💝",
     mappedType: "regular" as const,
   },

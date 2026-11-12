@@ -67,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
     if (m) {
       const mode = m.hasEmail
         ? "existing_full"            /* 이미 사이트 회원 — 로그인 안내 */
-        : (m.isHyosung ? "existing_hyosung" : "existing_donor");  /* 효성·기타 외부 후원자 — 가입 흐름 */
+        : (m.isHyosung ? "existing_hyosung" : "existing_donor");  /* 효성·기타 외부 회원 — 가입 흐름 */
       matchedMember = { ...m, mode };
     }
   }
@@ -80,7 +80,7 @@ export default async (req: Request, _ctx: Context) => {
     message: matchedMember
       ? (matchedMember.mode === "existing_full"
           ? "이미 가입하신 분이에요. 로그인하시거나 비밀번호를 재설정해 주세요."
-          : `이미 ${matchedMember.isHyosung ? "효성으로" : ""} 후원해 주시는 ${matchedMember.name}님이군요! 이메일·비밀번호를 추가하시면 마이페이지에서 후원 관리하실 수 있습니다.`)
+          : `이미 ${matchedMember.isHyosung ? "효성으로" : ""} 회비를 내 주시는 ${matchedMember.name}님이군요! 이메일·비밀번호를 추가하시면 마이페이지에서 회비 납부를 관리하실 수 있습니다.`)
       : "인증 완료. 이어서 가입을 진행해 주세요.",
   }, null, 2), { status: 200, headers: JSON_HEADER });
 };

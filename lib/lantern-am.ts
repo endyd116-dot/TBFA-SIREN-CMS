@@ -89,7 +89,7 @@ export async function amUpsertMember(body: AmMemberInput): Promise<{ memberId: s
   if (name.length < 2) throw new AmError(400, "이름을 2자 이상 입력해 주세요");
   if (!email || !isValidEmail(email) || email.length > 100) throw new AmError(400, "올바른 이메일을 입력해 주세요");
   if (!phone) throw new AmError(400, "올바른 휴대폰 번호를 입력해 주세요 (예: 010-1234-5678)");
-  if (consents.bylaws !== true) throw new AmError(400, "회칙(정관)에 따른 후원회원 가입 동의가 필요합니다");
+  if (consents.bylaws !== true) throw new AmError(400, "회칙(정관)에 따른 회원 가입 동의가 필요합니다");
   if (consents.privacy !== true) throw new AmError(400, "개인정보 수집·이용 동의가 필요합니다");
 
   const existing = await findExistingSponsor(email, phone);
@@ -174,7 +174,7 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
 
   if (!Number.isInteger(amount) || amount < 10000 || amount > 100_000_000) throw new AmError(400, "금액은 10,000원 이상 1억원 이하의 정수여야 합니다");
   const allowed: AmPayMethod[] = monthly ? ["card", "easy", "cms"] : ["card", "easy", "transfer", "bank"];
-  if (!allowed.includes(method)) throw new AmError(400, `${monthly ? "정기" : "일시"} 후원에서 고를 수 없는 방식입니다: ${method || "(없음)"}`);
+  if (!allowed.includes(method)) throw new AmError(400, `${monthly ? "특별회원(월 정기회비)" : "일반회원(연회비)"}에서 고를 수 없는 방식입니다: ${method || "(없음)"}`);
 
   const campaignId = await lanternCampaignId(extras);
   const intentId = newIntentId();
@@ -255,7 +255,7 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
   if (monthly) {
     const [activeKey] = await db.select({ id: billingKeys.id, amount: billingKeys.amount })
       .from(billingKeys).where(and(eq(billingKeys.memberId, m.id), eq(billingKeys.isActive, true))).limit(1);
-    if (activeKey) throw new AmError(409, `이미 정기 후원회원으로 등록되어 있습니다(월 ${Number(activeKey.amount).toLocaleString()}원). 변경은 마이페이지에서 해지 후 다시 등록해 주세요.`, "billing_active");
+    if (activeKey) throw new AmError(409, `이미 특별회원으로 등록되어 있습니다(월 ${Number(activeKey.amount).toLocaleString()}원). 변경은 마이페이지에서 해지 후 다시 등록해 주세요.`, "billing_active");
   }
 
   if (portoneConfigured()) {
@@ -272,8 +272,8 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
     const customer = { customerId: body.memberId, fullName: m.name, phoneNumber: m.phone || undefined, email: m.email };
     const payMethod = method === "easy" ? "EASY_PAY" : method === "transfer" ? "TRANSFER" : "CARD";
     const payload = monthly
-      ? { storeId, channelKey, billingKeyMethod: payMethod === "EASY_PAY" ? "EASY_PAY" : "CARD", issueId: intentId, issueName: `${extras.certificate.campaignLabel} 정기 후원회원`, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` }
-      : { storeId, channelKey, paymentId: intentId, orderName: `${extras.certificate.campaignLabel} 후원회원 회비`, totalAmount: amount, currency: "KRW", payMethod, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` };
+      ? { storeId, channelKey, billingKeyMethod: payMethod === "EASY_PAY" ? "EASY_PAY" : "CARD", issueId: intentId, issueName: `${extras.certificate.campaignLabel} 특별회원`, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` }
+      : { storeId, channelKey, paymentId: intentId, orderName: `${extras.certificate.campaignLabel} 회비`, totalAmount: amount, currency: "KRW", payMethod, customer, redirectUrl: `${SITE_URL}/lantern-pay.html?intent=${intentId}&portone=1` };
     return { intentId, provider: "portone", donationId: rec.id, payload };
   }
 
@@ -338,7 +338,7 @@ export async function amStartKiccPayment(intentId: string): Promise<{ authPageUr
   const reg = await registerTrade({
     shopOrderNo: pgOrderNo,
     amount: row.amount,
-    goodsName: row.type === "regular" ? "교사유가족협의회 정기 회원회비" : "교사유가족협의회 회원회비",
+    goodsName: row.type === "regular" ? "교사유가족협의회 특별회원 월 정기회비" : "교사유가족협의회 일반회원 연회비",
     returnUrl: `${SITE_URL}/api/${row.type === "regular" ? "billing-approve" : "donate-kicc-approve"}`,
     isBillingKey: row.type === "regular",
     customerName: m?.name || row.donorName,
@@ -358,14 +358,14 @@ export async function amSaveNote(body: { memberId: string; donationId?: number; 
   let donationId = Number(body.donationId || 0) || 0;
   if (donationId) {
     const row = await readDonationLantern(donationId);
-    if (!row || row.memberId !== m.id) throw new AmError(403, "본인의 후원이 아닙니다", "donation");
+    if (!row || row.memberId !== m.id) throw new AmError(403, "본인의 납부 건이 아닙니다", "donation");
   } else {
     const res: any = await db.execute(sql`
       SELECT id FROM donations WHERE member_id = ${m.id} AND campaign_id IS NOT NULL
       ORDER BY (status = 'completed') DESC, id DESC LIMIT 1
     `);
     donationId = Number(rowsOf(res)[0]?.id || 0);
-    if (!donationId) throw new AmError(404, "한마디를 붙일 후원이 없습니다", "donation");
+    if (!donationId) throw new AmError(404, "한마디를 붙일 납부 건이 없습니다", "donation");
   }
   const note = body.note === undefined ? undefined
     : Array.from(String(body.note || "").replace(/[\r\n\t]+/g, " ").trim()).slice(0, 60).join("");

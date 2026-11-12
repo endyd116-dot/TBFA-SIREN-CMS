@@ -8,7 +8,7 @@
 
   const POLL_INTERVAL = 5000; // 5초
   const CATEGORY_LABEL = {
-    support_donation: { emoji: '', label: '후원 문의', cls: 'cat-donation' },
+    support_donation: { emoji: '', label: '회원·회비 문의', cls: 'cat-donation' },
     support_homepage: { emoji: '', label: '홈페이지', cls: 'cat-homepage' },
     support_signup:   { emoji: '', label: '가입 절차', cls: 'cat-signup' },
     support_other:    { emoji: '', label: '기타',     cls: 'cat-other' },

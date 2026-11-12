@@ -25,7 +25,7 @@
     "billing.failed":             "결제 실패",
     "billing.canceled":           "결제 취소",
     "billing.upcoming":           "정기결제 예정 안내",
-    "membership.expiring":        "후원회원 자격 만료 예정 안내",
+    "membership.expiring":        "회원 자격 만료 예정 안내",
     "card.expiring":              "카드 만료 예정",
     "donation.receipt_annual":    "연말 기부금 영수증 안내",
     "support.reply":              "유가족 지원 회신",
@@ -33,7 +33,7 @@
     "legal.assigned":             "법률 상담 배정",
     "member.eligibility_decided": "회원 자격 심사 결과",
     "comment.report_resolved":    "댓글 신고 처리 결과",
-    "donor.info_changed":         "후원 정보 변경 안내",
+    "donor.info_changed":         "납부 정보 변경 안내",
     "workspace.mention":          "워크스페이스 멘션",
     "workspace.activity":         "워크스페이스 활동",
   };
