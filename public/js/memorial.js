@@ -380,7 +380,7 @@
         if (box) { box.innerHTML = '✨ 당신의 별이 잠시 밝아집니다.'; show(box, true); }
       } else if (MINE.offered > 0) {
         if (box) {
-          box.innerHTML = '당신이 밝힌 별빛도 이 안에 함께 있습니다. ' +
+          box.innerHTML = '당신이 밝힌 등불도 이 안에 함께 있습니다. ' +
             '한마디를 남기시면 다음부터는 바로 찾아드릴 수 있어요.';
           show(box, true);
         }
@@ -445,16 +445,16 @@
 
       /* ② 한마디가 있으면 방명록에도 남긴다 */
       if (!text) {
-        finishNight(btn, '별빛을 밝혔습니다. 고맙습니다.');
+        finishNight(btn, '등불을 밝혔습니다. 고맙습니다.');
         return;
       }
-      toast('별빛을 밝혔습니다. 남기신 한마디를 확인하고 있습니다…');
+      toast('등불을 밝혔습니다. 남기신 한마디를 확인하고 있습니다…');
       api('/api/memorial-messages', {
         method: 'POST',
         body: { authorName: anon ? '익명' : (nick || '익명'), content: text, isAnonymous: anon, kind: 'tribute' }
       }).then(function (r2) {
         if (!r2.ok) {
-          finishNight(btn, '별빛은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — '
+          finishNight(btn, '등불은 밝혔습니다. 다만 한마디는 저장하지 못했습니다 — '
             + ((r2.data && r2.data.error) || '잠시 후 다시 시도해 주세요.'));
           return;
         }
@@ -463,7 +463,7 @@
         if (newId) rememberMine(newId);
         if (msgEl) msgEl.value = '';
         loadMessages(false);
-        finishNight(btn, '별빛과 마음을 함께 남겼습니다. 고맙습니다.');
+        finishNight(btn, '등불과 마음을 함께 남겼습니다. 고맙습니다.');
       });
     });
   }
@@ -475,7 +475,7 @@
     toast(msg);
     var box = $('m2NightMine');
     if (box) {
-      box.innerHTML = '✦ 당신의 별빛이 밤하늘에 더해졌습니다. ' +
+      box.innerHTML = '✦ 당신의 등불이 더해졌습니다. ' +
         '<button type="button" class="mem2-ghost" id="m2JumpStar">내 별 보러 가기</button>';
       show(box, true);
       var j = $('m2JumpStar');
@@ -489,7 +489,12 @@
      ========================================================= */
   function openBox(id) {
     var box = $(id);
-    if (box) box.classList.add('on');
+    if (box) {
+      box.classList.add('on');
+      /* 앞서 읽던 글을 내려 둔 자리에서 열리지 않게 맨 위로 되돌린다 */
+      var inner = box.querySelector('.mem2-modal-inner');
+      if (inner) inner.scrollTop = 0;
+    }
     document.body.style.overflow = 'hidden';
   }
   function closeBoxes() {
@@ -502,11 +507,43 @@
     var el = $(id);
     if (el) el.textContent = v || '';
   }
+  /* ★ 2026-11-12 사진 크게 보기
+     · 사진은 잘라내지 않고 원래 비율 그대로 창 너비에 맞춰 보여 준다.
+       편지 사진처럼 긴 사진도 창 안에서 끝까지 스크롤해 읽는다.
+     · 창 너비는 사진의 실제 크기를 따라 넓어진다(최소·최대 너비는 CSS가 화면 안으로 묶는다).
+     · 사진을 누르면 원본이 새 창(탭)으로 열린다 — 확대해서 보실 수 있게.
+     · 사진이 없는 글은 예전 모양 그대로 둔다(has-photo 표시가 붙을 때만 바뀐다). */
   function setBoxImg(id, url) {
     var el = $(id);
     if (!el) return;
-    if (url) { el.src = url; show(el, true); }
-    else { el.removeAttribute('src'); show(el, false); }
+    var link = $(id.replace(/Img$/, 'Photo'));
+    var box = el.closest ? el.closest('.mem2-modal') : null;
+    var inner = box ? box.querySelector('.mem2-modal-inner') : null;
+
+    function noPhoto() {
+      if (link) { link.removeAttribute('href'); show(link, false); }
+      if (box) box.classList.remove('has-photo');
+      if (inner) inner.style.width = '';
+    }
+
+    el.onload = null;
+    el.onerror = null;
+    if (inner) inner.style.width = '';
+    if (!url) { el.removeAttribute('src'); noPhoto(); return; }
+
+    el.onload = function () { fitBoxToPhoto(el, inner); };
+    /* 사진을 불러오지 못하면 빈 사진 자리 대신 글만 보여 준다 */
+    el.onerror = function () { el.onerror = null; el.removeAttribute('src'); noPhoto(); };
+    el.src = url;
+    if (el.complete && el.naturalWidth) fitBoxToPhoto(el, inner);
+    if (link) { link.href = url; show(link, true); }
+    if (box) box.classList.add('has-photo');
+  }
+
+  /* 창 너비 = 사진의 실제 너비. 작은 사진은 기본 너비로, 큰 사진은 화면 안 최대 너비에서 멈춘다 */
+  function fitBoxToPhoto(img, inner) {
+    if (!img || !inner || !img.naturalWidth) return;
+    inner.style.width = img.naturalWidth + 'px';
   }
 
   /* =========================================================

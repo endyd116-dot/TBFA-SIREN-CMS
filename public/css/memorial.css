@@ -633,9 +633,12 @@
 }
 .mem2-tl-btn:hover .mem2-tl-more { color: var(--m2-leaf); }
 
-/* 겹쳐 뜨는 화면 */
+/* 겹쳐 뜨는 화면
+   ★ 2026-11-12: 사이트 머리말(위에 붙는 메뉴, 겹침 순서 100)보다 위로 올린다.
+     예전 80에서는 페이지를 내린 채 열면 머리말이 창 윗부분과 닫기 단추를 덮었다.
+     공용 모달(1000)·알림(2000)보다는 아래다. */
 .mem2-modal {
-  position: fixed; inset: 0; z-index: 80; display: none;
+  position: fixed; inset: 0; z-index: 900; display: none;
   align-items: center; justify-content: center; padding: 24px;
   background: rgba(28, 32, 29, .78);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -646,7 +649,11 @@
   background: var(--m2-morn-1); color: var(--m2-earth);
   border: 1px solid rgba(44, 49, 45, .12); border-radius: 20px;
 }
-.mem2-modal-img { width: 100%; max-height: 48vh; object-fit: cover; display: block; background: var(--m2-morn-2); }
+/* ★ 2026-11-12: 사진은 잘라내지 않는다 — 원래 비율 그대로, 높이 제한 없이(긴 사진은 창 안에서 스크롤) */
+.mem2-modal-img {
+  display: block; width: 100%; height: auto; max-width: none; max-height: none;
+  object-fit: contain; background: var(--m2-morn-2);
+}
 .mem2-modal-body { padding: 28px 30px 32px; }
 .mem2-modal-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .mem2-modal-tag {
@@ -685,3 +692,37 @@
   .mem2-modal { padding: 14px; }
   .mem2-modal-body { padding: 22px 20px 26px; }
 }
+
+/* ── 사진이 붙은 글 크게 보기 (2026-11-12) ─────────────────
+   · 창 너비는 사진 크기를 따라 넓어지되 화면 안(화면 너비의 96% · 최대 1100px)에 머문다.
+     작은 사진은 예전 기본 너비(680px)로 보인다. 실제 너비는 화면 쪽(js)이 사진을 불러온 뒤 정한다.
+   · 사진과 글이 한 창 안에서 함께 세로로 스크롤된다.
+   · 닫기 단추는 창 바깥 위쪽 자리에 두어 사진을 가리지 않고, 창 안을 스크롤해도 늘 보인다.
+   · 사진 위를 덮는 효과가 없도록 뒤 화면 흐림도 끈다(어두운 바탕만 남긴다).
+   · 두 손가락 확대를 막는 설정(touch-action 등)은 두지 않는다.
+   · 사진이 없는 글에는 has-photo 표시가 붙지 않으므로 예전 모양 그대로다. */
+.mem2-modal.has-photo {
+  padding: 68px 2vw 2vw;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.mem2-modal.has-photo .mem2-modal-close { top: 14px; right: 2vw; }
+.mem2-modal.has-photo .mem2-modal-inner {
+  width: 100%;
+  min-width: min(680px, 100%);
+  max-width: min(1100px, 100%);
+  max-height: 100%;
+  overflow-x: hidden; overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.mem2-modal-photo {
+  display: block; color: inherit; text-decoration: none; cursor: zoom-in;
+  background: var(--m2-morn-2);
+}
+.mem2-modal-photo:focus-visible { outline: 3px solid var(--m2-leaf); outline-offset: -3px; }
+.mem2-modal-photo-hint {
+  display: block; padding: 9px 18px 10px; text-align: right;
+  font-size: 12px; line-height: 1.5; color: var(--m2-earth-mute);
+  background: var(--m2-morn-1); border-bottom: 1px solid rgba(44, 49, 45, .07);
+}
+.mem2-modal-photo:hover .mem2-modal-photo-hint { color: var(--m2-leaf); text-decoration: underline; text-underline-offset: 3px; }

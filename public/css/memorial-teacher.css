@@ -463,9 +463,12 @@
   margin: 0; word-break: keep-all; white-space: pre-line;
 }
 
-/* ══ 겹쳐 뜨는 화면 ═════════════════════════════════════ */
+/* ══ 겹쳐 뜨는 화면 ═════════════════════════════════════
+   ★ 2026-11-12: 사이트 머리말(위에 붙는 메뉴, 겹침 순서 100)보다 위로 올린다.
+     예전 80에서는 페이지를 내린 채 열면 머리말이 창 윗부분과 닫기 단추를 덮었다.
+     공용 모달(1000)·알림(2000)보다는 아래다. */
 .mt2-lightbox {
-  position: fixed; inset: 0; z-index: 80; display: none;
+  position: fixed; inset: 0; z-index: 900; display: none;
   align-items: center; justify-content: center; padding: 24px;
   background: rgba(28, 32, 29, .8);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -476,7 +479,11 @@
   background: var(--m2-morn-1); border: 1px solid rgba(44, 49, 45, .12);
   border-radius: 20px;
 }
-.mt2-lb-img { width: 100%; max-height: 56vh; object-fit: contain; background: var(--m2-morn-2); display: block; }
+/* ★ 2026-11-12: 사진은 줄이거나 잘라내지 않는다 — 원래 비율 그대로, 높이 제한 없이(긴 사진은 창 안에서 스크롤) */
+.mt2-lb-img {
+  display: block; width: 100%; height: auto; max-width: none; max-height: none;
+  object-fit: contain; background: var(--m2-morn-2);
+}
 .mt2-lb-body { padding: 26px 28px 30px; }
 .mt2-lb-when { font-size: 12px; color: var(--m2-bloom); display: block; margin-bottom: 10px; }
 .mt2-lb-cap {
@@ -494,6 +501,40 @@
   color: #fff; width: 42px; height: 42px; border-radius: 50%;
   cursor: pointer; font-size: 18px; line-height: 1;
 }
+
+/* ── 생전 사진 크게 보기 (2026-11-12) ─────────────────────
+   · 창 너비는 사진 크기를 따라 넓어지되 화면 안(화면 너비의 96% · 최대 1100px)에 머문다.
+     작은 사진은 예전 기본 너비(760px)로 보인다. 실제 너비는 화면 쪽(js)이 사진을 불러온 뒤 정한다.
+   · 사진과 글이 한 창 안에서 함께 세로로 스크롤된다.
+   · 닫기 단추는 창 바깥 위쪽 자리에 두어 사진을 가리지 않고, 창 안을 스크롤해도 늘 보인다.
+   · 사진 위를 덮는 효과가 없도록 뒤 화면 흐림도 끈다(어두운 바탕만 남긴다).
+   · 두 손가락 확대를 막는 설정(touch-action 등)은 두지 않는다.
+   · 편지 창(mtLtBox)과 사진이 없는 경우에는 has-photo 표시가 붙지 않으므로 예전 모양 그대로다. */
+.mt2-lightbox.has-photo {
+  padding: 68px 2vw 2vw;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.mt2-lightbox.has-photo .mt2-lb-close { top: 14px; right: 2vw; z-index: 1; }
+.mt2-lightbox.has-photo .mt2-lb-inner {
+  width: 100%;
+  min-width: min(760px, 100%);
+  max-width: min(1100px, 100%);
+  max-height: 100%;
+  overflow-x: hidden; overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.mt2-lb-photo {
+  display: block; color: inherit; text-decoration: none; cursor: zoom-in;
+  background: var(--m2-morn-2);
+}
+.mt2-lb-photo:focus-visible { outline: 3px solid var(--m2-bloom); outline-offset: -3px; }
+.mt2-lb-photo-hint {
+  display: block; padding: 9px 18px 10px; text-align: right;
+  font-size: 12px; line-height: 1.5; color: var(--m2-earth-mute);
+  background: var(--m2-morn-1); border-bottom: 1px solid rgba(44, 49, 45, .07);
+}
+.mt2-lb-photo:hover .mt2-lb-photo-hint { color: var(--m2-bloom); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ══ 상태 ═══════════════════════════════════════════════ */
 .mt2-empty, .mt2-loading {

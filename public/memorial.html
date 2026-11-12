@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
-<link rel="stylesheet" href="/css/memorial.css?v=20261007-v3">
+<link rel="stylesheet" href="/css/memorial.css?v=20261112-mem">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -113,16 +113,16 @@
       <div class="mem2-block" style="padding-top:0">
         <div class="mem2-wrap">
           <div class="mem2-center">
-                        <h2 class="mem2-h2">별빛 하나를 밝혀주세요</h2>
+                        <h2 class="mem2-h2">등불 하나를 밝혀주세요</h2>
             <p class="mem2-lead">
-              로그인 없이도 남기실 수 있습니다. 남겨주신 별빛은 밤하늘에 오래 머뭅니다.
+              로그인 없이도 남기실 수 있습니다. 남겨주신 등불은 오래도록 이 밤을 밝힙니다.
             </p>
           </div>
 
           <div class="mem2-compose">
             <div class="mem2-field">
-              <label for="m2NightName">부르실 이름 <span style="opacity:.6">(비워두면 익명)</span></label>
-              <input type="text" class="mem2-input" id="m2NightName" maxlength="40" placeholder="예: 동료 교사 · 학부모 · 시민">
+              <label for="m2NightName">성함 <span style="opacity:.6">(비워두면 익명)</span></label>
+              <input type="text" class="mem2-input" id="m2NightName" maxlength="40" placeholder="예: 홍길동">
             </div>
             <div class="mem2-field">
               <label for="m2NightMsg">전하고 싶은 한마디 <span style="opacity:.6">(선택)</span></label>
@@ -131,7 +131,7 @@
             <div class="mem2-compose-foot">
               <label class="mem2-anon"><input type="checkbox" id="m2NightAnon"> 익명으로 남기기</label>
               <button type="button" class="mem2-submit" id="m2NightSubmit">
-                <span class="siren-icon-wrap" data-icon="star"></span> 별빛 밝히기
+                <span class="siren-icon-wrap" data-icon="candle"></span> 등불 밝히기
               </button>
             </div>
             <p class="mem2-hint">
@@ -145,13 +145,13 @@
       <!-- 밤하늘 -->
       <div class="mem2-block" style="padding-top:0">
         <div class="mem2-wrap mem2-center">
-                    <h2 class="mem2-h2">우리가 밝힌 밤하늘</h2>
+                    <h2 class="mem2-h2">우리가 밝힌 등불</h2>
           <div class="mem2-count">
-            <b id="m2NightCount">0</b><span>개의 별빛이 이 밤을 지키고 있습니다</span>
+            <b id="m2NightCount">0</b><span>개의 등불이 이 밤을 지키고 있습니다</span>
           </div>
 
           <p class="mem2-lead mem2-center" style="margin-bottom:8px">
-            이 하늘을 채우고 있는 별 하나하나가 누군가 밝힌 별빛입니다.
+            이 밤을 밝히는 등불 하나하나가 누군가 남긴 마음입니다.
           </p>
 
           <div class="mem2-sky-actions">
@@ -284,11 +284,15 @@
 
   </main>
 
-  <!-- 유가족 근황을 눌렀을 때 -->
+  <!-- 유가족 근황을 눌렀을 때
+       ★ 2026-11-12: 사진은 원래 비율 그대로 보이고, 누르면 원본이 새 창으로 열린다 -->
   <div class="mem2-modal" id="m2NoteBox" role="dialog" aria-modal="true" aria-label="유가족 이야기">
     <button type="button" class="mem2-modal-close" id="m2NoteBoxClose" aria-label="닫기">×</button>
     <div class="mem2-modal-inner">
-      <img class="mem2-modal-img" id="m2NoteBoxImg" alt="" style="display:none">
+      <a class="mem2-modal-photo" id="m2NoteBoxPhoto" target="_blank" rel="noopener" aria-label="사진 원본을 새 창에서 크게 보기" style="display:none">
+        <img class="mem2-modal-img" id="m2NoteBoxImg" alt="">
+        <span class="mem2-modal-photo-hint">사진을 누르면 새 창에서 원본으로 크게 볼 수 있습니다</span>
+      </a>
       <div class="mem2-modal-body">
         <span class="mem2-modal-tag" id="m2NoteBoxTag"></span>
         <h3 class="mem2-modal-title" id="m2NoteBoxTitle"></h3>
@@ -302,7 +306,10 @@
   <div class="mem2-modal" id="m2TlBox" role="dialog" aria-modal="true" aria-label="징검다리 이야기">
     <button type="button" class="mem2-modal-close" id="m2TlBoxClose" aria-label="닫기">×</button>
     <div class="mem2-modal-inner">
-      <img class="mem2-modal-img" id="m2TlBoxImg" alt="" style="display:none">
+      <a class="mem2-modal-photo" id="m2TlBoxPhoto" target="_blank" rel="noopener" aria-label="사진 원본을 새 창에서 크게 보기" style="display:none">
+        <img class="mem2-modal-img" id="m2TlBoxImg" alt="">
+        <span class="mem2-modal-photo-hint">사진을 누르면 새 창에서 원본으로 크게 볼 수 있습니다</span>
+      </a>
       <div class="mem2-modal-body">
         <div class="mem2-modal-meta">
           <span class="mem2-tl-date" id="m2TlBoxDate"></span>
@@ -326,7 +333,7 @@
   <script src="/js/common.js?v=20261007-init" defer></script>
   <script src="/js/auth.js?v=20261112-kg" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-bloom" defer></script>
-  <script src="/js/memorial.js?v=20261007-v3" defer></script>
+  <script src="/js/memorial.js?v=20261112-mem" defer></script>
   <script src="/js/memorial-bgm.js?v=3" defer></script>
 </body>
 </html>

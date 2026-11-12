@@ -253,14 +253,45 @@
     if (window.Icons && Icons.hydrate) { try { Icons.hydrate(wrap); } catch (e) {} }
   }
 
+  /* ★ 2026-11-12 사진 크게 보기
+     · 사진은 잘라내지 않고 원래 비율 그대로 창 너비에 맞춰 보여 준다.
+       긴 사진도 창 안에서 끝까지 스크롤해 볼 수 있다.
+     · 창 너비는 사진의 실제 크기를 따라 넓어진다(최소·최대 너비는 CSS가 화면 안으로 묶는다).
+     · 사진을 누르면 원본이 새 창(탭)으로 열린다 — 확대해서 보실 수 있게.
+     · 사진이 없으면 예전 모양 그대로(has-photo 표시가 붙을 때만 바뀐다). */
+  function setLbPhoto(url, alt) {
+    var box = $('mtLightbox'), img = $('mtLbImg'), link = $('mtLbPhoto');
+    var inner = box ? box.querySelector('.mt2-lb-inner') : null;
+    if (!img) return;
+
+    function noPhoto() {
+      if (link) { link.removeAttribute('href'); show(link, false); }
+      if (box) box.classList.remove('has-photo');
+      if (inner) inner.style.width = '';
+    }
+    function fit() {
+      if (inner && img.naturalWidth) inner.style.width = img.naturalWidth + 'px';
+    }
+
+    img.onload = null;
+    img.onerror = null;
+    if (inner) inner.style.width = '';
+    if (!url) { img.removeAttribute('src'); noPhoto(); return; }
+
+    img.onload = fit;
+    /* 사진을 불러오지 못하면 빈 사진 자리 대신 글만 보여 준다 */
+    img.onerror = function () { img.onerror = null; img.removeAttribute('src'); noPhoto(); };
+    img.alt = alt || '';
+    img.src = url;
+    if (img.complete && img.naturalWidth) fit();
+    if (link) { link.href = url; show(link, true); }
+    if (box) box.classList.add('has-photo');
+  }
+
   function openPhoto(i) {
     var p = PHOTOS[i];
     if (!p) return;
-    var img = $('mtLbImg');
-    if (img) {
-      if (p.url) { img.src = p.url; img.alt = p.caption || ''; show(img, true); }
-      else show(img, false);
-    }
+    setLbPhoto(p.url, p.caption);
     var w = $('mtLbWhen');
     if (w) { w.textContent = p.takenLabel || ''; show(w, !!p.takenLabel); }
     var cap = $('mtLbCap');
@@ -273,7 +304,12 @@
   /* 겹쳐 뜨는 화면은 사진·편지가 같은 방식으로 열리고 닫힌다 */
   function openBox(id) {
     var box = $(id);
-    if (box) box.classList.add('on');
+    if (box) {
+      box.classList.add('on');
+      /* 앞서 보던 사진·편지를 내려 둔 자리에서 열리지 않게 맨 위로 되돌린다 */
+      var inner = box.querySelector('.mt2-lb-inner');
+      if (inner) inner.scrollTop = 0;
+    }
     document.body.style.overflow = 'hidden';
   }
   function closeBoxes() {

@@ -30,8 +30,8 @@
 <link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
-<link rel="stylesheet" href="/css/memorial.css?v=20261007-v3">
-<link rel="stylesheet" href="/css/memorial-teacher.css?v=20261007-v3">
+<link rel="stylesheet" href="/css/memorial.css?v=20261112-mem">
+<link rel="stylesheet" href="/css/memorial-teacher.css?v=20261112-mem">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -239,11 +239,15 @@
 
   </main>
 
-  <!-- 사진을 눌렀을 때 -->
+  <!-- 사진을 눌렀을 때
+       ★ 2026-11-12: 사진은 원래 비율 그대로 보이고, 누르면 원본이 새 창으로 열린다 -->
   <div class="mt2-lightbox" id="mtLightbox" role="dialog" aria-modal="true" aria-label="사진 자세히 보기">
     <button type="button" class="mt2-lb-close" id="mtLbClose" aria-label="닫기">×</button>
     <div class="mt2-lb-inner">
-      <img class="mt2-lb-img" id="mtLbImg" alt="">
+      <a class="mt2-lb-photo" id="mtLbPhoto" target="_blank" rel="noopener" aria-label="사진 원본을 새 창에서 크게 보기" style="display:none">
+        <img class="mt2-lb-img" id="mtLbImg" alt="">
+        <span class="mt2-lb-photo-hint">사진을 누르면 새 창에서 원본으로 크게 볼 수 있습니다</span>
+      </a>
       <div class="mt2-lb-body">
         <span class="mt2-lb-when" id="mtLbWhen"></span>
         <h3 class="mt2-lb-cap" id="mtLbCap"></h3>
@@ -274,6 +278,6 @@
   <script src="/js/common.js?v=20261007-init" defer></script>
   <script src="/js/auth.js?v=20261112-kg" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-bloom" defer></script>
-  <script src="/js/memorial-teacher.js?v=20261007-v3" defer></script>
+  <script src="/js/memorial-teacher.js?v=20261112-mem" defer></script>
 </body>
 </html>
