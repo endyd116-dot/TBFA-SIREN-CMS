@@ -77,16 +77,25 @@
     if (p && p.catch) p.catch(function () { /* 자동재생 차단 — 무시(다음 사용자 동작에서 재생) */ });
   }
 
+  /* ★ 2026-11-12: 이모지 정리 때 단추 글자가 비워져 «빈 검은 동그라미»로 보였다(무엇인지·눌러지는지 모름).
+     아이콘 묶음(icons.js)과 같은 모양의 소리 아이콘을 단추 안에 직접 그린다 — 아이콘 스크립트 순서와 무관하게 보이도록. */
+  var ICON_SOUND_OFF = '<path d="M11 4.7 6.3 8.6H2v6.8h4.3l4.7 3.9z"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>';
+  var ICON_SOUND_ON = '<path d="M11 4.7 6.3 8.6H2v6.8h4.3l4.7 3.9z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 6.6a9 9 0 0 1 0 10.8"/>';
+  function setIcon(inner, label) {
+    toggleBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + inner + '</svg>';
+    toggleBtn.setAttribute('aria-label', label);
+    toggleBtn.title = label;
+  }
+
   function applyState() {
     if (!toggleBtn) return;
     if (muted) {
-      toggleBtn.textContent = '';
-      toggleBtn.setAttribute('aria-label', '추모 음악 켜기');
+      setIcon(ICON_SOUND_OFF, '추모 음악 켜기');
       toggleBtn.classList.remove('on');
       if (audio) audio.pause();
     } else {
-      toggleBtn.textContent = '';
-      toggleBtn.setAttribute('aria-label', '추모 음악 끄기');
+      setIcon(ICON_SOUND_ON, '추모 음악 끄기');
       toggleBtn.classList.add('on');
       play();
     }
