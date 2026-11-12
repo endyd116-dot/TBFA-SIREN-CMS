@@ -4272,6 +4272,9 @@ export const memorialLetters = pgTable("memorial_letters", {
   reportCount: integer("report_count").default(0).notNull(),
   isHidden:    boolean("is_hidden").default(false).notNull(),
   createdAt:   timestamp("created_at").defaultNow().notNull(),
+  /* ★ 2026-11-12 편지 사진 1장 — 사진이 붙은 편지는 운영자 확인 뒤 공개 (migrate-memorial-letter-photo 적용 완료 2026-11-12) */
+  photoBlobId: integer("photo_blob_id"),                  // 붙인 사진(blob_uploads.id), 사진 없으면 null
+  photoReview: varchar("photo_review", { length: 16 }),   // pending | approved | rejected, 사진 없으면 null
 });
 export type MemorialLetter    = typeof memorialLetters.$inferSelect;
 export type NewMemorialLetter = typeof memorialLetters.$inferInsert;
