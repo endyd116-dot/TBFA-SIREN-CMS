@@ -489,6 +489,7 @@ function switchModSort(sort) {
   loadMod();
 }
 function loadMod() {
+  loadPhotoPending();
   var tbody = document.getElementById('modTbody');
   tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">불러오는 중…</td></tr>';
   var qs = '/api/admin-memorial-moderation?type=' + _modType + (_modSort === 'recent' ? '&sort=recent' : '');
@@ -511,9 +512,28 @@ function renderMod(items) {
     var text = (it.title ? '【' + esc(it.title) + '】 ' : '') + esc(it.content || '');
     /* ★ 2026-10-07 — 편지는 출판 동의 여부·비회원 작성을 함께 보여준다 (책 엮기용) */
     var who = esc(it.authorName || '익명');
+    var photoActions = '';
     if (_modType === 'letter') {
       if (it.publishConsent) who += '<div style="margin-top:5px"><span class="status-pill on">출판 동의</span></div>';
       if (it.isMemberWriter === false) who += '<div style="margin-top:5px"><span class="status-pill off">비회원</span></div>';
+      /* ★ 2026-11-12 사진이 붙은 편지 — 사진 상태(누르면 사진 원본) + 공개 중인 편지의 사진 내리기·다시 싣기 */
+      if (it.photoUrl) {
+        var pr = it.photoReview;
+        var pl = pr === 'approved' ? '사진 공개' : (pr === 'pending' ? '사진 검토 대기' : '사진 뺌');
+        who += '<div style="margin-top:5px"><a class="photo-pill-link" href="' + esc(it.photoUrl) + '" target="_blank" rel="noopener" title="사진 원본 보기">' +
+          '<span class="status-pill ' + (pr === 'approved' ? 'on' : 'off') + '">' + pl + '</span></a></div>';
+        if (!it.isHidden && pr === 'approved') {
+          photoActions = '<button class="btn btn-ghost btn-sm" onclick="decidePhoto(' + it.id + ',\'strip\')">사진 내리기</button>';
+        } else if (!it.isHidden && pr === 'rejected') {
+          photoActions = '<button class="btn btn-ghost btn-sm" onclick="decidePhoto(' + it.id + ',\'approve\')">사진 싣기</button>';
+        }
+      }
+    }
+    if (_modType === 'letter' && it.photoReview === 'pending') {
+      /* 사진 검토 대기 — 노출을 눌러도 위 «사진 편지 검토 대기»에서 정하기 전에는 공개되지 않는다 */
+      status = it.isHidden
+        ? '<span class="status-pill off">숨김</span><div style="margin-top:5px"><span class="status-pill off">사진 확인 대기</span></div>'
+        : '<span class="status-pill off">비공개 · 사진 확인 대기</span>';
     }
     return '<tr>' +
       '<td>' + who + '</td>' +
@@ -523,6 +543,7 @@ function renderMod(items) {
       '<td style="white-space:nowrap">' + fmtDate(it.createdAt) + '</td>' +
       '<td><div class="row-actions">' +
         '<button class="btn btn-ghost btn-sm" onclick="toggleHide(' + it.id + ',' + (it.isHidden ? 'true' : 'false') + ')">' + (it.isHidden ? '노출' : '숨김') + '</button>' +
+        photoActions +
         '<button class="btn btn-danger btn-sm" onclick="deleteModItem(' + it.id + ')">삭제</button>' +
       '</div></td>' +
     '</tr>';
@@ -542,6 +563,84 @@ function deleteModItem(id) {
     toast('삭제되었습니다.', 'success');
     loadMod();
   }).catch(function (e) { toast('삭제 실패: ' + e.message, 'error'); });
+}
+
+/* =========================================================
+   ★ 2026-11-12 사진 편지 검토 대기
+   Swain 결정: 누구나 편지에 사진 한 장을 붙일 수 있고, 사진이 붙은 편지는 운영자가 확인한 뒤 공개한다.
+   [공개] 사진과 함께 공개(사진이 봉투 표지가 된다) · [사진 빼고 공개] 편지 글만 · [숨김] 편지를 감춘다.
+   사진은 확인 전까지 비공개라 관리자 화면에서만 보인다.
+   ========================================================= */
+var PHOTO_DECISION_ASK = {
+  approve: '이 편지를 사진과 함께 공개할까요?\n사진이 «기억의 편지» 봉투의 표지로 보이게 됩니다.',
+  strip: '사진은 싣지 않고 편지 글만 공개할까요?',
+  hide: '이 편지를 숨길까요?\n편지와 사진 모두 공개되지 않습니다.'
+};
+
+function loadPhotoPending() {
+  var box = document.getElementById('lpBox');
+  var list = document.getElementById('lpList');
+  if (!box || !list) return;
+  callApi('GET', '/api/admin-memorial-moderation?type=letter&photo=pending').then(function (res) {
+    if (!res.ok) {
+      box.style.display = '';
+      list.innerHTML = '<div class="lp-empty">불러오지 못했습니다. ' + esc((res.data && res.data.error) || '') + '</div>';
+      return;
+    }
+    /* 사진 첨부 저장 칸이 아직 없으면(마이그 전) 칸 자체를 감춘다 */
+    if (pick(res, 'photoReady') === false) { box.style.display = 'none'; return; }
+    renderPhotoPending(pick(res, 'items') || []);
+    box.style.display = '';
+  }).catch(function (e) {
+    box.style.display = '';
+    list.innerHTML = '<div class="lp-empty">불러오지 못했습니다. ' + esc(e.message) + '</div>';
+  });
+}
+
+function renderPhotoPending(items) {
+  var list = document.getElementById('lpList');
+  var cnt = document.getElementById('lpCount');
+  if (cnt) {
+    cnt.textContent = String(items.length);
+    cnt.className = 'lp-count' + (items.length ? '' : ' zero');
+  }
+  if (!list) return;
+  if (!items.length) { list.innerHTML = '<div class="lp-empty">확인을 기다리는 사진 편지가 없습니다.</div>'; return; }
+  list.innerHTML = items.map(function (it) {
+    var tags = [];
+    if (it.isMemberWriter === false) tags.push('<span class="status-pill off">비회원</span>');
+    if (it.publishConsent) tags.push('<span class="status-pill on">출판 동의</span>');
+    if (it.isHidden) tags.push('<span class="status-pill off">숨김 상태(글 자동 검토 보류 또는 운영자 숨김)</span>');
+    if (Number(it.reportCount) > 0) tags.push('<span class="report-badge">신고 ' + Number(it.reportCount) + '</span>');
+    var photo = it.photoUrl
+      ? '<a class="lp-photo" href="' + esc(it.photoUrl) + '" target="_blank" rel="noopener" title="사진 원본을 새 창에서 보기">' +
+          '<img src="' + esc(it.photoUrl) + '" alt="편지에 붙은 사진" loading="lazy"><span>누르면 원본</span></a>'
+      : '<div class="lp-photo"><span>사진 없음</span></div>';
+    return '<div class="lp-card" data-lp-id="' + it.id + '">' +
+      photo +
+      '<div>' +
+        '<div class="lp-meta"><b>' + esc(it.teacherName ? it.teacherName + ' 선생님께' : '선생님 #' + it.teacherId + '께') + '</b>' +
+          '<span>· ' + esc(it.authorName || '익명') + '</span><span>· ' + fmtDate(it.createdAt) + '</span>' + tags.join('') + '</div>' +
+        (it.title ? '<div class="lp-title">【' + esc(it.title) + '】</div>' : '') +
+        '<div class="lp-text">' + esc(it.content || '') + '</div>' +
+        '<div class="lp-actions">' +
+          '<button class="btn btn-success btn-sm" onclick="decidePhoto(' + it.id + ',\'approve\')">공개</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="decidePhoto(' + it.id + ',\'strip\')">사진 빼고 공개</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="decidePhoto(' + it.id + ',\'hide\')">숨김</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function decidePhoto(id, decision) {
+  var ask = PHOTO_DECISION_ASK[decision];
+  if (!ask || !confirm(ask)) return;
+  callApi('PATCH', '/api/admin-memorial-moderation?type=letter&id=' + id, { photoDecision: decision }).then(function (res) {
+    if (!res.ok) { toast((res.data && res.data.error) || '처리 실패', 'error'); return; }
+    toast((res.data && res.data.message) || '처리했습니다.', 'success');
+    loadMod();
+  }).catch(function (e) { toast('처리 실패: ' + e.message, 'error'); });
 }
 
 /* =========================================================

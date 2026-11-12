@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
 <link rel="stylesheet" href="/css/memorial.css?v=20261112-mem2">
-<link rel="stylesheet" href="/css/memorial-teacher.css?v=20261112-mem">
+<link rel="stylesheet" href="/css/memorial-teacher.css?v=20261112-letterphoto">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -169,6 +169,28 @@
             <textarea class="mt2-input mt2-area" id="mtLtBody"
                       placeholder="예) 선생님은 늘 교실 문 앞에서 아이들 이름을 하나씩 불러주셨습니다. 그 목소리가 아직도 들리는 것 같습니다."></textarea>
           </div>
+          <!-- ★ 2026-11-12 사진 1장 붙이기 (Swain 결정: 누구나 · 사진 편지는 운영자가 확인한 뒤 공개)
+               공개되면 사진이 편지 봉투의 표지가 된다.
+               저장 칸이 준비되기 전(마이그 전)에는 화면 쪽(js)이 이 칸을 보여주지 않는다. -->
+          <div class="mt2-field mt2-photo-field" id="mtLtPhotoField" style="display:none">
+            <label for="mtLtPhoto">사진 1장 붙이기 <span class="mt2-opt">(선택)</span></label>
+            <input type="file" id="mtLtPhoto" class="mt2-photo-input" accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-hidden="true">
+            <div class="mt2-photo-pick" id="mtLtPhotoPick">
+              <button type="button" class="mt2-ghost mt2-photo-btn" id="mtLtPhotoBtn">
+                <span class="siren-icon-wrap" data-icon="image" aria-hidden="true"></span>
+                <span>사진 고르기</span>
+              </button>
+              <span class="mt2-photo-rule">JPG·PNG·WEBP 한 장 · 5MB까지</span>
+            </div>
+            <div class="mt2-photo-preview" id="mtLtPhotoPreview" style="display:none">
+              <img id="mtLtPhotoImg" alt="붙인 사진 미리보기">
+              <div class="mt2-photo-side">
+                <span class="mt2-photo-name" id="mtLtPhotoName"></span>
+                <button type="button" class="mt2-ghost mt2-photo-remove" id="mtLtPhotoRemove">사진 지우기</button>
+              </div>
+            </div>
+            <p class="mt2-photo-note" id="mtLtPhotoNote">사진이 있는 편지는 운영자가 확인한 뒤 공개됩니다. 공개되면 사진이 편지 봉투의 표지가 됩니다.</p>
+          </div>
           <div class="mt2-field">
             <label for="mtLtName">보내는 이 <span class="mt2-opt">(비워두면 익명)</span></label>
             <input type="text" class="mt2-input" id="mtLtName" maxlength="40" placeholder="예: 3학년 2반 제자 · 동료 교사 · 학부모">
@@ -188,6 +210,8 @@
             </p>
             <button type="button" class="mt2-btn" id="mtLtSubmit">서신 보내기</button>
           </div>
+          <!-- ★ 2026-11-12 보낸 뒤 안내 — 바로 공개되지 않는 편지(사진 확인·자동 검토)일 때 -->
+          <p class="mt2-sent" id="mtLtSent" role="status" aria-live="polite" style="display:none"></p>
 
           <!-- 먼저 도착한 짧은 편지 — 참여 부담을 낮춘다. 마지막 카드는 작성 유도 -->
           <div class="mt2-samples" id="mtSamples" style="display:none">
@@ -256,10 +280,15 @@
     </div>
   </div>
 
-  <!-- 편지를 열었을 때 -->
+  <!-- 편지를 열었을 때
+       ★ 2026-11-12: 사진이 붙은 편지는 맨 위에 사진이 원래 비율로 크게 보이고, 누르면 원본이 새 창으로 열린다 -->
   <div class="mt2-lightbox mt2-letterbox" id="mtLtBox" role="dialog" aria-modal="true" aria-label="편지 읽기">
     <button type="button" class="mt2-lb-close" id="mtLtBoxClose" aria-label="닫기">×</button>
     <div class="mt2-lb-inner mt2-sheet">
+      <a class="mt2-lb-photo mt2-sheet-photo" id="mtLtBoxPhoto" target="_blank" rel="noopener" aria-label="사진 원본을 새 창에서 크게 보기" style="display:none">
+        <img class="mt2-lb-img" id="mtLtBoxImg" alt="">
+        <span class="mt2-lb-photo-hint">사진을 누르면 새 창에서 원본으로 크게 볼 수 있습니다</span>
+      </a>
       <div class="mt2-sheet-top">
         <span class="mt2-sheet-to" id="mtLtBoxTo"></span>
         <span class="mt2-sheet-when" id="mtLtBoxWhen"></span>
@@ -278,6 +307,6 @@
   <script src="/js/common.js?v=20261007-init" defer></script>
   <script src="/js/auth.js?v=20261112-kg" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-bloom" defer></script>
-  <script src="/js/memorial-teacher.js?v=20261112-mem" defer></script>
+  <script src="/js/memorial-teacher.js?v=20261112-letterphoto" defer></script>
 </body>
 </html>

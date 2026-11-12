@@ -7,7 +7,11 @@ import { clientIpHash } from "../../lib/client-ip";
 import { moderateMemorialText } from "../../lib/memorial-moderation";
 import { notifyAllOperators } from "../../lib/notify";
 import { saveLetterExtras, anonLetterRecently } from "../../lib/memorial-letter-extras";
-import { eq, and, desc } from "drizzle-orm";
+import {
+  letterPhotoReady, verifyPhotoToken, findAttachablePhoto, insertLetterWithPhoto,
+  claimLetterPhoto, hidePhotoOfLetter, photoUrlOf,
+} from "../../lib/memorial-letter-photo";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export const config = { path: "/api/memorial-letters" };
 
@@ -39,17 +43,36 @@ export default async function handler(req: Request, _ctx: Context) {
     const teacherId = parseInt(url.searchParams.get("teacherId") || "0", 10);
     if (!teacherId) return bad("teacherId 파라미터가 필요합니다");
     try {
-      const rows = await db
-        .select({
-          id:         memorialLetters.id,
-          memberId:   memorialLetters.memberId,   /* US-028: isMine 판정용(응답엔 미포함) */
-          authorName: memorialLetters.authorName,
-          title:      memorialLetters.title,
-          content:    memorialLetters.content,
-          createdAt:  memorialLetters.createdAt,
-        })
+      /* ★ 2026-11-12 사진 첨부 — 저장 칸이 준비됐을 때만 사진 칸을 함께 읽고,
+         «사진 검토 대기» 편지는 운영자가 확인하기 전까지 목록에서 뺀다.
+         칸이 없으면(마이그 전) 예전과 똑같은 조회다. */
+      const photoReady = await letterPhotoReady();
+      const baseFields = {
+        id:         memorialLetters.id,
+        memberId:   memorialLetters.memberId,   /* US-028: isMine 판정용(응답엔 미포함) */
+        authorName: memorialLetters.authorName,
+        title:      memorialLetters.title,
+        content:    memorialLetters.content,
+        createdAt:  memorialLetters.createdAt,
+      };
+      const fields: any = photoReady
+        ? {
+            ...baseFields,
+            photoBlobId: sql<number | null>`photo_blob_id`,
+            photoReview: sql<string | null>`photo_review`,
+          }
+        : baseFields;
+      const visible = photoReady
+        ? and(
+            eq(memorialLetters.teacherId, teacherId),
+            eq(memorialLetters.isHidden, false),
+            sql`photo_review IS DISTINCT FROM 'pending'`,
+          )
+        : and(eq(memorialLetters.teacherId, teacherId), eq(memorialLetters.isHidden, false));
+      const rows: any[] = await db
+        .select(fields)
         .from(memorialLetters)
-        .where(and(eq(memorialLetters.teacherId, teacherId), eq(memorialLetters.isHidden, false)))
+        .where(visible)
         .orderBy(desc(memorialLetters.createdAt));
 
       /* US-028: 로그인 회원이 본인 편지를 식별하도록 isMine만 노출(memberId는 제외) */
@@ -61,9 +84,12 @@ export default async function handler(req: Request, _ctx: Context) {
         content: r.content,
         createdAt: r.createdAt,
         isMine: !!(viewer && r.memberId === viewer.uid),
+        /* 운영자가 사진과 함께 공개한 편지만 사진 주소가 실린다(봉투 표지·크게 보기) */
+        photoUrl: photoReady && r.photoReview === "approved" ? photoUrlOf(r.photoBlobId) : null,
       }));
 
-      return new Response(jsonKST({ ok: true, data: { letters } }), {
+      /* photoEnabled: 화면이 «사진 1장 붙이기» 칸을 보여줄지 정한다(마이그 전에는 감춘다) */
+      return new Response(jsonKST({ ok: true, data: { letters, photoEnabled: photoReady } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -107,6 +133,8 @@ export default async function handler(req: Request, _ctx: Context) {
         if (!letter) return bad("대상 편지를 찾을 수 없습니다", 404);
         if (letter.memberId !== user!.uid) return bad("본인이 작성한 편지만 삭제할 수 있습니다", 403);
         await db.delete(memorialLetters).where(and(eq(memorialLetters.id, lid), eq(memorialLetters.memberId, user!.uid)));
+        /* ★ 2026-11-12: 편지에 붙어 있던 사진도 더는 주소로 볼 수 없게 비공개로 돌린다 */
+        await hidePhotoOfLetter(lid);
         return new Response(jsonKST({ ok: true, message: "편지가 삭제되었습니다." }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
@@ -129,6 +157,30 @@ export default async function handler(req: Request, _ctx: Context) {
     if (!teacherId) return bad("어느 선생님께 드리는 편지인지 지정해 주세요");
     if (!content) return bad("편지 내용을 입력해 주세요");
     if (content.length > MAX_CONTENT) return bad(`편지는 ${MAX_CONTENT.toLocaleString("ko-KR")}자 이내로 적어주세요`);
+
+    /* ★ 2026-11-12 사진 한 장 (Swain 결정: 누구나 붙일 수 있고, 사진 편지는 운영자가 확인한 뒤 공개).
+       사진은 먼저 /api/memorial-letter-photo 로 올리고, 받은 번호·확인표를 함께 낸다.
+       확인하는 것: 저장 칸 준비 · 올린 사람의 확인표 · 이 경로로 6시간 안에 올라왔고 아직 어느 편지에도 안 붙은 사진 */
+    const photoBlobId = Number(body.photoBlobId || 0);
+    const hasPhoto = Number.isFinite(photoBlobId) && photoBlobId > 0;
+    if (hasPhoto) {
+      try {
+        if (!(await letterPhotoReady())) {
+          return bad("사진 첨부는 준비 중입니다. 사진을 지우고 편지만 보내 주세요.");
+        }
+        const tokenOk = verifyPhotoToken(photoBlobId, body.photoToken);
+        if (!tokenOk || !(await findAttachablePhoto(photoBlobId))) {
+          /* photoInvalid: 화면이 붙여 둔 사진을 새로 올리도록 기억을 지운다 */
+          return new Response(jsonKST({
+            ok: false,
+            error: "붙인 사진을 확인하지 못했습니다(시간이 오래 지났거나 이미 보낸 사진입니다). 사진을 지우고 다시 붙여 주세요.",
+            photoInvalid: true,
+          }), { status: 400, headers: { "Content-Type": "application/json" } });
+        }
+      } catch (err: any) {
+        return jsonError("check_photo", err);
+      }
+    }
 
     /* ★ 도배 방지 — 로그인하지 않은 분만. 같은 기기가 잇달아 보내는 것을 막는다. */
     const ipHash = clientIpHash(req);
@@ -154,16 +206,35 @@ export default async function handler(req: Request, _ctx: Context) {
           ? "AI 검토 예산이 소진되어 보류 (비회원 작성)"
           : "자동 검토를 하지 못해 보류 (비회원 작성)";
 
-      const insertData: any = {
-        teacherId,
-        memberId: user ? user.uid : null,
-        authorName,
-        title: title ?? undefined,
-        content,
-        isAnonymous,
-        isHidden: holdForReview ? true : undefined,
-      };
-      const [row] = await db.insert(memorialLetters).values(insertData).returning();
+      /* 사진이 붙은 편지는 처음부터 «사진 검토 대기»로 한 번에 저장한다(잠깐이라도 공개 목록에 뜨지 않게).
+         글만 있는 편지는 예전과 똑같이 저장한다. */
+      let row: any;
+      if (hasPhoto) {
+        row = await insertLetterWithPhoto({
+          teacherId,
+          memberId: user ? user.uid : null,
+          authorName,
+          title,
+          content,
+          isAnonymous,
+          isHidden: holdForReview,
+          photoBlobId,
+        });
+      } else {
+        const insertData: any = {
+          teacherId,
+          memberId: user ? user.uid : null,
+          authorName,
+          title: title ?? undefined,
+          content,
+          isAnonymous,
+          isHidden: holdForReview ? true : undefined,
+        };
+        [row] = await db.insert(memorialLetters).values(insertData).returning();
+      }
+
+      /* 사진을 이 편지 몫으로 묶는다 — 같은 사진이 다른 편지에 다시 붙지 않게 */
+      const photoAttached = hasPhoto ? await claimLetterPhoto(photoBlobId, row.id) : false;
 
       /* 더해진 칸 — 출판 동의·질문·초대 경로. 저장소 준비 전이면 조용히 건너뛴다 */
       const extrasSaved = await saveLetterExtras(row.id, {
@@ -194,23 +265,48 @@ export default async function handler(req: Request, _ctx: Context) {
         console.warn("[memorial-letters] 별빛 반영 실패", err);
       }
 
-      if (holdForReview) {
-        /* 보류 → 운영자·슈퍼어드민에게 검토 요청 통지 (fire-and-forget) */
-        notifyAllOperators({
-          category: "support",
-          severity: "warning",
-          title: mod.skipReason === "budget"
-            ? "AI 검토 예산 소진 — 비회원 편지가 보류되고 있습니다"
-            : "기억의 편지 자동 보류 — 검토 필요",
-          message: mod.skipReason === "budget"
-            ? `AI 검토 예산이 바닥나 비회원 편지를 자동으로 확인하지 못하고 있습니다. ` +
-              `그동안 들어오는 비회원 편지는 모두 비공개로 보류됩니다. ` +
-              `예산을 늘리거나, 보류된 편지를 직접 확인해 공개해 주세요.`
-            : `비공개로 보류했습니다. (사유: ${holdReason})`,
-          link: `/admin.html#memorial`,
-          refTable: "memorial_letters",
-          refId: row.id,
-        }).catch(() => {});
+      /* ★ 2026-11-12: 알림은 응답을 돌려주기 전에 끝낸다 — 응답 뒤에 남은 일은 함수가 멈추며 끊겨 유실된다
+         (2026-11-01 해지 운영자 알림 유실과 같은 함정). 알림이 실패해도 편지는 이미 도착했다. */
+      if (hasPhoto) {
+        /* 사진 편지 → 운영자 확인 요청 (글 자동 검토에서 보류됐으면 그 사유도 함께) */
+        try {
+          await notifyAllOperators({
+            category: "support",
+            severity: "warning",
+            title: "사진이 붙은 기억의 편지 — 확인 후 공개해 주세요",
+            message:
+              `사진이 붙은 편지가 도착했습니다(편지 #${row.id}). 운영자가 확인하기 전에는 공개되지 않습니다. ` +
+              `통합 CMS › 온라인 추모관 › 메시지·편지 모더레이션의 «사진 편지 검토 대기»에서 ` +
+              `[공개]·[사진 빼고 공개]·[숨김] 중 하나를 눌러 주세요.` +
+              (holdForReview ? ` 글 자동 검토 결과: 보류(${holdReason}).` : ""),
+            link: `/cms-tbfa.html#memorial`,
+            refTable: "memorial_letters",
+            refId: row.id,
+          });
+        } catch (err) {
+          console.warn("[memorial-letters] 사진 편지 알림 실패", err);
+        }
+      } else if (holdForReview) {
+        /* 보류 → 운영자·슈퍼어드민에게 검토 요청 통지 */
+        try {
+          await notifyAllOperators({
+            category: "support",
+            severity: "warning",
+            title: mod.skipReason === "budget"
+              ? "AI 검토 예산 소진 — 비회원 편지가 보류되고 있습니다"
+              : "기억의 편지 자동 보류 — 검토 필요",
+            message: mod.skipReason === "budget"
+              ? `AI 검토 예산이 바닥나 비회원 편지를 자동으로 확인하지 못하고 있습니다. ` +
+                `그동안 들어오는 비회원 편지는 모두 비공개로 보류됩니다. ` +
+                `예산을 늘리거나, 보류된 편지를 직접 확인해 공개해 주세요.`
+              : `비공개로 보류했습니다. (사유: ${holdReason})`,
+            link: `/admin.html#memorial`,
+            refTable: "memorial_letters",
+            refId: row.id,
+          });
+        } catch (err) {
+          console.warn("[memorial-letters] 보류 알림 실패", err);
+        }
       }
 
       return new Response(jsonKST({
@@ -221,7 +317,11 @@ export default async function handler(req: Request, _ctx: Context) {
           title: row.title,
           content: row.content,
           createdAt: row.createdAt,
-          pendingReview: holdForReview,
+          /* 사진 편지는 운영자가 확인하기 전까지 공개 목록에 없다 */
+          pendingReview: holdForReview || hasPhoto,
+          /* ★ 2026-11-12: 사진 때문에 확인을 기다리는지 — 화면이 «확인 뒤 공개» 안내를 띄운다 */
+          photoPending: hasPhoto,
+          photoAttached,
           publishConsent: extrasSaved ? publishConsent : false,
           extrasSaved,
         } },

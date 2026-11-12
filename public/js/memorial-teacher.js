@@ -8,6 +8,8 @@
      어느 하루 : 생전의 사진 (폴라로이드 — 누르면 그날 이야기)
      기억의 편지: 도착한 편지 (봉투 — 누르면 편지지가 펼쳐진다)
      서신 작성 : 편지 한 통 (로그인 없이 · 질문 카드 · 30통 목표 · 출판 동의 · 초대 링크)
+                 ★ 2026-11-12 사진 1장 붙이기 — 사진이 있는 편지는 운영자가 확인한 뒤 공개되고,
+                   공개되면 사진이 봉투의 표지가 된다(열면 사진이 크게).
      한마디    : 예전에 남겨진 한마디가 있을 때만 보인다
 
    ★ 2026-10-07 정책국장 요청 반영
@@ -258,9 +260,13 @@
        긴 사진도 창 안에서 끝까지 스크롤해 볼 수 있다.
      · 창 너비는 사진의 실제 크기를 따라 넓어진다(최소·최대 너비는 CSS가 화면 안으로 묶는다).
      · 사진을 누르면 원본이 새 창(탭)으로 열린다 — 확대해서 보실 수 있게.
-     · 사진이 없으면 예전 모양 그대로(has-photo 표시가 붙을 때만 바뀐다). */
+     · 사진이 없으면 예전 모양 그대로(has-photo 표시가 붙을 때만 바뀐다).
+     ★ 2026-11-12: 편지 창(mtLtBox)도 편지에 붙은 사진을 같은 방식으로 보여 준다(setBoxPhoto 공용). */
   function setLbPhoto(url, alt) {
-    var box = $('mtLightbox'), img = $('mtLbImg'), link = $('mtLbPhoto');
+    setBoxPhoto('mtLightbox', 'mtLbImg', 'mtLbPhoto', url, alt);
+  }
+  function setBoxPhoto(boxId, imgId, linkId, url, alt) {
+    var box = $(boxId), img = $(imgId), link = $(linkId);
     var inner = box ? box.querySelector('.mt2-lb-inner') : null;
     if (!img) return;
 
@@ -397,7 +403,12 @@
 
   function envelopeCard(l, i) {
     var isNew = NEW_LETTER_ID != null && Number(l.id) === Number(NEW_LETTER_ID);
-    return '<button type="button" class="mt2-env' + (isNew ? ' is-new' : '') + '" data-mt-letter="' + i + '" id="mtEnv' + esc(l.id) + '">' +
+    /* ★ 2026-11-12: 운영자가 사진과 함께 공개한 편지는 그 사진이 봉투의 표지가 된다 */
+    var cover = l.photoUrl
+      ? '<span class="mt2-env-cover"><img src="' + esc(l.photoUrl) + '" alt="" loading="lazy" decoding="async"></span>'
+      : '';
+    return '<button type="button" class="mt2-env' + (l.photoUrl ? ' has-cover' : '') + (isNew ? ' is-new' : '') + '" data-mt-letter="' + i + '" id="mtEnv' + esc(l.id) + '">' +
+      cover +
       '<h3 class="mt2-env-title">' + esc(l.title || '선생님께') + '</h3>' +
       '<p class="mt2-env-peek">' + esc(peekOf(l.content)) + '</p>' +
       '<div class="mt2-env-foot">' +
@@ -422,12 +433,16 @@
       LETTERS = unwrap(res, 'letters') || [];
       LT_SHOWN = 6;
       renderLetters();
+      /* ★ 2026-11-12: 사진 붙이기 칸은 서버가 준비됐다고 알려 줄 때만 보인다(저장 칸 마이그 전에는 감춤) */
+      setPhotoEnabled(unwrap(res, 'photoEnabled') === true);
     });
   }
 
   function openLetter(i) {
     var l = LETTERS[i];
     if (!l) return;
+    /* ★ 2026-11-12: 사진이 붙은 편지는 맨 위에 사진이 원래 비율로 크게 — 누르면 원본이 새 창으로 */
+    setBoxPhoto('mtLtBox', 'mtLtBoxImg', 'mtLtBoxPhoto', l.photoUrl || null, (l.title || '선생님께') + ' — 편지와 함께 보낸 사진');
     setBox('mtLtBoxTo', (TEACHER_NAME || '선생님') + '께');
     setBox('mtLtBoxWhen', fmtDate(l.createdAt));
     setBox('mtLtBoxTitle', l.title || '선생님께');
@@ -557,6 +572,161 @@
     show(box, true);
   }
 
+  /* ───────── 6-1. 사진 1장 붙이기 ─────────
+     ★ 2026-11-12 Swain 결정: 누구나 붙일 수 있고, 사진이 있는 편지는 운영자가 확인한 뒤 공개된다.
+     · 고르면 이 기기에서 먼저 다시 그린다(긴 변 2048px JPEG) — 휴대전화 사진에 숨은 위치 정보를
+       기기 밖으로 내보내지 않고, 5MB를 넘는 큰 사진도 붙일 수 있게. (서버도 한 번 더 다시 그린다)
+     · 다시 그리지 못하는 사진(예: 크롬의 아이폰 HEIC)은 받는 형식·크기일 때만 원본 그대로 보낸다.
+     · 올리기는 «서신 보내기»를 누를 때 한 번만 한다. 보내기가 실패해 다시 누르면 올린 사진을 그대로 쓴다. */
+  var PHOTO_ENABLED = false;
+  var PHOTO_MAX = 5 * 1024 * 1024;
+  var PHOTO_EDGE = 2048;
+  var PHOTO = { blob: null, name: '', previewUrl: null, uploaded: null, seq: 0 };
+
+  function setPhotoEnabled(on) {
+    PHOTO_ENABLED = !!on;
+    show($('mtLtPhotoField'), PHOTO_ENABLED);
+    if (!PHOTO_ENABLED && PHOTO.blob) clearPhoto();
+  }
+
+  function isHeicFile(file) {
+    return /hei[cf]/i.test(file.type || '') || /\.(heic|heif)$/i.test(file.name || '');
+  }
+
+  /* 사진을 캔버스에 다시 그려 JPEG로 — 방향은 브라우저가 사진 정보대로 바로 세워 그린다 */
+  function prepPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      var src = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight;
+          if (!w || !h) throw new Error('decode');
+          var scale = Math.min(1, PHOTO_EDGE / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          if (!ctx || !canvas.toBlob) throw new Error('canvas');
+          ctx.fillStyle = '#ffffff';            /* 투명한 부분은 흰 바탕 */
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.drawImage(img, 0, 0, cw, ch);
+          URL.revokeObjectURL(src);
+          canvas.toBlob(function (blob) {
+            if (blob && blob.size) resolve(blob); else reject(new Error('encode'));
+          }, 'image/jpeg', 0.9);
+        } catch (e) {
+          URL.revokeObjectURL(src);
+          reject(e);
+        }
+      };
+      img.onerror = function () { URL.revokeObjectURL(src); reject(new Error('decode')); };
+      img.src = src;
+    });
+  }
+
+  function pickPhoto(file) {
+    if (!file) return;
+    var seq = ++PHOTO.seq;
+    var okType = /^image\/(jpeg|png|webp)$/i.test(file.type || '');
+    var pb = $('mtLtPhotoBtn');
+    if (pb) pb.disabled = true;
+    show($('mtLtSent'), false);
+    prepPhoto(file).then(function (blob) {
+      if (seq !== PHOTO.seq) return;
+      if (blob.size > PHOTO_MAX) throw new Error('too-big');
+      setPhoto(blob, file.name);
+    }).catch(function (e) {
+      if (seq !== PHOTO.seq) return;
+      /* 이 기기에서 다시 그리지 못했을 때 — 받는 형식이고 크기가 맞으면 원본 그대로(서버가 다시 확인한다) */
+      if (!(e && e.message === 'too-big') && okType && file.size <= PHOTO_MAX) { setPhoto(file, file.name); return; }
+      clearPhoto();
+      if (isHeicFile(file)) toast('아이폰 HEIC 사진은 아직 붙일 수 없습니다. 사진을 JPG로 바꾸거나 화면을 캡처해서 붙여 주세요.');
+      else if (!okType) toast('사진 파일(JPG·PNG·WEBP)만 붙일 수 있습니다.');
+      else if (file.size > PHOTO_MAX) toast('사진은 5MB까지 붙일 수 있습니다. 크기를 줄여서 다시 붙여 주세요.');
+      else toast('사진을 읽지 못했습니다. 다른 사진을 골라 주세요.');
+    }).then(function () {
+      if (pb) pb.disabled = false;
+    });
+  }
+
+  function setPhoto(blob, name) {
+    if (PHOTO.previewUrl) { try { URL.revokeObjectURL(PHOTO.previewUrl); } catch (e) {} }
+    PHOTO.blob = blob;
+    PHOTO.name = String(name || '');
+    PHOTO.uploaded = null;
+    PHOTO.previewUrl = URL.createObjectURL(blob);
+    var img = $('mtLtPhotoImg');
+    if (img) img.src = PHOTO.previewUrl;
+    var nm = $('mtLtPhotoName');
+    if (nm) nm.textContent = PHOTO.name || '붙인 사진';
+    show($('mtLtPhotoPick'), false);
+    show($('mtLtPhotoPreview'), true);
+  }
+
+  function clearPhoto() {
+    PHOTO.seq++;
+    if (PHOTO.previewUrl) { try { URL.revokeObjectURL(PHOTO.previewUrl); } catch (e) {} }
+    PHOTO.blob = null;
+    PHOTO.name = '';
+    PHOTO.previewUrl = null;
+    PHOTO.uploaded = null;
+    var img = $('mtLtPhotoImg');
+    if (img) img.removeAttribute('src');
+    var input = $('mtLtPhoto');
+    if (input) input.value = '';
+    show($('mtLtPhotoPreview'), false);
+    show($('mtLtPhotoPick'), true);
+  }
+
+  /* 사진 올리기 — 받은 번호·확인표를 편지와 함께 낸다. 원래 파일 이름은 보내지 않는다. */
+  function uploadPhoto() {
+    if (!PHOTO.blob) return Promise.resolve(null);
+    if (PHOTO.uploaded) return Promise.resolve(PHOTO.uploaded);
+    var type = String(PHOTO.blob.type || '').toLowerCase();
+    var ext = type === 'image/png' ? 'png' : (type === 'image/webp' ? 'webp' : 'jpg');
+    var fd = new FormData();
+    fd.append('file', PHOTO.blob, 'letter-photo.' + ext);
+    return fetch('/api/memorial-letter-photo', { method: 'POST', body: fd, credentials: 'include' })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (d) {
+          return { status: res.status, ok: res.ok && d.ok !== false, data: d };
+        });
+      }, function () {
+        return { status: 0, ok: false, data: { error: '네트워크 오류로 사진을 올리지 못했습니다. 잠시 뒤에 다시 시도해 주세요.' } };
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error((res.data && res.data.error) ||
+            (res.status === 413 ? '사진은 5MB까지 붙일 수 있습니다. 크기를 줄여서 다시 붙여 주세요.'
+                                : '사진을 올리지 못했습니다. 잠시 뒤에 다시 시도해 주세요.'));
+        }
+        var p = unwrap(res, 'photo') || {};
+        if (!p.id || !p.token) throw new Error('사진을 올리지 못했습니다. 잠시 뒤에 다시 시도해 주세요.');
+        PHOTO.uploaded = { id: p.id, token: p.token };
+        return PHOTO.uploaded;
+      });
+  }
+
+  /* 바로 공개되지 않는 편지(사진 확인·자동 검토) — 서식 아래에 남는 안내 */
+  function showSent(msg) {
+    var el = $('mtLtSent');
+    if (!el) return;
+    el.textContent = msg || '';
+    show(el, !!msg);
+  }
+
+  /* 사진 표지를 불러오지 못하면 표지 없이 예전 봉투 모양으로 */
+  function onCoverError(ev) {
+    var t = ev && ev.target;
+    if (!t || t.tagName !== 'IMG' || !t.closest) return;
+    var cover = t.closest('.mt2-env-cover');
+    if (!cover) return;
+    var env = cover.closest('.mt2-env');
+    if (env) env.classList.remove('has-cover');
+    if (cover.parentNode) cover.parentNode.removeChild(cover);
+  }
+
   function submitLetter() {
     var btn = $('mtLtSubmit');
     var body = ($('mtLtBody') && $('mtLtBody').value.trim()) || '';
@@ -564,12 +734,14 @@
     var anon = !!($('mtLtAnon') && $('mtLtAnon').checked);
     var consent = !!($('mtLtConsent') && $('mtLtConsent').checked);
     if (!body) { toast('편지를 적어주세요. 한 문장이어도 충분합니다.'); if ($('mtLtBody')) $('mtLtBody').focus(); return; }
+    var withPhoto = PHOTO_ENABLED && !!PHOTO.blob;
     if (btn) btn.disabled = true;
-    toast('편지를 보내고 있습니다…');
+    showSent('');
+    toast(withPhoto ? '사진을 올리고 있습니다…' : '편지를 보내고 있습니다…');
 
-    api('/api/memorial-letters', {
-      method: 'POST',
-      body: {
+    (withPhoto ? uploadPhoto() : Promise.resolve(null)).then(function (photo) {
+      if (photo) toast('편지를 보내고 있습니다…');
+      var payload = {
         teacherId: TEACHER_ID,
         title: QUESTIONS[Q_PICK] || null,
         content: body,
@@ -577,10 +749,14 @@
         isAnonymous: anon,
         publishConsent: consent,
         invited: INVITED
-      }
+      };
+      if (photo) { payload.photoBlobId = photo.id; payload.photoToken = photo.token; }
+      return api('/api/memorial-letters', { method: 'POST', body: payload });
     }).then(function (res) {
       if (btn) btn.disabled = false;
       if (!res.ok) {
+        /* 붙인 사진이 오래됐거나 이미 쓰였다 — 다음에 누르면 새로 올리도록 */
+        if (res.data && res.data.photoInvalid) PHOTO.uploaded = null;
         if (res.status === 401) {
           toast('편지를 보내려면 로그인이 필요합니다.');
           if (window.SIREN && window.SIREN.openModal) window.SIREN.openModal('loginModal');
@@ -592,8 +768,17 @@
       var letter = unwrap(res, 'letter') || {};
       if ($('mtLtBody')) $('mtLtBody').value = '';
       if ($('mtLtConsent')) $('mtLtConsent').checked = false;
+      if (PHOTO.blob) clearPhoto();
 
+      /* ★ 2026-11-12: 사진이 있는 편지는 운영자가 확인한 뒤 공개된다 — 성공 안내도 그렇게 */
+      if (letter.photoPending) {
+        showSent('편지와 사진이 잘 도착했습니다. 사진이 있는 편지는 운영자가 확인한 뒤 공개됩니다. ' +
+          '공개되면 위 ‘기억의 편지’에 사진을 표지로 한 봉투로 놓입니다. 마음을 나눠 주셔서 고맙습니다.');
+        toast('편지와 사진을 받았습니다. 운영자가 확인한 뒤 공개됩니다.');
+        return;
+      }
       if (letter.pendingReview) {
+        showSent('편지를 받았습니다. 자동 검토를 거친 뒤 위 ‘기억의 편지’에 봉투로 놓입니다. 고맙습니다.');
         toast('편지를 받았습니다. 자동 검토를 거친 뒤 봉투로 놓입니다. 고맙습니다.');
         return;
       }
@@ -609,6 +794,10 @@
         }
       });
       toast('편지가 도착했습니다. 위 ‘기억의 편지’에 봉투로 놓였습니다.');
+    }).catch(function (e) {
+      /* 사진 올리기에서 막혔다 — 편지는 보내지 않았다. 사진을 바꾸거나 지우고 다시 보내면 된다 */
+      if (btn) btn.disabled = false;
+      toast((e && e.message) || '사진을 올리지 못했습니다. 사진을 지우고 다시 보내 주세요.');
     });
   }
 
@@ -683,6 +872,21 @@
       is.addEventListener('click', shareInvite);
     }
     var iq = $('mtInviteQr'); if (iq) iq.addEventListener('click', makeQr);
+
+    /* ★ 2026-11-12 사진 1장 붙이기 — 고르기·지우기 */
+    var pbtn = $('mtLtPhotoBtn'), pin = $('mtLtPhoto'), prm = $('mtLtPhotoRemove');
+    if (pbtn && pin) pbtn.addEventListener('click', function () { pin.click(); });
+    if (pin) pin.addEventListener('change', function () {
+      var f = pin.files && pin.files[0];
+      if (f) pickPhoto(f);
+    });
+    if (prm) prm.addEventListener('click', function () {
+      clearPhoto();
+      var b = $('mtLtPhotoBtn');
+      if (b) { try { b.focus(); } catch (e) {} }
+    });
+    /* 사진 표지를 불러오지 못하면 표지를 걷는다 (사진 불러오기 실패는 위로 번지지 않아 잡는 단계에서 본다) */
+    document.addEventListener('error', onCoverError, true);
 
     /* 질문 고르기 · 유도 카드 · 사진·편지 열기 · 닫기 */
     document.addEventListener('click', function (ev) {

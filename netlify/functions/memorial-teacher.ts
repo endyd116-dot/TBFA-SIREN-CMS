@@ -1,5 +1,6 @@
 import { jsonKST } from "../../lib/kst";
 import { getMemorialDisplay } from "../../lib/memorial-display";
+import { letterPhotoReady } from "../../lib/memorial-letter-photo";
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialTeachers, memorialTeacherPhotos } from "../../db/schema";
@@ -42,7 +43,11 @@ export default async function handler(req: Request, _ctx: Context) {
 
     const candleCount  = await safeCount(sql`SELECT COUNT(*)::int AS n FROM memorial_offerings WHERE teacher_id = ${id}`);
     const messageCount = await safeCount(sql`SELECT COUNT(*)::int AS n FROM memorial_messages WHERE teacher_id = ${id} AND is_hidden = FALSE`);
-    const letterCount  = await safeCount(sql`SELECT COUNT(*)::int AS n FROM memorial_letters WHERE teacher_id = ${id} AND is_hidden = FALSE`);
+    /* ★ 2026-11-12: 운영자 확인을 기다리는 사진 편지는 «편지 30통» 집계에서 뺀다(공개 목록과 같은 기준).
+       사진 칸이 아직 없으면(마이그 전) 예전 집계 그대로. */
+    const letterCount  = await safeCount((await letterPhotoReady())
+      ? sql`SELECT COUNT(*)::int AS n FROM memorial_letters WHERE teacher_id = ${id} AND is_hidden = FALSE AND photo_review IS DISTINCT FROM 'pending'`
+      : sql`SELECT COUNT(*)::int AS n FROM memorial_letters WHERE teacher_id = ${id} AND is_hidden = FALSE`);
 
     const teacher = {
       id:           t.id,

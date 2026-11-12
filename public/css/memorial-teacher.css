@@ -442,6 +442,69 @@
   border-color: var(--m2-bloom); box-shadow: 0 0 0 4px rgba(214, 142, 58, .16), 0 20px 40px rgba(44, 49, 45, .12);
 }
 
+/* ★ 2026-11-12 사진 1장 붙이기 — 고르면 미리보기·지우기 */
+.mt2-photo-input {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); border: 0; opacity: 0;
+}
+.mt2-photo-pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mt2-photo-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--m2-morn-1); padding: 10px 20px;
+}
+.mt2-photo-btn .siren-icon-wrap { display: inline-flex; width: 18px; height: 18px; }
+.mt2-photo-btn[disabled] { opacity: .55; cursor: default; }
+.mt2-photo-rule { font-size: 12px; color: var(--m2-earth-mute); }
+.mt2-photo-preview {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 12px; border-radius: 14px;
+  background: var(--m2-morn-1); border: 1px solid rgba(44, 49, 45, .12);
+}
+.mt2-photo-preview img {
+  display: block; width: 132px; height: 132px; object-fit: cover;
+  border-radius: 10px; background: var(--m2-morn-2); border: 1px solid rgba(44, 49, 45, .08);
+}
+.mt2-photo-side { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; flex: 1 1 160px; }
+.mt2-photo-name { font-size: 12.5px; color: var(--m2-earth-mute); word-break: break-all; }
+.mt2-photo-remove { padding: 8px 18px; font-size: 13px; background: #fff; }
+.mt2-photo-note {
+  margin: 10px 0 0; font-size: 12.5px; line-height: 1.75; word-break: keep-all;
+  color: #8A5A1D;
+}
+
+/* 보낸 뒤 안내 — 바로 공개되지 않는 편지(사진 확인·자동 검토) */
+.mt2-sent {
+  margin: 16px 0 0; padding: 14px 18px; border-radius: 12px;
+  background: rgba(59, 88, 78, .08); border: 1px solid rgba(59, 88, 78, .22);
+  font-size: 13.5px; line-height: 1.8; color: var(--m2-earth); word-break: keep-all;
+}
+
+/* ★ 2026-11-12 사진이 붙은 편지 — 사진이 봉투의 표지가 된다.
+   표지는 봉투 너비 끝까지 위쪽에 두고, 봉투 덮개(삼각형)는 사진 위에 옅게 얹어 봉투 모양을 지킨다.
+   글자(제목·앞머리·보낸 이)는 표지 아래에 예전 그대로 놓인다. */
+.mt2-env.has-cover { padding-top: 0; }
+.mt2-env-cover {
+  position: relative; display: block; flex: none;
+  margin: 0 -24px 14px; height: 168px; overflow: hidden;
+  background: var(--m2-morn-2); border-bottom: 1px solid rgba(44, 49, 45, .08);
+}
+.mt2-env-cover img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  transition: transform .5s cubic-bezier(.2, .7, .3, 1);
+}
+.mt2-env.has-cover:hover .mt2-env-cover img, .mt2-env.has-cover:focus-visible .mt2-env-cover img { transform: scale(1.03); }
+.mt2-env.has-cover::before {
+  z-index: 1; height: 64px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, .78), rgba(255, 253, 248, .16));
+}
+
+/* 편지를 열면 — 맨 위에 사진이 원래 비율로 크게, 글은 읽기 좋은 너비로 가운데에 */
+.mt2-sheet-photo { margin: -40px -38px 28px; }
+.mt2-letterbox.has-photo .mt2-sheet-top,
+.mt2-letterbox.has-photo .mt2-sheet-title,
+.mt2-letterbox.has-photo .mt2-sheet-body,
+.mt2-letterbox.has-photo .mt2-sheet-from { max-width: 640px; margin-left: auto; margin-right: auto; }
+
 /* ══ 7. 남겨진 한마디 ═══════════════════════════════════ */
 .mt2-notes {
   display: grid; gap: 15px;
@@ -560,9 +623,14 @@
   .mt2-invite { padding: 20px 18px; }
   .mt2-foot .mt2-btn { width: 100%; }
   .mt2-sheet { padding: 30px 22px 26px; }
+  .mt2-sheet-photo { margin: -30px -22px 22px; }
+  .mt2-env-cover { height: 188px; }
+  .mt2-photo-preview img { width: 104px; height: 104px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mt2-pola, .mt2-env, .mt2-btn { transition: none; }
   .mt2-pola { transform: none; }
+  .mt2-env-cover img { transition: none; }
+  .mt2-env.has-cover:hover .mt2-env-cover img { transform: none; }
 }

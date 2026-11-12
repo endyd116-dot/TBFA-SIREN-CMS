@@ -148,6 +148,13 @@ export default async function handler(req: Request, _ctx: Context) {
       await db.transaction(async (tx) => {
         await tx.execute(sql`DELETE FROM memorial_message_likes WHERE message_id IN (SELECT id FROM memorial_messages WHERE teacher_id = ${id})`);
         await tx.delete(memorialMessages).where(eq(memorialMessages.teacherId, id));
+        /* ★ 2026-11-12: 편지에 붙은 사진은 편지를 지우기 전에 비공개로 돌린다(지운 뒤 주소로 볼 수 없게).
+           묶음 표시(reference_*)는 기존 칸이라 사진 마이그 전에도 안전하다. */
+        await tx.execute(sql`
+          UPDATE blob_uploads SET is_public = FALSE
+           WHERE context = 'memorial-letter' AND reference_table = 'memorial_letters'
+             AND reference_id IN (SELECT id FROM memorial_letters WHERE teacher_id = ${id})
+        `);
         await tx.delete(memorialLetters).where(eq(memorialLetters.teacherId, id));
         await tx.delete(memorialOfferings).where(eq(memorialOfferings.teacherId, id));
         await tx.delete(memorialTeachers).where(eq(memorialTeachers.id, id));

@@ -97,6 +97,26 @@ tr:last-child td { border-bottom:none; }
 .mod-filter .chip.active { background:#eff6ff; border-color:#3b82f6; color:#2563eb; }
 .mod-content { font-size:12.5px; color:#374151; max-width:420px; white-space:pre-wrap; word-break:break-word; }
 .mod-content.hidden-row { opacity:.5; text-decoration:line-through; }
+/* ★ 2026-11-12 사진 편지 검토 대기 — 사진이 붙은 편지는 운영자가 확인한 뒤 공개 */
+.lp-box { background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:16px 18px; margin-bottom:20px; }
+.lp-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.lp-head h3 { margin:0; font-size:14.5px; font-weight:700; color:#92400e; display:flex; align-items:center; gap:6px; }
+.lp-count { display:inline-block; min-width:22px; padding:1px 8px; border-radius:20px; background:#f59e0b; color:#fff; font-size:12px; font-weight:700; text-align:center; }
+.lp-count.zero { background:#e5e7eb; color:#6b7280; }
+.lp-desc { margin:0 0 12px; font-size:12px; color:#92400e; line-height:1.7; }
+.lp-list { display:flex; flex-direction:column; gap:12px; }
+.lp-empty { font-size:12.5px; color:#9ca3af; padding:6px 2px; }
+.lp-card { display:grid; grid-template-columns:200px 1fr; gap:16px; background:#fff; border:1px solid #f3f4f6; border-radius:10px; padding:12px; }
+@media (max-width:640px) { .lp-card { grid-template-columns:1fr; } }
+.lp-photo { display:block; border-radius:8px; overflow:hidden; background:#f3f4f6; border:1px solid #e5e7eb; text-decoration:none; }
+.lp-photo img { display:block; width:100%; height:auto; max-height:260px; object-fit:contain; background:#f9fafb; }
+.lp-photo span { display:block; padding:5px 8px; font-size:11px; color:#6b7280; text-align:center; }
+.lp-meta { font-size:12px; color:#6b7280; display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
+.lp-meta b { color:#111; font-weight:700; }
+.lp-title { font-size:12.5px; font-weight:700; color:#374151; margin-bottom:4px; }
+.lp-text { font-size:12.5px; color:#374151; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow:auto; line-height:1.7; padding:8px 10px; background:#f9fafb; border-radius:6px; }
+.lp-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.photo-pill-link { text-decoration:none; }
 
 /* ★ 2026-11-12 유가족 근황 분위기 표시 목록 — 칩 글자색은 고른 색, 바탕은 같은 색을 옅게(스크립트가 넣는다) */
 .fm-chip { display:inline-block; max-width:100%; padding:4px 11px; border-radius:999px; font-size:12px; font-weight:600; line-height:1.4; color:#3b584e; background-color:rgba(59,88,78,.1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
@@ -644,6 +664,16 @@ tr:last-child td { border-bottom:none; }
 <!-- ===== 2. 모더레이션 ===== -->
 <div class="tab-panel" id="panel-moderation">
   <div class="page-hd"><h2><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</h2></div>
+  <!-- ★ 2026-11-12 사진 편지 검토 대기 — 사진이 붙은 편지는 여기서 확인해야 공개된다.
+       사진 첨부 저장 칸이 준비되기 전(마이그 전)에는 화면 쪽(js)이 감춘다. -->
+  <div class="lp-box" id="lpBox" style="display:none">
+    <div class="lp-head">
+      <h3><span class="siren-icon-wrap" data-icon="image"></span> 사진 편지 검토 대기 <span class="lp-count zero" id="lpCount">0</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="loadPhotoPending()">새로고침</button>
+    </div>
+    <p class="lp-desc">사진이 붙은 편지는 여기서 확인해야 공개됩니다. <b>공개</b>는 사진과 함께(사진이 봉투 표지가 됩니다), <b>사진 빼고 공개</b>는 편지 글만, <b>숨김</b>은 편지를 감춥니다. 사진을 누르면 원본이 새 창으로 열립니다.</p>
+    <div class="lp-list" id="lpList"><div class="lp-empty">불러오는 중…</div></div>
+  </div>
   <div class="mod-filter">
     <div class="chip active" data-type="message" onclick="switchModType('message')"><span class="siren-icon-wrap" data-icon="message-circle"></span> 추모 메시지</div>
     <div class="chip" data-type="letter" onclick="switchModType('letter')"><span class="siren-icon-wrap" data-icon="mail"></span> 기억의 편지</div>
@@ -835,6 +865,10 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
+<<<<<<< HEAD
 <script src="/js/admin-memorial.js?v=20261112-bgm2"></script>
+=======
+<script src="/js/admin-memorial.js?v=20261112-letterphoto"></script>
+>>>>>>> 4d426687 (feat(추모관): 기억의 편지에 사진 1장 붙이기 — 운영자 확인 뒤 공개·사진이 봉투 표지)
 </body>
 </html>
