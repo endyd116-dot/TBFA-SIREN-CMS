@@ -243,7 +243,13 @@ function renderMemorialCards(list: any[]): string {
            화면(memorial.js)이 그리는 모양과 같아야 서버가 채운 뒤 깜빡이지 않는다.
            memorial.html 의 카드 구조를 바꾸면 여기도 같이 고칠 것. */
         `<a class="mem2-tcard" href="/memorial-teacher.html?id=${esc(t.id)}">` +
-        `<div class="mem2-tportrait"><span class="siren-icon-wrap m2-silhouette" data-icon="dove"></span></div>` +
+        /* ★ 2026-11-12: 영정 사진이 있으면 첫 화면 동그란 칸에도 사진을 넣는다(전에는 서버가 늘 실루엣만 그려서
+           사진이 선생님 화면에 들어가야만 보였다). 화면(memorial.js teacherCard)과 같은 img 모양 */
+        `<div class="mem2-tportrait">${
+          t.photoBlobId
+            ? `<img src="/api/blob-image?id=${Number(t.photoBlobId)}" alt="${esc(t.name || "")}" loading="lazy" width="92" height="92">`
+            : `<span class="siren-icon-wrap m2-silhouette" data-icon="dove"></span>`
+        }</div>` +
         `<h3 class="mem2-tname">${esc(t.name || "")}</h3>` +
         (t.schoolRegion ? `<p class="mem2-tmeta">${esc(t.schoolRegion)}</p>` : "") +
         (t.tributeLine ? `<p class="mem2-tline">${esc(t.tributeLine)}</p>` : "") +
@@ -554,6 +560,7 @@ export async function loadListSeed(pagePath: string): Promise<ListSeed> {
           name: schema.memorialTeachers.name,
           schoolRegion: schema.memorialTeachers.schoolRegion,
           tributeLine: schema.memorialTeachers.tributeLine,
+          photoBlobId: schema.memorialTeachers.photoBlobId,
         })
         .from(schema.memorialTeachers)
         .where(eq(schema.memorialTeachers.isPublic, true))
