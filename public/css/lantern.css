@@ -67,6 +67,8 @@ body.lantern-page .cmp-detail-page { max-width: none; padding: 0 0 80px; color: 
 .lt-ladder-col h4 small { font-family: "Noto Sans KR", sans-serif; font-weight: 400; color: var(--lt-dim); font-size: 12px; margin-left: 6px; }
 .lt-ladder-row { display: flex; gap: 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--lt-hr); font-size: 14px; color: var(--lt-mid); }
 .lt-ladder-row b { flex: none; width: 88px; font-family: var(--lt-serif); font-weight: 600; color: var(--lt-emh); font-variant-numeric: tabular-nums; }
+/* 2026-11-12 피드백: 일반회원 칸은 금액별 설명 대신 특별회원과의 차이를 짧게 설명 */
+.lt-ladder-onetime { font-size: 14px; color: var(--lt-mid); line-height: 1.75; margin: 0 0 10px; padding: 10px 0; border-bottom: 1px solid var(--lt-hr); }
 .lt-ladder-note { margin: 14px 0 0; font-size: 12.5px; color: var(--lt-fnt); }
 
 .lt-recent { margin: 40px 0 0; padding: 30px 0 0; border-top: 1px solid var(--lt-ln); }

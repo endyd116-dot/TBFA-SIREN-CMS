@@ -16,6 +16,14 @@
 import { esc } from "./shell-html";
 import { RECEIPT_NOTICE } from "./campaign-extras";
 
+/* 2026-11-12 피드백 «0개의 등불이 켜졌습니다는 역효과» — 회원 수가 이 수에 이를 때까지 카운터를 숨긴다.
+   캠페인 확장 설정 counterMinShow 로 바꿀 수 있다(브라우저 campaign.html 과 같은 규칙). */
+export const LANTERN_COUNTER_MIN_SHOW = 100;
+export function lanternCounterMin(x: any): number {
+  const v = Number(x && x.counterMinShow);
+  return Number.isFinite(v) && v >= 0 ? v : LANTERN_COUNTER_MIN_SHOW;
+}
+
 const TYPE_LABEL: Record<string, string> = { fundraising: "모금", memorial: "추모", awareness: "인식 개선" };
 
 /** 브라우저 캠페인 API(/api/campaigns?slug=)와 같은 모양의 캠페인 값 */
@@ -173,10 +181,10 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
 
       <div class="lt-in">
         <section class="lt-stats">
-          <div class="lt-stats-grid">
+          ${members >= lanternCounterMin(x) ? `<div class="lt-stats-grid">
             <div class="lt-stat"><b id="ltMembers">${num(members)}</b><span>개의 등불이 켜졌습니다</span><small>회원 수 · 특별+일반</small></div>
             <div class="lt-stat"><b id="ltMonthly">${monthly}</b><span>특별회원</span><small>매달 함께 지키는 사람</small></div>
-          </div>
+          </div>` : ""}
           ${goal > 0 ? `
           <div class="lt-progress"><i id="ltProgressBar" style="width:${pct}%"></i></div>
           <div class="lt-progress-lab"><span>모인 회비 <b id="ltRaised">${won(raised)}</b></span><span><span id="ltPct">${pct}</span>% · 목표 ${won(goal)}</span></div>` : ""}
@@ -193,7 +201,11 @@ export function renderCampaignLantern(c: CampaignView, faqs: CampaignFaq[], stat
           <h3>회비가 하는 일</h3>
           <div class="lt-ladder-grid">
             ${ladderCol("특별회원 (월 정기회비)", x.ladder.monthlyHint || "", x.ladder.regular || [])}
-            ${ladderCol("일반회원", "연회비 · 1년", x.ladder.onetime || [])}
+            <div class="lt-ladder-col">
+              <h4>일반회원<small>연회비 · 1년</small></h4>
+              <p class="lt-ladder-onetime">같은 금액을 1년에 한 번 납부합니다. 1만 원부터 금액은 자유롭게 정하실 수 있습니다.</p>
+              <p class="lt-ladder-onetime">특별회원의 월 1만 원은 1년이면 12만 원입니다. 매달 함께해 주시는 분이 많을수록 유가족 곁을 더 오래 지킬 수 있습니다.</p>
+            </div>
           </div>
           <p class="lt-ladder-note">${esc(x.ladder.minNote || "최소 10,000원부터 가능합니다")} · 큰 마음은 직접 입력으로 납부하실 수 있습니다.</p>
         </section>` : ""}
