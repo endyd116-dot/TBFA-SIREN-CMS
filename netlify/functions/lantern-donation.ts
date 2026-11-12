@@ -44,11 +44,11 @@ async function currentMember(req: Request): Promise<{ id: number; name: string }
 
 async function buildCard(donationId: number, memberId: number) {
   const row = await readDonationLantern(donationId);
-  if (!row) return { error: notFound("후원 내역을 찾을 수 없습니다") };
-  if (row.memberId !== memberId) return { error: forbidden("본인의 후원만 볼 수 있습니다") };
+  if (!row) return { error: notFound("회비 납부 내역을 찾을 수 없습니다") };
+  if (row.memberId !== memberId) return { error: forbidden("본인의 납부 건만 볼 수 있습니다") };
   const extras = await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug });
-  if (!extras || !row.campaignId) return { error: badRequest("등불 캠페인 후원이 아닙니다") };
-  if (row.status !== "completed") return { error: badRequest("아직 결제가 완료되지 않은 후원입니다") };
+  if (!extras || !row.campaignId) return { error: badRequest("등불 캠페인 납부 건이 아닙니다") };
+  if (row.status !== "completed") return { error: badRequest("아직 결제가 완료되지 않은 납부 건입니다") };
 
   const lanternNo = Number(row.sourceMeta?.lanternNo) || (await computeLanternNo(row.campaignId, row.id));
   const meta = sanitizeAmMeta(row.sourceMeta);
@@ -136,10 +136,10 @@ export default async (req: Request) => {
     if (!Number.isInteger(donationId) || donationId < 1) return badRequest("donationId가 필요합니다");
 
     const row = await readDonationLantern(donationId);
-    if (!row) return notFound("후원 내역을 찾을 수 없습니다");
-    if (row.memberId !== me.id) return forbidden("본인의 후원만 수정할 수 있습니다");
-    if (!(await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug }))) return badRequest("등불 캠페인 후원이 아닙니다");
-    if (row.status !== "completed") return badRequest("아직 결제가 완료되지 않은 후원입니다");
+    if (!row) return notFound("회비 납부 내역을 찾을 수 없습니다");
+    if (row.memberId !== me.id) return forbidden("본인의 납부 건만 수정할 수 있습니다");
+    if (!(await resolveCampaignExtras({ id: row.campaignId, slug: row.campaignSlug }))) return badRequest("등불 캠페인 납부 건이 아닙니다");
+    if (row.status !== "completed") return badRequest("아직 결제가 완료되지 않은 납부 건입니다");
 
     const note = body.note === undefined ? undefined
       : Array.from(String(body.note || "").replace(/[\r\n\t]+/g, " ").trim()).slice(0, 60).join("");

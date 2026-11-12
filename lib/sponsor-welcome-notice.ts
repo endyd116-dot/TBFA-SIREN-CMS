@@ -25,10 +25,10 @@ export const SPONSOR_WELCOME_JOIN_URL = `${SITE_URL}/?signup=1`;
 
 /** 카카오 검수용 알림톡 템플릿(정보성) — #{이름}·#{캠페인} 변수. 바꾸면 새 템플릿 등록·검수 필요 */
 export const SPONSOR_WELCOME_TEMPLATE = {
-  name: "후원회원 등록 안내(등불의 기적)",
+  name: "회원 등록 안내(등불의 기적)",
   content:
-    "[교사유가족협의회] #{이름}님, 후원회원 등록을 안내드려요\n\n" +
-    "「#{캠페인}」을 통해 사단법인 교사유가족협의회 후원회원으로 등록되셨습니다.\n\n" +
+    "[교사유가족협의회] #{이름}님, 회원 등록을 안내드려요\n\n" +
+    "「#{캠페인}」을 통해 사단법인 교사유가족협의회 회원으로 등록되셨습니다.\n\n" +
     "▪ 홈페이지(tbfa.co.kr)에서 같은 휴대폰 번호로 인증하시면 회원가입이 바로 완료되고, 마이페이지에서 회비 납부 내역·등불 증서·정기 회비 해지를 직접 관리하실 수 있어요.\n" +
     "▪ 협의회 소식과 분기 «등불 보고»도 받아보실 수 있습니다.\n\n" +
     "※ 저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다.",
@@ -39,10 +39,10 @@ export const SPONSOR_WELCOME_TEMPLATE = {
 
 /** 일반 가입용 알림톡 템플릿(정보성) — #{이름}만 쓴다. 등불 증서·등불 보고 문구 없음 (2026-10-31) */
 export const SPONSOR_WELCOME_GENERAL_TEMPLATE = {
-  name: "후원회원 등록 안내(일반)",
+  name: "회원 등록 안내(일반)",
   content:
-    "[교사유가족협의회] #{이름}님, 후원회원 등록을 안내드려요\n\n" +
-    "사단법인 교사유가족협의회 후원회원으로 등록되셨습니다. 함께해 주셔서 감사합니다.\n\n" +
+    "[교사유가족협의회] #{이름}님, 회원 등록을 안내드려요\n\n" +
+    "사단법인 교사유가족협의회 회원으로 등록되셨습니다. 함께해 주셔서 감사합니다.\n\n" +
     "▪ 홈페이지(tbfa.co.kr)에서 같은 휴대폰 번호로 인증하시면 회원가입이 바로 완료되고, 마이페이지에서 회비 납부 내역·정기 회비 해지를 직접 관리하실 수 있어요.\n" +
     "▪ 협의회 소식과 활동 보고도 받아보실 수 있습니다.\n\n" +
     "※ 저희는 사단법인으로, 아직 기부금영수증(세액공제) 발급이 되지 않습니다.",
@@ -105,7 +105,7 @@ export async function sendSponsorWelcomeNotice(input: SponsorWelcomeInput): Prom
     const phone = String(input.phone || "").replace(/[^0-9]/g, "");
     if (phone.length < 10) return { ok: false, via: "skipped", error: "휴대폰 없음" };
 
-    const name = String(input.name || "후원자").trim().slice(0, 40) || "후원자";
+    const name = String(input.name || "회원").trim().slice(0, 40) || "회원";
     const campaign = String(input.campaignTitle || "등불의 기적").trim().slice(0, 60);
     const generic = input.generic === true;
     const text = generic ? renderSponsorWelcomeGeneralText(name) : renderSponsorWelcomeText(name, campaign);
@@ -124,7 +124,7 @@ export async function sendSponsorWelcomeNotice(input: SponsorWelcomeInput): Prom
         text,
       });
     } else {
-      res = await solapiSendSms({ receiver: phone, msg: text, title: "후원회원 등록 안내" });
+      res = await solapiSendSms({ receiver: phone, msg: text, title: "회원 등록 안내" });
     }
 
     /* 마이페이지 알림함에도 남긴다 — 문자는 흘러가도 계정 안에는 남게 */
@@ -134,7 +134,7 @@ export async function sendSponsorWelcomeNotice(input: SponsorWelcomeInput): Prom
         recipientType: "user",
         category: "donation",
         severity: "info",
-        title: "후원회원 등록 안내",
+        title: "회원 등록 안내",
         message: text.slice(0, 480),
         link: "/mypage.html#donations",
       });
