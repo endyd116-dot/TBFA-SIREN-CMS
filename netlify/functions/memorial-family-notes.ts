@@ -4,12 +4,16 @@
 // 유가족이 전해온 근황을 내보낸다. 운영자가 어드민에서 등록한 것만 나간다.
 // 유가족 신원 보호를 위해 실명이 아니라 표기용 이름(authorLabel)만 담는다.
 // ★ 2026-10-07: 사진이 붙는다(photoUrl). 카드를 누르면 이야기 전체가 열리므로 본문을 그대로 보낸다.
+// ★ 2026-11-12: 분위기 표시는 관리자가 직접 관리하는 문구·색상 목록이다(lib/memorial-moods.ts).
+//               글마다 표시 문구(moodText)·글자색(moodColor, #rrggbb 또는 null)을 함께 보낸다(기존 mood 칸은 그대로).
+//               목록에 없는 표시(지워진 것·빈 값)는 moodText·moodColor 가 null — 화면은 표시 없이 그린다.
 
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialFamilyNotes } from "../../db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { jsonKST } from "../../lib/kst";
+import { getMoodsSafe, moodMap } from "../../lib/memorial-moods";
 
 export const config = { path: "/api/memorial-family-notes" };
 
@@ -47,15 +51,23 @@ export default async function handler(req: Request, _ctx: Context) {
       rows = await q(base);
     }
 
-    const notes = rows.map((r: any) => ({
-      id: r.id,
-      title: r.title,
-      content: r.content,
-      authorLabel: r.authorLabel,
-      mood: r.mood,
-      publishedAt: r.publishedAt,
-      photoUrl: r.photoBlobId ? `/api/blob-image?id=${r.photoBlobId}` : null,
-    }));
+    /* 분위기 표시 목록 — 보조 조회라 실패해도 기본 목록으로 계속한다 */
+    const moodByKey = moodMap(await getMoodsSafe());
+
+    const notes = rows.map((r: any) => {
+      const m = moodByKey[String(r.mood ?? "")] || null;
+      return {
+        id: r.id,
+        title: r.title,
+        content: r.content,
+        authorLabel: r.authorLabel,
+        mood: r.mood,
+        moodText: m ? m.text : null,
+        moodColor: m ? m.color : null,
+        publishedAt: r.publishedAt,
+        photoUrl: r.photoBlobId ? `/api/blob-image?id=${r.photoBlobId}` : null,
+      };
+    });
 
     return new Response(jsonKST({ ok: true, data: { notes } }), {
       status: 200,

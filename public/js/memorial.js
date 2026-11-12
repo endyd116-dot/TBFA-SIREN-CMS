@@ -549,7 +549,30 @@
   /* =========================================================
      8. 아침 — 유가족 근황 (누르면 이야기 전체)
      ========================================================= */
-  var MOODS = { calm: '🌿 담담한 하루', hope: '🌤️ 희망', thanks: '💌 감사', daily: '☕ 일상' };
+  /* ★ 2026-11-12 분위기 표시는 관리자가 문구·색상 목록을 직접 관리한다.
+     공개 API가 글마다 표시 문구(moodText)·글자색(moodColor)을 함께 보낸다 — 칩은 그 글자색에, 바탕은 같은 색을 옅게.
+     목록에 없는 표시(지워진 것·빈 값)는 moodText 가 null 이라 보이지 않는다.
+     아래 네 가지는 문구 칸이 아직 없던 예전 응답이 올 때만 쓰는 대비다. */
+  var LEGACY_MOODS = { calm: '🌿 담담한 하루', hope: '🌤️ 희망', thanks: '💌 감사', daily: '☕ 일상' };
+
+  function moodOf(n) {
+    if (!n) return null;
+    if (n.moodText !== undefined) {
+      var text = n.moodText ? String(n.moodText) : '';
+      if (!text) return null;
+      var color = /^#[0-9a-fA-F]{6}$/.test(String(n.moodColor || '')) ? String(n.moodColor) : '';
+      return { text: text, color: color };
+    }
+    var legacy = Object.prototype.hasOwnProperty.call(LEGACY_MOODS, n.mood) ? LEGACY_MOODS[n.mood] : '';
+    return legacy ? { text: legacy, color: '' } : null;
+  }
+
+  /* 글자색 = 고른 색, 바탕 = 같은 색을 옅게. 색이 없으면 CSS 기본 칩 색을 쓴다 */
+  function moodStyle(color) {
+    if (!color) return '';
+    var r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
+    return 'color:' + color + ';background-color:rgba(' + r + ',' + g + ',' + b + ',.12)';
+  }
 
   /* 카드에는 앞머리만 — 전체는 눌러서 읽는다 */
   function excerpt(text, n) {
@@ -561,10 +584,14 @@
     var img = n.photoUrl
       ? '<div class="mem2-note-img"><img src="' + esc(n.photoUrl) + '" alt="" loading="lazy"></div>'
       : '';
+    var md = moodOf(n);
+    var mood = md
+      ? '<div class="mem2-note-mood" aria-hidden="true"' + (md.color ? ' style="' + moodStyle(md.color) + '"' : '') + '>' + esc(md.text) + '</div>'
+      : '';
     return '<button type="button" class="mem2-note' + (n.photoUrl ? ' has-img' : '') + '" data-m2-note="' + i + '">' +
       img +
       '<div class="mem2-note-body">' +
-      '<div class="mem2-note-mood" aria-hidden="true">' + (MOODS[n.mood] || MOODS.calm) + '</div>' +
+      mood +
       '<h3>' + esc(n.title || '') + '</h3>' +
       '<p>' + esc(excerpt(n.content, 110)) + '</p>' +
       '<div class="mem2-note-foot">' +
@@ -587,7 +614,13 @@
     var n = NOTES[i];
     if (!n) return;
     setBoxImg('m2NoteBoxImg', n.photoUrl);
-    setBox('m2NoteBoxTag', MOODS[n.mood] || MOODS.calm);
+    /* 분위기 표시 — 목록에 없으면 감춘다 */
+    var tag = $('m2NoteBoxTag'), md = moodOf(n);
+    if (tag) {
+      tag.textContent = md ? md.text : '';
+      tag.style.cssText = (md && md.color) ? moodStyle(md.color) : '';
+      show(tag, !!md);
+    }
     setBox('m2NoteBoxTitle', n.title || '');
     var t = $('m2NoteBoxText');
     if (t) t.innerHTML = nl2br(n.content || '');

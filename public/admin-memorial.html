@@ -79,6 +79,20 @@ tr:last-child td { border-bottom:none; }
 .mod-content { font-size:12.5px; color:#374151; max-width:420px; white-space:pre-wrap; word-break:break-word; }
 .mod-content.hidden-row { opacity:.5; text-decoration:line-through; }
 
+/* ★ 2026-11-12 유가족 근황 분위기 표시 목록 — 칩 글자색은 고른 색, 바탕은 같은 색을 옅게(스크립트가 넣는다) */
+.fm-chip { display:inline-block; max-width:100%; padding:4px 11px; border-radius:999px; font-size:12px; font-weight:600; line-height:1.4; color:#3b584e; background-color:rgba(59,88,78,.1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+.fm-chip.none { color:#9ca3af; background-color:#f3f4f6; }
+.fm-list { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.fm-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 12px; border:1px solid #eef0f3; border-radius:8px; background:#fcfcfd; }
+.fm-row.editing { border-color:#93c5fd; background:#eff6ff; }
+.fm-count { font-size:12px; color:#6b7280; }
+.fm-color-code { font-size:11.5px; color:#9ca3af; font-family:ui-monospace,Consolas,monospace; }
+.fm-actions { margin-left:auto; display:flex; gap:6px; }
+.fm-edit { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding-top:14px; border-top:1px solid #f3f4f6; }
+.fm-edit input[type=text] { flex:1 1 220px; min-width:0; padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; font-size:13px; font-family:inherit; }
+.fm-color-label { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#374151; margin:0; }
+.fm-edit input[type=color] { width:42px; height:34px; padding:2px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
+
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:11px 22px; border-radius:8px; font-size:13.5px; font-weight:600; color:#fff; background:#1e293b; z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.18); opacity:0; transition:opacity 0.25s; pointer-events:none; max-width:380px; text-align:center; }
 .toast.show { opacity:1; } .toast.success { background:#16a34a; } .toast.error { background:#dc2626; }
 </style>
@@ -207,15 +221,16 @@ tr:last-child td { border-bottom:none; }
       <input type="text" id="fnAuthorLabel" maxlength="60" placeholder="예: OO 선생님 가족 · 유가족 A">
       <div class="hint">비워두면 이름 없이 나갑니다. <b>실명·연락처는 절대 넣지 마세요.</b></div>
     </div>
+    <!-- ★ 2026-11-12 대표 결정 — 선택지는 아래 «분위기 표시 문구·색상 관리» 목록으로 채운다 -->
     <div class="form-row">
-      <label>분위기 표시</label>
-      <select id="fnMood">
-        <option value="calm">🌿 담담하게</option>
-        <option value="hope">🌤️ 희망</option>
-        <option value="thanks">💌 감사</option>
-        <option value="daily">☕ 일상</option>
-      </select>
-      <div class="hint">카드 위에 붙는 작은 그림입니다.</div>
+      <label for="fnMood">분위기 표시</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="fnMood" style="flex:1 1 220px;width:auto;min-width:0">
+          <option value="">(표시 없음)</option>
+        </select>
+        <span class="fm-chip" id="fnMoodPreview" style="display:none"></span>
+      </div>
+      <div class="hint">근황 카드와 이야기 창에 붙는 작은 표시입니다. 선택지는 아래 &lsquo;분위기 표시 문구·색상 관리&rsquo;에서 바꿉니다.</div>
     </div>
     <div class="form-row" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
       <label style="margin:0"><input type="checkbox" id="fnPublic" checked> 공개</label>
@@ -227,6 +242,24 @@ tr:last-child td { border-bottom:none; }
     <div class="form-row">
       <button class="btn btn-primary" id="fnSave">저장</button>
       <button class="btn" id="fnReset" type="button">새로 쓰기</button>
+    </div>
+  </div>
+
+  <!-- ★ 2026-11-12 대표 결정 — 분위기 표시를 문구+색상 목록으로 직접 관리 (저장 위치·규칙: lib/memorial-moods.ts) -->
+  <div class="form-panel" id="fmPanel" style="margin-top:18px">
+    <h3 style="margin-bottom:6px">분위기 표시 문구·색상 관리</h3>
+    <div class="hint" style="margin:0 0 14px">
+      근황 카드와 이야기 창에 붙는 작은 표시입니다. 이 목록이 위 글쓰기의 &lsquo;분위기 표시&rsquo; 선택지가 됩니다.
+      글자색을 고르면 바탕에는 같은 색이 옅게 깔립니다. 지운 표시를 쓰던 글은 글은 그대로 두고 표시만 없이 보입니다.
+    </div>
+    <div id="fmList" class="fm-list"><div class="hint">불러오는 중…</div></div>
+    <div class="fm-edit">
+      <input type="hidden" id="fmKey">
+      <input type="text" id="fmText" maxlength="40" placeholder="표시 문구 (예: 🌿 담담한 하루)" aria-label="표시 문구">
+      <label class="fm-color-label">글자색 <input type="color" id="fmColor" value="#3b584e" aria-label="글자색"></label>
+      <span class="fm-chip" id="fmPreview">미리보기</span>
+      <button type="button" class="btn btn-primary btn-sm" id="fmSave">표시 추가</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="fmCancel" style="display:none">고치기 취소</button>
     </div>
   </div>
 
@@ -782,6 +815,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20261007-v3"></script>
+<script src="/js/admin-memorial.js?v=20261112-mem2"></script>
 </body>
 </html>

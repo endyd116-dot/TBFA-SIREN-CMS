@@ -4,6 +4,8 @@
 // 아침관 '우린 요즘 이렇게 지냅니다'에 나가는 근황을 등록·수정·삭제한다.
 // 유가족 신원 보호를 위해 실명이 아니라 표기용 이름만 받는다.
 // ★ 2026-10-07: 사진 한 장을 붙일 수 있다 (photoBlobId — /api/blob-upload 로 올린 번호).
+// ★ 2026-11-12: 분위기 표시(mood)는 관리자가 직접 관리하는 목록에서 고른다(lib/memorial-moods.ts).
+//               빈 값('')은 «표시 없음». 목록에 없는 key 는 받지 않는다.
 //
 //   GET                      목록 (숨긴 것 포함)
 //   POST                     등록      { title, content, authorLabel, mood, photoBlobId, isPublic, sortOrder }
@@ -16,10 +18,29 @@ import { db } from "../../db";
 import { memorialFamilyNotes } from "../../db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { jsonKST } from "../../lib/kst";
+import { readMoodSetting, isMoodKey, type MemorialMood } from "../../lib/memorial-moods";
 
 export const config = { path: "/api/admin-memorial-family-notes" };
 
-const MOODS = ["calm", "hope", "thanks", "daily"];
+/** 분위기 표시 목록 — 읽지 못하면 null(그때는 key 형식만 본다. 저장소가 잠깐 막혀도 글 저장은 되게) */
+async function moodListOrNull(): Promise<MemorialMood[] | null> {
+  try { return (await readMoodSetting()).moods; }
+  catch (err: any) {
+    console.warn("[admin-memorial-family-notes] 분위기 표시 목록 조회 실패 — 형식만 검사:", err?.message || err);
+    return null;
+  }
+}
+
+/** 보낸 분위기 표시 값 검사 — '' 는 표시 없음, 그 밖에는 목록에 있는 key 만 */
+function resolveMood(raw: unknown, list: MemorialMood[] | null): { ok: true; value: string } | { ok: false; error: string } {
+  const s = String(raw ?? "").trim();
+  if (!s) return { ok: true, value: "" };
+  if (!isMoodKey(s)) return { ok: false, error: "분위기 표시 값이 올바르지 않습니다" };
+  if (list && !list.some((m) => m.key === s)) {
+    return { ok: false, error: "고른 분위기 표시가 목록에 없습니다. 화면을 새로 고친 뒤 다시 골라 주세요" };
+  }
+  return { ok: true, value: s };
+}
 
 function jsonError(step: string, err: any) {
   return new Response(jsonKST({
@@ -90,8 +111,18 @@ export default async function handler(req: Request, _ctx: Context) {
   const title = String(body.title || "").trim();
   const content = String(body.content || "").trim();
   const authorLabel = String(body.authorLabel || "").trim() || null;
-  const moodRaw = String(body.mood || "calm").trim();
-  const mood = MOODS.indexOf(moodRaw) >= 0 ? moodRaw : "calm";
+  /* 분위기 표시 — 보낸 값이 있으면 목록 기준으로 검사, 새로 쓰면서 안 보냈으면 목록의 첫 표시 */
+  let mood = "";
+  if (body.mood !== undefined || action !== "update") {
+    const list = await moodListOrNull();
+    if (body.mood !== undefined) {
+      const r = resolveMood(body.mood, list);
+      if (!r.ok) return bad((r as { ok: false; error: string }).error);
+      mood = r.value;
+    } else {
+      mood = list ? (list[0]?.key || "") : "calm";
+    }
+  }
   const isPublic = body.isPublic === undefined ? true : !!body.isPublic;
   const sortOrder = Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0;
   const photoBlobId = Number.isFinite(Number(body.photoBlobId)) && Number(body.photoBlobId) > 0

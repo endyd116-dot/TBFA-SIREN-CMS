@@ -692,7 +692,20 @@ function fillTeacherCopy(tc) {
 }
 
 /* ─── 유가족 근황 ─── */
-var FN_MOODS = { calm: '🌿 담담하게', hope: '🌤️ 희망', thanks: '💌 감사', daily: '☕ 일상' };
+/* ★ 2026-11-12 대표 결정 — 분위기 표시는 관리자가 문구·색상 목록을 직접 관리한다.
+   목록 API: /api/admin-memorial-family-moods (저장 위치·규칙은 lib/memorial-moods.ts).
+   목록을 불러오지 못하면 예전 네 가지로 선택지를 채워 글쓰기는 계속할 수 있게 한다. */
+var FM_DEFAULT_COLOR = '#3b584e';
+var FM_FALLBACK = [
+  { key: 'calm', text: '🌿 담담한 하루', color: FM_DEFAULT_COLOR },
+  { key: 'hope', text: '🌤️ 희망', color: FM_DEFAULT_COLOR },
+  { key: 'thanks', text: '💌 감사', color: FM_DEFAULT_COLOR },
+  { key: 'daily', text: '☕ 일상', color: FM_DEFAULT_COLOR }
+];
+var _fmMoods = FM_FALLBACK.slice();
+var _fmUsage = {};
+var _fmSaved = false;
+var _fnMoodTouched = false;   /* 새 글에서 분위기를 직접 골랐는지 — 안 골랐으면 목록의 첫 표시가 기본 */
 
 function fnEscape(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -700,46 +713,231 @@ function fnEscape(s) {
   });
 }
 
+function fmColorOk(c) { return /^#[0-9a-fA-F]{6}$/.test(String(c || '')); }
+/* 글자색 = 고른 색, 바탕 = 같은 색을 옅게 (공개 화면과 같은 계산) */
+function fmStyle(color) {
+  if (!fmColorOk(color)) return '';
+  var r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
+  return 'color:' + color + ';background-color:rgba(' + r + ',' + g + ',' + b + ',.12)';
+}
+function fmFind(key) {
+  for (var i = 0; i < _fmMoods.length; i++) if (_fmMoods[i].key === key) return _fmMoods[i];
+  return null;
+}
+/* 표에 넣는 칩 — 목록에 없으면 «표시 없음» */
+function fmChipHtml(key) {
+  var m = key ? fmFind(key) : null;
+  if (!m) return '<span class="fm-chip none">' + (key ? '표시 없음 (지운 표시)' : '표시 없음') + '</span>';
+  return '<span class="fm-chip" style="' + fmStyle(m.color) + '">' + fnEscape(m.text) + '</span>';
+}
+
+/* 서버가 돌려준 목록·글 수를 반영하고 목록·선택지를 다시 그린다 */
+function fmApply(res) {
+  var moods = pick(res, 'moods');
+  if (Array.isArray(moods)) _fmMoods = moods;
+  _fmUsage = pick(res, 'usage') || {};
+  _fmSaved = !!pick(res, 'saved');
+  fmRenderList();
+  fmFillSelect();
+}
+
+function fmLoad() {
+  var box = document.getElementById('fmList');
+  return callApi('GET', '/api/admin-memorial-family-moods').then(function (res) {
+    if (!res.ok) {
+      if (box) box.innerHTML = '<div class="hint" style="color:#c00">표시 목록을 불러오지 못했습니다. ' +
+        fnEscape((res.data && (res.data.error || res.data.detail)) || ('HTTP ' + res.status)) +
+        ' — 글쓰기 선택지는 기본 네 가지로 보입니다.</div>';
+      fmFillSelect();
+      return false;
+    }
+    fmApply(res);
+    return true;
+  }).catch(function (e) {
+    if (box) box.innerHTML = '<div class="hint" style="color:#c00">표시 목록 오류: ' + fnEscape(e.message) + '</div>';
+    fmFillSelect();
+    return false;
+  });
+}
+
+function fmRenderList() {
+  var box = document.getElementById('fmList');
+  if (!box) return;
+  if (!_fmMoods.length) {
+    box.innerHTML = '<div class="hint">표시가 하나도 없습니다. 아래에서 추가해 주세요. (지금은 모든 근황이 표시 없이 보입니다)</div>';
+    return;
+  }
+  var editing = val('fmKey');
+  box.innerHTML = _fmMoods.map(function (m) {
+    var n = Number(_fmUsage[m.key] || 0);
+    return '<div class="fm-row' + (editing === m.key ? ' editing' : '') + '">' +
+      '<span class="fm-chip" style="' + fmStyle(m.color) + '">' + fnEscape(m.text) + '</span>' +
+      '<span class="fm-color-code">' + fnEscape(fmColorOk(m.color) ? m.color : '기본색') + '</span>' +
+      '<span class="fm-count">' + (n ? '근황 ' + n + '개에 쓰는 중' : '쓰는 근황 없음') + '</span>' +
+      '<span class="fm-actions">' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-fm-edit="' + fnEscape(m.key) + '">수정</button>' +
+        '<button type="button" class="btn btn-danger btn-sm" data-fm-del="' + fnEscape(m.key) + '">삭제</button>' +
+      '</span></div>';
+  }).join('') +
+  (_fmSaved ? '' : '<div class="hint">처음 기본 목록입니다. 고치거나 추가하면 이 목록이 저장됩니다.</div>');
+}
+
+/* 글쓰기의 «분위기 표시» 선택지를 목록으로 채운다 */
+function fmFillSelect() {
+  var sel = document.getElementById('fnMood');
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">(표시 없음)</option>' + _fmMoods.map(function (m) {
+    return '<option value="' + fnEscape(m.key) + '">' + fnEscape(m.text) + '</option>';
+  }).join('');
+  /* 새 글을 쓰는 중이고 아직 고르지 않았으면 목록의 첫 표시를 기본으로 */
+  if (!val('fnId') && !_fnMoodTouched) cur = _fmMoods[0] ? _fmMoods[0].key : '';
+  fmSetSelect(cur);
+}
+/* 목록에 없는 표시(지운 것)를 가진 글은 «표시 없음»으로 보인다 */
+function fmSetSelect(key) {
+  var sel = document.getElementById('fnMood');
+  if (!sel) return;
+  sel.value = (key && fmFind(key)) ? key : '';
+  fmPreviewSelected();
+}
+function fmPreviewSelected() {
+  var sel = document.getElementById('fnMood'), pv = document.getElementById('fnMoodPreview');
+  if (!sel || !pv) return;
+  var m = fmFind(sel.value);
+  if (!m) { pv.textContent = ''; pv.style.cssText = 'display:none'; return; }
+  pv.textContent = m.text;
+  pv.style.cssText = fmStyle(m.color);
+}
+
+/* 추가·고치기 입력 줄의 미리보기 */
+function fmPreviewEdit() {
+  var pv = document.getElementById('fmPreview');
+  if (!pv) return;
+  var text = val('fmText');
+  var color = (document.getElementById('fmColor') || {}).value || FM_DEFAULT_COLOR;
+  pv.textContent = text || '미리보기';
+  pv.style.cssText = fmStyle(color);
+}
+
+function fmEdit(key) {
+  var m = fmFind(key);
+  if (!m) return;
+  setVal('fmKey', m.key);
+  setVal('fmText', m.text);
+  var c = document.getElementById('fmColor');
+  if (c) c.value = fmColorOk(m.color) ? String(m.color).toLowerCase() : FM_DEFAULT_COLOR;
+  var b = document.getElementById('fmSave'); if (b) b.textContent = '고친 내용 저장';
+  var x = document.getElementById('fmCancel'); if (x) x.style.display = '';
+  fmPreviewEdit();
+  fmRenderList();
+  var t = document.getElementById('fmText'); if (t) t.focus();
+}
+
+function fmCancelEdit() {
+  setVal('fmKey', '');
+  setVal('fmText', '');
+  var c = document.getElementById('fmColor'); if (c) c.value = FM_DEFAULT_COLOR;
+  var b = document.getElementById('fmSave'); if (b) b.textContent = '표시 추가';
+  var x = document.getElementById('fmCancel'); if (x) x.style.display = 'none';
+  fmPreviewEdit();
+  fmRenderList();
+}
+
+function fmSave() {
+  var key = val('fmKey');
+  var text = val('fmText');
+  var color = (document.getElementById('fmColor') || {}).value || FM_DEFAULT_COLOR;
+  if (!text) { toast('표시 문구를 입력해 주세요.', 'error'); return; }
+  var path = key
+    ? '/api/admin-memorial-family-moods?action=update&key=' + encodeURIComponent(key)
+    : '/api/admin-memorial-family-moods?action=create';
+  var btn = document.getElementById('fmSave');
+  if (btn) btn.disabled = true;
+  callApi('POST', path, { text: text, color: color }).then(function (res) {
+    if (btn) btn.disabled = false;
+    if (!res.ok) { toast((res.data && res.data.error) || '저장 실패', 'error'); return; }
+    fmApply(res);
+    fmCancelEdit();
+    if (window.__FN_CACHE) fnRenderTable(window.__FN_CACHE);
+    toast(key ? '표시를 고쳤습니다.' : '표시를 추가했습니다.', 'success');
+  }).catch(function (e) {
+    if (btn) btn.disabled = false;
+    toast('저장 실패: ' + e.message, 'error');
+  });
+}
+
+function fmDelete(key) {
+  var m = fmFind(key);
+  if (!m) return;
+  /* 지우기 직전에 쓰는 글 수를 다시 센다 — 그사이 다른 관리자가 글을 고쳤을 수 있다 */
+  callApi('GET', '/api/admin-memorial-family-moods').then(function (res) {
+    var usage = res.ok ? (pick(res, 'usage') || {}) : _fmUsage;
+    var n = Number(usage[key] || 0);
+    var msg = n
+      ? '«' + m.text + '» 표시를 쓰는 근황이 ' + n + '개 있습니다.\n삭제하면 그 근황들은 표시 없이 보입니다(글은 그대로 남습니다).\n\n삭제할까요?'
+      : '«' + m.text + '» 표시를 삭제할까요?';
+    if (!confirm(msg)) return;
+    return callApi('POST', '/api/admin-memorial-family-moods?action=delete&key=' + encodeURIComponent(key)).then(function (r2) {
+      if (!r2.ok) { toast((r2.data && r2.data.error) || '삭제 실패', 'error'); return; }
+      var wasEditing = val('fmKey') === key;
+      fmApply(r2);
+      if (wasEditing) fmCancelEdit();          /* 고치던 표시를 지웠으면 입력 줄을 비운다 */
+      if (window.__FN_CACHE) fnRenderTable(window.__FN_CACHE);
+      toast('표시를 삭제했습니다.', 'success');
+    });
+  }).catch(function (e) { toast('삭제 실패: ' + e.message, 'error'); });
+}
+
 function loadFamilyNotes() {
   var box = document.getElementById('fnList');
   if (!box) return;
   box.innerHTML = '<div style="padding:20px;color:#888">불러오는 중…</div>';
-  callApi('GET', '/api/admin-memorial-family-notes').then(function (res) {
+  /* 표시 목록을 먼저 받아야 표의 칩을 그릴 수 있다 — 목록을 못 받아도 근황은 계속 불러온다 */
+  fmLoad().then(function () {
+    return callApi('GET', '/api/admin-memorial-family-notes');
+  }).then(function (res) {
     if (!res.ok) {
       box.innerHTML = '<div style="padding:20px;color:#c00">불러오지 못했습니다. ' +
         fnEscape((res.data && res.data.error) || '') + '</div>';
       return;
     }
     var notes = (res.data && res.data.data && res.data.data.notes) || [];
-    if (!notes.length) {
-      box.innerHTML = '<div style="padding:24px;color:#888">등록된 근황이 없습니다. 위에서 첫 소식을 남겨보세요.</div>';
-      return;
-    }
-    box.innerHTML = '<table class="tbl"><thead><tr>' +
-      '<th style="width:56px">순서</th><th style="width:78px">사진</th><th>제목</th><th style="width:130px">표기명</th>' +
-      '<th style="width:110px">분위기</th><th style="width:80px">공개</th><th style="width:150px">관리</th>' +
-      '</tr></thead><tbody>' +
-      notes.map(function (n) {
-        var thumb = n.photoUrl
-          ? '<img src="' + fnEscape(n.photoUrl) + '" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:5px">'
-          : '<span style="color:#bbb">—</span>';
-        return '<tr>' +
-          '<td>' + fnEscape(n.sortOrder) + '</td>' +
-          '<td>' + thumb + '</td>' +
-          '<td><b>' + fnEscape(n.title) + '</b><div style="color:#888;font-size:12px;margin-top:4px">' +
-            fnEscape(String(n.content || '').slice(0, 60)) + '…</div></td>' +
-          '<td>' + fnEscape(n.authorLabel || '—') + '</td>' +
-          '<td>' + fnEscape(FN_MOODS[n.mood] || n.mood) + '</td>' +
-          '<td>' + (n.isPublic ? '공개' : '<span style="color:#c00">숨김</span>') + '</td>' +
-          '<td>' +
-            '<button class="btn btn-sm" onclick="fnEdit(' + n.id + ')">수정</button> ' +
-            '<button class="btn btn-sm" onclick="fnDelete(' + n.id + ')">삭제</button>' +
-          '</td></tr>';
-      }).join('') + '</tbody></table>';
     window.__FN_CACHE = notes;
+    fnRenderTable(notes);
   }).catch(function (e) {
     box.innerHTML = '<div style="padding:20px;color:#c00">오류: ' + fnEscape(e.message) + '</div>';
   });
+}
+
+function fnRenderTable(notes) {
+  var box = document.getElementById('fnList');
+  if (!box) return;
+  if (!notes.length) {
+    box.innerHTML = '<div style="padding:24px;color:#888">등록된 근황이 없습니다. 위에서 첫 소식을 남겨보세요.</div>';
+    return;
+  }
+  box.innerHTML = '<table class="tbl"><thead><tr>' +
+    '<th style="width:56px">순서</th><th style="width:78px">사진</th><th>제목</th><th style="width:130px">표기명</th>' +
+    '<th style="width:150px">분위기</th><th style="width:80px">공개</th><th style="width:150px">관리</th>' +
+    '</tr></thead><tbody>' +
+    notes.map(function (n) {
+      var thumb = n.photoUrl
+        ? '<img src="' + fnEscape(n.photoUrl) + '" alt="" style="width:60px;height:42px;object-fit:cover;border-radius:5px">'
+        : '<span style="color:#bbb">—</span>';
+      return '<tr>' +
+        '<td>' + fnEscape(n.sortOrder) + '</td>' +
+        '<td>' + thumb + '</td>' +
+        '<td><b>' + fnEscape(n.title) + '</b><div style="color:#888;font-size:12px;margin-top:4px">' +
+          fnEscape(String(n.content || '').slice(0, 60)) + '…</div></td>' +
+        '<td>' + fnEscape(n.authorLabel || '—') + '</td>' +
+        '<td>' + fmChipHtml(n.mood) + '</td>' +
+        '<td>' + (n.isPublic ? '공개' : '<span style="color:#c00">숨김</span>') + '</td>' +
+        '<td>' +
+          '<button class="btn btn-sm" onclick="fnEdit(' + n.id + ')">수정</button> ' +
+          '<button class="btn btn-sm" onclick="fnDelete(' + n.id + ')">삭제</button>' +
+        '</td></tr>';
+    }).join('') + '</tbody></table>';
 }
 
 function fnEdit(id) {
@@ -749,7 +947,9 @@ function fnEdit(id) {
   setVal('fnTitle', n.title);
   setVal('fnContent', n.content);
   setVal('fnAuthorLabel', n.authorLabel);
-  var mood = document.getElementById('fnMood'); if (mood) mood.value = n.mood || 'calm';
+  /* 목록에서 지운 표시를 쓰던 글은 «표시 없음»으로 보인다 — 그대로 저장하면 표시 없이 남는다 */
+  _fnMoodTouched = true;
+  fmSetSelect(n.mood || '');
   var pub = document.getElementById('fnPublic'); if (pub) pub.checked = !!n.isPublic;
   setVal('fnSort', n.sortOrder);
   setVal('fnPhotoBlobId', n.photoBlobId || '');
@@ -760,7 +960,9 @@ function fnEdit(id) {
 
 function fnReset() {
   ['fnId', 'fnTitle', 'fnContent', 'fnAuthorLabel'].forEach(function (id) { setVal(id, ''); });
-  var mood = document.getElementById('fnMood'); if (mood) mood.value = 'calm';
+  /* 새 글의 분위기 표시는 목록의 첫 표시가 기본 */
+  _fnMoodTouched = false;
+  fmSetSelect(_fmMoods[0] ? _fmMoods[0].key : '');
   var pub = document.getElementById('fnPublic'); if (pub) pub.checked = true;
   setVal('fnSort', '0');
   fnClearPhoto();
@@ -772,7 +974,8 @@ function fnSave() {
     title: val('fnTitle'),
     content: val('fnContent'),
     authorLabel: val('fnAuthorLabel'),
-    mood: (document.getElementById('fnMood') || {}).value || 'calm',
+    /* 빈 값은 «표시 없음» */
+    mood: (document.getElementById('fnMood') || {}).value || '',
     isPublic: !!(document.getElementById('fnPublic') || {}).checked,
     sortOrder: Number(val('fnSort')) || 0,
     /* ★ 2026-10-07 — 사진. 없으면 null 로 보내 '지우기'도 저장된다 */
@@ -807,6 +1010,33 @@ document.addEventListener('DOMContentLoaded', function () {
   if (save) save.addEventListener('click', fnSave);
   var reset = document.getElementById('fnReset');
   if (reset) reset.addEventListener('click', fnReset);
+
+  /* ★ 2026-11-12 분위기 표시 목록 — 추가·고치기·삭제 */
+  var sel = document.getElementById('fnMood');
+  if (sel) sel.addEventListener('change', function () { _fnMoodTouched = true; fmPreviewSelected(); });
+  var fs = document.getElementById('fmSave');
+  if (fs) fs.addEventListener('click', fmSave);
+  var fc = document.getElementById('fmCancel');
+  if (fc) fc.addEventListener('click', fmCancelEdit);
+  var ft = document.getElementById('fmText');
+  if (ft) {
+    ft.addEventListener('input', fmPreviewEdit);
+    ft.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); fmSave(); }
+    });
+  }
+  var fcol = document.getElementById('fmColor');
+  if (fcol) fcol.addEventListener('input', fmPreviewEdit);
+  var fl = document.getElementById('fmList');
+  if (fl) fl.addEventListener('click', function (e) {
+    var ed = e.target.closest && e.target.closest('[data-fm-edit]');
+    if (ed) { fmEdit(ed.getAttribute('data-fm-edit')); return; }
+    var del = e.target.closest && e.target.closest('[data-fm-del]');
+    if (del) fmDelete(del.getAttribute('data-fm-del'));
+  });
+  /* 목록을 받기 전에도 선택지가 비지 않게 기본 네 가지로 먼저 채운다 */
+  fmFillSelect();
+  fmPreviewEdit();
 });
 
 /* =========================================================
