@@ -619,7 +619,10 @@ function renderPhotoPending(items) {
     return '<div class="lp-card" data-lp-id="' + it.id + '">' +
       photo +
       '<div>' +
-        '<div class="lp-meta"><b>' + esc(it.teacherName ? it.teacherName + ' 선생님께' : '선생님 #' + it.teacherId + '께') + '</b>' +
+        /* 저장된 이름에 이미 «선생님»이 붙어 있으면 «께»만 (공개 화면 «○○ 선생님께»와 같은 표기 — «선생님 선생님께» 방지) */
+        '<div class="lp-meta"><b>' + esc(it.teacherName
+          ? (/선생님\s*$/.test(it.teacherName) ? it.teacherName + '께' : it.teacherName + ' 선생님께')
+          : '선생님 #' + it.teacherId + '께') + '</b>' +
           '<span>· ' + esc(it.authorName || '익명') + '</span><span>· ' + fmtDate(it.createdAt) + '</span>' + tags.join('') + '</div>' +
         (it.title ? '<div class="lp-title">【' + esc(it.title) + '】</div>' : '') +
         '<div class="lp-text">' + esc(it.content || '') + '</div>' +
