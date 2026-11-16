@@ -434,6 +434,34 @@ if (window.self !== window.top) {
     overflow-y: auto;
     flex: 1;
   }
+  /* 2026-11-16: 환불·취소·입금 확인 창의 안내 상자·정보 표 — admin.html에만 있던 규칙을 통합 CMS로 가져옴
+     (후원 결제 내역이 통합 CMS로 옮겨 온 뒤로 세 창의 정보가 표 모양 없이 세로로 늘어져 보였다) */
+  .rc-warn-box {
+    background: #fff8ec;
+    border: 1px solid #f0e3c4;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    color: #8a6a00;
+    line-height: 1.7;
+  }
+  .rc-warn-box.danger {
+    background: #fdecec;
+    border-color: #f5b5bb;
+    color: #a01e2c;
+  }
+  .rc-info-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 6px 12px;
+    font-size: 12.5px;
+    padding: 12px 14px;
+    background: var(--bg-soft, #f6f7f9);
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+  .rc-info-grid > div:nth-child(odd) { color: var(--text-3, #8a8f98); font-weight: 600; }
 </style>
 </head>
 <body data-page="cms-tbfa">
