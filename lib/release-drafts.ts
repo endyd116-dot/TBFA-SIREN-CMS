@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-12.4";
+export const APP_VERSION = "2026-11-16.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,24 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-16-bank-deposit-confirm",
+    title: "[관리자] 계좌이체 회비 «입금 확인» 단추 — 통장 확인 뒤 한 번에 완료·등불 켜짐",
+    items: [
+      { text: "통합 CMS › 후원 결제 내역에서 «입금 대기»(계좌이체) 줄마다 [입금 확인] 단추가 생겼습니다. 통장에서 입금을 확인한 뒤 입금일·입금액을 확인하고 누르면 «완료»로 바뀝니다", link: "/cms-tbfa.html#donations" },
+      { text: "숭고한 등불 캠페인 회비는 [입금 확인] 한 번으로 등불이 켜지고 증서가 준비되며, 랜딩에도 바로 알려집니다. 회원 분류(정기·예비 후원자)도 함께 갱신됩니다" },
+      { text: "상태 필터에 «입금 대기(계좌이체)»·«효성 확인중»이 추가되어 확인할 건만 모아 볼 수 있습니다. 통장 금액이 예정과 다르면 창에서 바로 알려 줍니다" },
+    ],
+  },
+  {
+    key: "2026-11-16-memorial-reports",
+    title: "[추모관] «함께 알려 주세요» — 선생님 소식·유가족 제보·모시기 신청 접수",
+    items: [
+      { text: "추모관 밤 구간 «기억하는 선생님들» 아래 안내에서 로그인 없이 세 가지를 보낼 수 있습니다: 선생님 사망 소식, 도움이 필요한 유가족 제보, 유가족의 추모관 모시기 신청. 적은 내용은 공개되지 않고 접수번호가 안내됩니다", link: "/memorial.html" },
+      { text: "관리자: 추모관 관리 «제보·신청» 탭에서 새 접수를 보고 상태(새 접수→확인 중→연락함→처리 완료)·메모를 남기며, [추모관에 모시기]·[딥릴리프로 넘기기]로 이어서 처리합니다", link: "/admin-memorial.html" },
+      { text: "개인정보처리방침에 추모관 제보·신청 항목이 추가되었습니다(처리 끝난 뒤 3년 보관)" },
+    ],
+  },
   {
     key: "2026-11-12-memorial-letter-photo",
     title: "[추모관] 기억의 편지에 사진 한 장 붙이기 — 운영자 확인 뒤 공개",

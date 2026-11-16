@@ -7,6 +7,8 @@
  * 1. body.ids[] 배열                 → 영수증 일괄 발행 (기존 호환)
  * 2. body.id + body.refundOne=true   → 단건 환불 (status=refunded)
  * 3. body.id + body.cancelOne=true   → 단건 취소 (status=cancelled)
+ * 3-b. body.id + body.bankConfirm=true → 입금 확인 (pending_bank → completed · 등불 캠페인이면 등불·랜딩 회신)
+ *      { paidDate?: 'YYYY-MM-DD'(기본 오늘), amount?: 정수(기본 예정 금액), depositorName?, note? }
  * 4. body.id + body.inlineMemoOnly   → 메모만 빠른 저장
  * 5. body.id + 일반 필드             → status/memo/campaignTag/isAnonymous 동시 변경
  *
@@ -29,6 +31,9 @@ import {
 import { logAdminAction } from "../../lib/audit";
 import { cancelPayment } from "../../lib/kicc";
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
+import { afterLanternCompletion } from "../../lib/lantern";
+import { safeReevaluate } from "../../lib/donor-status";
+import { todayKST } from "../../lib/kst";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -66,7 +71,8 @@ export default async (req: Request) => {
       const q = (url.searchParams.get("q") || "").trim();
 
       const conditions: any[] = [];
-      if (status && ["pending", "completed", "failed", "cancelled", "refunded"].includes(status)) {
+      /* 2026-11-16: «입금 대기»(계좌 직접 입금)·«효성 확인중»만 따로 볼 수 있게 — [입금 확인] 단추와 함께 */
+      if (status && ["pending", "pending_bank", "pending_hyosung", "completed", "failed", "cancelled", "refunded"].includes(status)) {
         conditions.push(eq(donations.status, status as any));
       }
       if (type && ["regular", "onetime"].includes(type)) {
@@ -331,6 +337,113 @@ export default async (req: Request) => {
           { donation: updated },
           "후원이 취소 처리되었습니다",
         );
+      }
+
+      /* ───── 분기 3-b: 입금 확인 (2026-11-16 Swain) ─────
+         계좌 직접 입금(«입금 대기» pending_bank)을 운영자가 통장에서 확인한 뒤 «완료»로 바꾼다.
+         협의회 통장은 우리은행이라 기업은행 CSV 통과 길(admin-donation-confirm)로는 완료할 수 없었다.
+         완료 뒤 처리는 통과 길과 같다: 등불 캠페인이면 등불 번호·증서·랜딩 회신(afterLanternCompletion)
+         → 캠페인 모금현황 재계산 → 회원 분류 재평가(후원자 단계·잠재 후원자 연결) → 관리자 작업 기록. */
+      if (body.bankConfirm === true) {
+        if (existing.status !== "pending_bank") {
+          return badRequest(
+            existing.status === "completed"
+              ? "이미 완료된 후원입니다"
+              : `입금 대기 상태에서만 입금 확인할 수 있습니다 (지금 상태: ${existing.status})`
+          );
+        }
+
+        /* 입금일 — 통장에서 확인한 날(기본 오늘·한국 날짜). 미래·없는 날짜는 거절 */
+        const today = todayKST();
+        const rawDate = typeof body.paidDate === "string" ? body.paidDate.trim() : "";
+        const paidDate = rawDate || today;
+        const probe = new Date(`${paidDate}T12:00:00+09:00`);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate) || Number.isNaN(probe.getTime())
+            || new Date(probe.getTime() + 9 * 3_600_000).toISOString().slice(0, 10) !== paidDate) {
+          return badRequest("입금일 형식이 올바르지 않습니다 (예: 2026-11-16)");
+        }
+        if (paidDate > today) return badRequest("입금일은 오늘보다 뒤일 수 없습니다");
+        if (paidDate < "2020-01-01") return badRequest("입금일을 다시 확인해 주세요");
+        /* 오늘 확인한 입금은 지금 시각, 지난 날짜는 그날 정오(한국 시각)로 남긴다 */
+        const paidAt = paidDate === today ? new Date() : probe;
+
+        /* 입금액 — 통장에 실제로 들어온 금액(기본 예정 금액). 회비 최소 1만 원 */
+        const plannedAmount = Number(existing.amount || 0);
+        const amount = body.amount == null || body.amount === "" ? plannedAmount : Number(body.amount);
+        if (!Number.isInteger(amount) || amount < 10000 || amount > 100_000_000) {
+          return badRequest("입금액은 10,000원 이상 1억 원 이하의 정수여야 합니다");
+        }
+
+        const depositorName = typeof body.depositorName === "string" ? body.depositorName.trim().slice(0, 50) : "";
+        const note = typeof body.note === "string" ? body.note.trim().slice(0, 300) : "";
+        const adminTag = `[관리자 입금 확인 ${today} by ${admin.name || "관리자"}]`;
+        const confirmMemo = `${adminTag} 입금일 ${paidDate}` +
+          (amount !== plannedAmount ? ` · 금액 ${plannedAmount.toLocaleString()}→${amount.toLocaleString()}원` : "") +
+          (note ? ` · ${note}` : "");
+        const newMemo = existing.memo ? `${existing.memo}\n${confirmMemo}` : confirmMemo;
+
+        /* 같은 건을 두 사람이 동시에 눌러도 한 번만 완료되게 «입금 대기»일 때만 바꾼다 */
+        const [updated] = await db
+          .update(donations)
+          .set({
+            status: "completed",
+            paidAt,
+            amount,
+            bankDepositorName: depositorName || (existing as any).bankDepositorName || existing.donorName,
+            memo: newMemo,
+            updatedAt: new Date(),
+          } as any)
+          .where(and(eq(donations.id, donationId), eq(donations.status, "pending_bank" as any)))
+          .returning({
+            id: donations.id,
+            status: donations.status,
+            amount: donations.amount,
+            donorName: donations.donorName,
+            memberId: donations.memberId,
+          });
+        if (!updated) return badRequest("이미 처리된 후원입니다 (다른 관리자가 먼저 처리했을 수 있습니다)");
+
+        /* 등불 캠페인이면 등불 번호·증서 정보·랜딩 회신 — 등불 캠페인이 아니면 null. 실패해도 완료는 유지 */
+        let lantern: { lanternNo: number; postbackOk: boolean | null; postbackSkipped?: string } | null = null;
+        try {
+          const c = await afterLanternCompletion({
+            donationId,
+            memberId: updated.memberId ?? null,
+            amount,
+            monthly: String(existing.type) === "regular",
+            paidAt,
+          });
+          if (c) {
+            lantern = {
+              lanternNo: c.lanternNo,
+              postbackOk: c.postback ? !!c.postback.ok : null,
+              postbackSkipped: c.postback?.skipped,
+            };
+          }
+        } catch (e: any) {
+          console.warn("[admin-donations] 입금 확인 뒤 등불 처리 실패(완료는 유지):", e?.message || e);
+        }
+
+        await recalcCampaignStatsSafe((existing as any).campaignId);
+        await safeReevaluate(updated.memberId, "admin-donation-bank-confirm");
+
+        await logAdminAction(req, admin.uid, admin.name, "donation_bank_confirm", {
+          target: `D-${donationId}`,
+          detail: {
+            donorName: updated.donorName,
+            amount,
+            plannedAmount,
+            paidDate,
+            lanternNo: lantern?.lanternNo ?? null,
+            postbackOk: lantern?.postbackOk ?? null,
+          },
+        });
+
+        const msg = lantern
+          ? `입금 확인 완료 — 등불 ${lantern.lanternNo}번이 켜졌습니다` +
+            (lantern.postbackOk === false ? " (랜딩 알림은 실패 — 다시 시도 필요)" : "")
+          : "입금 확인 완료 — 후원이 완료 처리되었습니다";
+        return ok({ donation: updated, lantern }, msg);
       }
 
       /* ───── 분기 4: K-8 메모만 빠른 저장 ───── */

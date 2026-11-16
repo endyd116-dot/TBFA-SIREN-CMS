@@ -142,6 +142,8 @@
             <option value="">전체 상태</option>
             <option value="completed">승인</option>
             <option value="pending">대기</option>
+            <option value="pending_bank">입금 대기 (계좌이체)</option>
+            <option value="pending_hyosung">효성 확인중</option>
             <option value="failed">실패</option>
             <option value="cancelled">취소</option>
             <option value="refunded">환불</option>
@@ -255,6 +257,57 @@
           </div>
         </div>
       </div>
+
+      <!-- 2026-11-16 입금 확인 — 계좌 직접 입금(«입금 대기»)을 통장에서 확인한 뒤 완료 처리 -->
+      <div id="bankConfirmModal" class="modal-bg">
+        <div class="modal" style="max-width:520px;padding:28px">
+          <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+            <h3 class="serif" style="margin:0;font-size:18px">입금 확인</h3>
+            <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="rc-warn-box" style="background:#eef8f1;border:1px solid #a3d9b4;color:#1a5e2c">
+              <strong>통장에서 입금을 확인한 뒤 눌러 주세요</strong><br />
+              • 이 후원이 «완료»로 바뀝니다 (되돌리려면 취소·환불)<br />
+              • 숭고한 등불 캠페인 후원이면 등불이 켜지고 랜딩에도 알려집니다<br />
+              • 회원 분류(정기·예비 후원자)도 함께 갱신됩니다
+            </div>
+            <div class="rc-info-grid" id="rcBankInfo"></div>
+            <form id="bankConfirmForm">
+              <input type="hidden" id="rcBankId" value="">
+              <div class="fg">
+                <label for="rcBankDate" style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
+                  입금일 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(통장에 찍힌 날짜)</span>
+                </label>
+                <input type="date" id="rcBankDate" required style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;box-sizing:border-box">
+              </div>
+              <div class="fg" style="margin-top:12px">
+                <label for="rcBankAmount" style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
+                  입금액 (원) <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(통장에 실제로 들어온 금액)</span>
+                </label>
+                <input type="number" id="rcBankAmount" min="10000" step="1" required style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;box-sizing:border-box">
+                <div id="rcBankAmountHint" style="display:none;font-size:11.5px;color:#c47a00;margin-top:5px"></div>
+              </div>
+              <div class="fg" style="margin-top:12px">
+                <label for="rcBankDepositor" style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
+                  입금자명 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(선택 · 통장에 찍힌 이름이 다를 때)</span>
+                </label>
+                <input type="text" id="rcBankDepositor" maxlength="50" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;box-sizing:border-box">
+              </div>
+              <div class="fg" style="margin-top:12px">
+                <label for="rcBankNote" style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
+                  메모 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(선택)</span>
+                </label>
+                <input type="text" id="rcBankNote" maxlength="300" placeholder="예) 우리은행 통장 확인" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;box-sizing:border-box">
+              </div>
+              <div style="display:flex;gap:10px;margin-top:16px">
+                <button type="submit" id="btnBankConfirm" style="flex:1;background:#1a7f45;color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">입금 확인 완료</button>
+                <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">닫기</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -341,8 +394,11 @@
       /* 2026-09-07: 결제 전 미완료 3종(결제 대기·입금 대기·효성 확인중)은 모두 취소 가능 */
       const canCancel = d.status === 'pending' || d.status === 'pending_bank' || d.status === 'pending_hyosung' || d.status === 'completed';
       const canReceipt = d.status === 'completed';
+      /* 2026-11-16: 계좌 직접 입금(입금 대기)은 통장에서 확인한 뒤 [입금 확인]으로 완료 — 등불 캠페인이면 등불이 켜진다 */
+      const canBankConfirm = d.status === 'pending_bank';
       const actions = '<div class="dm-row-actions">' +
         '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">상세</button>' +
+        (canBankConfirm ? '<button type="button" class="detail" data-dm-action="bank-confirm" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-created="' + escapeHtml(String(d.createdAt || '')) + '" data-campaign="' + escapeHtml(d.campaignTag || '') + '" style="color:#1a5e2c;border-color:#a3d9b4;font-weight:700">입금 확인</button>' : '') +
         (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">확인서</button>' : '') +
         (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-pg="' + escapeHtml(d.pgProvider || '') + '">환불</button>' : '') +
         (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">취소</button>' : '') +
@@ -505,6 +561,39 @@
     setTimeout(() => document.getElementById('rcCancelReason')?.focus(), 100);
   }
 
+  /* 2026-11-16 입금 확인 창 — 입금일(기본 오늘·한국 날짜)·입금액(기본 예정 금액)·입금자명·메모 */
+  function openBankConfirmModal(id, donorName, amount, createdAt, campaignTag) {
+    const modal = document.getElementById('bankConfirmModal');
+    if (!modal) return;
+    const today = (typeof window.todayKST === 'function')
+      ? window.todayKST()
+      : new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+    document.getElementById('rcBankId').value = String(id);
+    const dateEl = document.getElementById('rcBankDate');
+    dateEl.value = today;
+    dateEl.max = today;
+    const amtEl = document.getElementById('rcBankAmount');
+    amtEl.value = amount ? String(amount) : '';
+    amtEl.dataset.planned = String(amount || 0);
+    const depEl = document.getElementById('rcBankDepositor');
+    depEl.value = '';
+    depEl.placeholder = donorName ? donorName + ' (비워 두면 이 이름)' : '';
+    document.getElementById('rcBankNote').value = '';
+    const hint = document.getElementById('rcBankAmountHint');
+    if (hint) { hint.style.display = 'none'; hint.textContent = ''; }
+    const infoEl = document.getElementById('rcBankInfo');
+    if (infoEl) {
+      infoEl.innerHTML =
+        '<div>후원 ID</div><div style="font-family:Inter;font-weight:600">D-' + String(id).padStart(7, '0') + '</div>' +
+        '<div>후원자</div><div><strong>' + escapeHtml(donorName) + '</strong></div>' +
+        '<div>예정 금액</div><div style="font-weight:700;color:#1a5e2c">₩ ' + Number(amount || 0).toLocaleString() + '</div>' +
+        (createdAt ? '<div>신청 시각</div><div>' + escapeHtml(formatDateTime(createdAt)) + '</div>' : '') +
+        (campaignTag ? '<div>캠페인</div><div>' + escapeHtml(campaignTag) + '</div>' : '');
+    }
+    modal.classList.add('show');
+    setTimeout(() => dateEl.focus(), 100);
+  }
+
   /* ── 수납내역 엑셀 내보내기 ── */
   async function exportDonationsExcel(btn) {
     const origText = btn.textContent;
@@ -560,8 +649,8 @@
     if (_listenersBound) return;
     _listenersBound = true;
 
-    /* 모달 닫기 — admin-donations.js 모달 3종 한정 (#donationDetailModal·#refundReasonModal·#cancelReasonModal) */
-    const ADM_MODAL_SEL = '#donationDetailModal, #refundReasonModal, #cancelReasonModal';
+    /* 모달 닫기 — admin-donations.js 모달 4종 한정 (#donationDetailModal·#refundReasonModal·#cancelReasonModal·#bankConfirmModal) */
+    const ADM_MODAL_SEL = '#donationDetailModal, #refundReasonModal, #cancelReasonModal, #bankConfirmModal';
     document.addEventListener('click', (e) => {
       if (e.target.closest('[data-action="close-modal"]')) {
         const modal = e.target.closest(ADM_MODAL_SEL);
@@ -570,7 +659,7 @@
       }
       /* 백드롭 클릭 시 닫기 (모달 카드 안 클릭은 무시) */
       const t = e.target;
-      if (t && (t.id === 'donationDetailModal' || t.id === 'refundReasonModal' || t.id === 'cancelReasonModal')) {
+      if (t && (t.id === 'donationDetailModal' || t.id === 'refundReasonModal' || t.id === 'cancelReasonModal' || t.id === 'bankConfirmModal')) {
         t.classList.remove('show');
       }
     });
@@ -625,6 +714,7 @@
       if (action === 'detail') { openDonationDetailModal(id); return; }
       if (action === 'refund') { openRefundModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0, btn.dataset.pg || ''); return; }
       if (action === 'cancel') { openCancelModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0); return; }
+      if (action === 'bank-confirm') { openBankConfirmModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0, btn.dataset.created || '', btn.dataset.campaign || ''); return; }
       if (action === 'receipt') {
         window.open('/api/donation-receipt?id=' + id, '_blank', 'noopener');
         toast('영수증 PDF를 새 탭에서 엽니다');
@@ -684,6 +774,63 @@
         } finally {
           if (btn) { btn.disabled = false; btn.textContent = oldText; }
         }
+      }
+      /* 2026-11-16 입금 확인 제출 */
+      if (e.target && e.target.id === 'bankConfirmForm') {
+        e.preventDefault();
+        const id = Number(document.getElementById('rcBankId').value);
+        const paidDate = (document.getElementById('rcBankDate').value || '').trim();
+        const amtEl = document.getElementById('rcBankAmount');
+        const amount = Number(amtEl.value);
+        const planned = Number(amtEl.dataset.planned || 0);
+        const depositorName = (document.getElementById('rcBankDepositor').value || '').trim();
+        const note = (document.getElementById('rcBankNote').value || '').trim();
+        if (!id) return;
+        if (!paidDate) { toast('입금일을 골라 주세요'); return; }
+        if (!Number.isInteger(amount) || amount < 10000) { toast('입금액은 10,000원 이상이어야 합니다'); return; }
+        const ask = [
+          '통장에서 입금을 확인하셨나요?',
+          '',
+          '• 입금일: ' + paidDate,
+          '• 입금액: ' + amount.toLocaleString() + '원' + (planned && amount !== planned ? ' (예정 ' + planned.toLocaleString() + '원과 다름)' : ''),
+          '',
+          '이 후원이 «완료»로 바뀌고, 숭고한 등불 캠페인 후원이면 등불이 켜집니다.',
+        ].join('\n');
+        if (!confirm(ask)) return;
+        const btn = document.getElementById('btnBankConfirm');
+        const oldText = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+        try {
+          const res = await api('/api/admin/donations', {
+            method: 'PATCH',
+            body: { id, bankConfirm: true, paidDate, amount, depositorName: depositorName || undefined, note: note || undefined },
+          });
+          if (res.ok) {
+            toast(res.data?.message || '입금 확인이 완료되었습니다');
+            document.getElementById('bankConfirmModal')?.classList.remove('show');
+            loadDonations();
+          } else {
+            toast(res.data?.error || '입금 확인 실패');
+          }
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = oldText; }
+        }
+      }
+    });
+
+    /* 입금 확인 창 — 입금액이 예정 금액과 다르면 바로 알려 준다 */
+    document.addEventListener('input', (e) => {
+      if (!e.target || e.target.id !== 'rcBankAmount') return;
+      const hint = document.getElementById('rcBankAmountHint');
+      if (!hint) return;
+      const v = Number(e.target.value);
+      const planned = Number(e.target.dataset.planned || 0);
+      if (planned && v && v !== planned) {
+        hint.textContent = '예정 금액(' + planned.toLocaleString() + '원)과 다릅니다. 통장에 들어온 금액이 맞는지 확인해 주세요.';
+        hint.style.display = '';
+      } else {
+        hint.style.display = 'none';
+        hint.textContent = '';
       }
     });
 
