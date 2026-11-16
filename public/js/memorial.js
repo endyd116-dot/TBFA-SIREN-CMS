@@ -181,6 +181,9 @@
       /* 운영자가 어드민에서 고친 문구가 있으면 덮어쓴다 */
       var hall = unwrap(res, 'hallCopy');
       applyHallCopy(hall);
+
+      /* ★ 2026-11-16 «함께 알려 주세요» — 접수를 받을 수 있을 때만 보인다 */
+      show($('m2ReportBlock'), !!unwrap(res, 'reportOpen'));
     });
   }
 
@@ -192,13 +195,18 @@
       /* ★ 2026-10-07: 아침의 근황·징검다리 구간 제목도 운영자가 고친다 */
       ['morning', 'notesTitle', 'm2NotesTitle'], ['morning', 'notesSub', 'm2NotesSub'],
       ['morning', 'timelineTitle', 'm2TlTitle'], ['morning', 'timelineSub', 'm2TlSub'],
-      ['dawn', 'line', 'm2DawnLine'], ['dawn', 'sub', 'm2DawnSub']
+      ['dawn', 'line', 'm2DawnLine'], ['dawn', 'sub', 'm2DawnSub'],
+      /* ★ 2026-11-16 — 함께 알려 주세요(제보·신청) 안내 */
+      ['report', 'title', 'm2RepTitle'], ['report', 'sub', 'm2RepSub']
     ];
     map.forEach(function (m) {
       var v = hall[m[0]] && hall[m[0]][m[1]];
       var el = $(m[2]);
       if (el && v) el.innerHTML = String(v).replace(/\n/g, '<br>');
     });
+    /* 단추 글자는 글자 그대로만 바꾼다 */
+    var rb = hall.report && hall.report.button;
+    if (rb && $('m2RepOpen')) $('m2RepOpen').textContent = String(rb);
   }
 
   /* 별빛 하나 = 참여 한 번.
@@ -724,8 +732,154 @@
     });
   }
 
+  /* =========================================================
+     ★ 2026-11-16 함께 알려 주세요 — 제보·신청 (Swain 지시)
+     · 선생님 사망 소식 / 도움이 필요한 유가족 / 유가족의 추모관 모시기 신청
+     · 로그인 없이 보낸다. 적은 내용은 공개되지 않고 협의회 운영자만 본다.
+     · 창을 실수로 닫아도 적던 내용은 그대로 남는다(보낸 뒤에만 비운다).
+     ========================================================= */
+  var REP_TEXT = {
+    death: {
+      head: '떠나신 선생님', teacher: '선생님 성함 *',
+      content: '알게 된 경위나 전하고 싶은 이야기',
+      contentPh: '언제, 어떻게 소식을 알게 되셨는지 적어 주시면 협의회가 확인하는 데 도움이 됩니다.',
+      relation: '고인·유가족과의 관계', relationPh: '예: 동료 교사, 같은 학교 교직원, 지인'
+    },
+    family: {
+      head: '떠나신 선생님 (아시면)', teacher: '선생님 성함',
+      content: '어떤 도움이 필요해 보이시나요? *',
+      contentPh: '유가족께서 지금 어떤 상황이신지, 어떤 도움이 필요해 보이는지 적어 주세요.',
+      relation: '유가족과의 관계', relationPh: '예: 동료 교사, 이웃, 지인'
+    },
+    enshrine: {
+      head: '떠나신 선생님', teacher: '선생님 성함 *',
+      content: '선생님에 대해 남기고 싶은 이야기',
+      contentPh: '선생님이 어떤 분이셨는지, 추모관에 어떻게 모시고 싶으신지 편하게 적어 주세요.',
+      relation: '고인과의 관계 *', relationPh: '예: 배우자, 자녀, 부모, 형제자매'
+    }
+  };
+  var repSent = false;
+
+  function repForm() { return $('m2RepForm'); }
+  function repVal(name) {
+    var f = repForm();
+    var el = f && f.elements[name];
+    return el ? String(el.value || '').trim() : '';
+  }
+  function repKind() {
+    var f = repForm();
+    var k = f && f.querySelector('input[name="kind"]:checked');
+    return k ? k.value : '';
+  }
+  function repSetText(id, text) { var el = $(id); if (el) el.textContent = text; }
+  function repErr(msg) { repSetText('m2RepErr', msg || ''); }
+  function repDigits(s) { return String(s || '').replace(/[^0-9]/g, ''); }
+
+  /* 고른 종류에 맞춰 칸 이름·안내를 바꾼다. 유가족 본인의 신청에는 «유가족 연락처» 칸이 없다. */
+  function repApplyKind() {
+    var kind = repKind();
+    var t = REP_TEXT[kind];
+    show($('m2RepFields'), !!t);
+    if (!t) return;
+    repSetText('m2RepTeacherHead', t.head);
+    repSetText('m2RepTeacherLabel', t.teacher);
+    repSetText('m2RepContentLabel', t.content);
+    repSetText('m2RepRelationLabel', t.relation);
+    var ct = $('m2RepContent'); if (ct) ct.placeholder = t.contentPh;
+    var ri = $('m2RepRelation'); if (ri) ri.placeholder = t.relationPh;
+    show($('m2RepFamilyBox'), kind !== 'enshrine');
+  }
+
+  /* 서버와 같은 확인을 먼저 한다(빠진 칸을 바로 알려 드리려고) */
+  function repCheck(kind) {
+    if (!kind) return '어떤 이야기를 전해 주시는지 골라 주세요';
+    if ((kind === 'death' || kind === 'enshrine') && !repVal('teacherName')) return '선생님 성함을 적어 주세요';
+    if (kind === 'family' && !repVal('content')) return '어떤 도움이 필요해 보이는지 적어 주세요';
+    if (kind === 'enshrine' && !repVal('reporterRelation')) return '고인과의 관계를 적어 주세요';
+    if (!repVal('reporterName')) return '신청하시는 분의 성함을 적어 주세요';
+    if (repDigits(repVal('reporterPhone')).length < 9) return '연락받으실 휴대폰 번호를 적어 주세요';
+    var fp = repVal('familyPhone');
+    if (kind !== 'enshrine' && fp && repDigits(fp).length < 9) return '유가족 연락처를 다시 확인해 주세요';
+    var em = repVal('reporterEmail');
+    if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return '이메일 주소를 다시 확인해 주세요';
+    var f = repForm();
+    if (!(f && f.elements.consent && f.elements.consent.checked)) return '개인정보 수집·이용에 동의해 주셔야 접수할 수 있습니다';
+    return '';
+  }
+
+  function repOpen() {
+    if (repSent) {
+      /* 한 번 보낸 뒤 다시 열면 새로 쓸 수 있게 비운다 */
+      var f = repForm();
+      if (f) f.reset();
+      repSent = false;
+      show(repForm(), true);
+      show($('m2RepDone'), false);
+      repApplyKind();
+      repErr('');
+    }
+    openBox('m2RepBox');
+  }
+
+  function repSubmit(ev) {
+    if (ev) ev.preventDefault();
+    var kind = repKind();
+    var msg = repCheck(kind);
+    if (msg) { repErr(msg); return; }
+    repErr('');
+    var btn = $('m2RepSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = '보내는 중…'; }
+    var f = repForm();
+    var familyOk = kind !== 'enshrine';
+    var body = {
+      kind: kind,
+      teacherName: repVal('teacherName'),
+      schoolRegion: repVal('schoolRegion'),
+      deathDateText: repVal('deathDateText'),
+      content: repVal('content'),
+      familyName: familyOk ? repVal('familyName') : '',
+      familyRelation: familyOk ? repVal('familyRelation') : '',
+      familyPhone: familyOk ? repVal('familyPhone') : '',
+      reporterName: repVal('reporterName'),
+      reporterRelation: repVal('reporterRelation'),
+      reporterPhone: repVal('reporterPhone'),
+      reporterEmail: repVal('reporterEmail'),
+      consent: !!(f && f.elements.consent && f.elements.consent.checked),
+      website: repVal('website')
+    };
+    api('/api/memorial-report', { method: 'POST', body: body }).then(function (res) {
+      if (btn) { btn.disabled = false; btn.textContent = '보내기'; }
+      if (!res.ok) {
+        var d = res.data || {};
+        repErr(d.error || (d.data && d.data.error) || '보내지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+        return;
+      }
+      repSent = true;
+      var no = unwrap(res, 'reportNo');
+      repSetText('m2RepNo', no || '');
+      show($('m2RepNoLine'), !!no);
+      show(repForm(), false);
+      show($('m2RepDone'), true);
+      var inner = document.querySelector('#m2RepBox .mem2-modal-inner');
+      if (inner) inner.scrollTop = 0;
+    });
+  }
+
+  function initReport() {
+    var open = $('m2RepOpen');
+    if (open) open.addEventListener('click', repOpen);
+    var f = repForm();
+    if (!f) return;
+    f.addEventListener('submit', repSubmit);
+    Array.prototype.forEach.call(f.querySelectorAll('input[name="kind"]'), function (r) {
+      r.addEventListener('change', function () { repApplyKind(); repErr(''); });
+    });
+    repApplyKind();
+  }
+
   function start() {
     bind();
+    initReport();
     /* 서로 기다릴 필요가 없는 조회는 한꺼번에 */
     loadSummary();
     loadTeachers();

@@ -3,6 +3,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialSettings } from "../../db/schema";
 import { sql, desc } from "drizzle-orm";
+import { reportsReady } from "../../lib/memorial-reports";
 
 export const config = { path: "/api/memorial-summary" };
 
@@ -58,6 +59,12 @@ export default async function handler(_req: Request, _ctx: Context) {
       console.warn("[memorial-summary] settings 조회 실패", err);
     }
 
+    /* ★ 2026-11-16 «함께 알려 주세요» 제보·신청 — 저장소가 준비됐고 운영자가 감추지 않았을 때만 연다 */
+    let reportOpen = false;
+    try {
+      reportOpen = (await reportsReady()) && !(hallCopy && hallCopy.report && hallCopy.report.off === true);
+    } catch { reportOpen = false; }
+
     return new Response(jsonKST({
       ok: true,
       data: {
@@ -65,6 +72,7 @@ export default async function handler(_req: Request, _ctx: Context) {
         hero: { youtubeId: heroYoutubeId, copy: heroCopy },
         bgmTracks,
         hallCopy,
+        reportOpen,
       },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {

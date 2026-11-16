@@ -134,12 +134,42 @@ tr:last-child td { border-bottom:none; }
 
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:11px 22px; border-radius:8px; font-size:13.5px; font-weight:600; color:#fff; background:#1e293b; z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.18); opacity:0; transition:opacity 0.25s; pointer-events:none; max-width:380px; text-align:center; }
 .toast.show { opacity:1; } .toast.success { background:#16a34a; } .toast.error { background:#dc2626; }
+/* ★ 2026-11-16 제보·신청 (추모관 «함께 알려 주세요») */
+.rep-intro { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px 16px; font-size:12.5px; color:#475569; line-height:1.8; margin-bottom:14px; }
+#repChips { flex-wrap:wrap; }
+#repChips .chip b { font-weight:700; margin-left:3px; }
+#repChips .chip b:empty { display:none; }
+.rep-search { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.rep-search select, .rep-search input { padding:7px 10px; border:1px solid #d1d5db; border-radius:7px; font-size:13px; font-family:inherit; background:#fff; }
+.rep-search input { flex:1 1 220px; min-width:0; }
+.rep-kind { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+.rep-kind.death { background:#fee2e2; color:#991b1b; }
+.rep-kind.family { background:#fef3c7; color:#92400e; }
+.rep-kind.enshrine { background:#e0e7ff; color:#3730a3; }
+.rep-st { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; background:#f3f4f6; color:#6b7280; }
+.rep-st.new { background:#dbeafe; color:#1d4ed8; }
+.rep-st.checking { background:#fef3c7; color:#92400e; }
+.rep-st.contacted { background:#ede9fe; color:#5b21b6; }
+.rep-st.done { background:#dcfce7; color:#166534; }
+.rep-sub { font-size:11.5px; color:#9ca3af; }
+.rep-link { font-size:11.5px; color:#2563eb; white-space:nowrap; }
+tr.rep-row.selected td { background:#eff6ff; }
+.rep-dl { display:grid; grid-template-columns:130px 1fr; gap:6px 14px; font-size:13px; margin:0 0 6px; }
+.rep-dl dt { color:#6b7280; font-weight:600; }
+.rep-dl dd { margin:0; color:#111; word-break:break-word; white-space:pre-wrap; }
+@media (max-width:600px) { .rep-dl { grid-template-columns:1fr; gap:2px; } .rep-dl dt { margin-top:8px; } }
+.rep-sec { font-size:13.5px; font-weight:700; color:#1e293b; margin:18px 0 8px; padding-top:14px; border-top:1px solid #f3f4f6; }
+.rep-conv { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; margin-top:6px; font-size:13px; line-height:1.7; }
+.rep-conv .form-row { margin-bottom:10px; }
+.rep-linked { color:#166534; font-weight:600; }
 </style>
 </head>
 <body>
 
 <div class="tabs">
   <div class="tab active" data-tab="teachers" onclick="switchTab('teachers')"><span class="siren-icon-wrap" data-icon="user"></span> 선생님 관리</div>
+  <!-- ★ 2026-11-16 추모관 «함께 알려 주세요»로 들어온 제보·신청 (새 접수 수를 배지로) -->
+  <div class="tab" data-tab="reports" onclick="switchTab('reports')"><span class="siren-icon-wrap" data-icon="mailbox"></span> 제보·신청 <span class="report-badge" id="repTabBadge" style="display:none"></span></div>
   <div class="tab" data-tab="moderation" onclick="switchTab('moderation')"><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</div>
   <div class="tab" data-tab="spotlight" onclick="switchTab('spotlight')"><span class="siren-icon-wrap" data-icon="candle"></span> 이달의 기억</div>
   <!-- ★ 2026-08-28 추모관 v2 — 아침관(유가족 응원) 관리 -->
@@ -662,6 +692,47 @@ tr:last-child td { border-bottom:none; }
 </div>
 
 <!-- ===== 2. 모더레이션 ===== -->
+<!-- ===== ★ 2026-11-16: 제보·신청 — 추모관 «함께 알려 주세요»로 들어온 이야기 (Swain 지시) =====
+     공개되지 않고 이 화면에서만 본다(권한 cms_memorial). 상세를 열면 서버가 열람 기록을 남긴다. -->
+<div class="tab-panel" id="panel-reports">
+  <div class="page-hd">
+    <h2><span class="siren-icon-wrap" data-icon="mailbox"></span> 제보·신청</h2>
+    <button class="btn btn-ghost btn-sm" onclick="loadReports()">새로고침</button>
+  </div>
+  <div class="rep-intro">
+    추모관 &laquo;함께 알려 주세요&raquo;로 들어온 <b>선생님 사망 소식</b> · <b>도움이 필요한 유가족</b> · <b>추모관에 모시기 신청</b>입니다.
+    공개되지 않으며 이 화면에서만 볼 수 있습니다. 상세를 열면 열람 기록이 남습니다.<br>
+    확인한 선생님은 <b>[추모관에 모시기]</b>로 선생님 관리에 비공개 초안을 만들고, 순직 인정 지원이 필요하면 <b>[딥릴리프로 넘기기]</b>를 누르세요.
+    처리 완료·종결한 기록은 <b>3년 뒤 자동으로 지워집니다</b>(개인정보처리방침).
+  </div>
+  <div class="mod-filter" id="repChips">
+    <span class="chip active" data-st="open" onclick="repSetStatus('open')">진행 중 <b data-cnt="open"></b></span>
+    <span class="chip" data-st="new" onclick="repSetStatus('new')">새 접수 <b data-cnt="new"></b></span>
+    <span class="chip" data-st="checking" onclick="repSetStatus('checking')">확인 중 <b data-cnt="checking"></b></span>
+    <span class="chip" data-st="contacted" onclick="repSetStatus('contacted')">연락함 <b data-cnt="contacted"></b></span>
+    <span class="chip" data-st="done" onclick="repSetStatus('done')">처리 완료 <b data-cnt="done"></b></span>
+    <span class="chip" data-st="closed" onclick="repSetStatus('closed')">종결 <b data-cnt="closed"></b></span>
+    <span class="chip" data-st="all" onclick="repSetStatus('all')">전체 <b data-cnt="total"></b></span>
+  </div>
+  <div class="rep-search">
+    <select id="repKind" onchange="loadReports()">
+      <option value="">모든 종류</option>
+      <option value="death">선생님 사망 소식</option>
+      <option value="family">도움이 필요한 유가족</option>
+      <option value="enshrine">추모관에 모시기 신청</option>
+    </select>
+    <input type="text" id="repQ" placeholder="이름 · 학교 · 연락처 · 접수번호" onkeydown="if(event.key==='Enter')loadReports()">
+    <button class="btn btn-primary btn-sm" onclick="loadReports()">검색</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>접수</th><th>종류</th><th>선생님</th><th>신청하신 분</th><th>상태</th><th>연결</th><th></th></tr></thead>
+      <tbody id="repTbody"><tr><td colspan="7" class="tbl-empty">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="form-panel" id="repDetail" style="display:none"></div>
+</div>
+
 <div class="tab-panel" id="panel-moderation">
   <div class="page-hd"><h2><span class="siren-icon-wrap" data-icon="shield"></span> 메시지·편지 모더레이션</h2></div>
   <!-- ★ 2026-11-12 사진 편지 검토 대기 — 사진이 붙은 편지는 여기서 확인해야 공개된다.
@@ -738,6 +809,16 @@ tr:last-child td { border-bottom:none; }
       <input type="text" id="sTlTitle" maxlength="60" placeholder="우리가 함께 놓은 온기의 징검다리" style="margin-bottom:8px">
       <textarea id="sTlSub" rows="2" placeholder="교사유가족협의회가 유가족 곁에서 해온 일, 하고 있는 일, 앞으로 할 일을 시간순으로 기록합니다. 항목을 누르면 자세한 이야기가 열립니다."></textarea>
       <div class="hint">항목 자체는 &lsquo;온기의 징검다리&rsquo; 탭에서 등록합니다. 등록된 항목이 없으면 구간이 보이지 않습니다.</div>
+    </div>
+
+    <!-- ★ 2026-11-16 — 함께 알려 주세요(제보·신청) 안내 구간 -->
+    <div class="form-row" style="border-bottom:1px solid #e5e5e5;padding-bottom:18px">
+      <label style="font-size:15px"><b>📮 함께 알려 주세요</b> — 제보·신청 안내 (밤 구간 «기억하는 선생님들» 아래)</label>
+      <div class="hint" style="margin-bottom:10px">선생님 사망 소식·도움이 필요한 유가족·추모관 모시기 신청을 받는 안내입니다. 들어온 내용은 &lsquo;제보·신청&rsquo; 탭에서 봅니다. 비워두면 기본 문구가 나갑니다.</div>
+      <input type="text" id="sRepTitle" maxlength="60" placeholder="함께 알려 주세요" style="margin-bottom:8px">
+      <textarea id="sRepSub" rows="3" placeholder="떠나신 선생님의 소식을 들으셨거나, 곁에서 홀로 힘겨워하는 유가족을 알고 계신가요?&#10;유가족께서 직접 추모관에 모시기를 원하셔도 이곳에 남겨 주세요. 협의회가 확인한 뒤 조심스럽게 연락드리겠습니다." style="margin-bottom:8px"></textarea>
+      <input type="text" id="sRepButton" maxlength="30" placeholder="알리기 · 신청하기" style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:12.5px;margin:4px 0 0"><input type="checkbox" id="sRepOff" style="width:auto;margin:0"> 추모관 화면에서 이 안내를 잠시 감추기 (접수도 함께 멈춥니다)</label>
     </div>
 
     <!-- ★ 2026-08-28 — 선생님 화면 구간 문구 (모든 선생님 공통).
@@ -865,6 +946,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=20261112-letterphoto2"></script>
+<script src="/js/admin-memorial.js?v=20261116-reports"></script>
 </body>
 </html>

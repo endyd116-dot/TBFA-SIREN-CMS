@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="/css/base.css?v=20260904-contrast">
 <link rel="stylesheet" href="/css/layout.css?v=20260904-touch">
 <link rel="stylesheet" href="/css/components.css?v=20260904-linkbtn">
-<link rel="stylesheet" href="/css/memorial.css?v=20261112-mem2">
+<link rel="stylesheet" href="/css/memorial.css?v=20261116-report">
 
   <script>/* 첫 그림을 그린 뒤에 글꼴을 적용한다 (배치 계산 지연 방지) */
   (function(){function on(){var l=document.querySelectorAll('link[data-webfont]');
@@ -94,6 +94,20 @@
             현재 공개된 추모 공간이 없습니다.
           </div>
           <div id="memTeacherLoading" class="mem2-loading">불러오는 중…</div>
+        </div>
+      </div>
+
+      <!-- ★ 2026-11-16 함께 알려 주세요 — 제보·신청 (Swain 지시)
+           선생님 사망 소식 · 도움이 필요한 유가족 · 유가족의 추모관 모시기 신청을 받는다.
+           저장소가 준비되고 운영자가 감추지 않았을 때만 보인다(요약 API reportOpen). 문구는 어드민 추모관 설정에서 고친다. -->
+      <div class="mem2-block" id="m2ReportBlock" style="display:none;padding-top:0">
+        <div class="mem2-wrap">
+          <div class="mem2-report-card">
+            <span class="mem2-eyebrow">Let us know</span>
+            <h2 class="mem2-h2" id="m2RepTitle">함께 알려 주세요</h2>
+            <p class="mem2-lead" id="m2RepSub">떠나신 선생님의 소식을 들으셨거나, 곁에서 홀로 힘겨워하는 유가족을 알고 계신가요?<br>유가족께서 직접 추모관에 모시기를 원하셔도 이곳에 남겨 주세요. 협의회가 확인한 뒤 조심스럽게 연락드리겠습니다.</p>
+            <div class="mem2-more"><button type="button" class="mem2-ghost" id="m2RepOpen">알리기 · 신청하기</button></div>
+          </div>
         </div>
       </div>
 
@@ -325,6 +339,77 @@
     </div>
   </div>
 
+  <!-- ★ 2026-11-16 함께 알려 주세요 — 제보·신청 창. 적은 내용은 공개되지 않고 협의회 운영자만 본다.
+       바깥을 눌러 닫혀도 적던 내용은 남는다(보낸 뒤에만 비운다). -->
+  <div class="mem2-modal mem2-report-modal" id="m2RepBox" role="dialog" aria-modal="true" aria-label="함께 알려 주세요">
+    <button type="button" class="mem2-modal-close" id="m2RepBoxClose" aria-label="닫기">×</button>
+    <div class="mem2-modal-inner">
+      <div class="mem2-modal-body">
+        <form id="m2RepForm" novalidate>
+          <span class="mem2-modal-tag">함께 알려 주세요</span>
+          <h3 class="mem2-modal-title">어떤 이야기를 전해 주시나요?</h3>
+          <div class="mem2-rep-kinds" role="radiogroup" aria-label="제보·신청 종류">
+            <label class="mem2-rep-kind"><input type="radio" name="kind" value="death"><span><b>선생님의 사망 소식을 알려요</b><small>동료·지인으로서 알게 된 소식을 전해 주세요</small></span></label>
+            <label class="mem2-rep-kind"><input type="radio" name="kind" value="family"><span><b>도움이 필요한 유가족을 알려요</b><small>곁에서 홀로 힘겨워하는 유가족이 계실 때</small></span></label>
+            <label class="mem2-rep-kind"><input type="radio" name="kind" value="enshrine"><span><b>유가족입니다 — 추모관에 모시고 싶어요</b><small>협의회가 확인한 뒤 함께 준비합니다</small></span></label>
+          </div>
+
+          <div id="m2RepFields" style="display:none">
+            <h4 class="mem2-rep-h" id="m2RepTeacherHead">떠나신 선생님</h4>
+            <div class="mem2-rep-grid">
+              <div class="mem2-field"><label for="m2RepTeacherName" id="m2RepTeacherLabel">선생님 성함 *</label><input class="mem2-input" id="m2RepTeacherName" name="teacherName" maxlength="60" autocomplete="off"></div>
+              <div class="mem2-field"><label for="m2RepSchool">학교·지역</label><input class="mem2-input" id="m2RepSchool" name="schoolRegion" maxlength="150" placeholder="예: ○○초등학교 · 서울 강서구" autocomplete="off"></div>
+            </div>
+            <div class="mem2-field"><label for="m2RepDeath">돌아가신 때</label><input class="mem2-input" id="m2RepDeath" name="deathDateText" maxlength="40" placeholder="예: 2026-10-03 · 정확히 모르시면 '2026년 10월쯤'" autocomplete="off"></div>
+            <div class="mem2-field"><label for="m2RepContent" id="m2RepContentLabel">알게 된 경위나 전하고 싶은 이야기</label><textarea class="mem2-textarea" id="m2RepContent" name="content" maxlength="3000"></textarea></div>
+
+            <div id="m2RepFamilyBox">
+              <h4 class="mem2-rep-h">유가족 연락처 <small>알고 계시면 적어 주세요</small></h4>
+              <div class="mem2-rep-grid">
+                <div class="mem2-field"><label for="m2RepFamName">유가족 성함</label><input class="mem2-input" id="m2RepFamName" name="familyName" maxlength="60" autocomplete="off"></div>
+                <div class="mem2-field"><label for="m2RepFamRel">고인과의 관계</label><input class="mem2-input" id="m2RepFamRel" name="familyRelation" maxlength="40" placeholder="예: 배우자, 어머니" autocomplete="off"></div>
+              </div>
+              <div class="mem2-field"><label for="m2RepFamPhone">유가족 연락처</label><input class="mem2-input" id="m2RepFamPhone" name="familyPhone" maxlength="30" inputmode="tel" autocomplete="off"></div>
+            </div>
+
+            <h4 class="mem2-rep-h">신청하시는 분</h4>
+            <div class="mem2-rep-grid">
+              <div class="mem2-field"><label for="m2RepName">성함 *</label><input class="mem2-input" id="m2RepName" name="reporterName" maxlength="60" autocomplete="name"></div>
+              <div class="mem2-field"><label for="m2RepRelation" id="m2RepRelationLabel">고인·유가족과의 관계</label><input class="mem2-input" id="m2RepRelation" name="reporterRelation" maxlength="40" autocomplete="off"></div>
+              <div class="mem2-field"><label for="m2RepPhone">휴대폰 *</label><input class="mem2-input" id="m2RepPhone" name="reporterPhone" maxlength="30" inputmode="tel" autocomplete="tel"></div>
+              <div class="mem2-field"><label for="m2RepEmail">이메일 (선택)</label><input class="mem2-input" id="m2RepEmail" name="reporterEmail" maxlength="120" inputmode="email" autocomplete="email"></div>
+            </div>
+            <div class="mem2-hp" aria-hidden="true"><label>홈페이지 <input name="website" tabindex="-1" autocomplete="off"></label></div>
+
+            <div class="mem2-rep-consent">
+              <b>개인정보 수집·이용 안내</b>
+              <ul>
+                <li>받는 정보: 신청하시는 분의 성함·휴대폰·관계·이메일(선택), 선생님 성함·학교·지역·돌아가신 때, 적어 주신 이야기, 적어 주신 경우 유가족 성함·관계·연락처</li>
+                <li>쓰는 곳: 내용 확인, 유가족 연락과 지원 연결, 추모관 모시기 검토</li>
+                <li>보관: 처리가 끝난 뒤 3년 동안 보관하고 지웁니다</li>
+                <li>동의하지 않으실 수 있으나, 그러면 접수할 수 없습니다. 적어 주신 내용은 공개되지 않고 협의회 운영자만 봅니다.</li>
+              </ul>
+              <label class="mem2-anon"><input type="checkbox" name="consent"> 위 내용을 읽었고 동의합니다 (필수)</label>
+            </div>
+            <p class="mem2-rep-err" id="m2RepErr" role="alert"></p>
+            <div class="mem2-compose-foot">
+              <span class="mem2-hint" style="margin:0">* 표시는 꼭 적어 주세요</span>
+              <button type="submit" class="mem2-submit" id="m2RepSubmit">보내기</button>
+            </div>
+          </div>
+        </form>
+
+        <div id="m2RepDone" style="display:none">
+          <span class="mem2-modal-tag">접수되었습니다</span>
+          <h3 class="mem2-modal-title">소중한 이야기를 전해 주셔서 고맙습니다</h3>
+          <p class="mem2-modal-text">협의회가 확인한 뒤 남겨 주신 연락처로 조심스럽게 연락드리겠습니다.</p>
+          <p class="mem2-rep-no" id="m2RepNoLine">접수번호 <b id="m2RepNo"></b></p>
+          <div class="mem2-more" style="text-align:left"><button type="button" class="mem2-ghost" id="m2RepDoneClose">닫기</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
@@ -333,7 +418,7 @@
   <script src="/js/common.js?v=20261007-init" defer></script>
   <script src="/js/auth.js?v=20261112-kg" defer></script>
   <script src="/js/memorial-sky.js?v=20260828-bloom" defer></script>
-  <script src="/js/memorial.js?v=20261112-mem2" defer></script>
+  <script src="/js/memorial.js?v=20261116-report" defer></script>
   <script src="/js/memorial-bgm.js?v=20261112-bgm2" defer></script>
 </body>
 </html>

@@ -54,7 +54,7 @@ function fmtDate(s) {
 
 /* ─── 탭 전환 ─── */
 function switchTab(name) {
-  ['teachers', 'moderation', 'spotlight', 'family', 'timeline', 'settings'].forEach(function (t) {
+  ['teachers', 'reports', 'moderation', 'spotlight', 'family', 'timeline', 'settings'].forEach(function (t) {
     var el = document.getElementById('panel-' + t);
     if (el) el.classList.toggle('active', t === name);
   });
@@ -62,6 +62,7 @@ function switchTab(name) {
     el.classList.toggle('active', el.dataset.tab === name);
   });
   if (name === 'moderation') loadMod();
+  if (name === 'reports') loadReports();   /* ★ 2026-11-16 제보·신청 */
   if (name === 'settings') loadSettings();
   if (name === 'spotlight') loadSpots();
   if (name === 'family') loadFamilyNotes();
@@ -874,6 +875,7 @@ function saveSettings() {
 
 /* ─── 초기화 ─── */
 loadTeachers();
+loadReportsBadge();   /* ★ 2026-11-16 제보·신청 — 새 접수 수를 탭 배지로 */
 
 /* =========================================================
    ★ 2026-08-28 추모관 v2 — 밤·아침 문구 + 유가족 근황
@@ -894,7 +896,9 @@ function collectHallCopy() {
       timelineTitle: val('sTlTitle'), timelineSub: val('sTlSub')
     },
     /* ★ 2026-08-28 — 선생님 화면 구간 문구 (모든 선생님 공통) */
-    teacher: collectTeacherCopy()
+    teacher: collectTeacherCopy(),
+    /* ★ 2026-11-16 — 함께 알려 주세요(제보·신청) 안내 · off=true면 추모관 화면에서 감춘다 */
+    report: { title: val('sRepTitle'), sub: val('sRepSub'), button: val('sRepButton'), off: !!(document.getElementById('sRepOff') && document.getElementById('sRepOff').checked) }
   };
   /* 세 구간 모두 비어 있으면 아예 안 보낸다 — 서버가 기본 문구를 쓴다 */
   var any = false;
@@ -921,6 +925,12 @@ function fillHallCopy(hall) {
   setVal('sTlTitle',    hall.morning && hall.morning.timelineTitle);
   setVal('sTlSub',      hall.morning && hall.morning.timelineSub);
   fillTeacherCopy(hall.teacher);
+  /* ★ 2026-11-16 — 함께 알려 주세요(제보·신청) */
+  setVal('sRepTitle',  hall.report && hall.report.title);
+  setVal('sRepSub',    hall.report && hall.report.sub);
+  setVal('sRepButton', hall.report && hall.report.button);
+  var off = document.getElementById('sRepOff');
+  if (off) off.checked = !!(hall.report && hall.report.off === true);
 }
 
 /* 선생님 화면 문구 — 화면의 자리 이름과 입력란을 1:1로 짝지어 둔다 */
@@ -1877,4 +1887,292 @@ function tInviteQr() {
   }).catch(function (e) {
     box.innerHTML = '<span class="hint" style="color:#c00">' + esc(e.message || 'QR 코드를 만들지 못했습니다') + '</span>';
   });
+}
+
+/* =========================================================
+   ★ 2026-11-16 제보·신청 — 추모관 «함께 알려 주세요»로 들어온 이야기 (Swain 지시)
+   선생님 사망 소식 · 도움이 필요한 유가족 · 유가족의 추모관 모시기 신청.
+   공개되지 않는다. 상세를 열 때마다 서버가 열람 기록을 남기므로,
+   저장·연결 뒤에는 상세를 다시 불러오지 않고 화면에서 바로 고친다.
+   확인 뒤 [추모관에 모시기](선생님 관리에 비공개 초안) · [딥릴리프로 넘기기](순직 인정 지원 사건 접수).
+   ========================================================= */
+var _repStatus = 'open';
+var _repItems = [];
+var _repDetail = null;
+var REP_KIND = { death: '선생님 사망 소식', family: '도움이 필요한 유가족', enshrine: '추모관에 모시기 신청' };
+var REP_STATUS = { 'new': '새 접수', checking: '확인 중', contacted: '연락함', done: '처리 완료', closed: '종결' };
+
+function repFmt(s) {
+  if (!s) return '';
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return String(s);
+  var p = function (n) { return n < 10 ? '0' + n : '' + n; };
+  return d.getFullYear() + '.' + p(d.getMonth() + 1) + '.' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+/* 서버와 같은 규칙 — YYYY-MM-DD(또는 점·빗금)만 날짜로 본다. «10월쯤»은 비워 둔다. */
+function repYmd(s) {
+  var m = String(s || '').trim().match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})\.?$/);
+  if (!m) return '';
+  var p = function (n) { n = Number(n); return n < 10 ? '0' + n : '' + n; };
+  return m[1] + '-' + p(m[2]) + '-' + p(m[3]);
+}
+function repErrMsg(res, fallback) {
+  var d = res && res.data;
+  return (d && (d.error || (d.data && d.data.error))) || fallback;
+}
+
+/* 탭 배지(새 접수 수)와 칩 숫자 */
+function repPaintCounts(c) {
+  c = c || {};
+  var badge = document.getElementById('repTabBadge');
+  if (badge) {
+    var n = Number(c['new'] || 0);
+    badge.textContent = n ? String(n) : '';
+    badge.style.display = n ? '' : 'none';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#repChips [data-cnt]'), function (b) {
+    var v = c[b.getAttribute('data-cnt')];
+    b.textContent = v ? String(v) : '';
+  });
+}
+
+function loadReportsBadge() {
+  callApi('GET', '/api/admin-memorial-reports?countsOnly=1').then(function (res) {
+    if (res.ok) repPaintCounts(pick(res, 'counts'));
+  }).catch(function () { /* 배지는 보조 — 실패해도 조용히 넘어간다 */ });
+}
+
+function repSetStatus(st) {
+  _repStatus = st;
+  Array.prototype.forEach.call(document.querySelectorAll('#repChips .chip'), function (el) {
+    el.classList.toggle('active', el.getAttribute('data-st') === st);
+  });
+  loadReports();
+}
+
+function loadReports() {
+  var tb = document.getElementById('repTbody');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">불러오는 중…</td></tr>';
+  var kindEl = document.getElementById('repKind');
+  var qEl = document.getElementById('repQ');
+  var kind = kindEl ? kindEl.value : '';
+  var q = qEl ? qEl.value.trim() : '';
+  var qs = '?status=' + encodeURIComponent(_repStatus) +
+    (kind ? '&kind=' + encodeURIComponent(kind) : '') +
+    (q ? '&q=' + encodeURIComponent(q) : '');
+  callApi('GET', '/api/admin-memorial-reports' + qs).then(function (res) {
+    if (!res.ok) {
+      tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">불러오지 못했습니다 — ' + esc(repErrMsg(res, 'HTTP ' + res.status)) + '</td></tr>';
+      return;
+    }
+    if (pick(res, 'ready') === false) {
+      tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">저장소 준비가 아직 끝나지 않았습니다. ' +
+        '관리자 주소창에 <code>/api/migrate-memorial-reports?run=1</code> 을 한 번 실행해 주세요.</td></tr>';
+      repPaintCounts(null);
+      return;
+    }
+    _repItems = pick(res, 'items') || [];
+    repPaintCounts(pick(res, 'counts'));
+    renderReports();
+  }).catch(function (e) {
+    tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">불러오지 못했습니다 — ' + esc(e.message) + '</td></tr>';
+  });
+}
+
+function renderReports() {
+  var tb = document.getElementById('repTbody');
+  if (!tb) return;
+  if (!_repItems.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="tbl-empty">해당하는 제보·신청이 없습니다</td></tr>';
+    return;
+  }
+  tb.innerHTML = _repItems.map(function (r) {
+    var links = [];
+    if (r.linkedTeacherId) links.push('<span class="rep-link">추모관 선생님 #' + Number(r.linkedTeacherId) + '</span>');
+    if (r.linkedCaseId) links.push('<span class="rep-link">딥릴리프 사건 #' + Number(r.linkedCaseId) + '</span>');
+    var sel = (_repDetail && _repDetail.id === r.id) ? ' selected' : '';
+    return '<tr class="rep-row' + sel + '">' +
+      '<td>' + esc(repFmt(r.createdAt)) + '<div class="rep-sub">' + esc(r.reportNo) + '</div></td>' +
+      '<td><span class="rep-kind ' + esc(r.kind) + '">' + esc(r.kindLabel || REP_KIND[r.kind] || r.kind) + '</span></td>' +
+      '<td>' + (r.teacherName ? '<b>' + esc(r.teacherName) + '</b>' : '<span class="rep-sub">성함 없음</span>') +
+        (r.schoolRegion ? '<div class="rep-sub">' + esc(r.schoolRegion) + '</div>' : '') + '</td>' +
+      '<td>' + esc(r.reporterName || '') + (r.reporterRelation ? ' <span class="rep-sub">(' + esc(r.reporterRelation) + ')</span>' : '') +
+        '<div class="rep-sub">' + esc(r.reporterPhone || '') + (r.hasFamilyContact ? ' · 유가족 연락처 있음' : '') + '</div></td>' +
+      '<td><span class="rep-st ' + esc(r.status) + '">' + esc(r.statusLabel || REP_STATUS[r.status] || r.status) + '</span></td>' +
+      '<td>' + (links.join('<br>') || '<span class="rep-sub">—</span>') + '</td>' +
+      '<td><button class="btn btn-ghost btn-sm" onclick="openReport(' + Number(r.id) + ')">보기</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function openReport(id) {
+  var box = document.getElementById('repDetail');
+  if (!box) return;
+  box.style.display = '';
+  box.innerHTML = '<div class="tbl-empty">불러오는 중…</div>';
+  callApi('GET', '/api/admin-memorial-reports?id=' + Number(id)).then(function (res) {
+    if (!res.ok) {
+      box.innerHTML = '<div class="tbl-empty">불러오지 못했습니다 — ' + esc(repErrMsg(res, 'HTTP ' + res.status)) + '</div>';
+      return;
+    }
+    _repDetail = pick(res, 'item');
+    renderReports();
+    renderReportDetail();
+    try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 옛 브라우저 */ }
+  }).catch(function (e) {
+    box.innerHTML = '<div class="tbl-empty">불러오지 못했습니다 — ' + esc(e.message) + '</div>';
+  });
+}
+
+function closeReport() {
+  _repDetail = null;
+  var box = document.getElementById('repDetail');
+  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+  renderReports();
+}
+
+function repRow(label, value) {
+  if (value == null || value === '') return '';
+  return '<dt>' + esc(label) + '</dt><dd>' + esc(value) + '</dd>';
+}
+
+function renderReportDetail() {
+  var r = _repDetail;
+  var box = document.getElementById('repDetail');
+  if (!r || !box) return;
+  var stOpts = Object.keys(REP_STATUS).map(function (k) {
+    return '<option value="' + k + '"' + (k === r.status ? ' selected' : '') + '>' + REP_STATUS[k] + '</option>';
+  }).join('');
+  var hasFamily = r.familyName || r.familyRelation || r.familyPhone;
+
+  /* 연결 — 이미 모셨거나 넘겼으면 결과만, 아니면 단추 */
+  var teacherPart;
+  if (r.linkedTeacher || r.linkedTeacherId) {
+    var t = r.linkedTeacher || { id: r.linkedTeacherId, name: '', isPublic: false };
+    teacherPart = '<div class="rep-linked">추모관에 모셨습니다 — 선생님 #' + Number(t.id) + ' ' + esc(t.name || '') +
+      (t.isPublic ? ' (공개 중)' : ' (비공개 초안)') + '</div>' +
+      (t.isPublic ? '' : '<div class="hint">&lsquo;선생님 관리&rsquo; 탭에서 사진·약력을 채운 뒤 공개로 바꾸면 추모관에 나타납니다.</div>');
+  } else {
+    teacherPart =
+      '<div class="form-row-2">' +
+        '<div class="form-row"><label>선생님 성함</label><input type="text" id="repTName" maxlength="60" value="' + esc(r.teacherName || '') + '"></div>' +
+        '<div class="form-row"><label>학교·지역</label><input type="text" id="repTSchool" maxlength="150" value="' + esc(r.schoolRegion || '') + '"></div>' +
+      '</div>' +
+      '<div class="form-row"><label>돌아가신 날 (예: 2026-10-03 · 모르면 비워 두세요)</label>' +
+        '<input type="text" id="repTDate" maxlength="10" value="' + esc(repYmd(r.deathDateText)) + '" placeholder="YYYY-MM-DD"></div>' +
+      '<button class="btn btn-success btn-sm" onclick="reportToTeacher()">추모관에 모시기 (선생님 관리에 비공개 초안)</button>';
+  }
+  var casePart = (r.linkedCase || r.linkedCaseId)
+    ? '<div class="rep-linked">딥릴리프로 넘겼습니다 — 사건 ' + esc((r.linkedCase && r.linkedCase.caseNo) || ('#' + r.linkedCaseId)) +
+      (r.linkedCase && r.linkedCase.status ? ' (단계: ' + esc(r.linkedCase.status) + ')' : '') + '</div>'
+    : '<button class="btn btn-ghost btn-sm" onclick="reportToCase()">딥릴리프로 넘기기 (순직 인정 지원 사건 접수)</button>' +
+      '<div class="hint">' + ((r.linkedTeacher || r.linkedTeacherId) ? '이 기록의' : '위') +
+      ' 성함·학교·날짜로 사건을 만듭니다. 연락처는 옮기지 않고 접수번호로만 이어 둡니다.</div>';
+
+  box.innerHTML =
+    '<h3>' + esc(r.kindLabel || REP_KIND[r.kind] || '') + ' · ' + esc(r.reportNo) + '</h3>' +
+    '<div class="rep-sec" style="border-top:none;padding-top:0;margin-top:0">접수</div><dl class="rep-dl">' +
+      repRow('접수 시각', repFmt(r.createdAt)) +
+      repRow('접수 방법', r.isMember ? '회원으로 로그인해 접수' : '로그인 없이 접수') +
+      repRow('개인정보 동의', repFmt(r.consentAt)) +
+      repRow('처리 완료', r.processedAt ? repFmt(r.processedAt) + ' (3년 뒤 자동 삭제)' : '') +
+    '</dl>' +
+    '<div class="rep-sec">떠나신 선생님</div><dl class="rep-dl">' +
+      repRow('성함', r.teacherName || '(적지 않음)') + repRow('학교·지역', r.schoolRegion) + repRow('돌아가신 때', r.deathDateText) +
+    '</dl>' +
+    (r.content ? '<div class="rep-sec">적어 주신 이야기</div><dl class="rep-dl"><dt>내용</dt><dd>' + esc(r.content) + '</dd></dl>' : '') +
+    (hasFamily ? '<div class="rep-sec">유가족 연락처 <span class="rep-sub">(제보하신 분이 적어 주신 정보)</span></div><dl class="rep-dl">' +
+      repRow('성함', r.familyName) + repRow('고인과의 관계', r.familyRelation) + repRow('연락처', r.familyPhone) + '</dl>' : '') +
+    '<div class="rep-sec">신청하신 분</div><dl class="rep-dl">' +
+      repRow('성함', r.reporterName) + repRow('관계', r.reporterRelation) + repRow('휴대폰', r.reporterPhone) + repRow('이메일', r.reporterEmail) +
+    '</dl>' +
+    '<div class="rep-sec">처리</div>' +
+    '<div class="form-row"><label>상태</label><select id="repStatusSel" style="max-width:240px">' + stOpts + '</select>' +
+      '<div class="hint">처리 완료·종결로 바꾸면 그때부터 3년 뒤 자동으로 지워집니다.</div></div>' +
+    '<div class="form-row"><label>운영자 메모</label><textarea id="repMemo" maxlength="2000" placeholder="연락한 내용, 확인한 사실 등 (신청하신 분께는 보이지 않습니다)">' + esc(r.adminMemo || '') + '</textarea></div>' +
+    '<div class="form-actions" style="margin-top:6px"><button class="btn btn-primary" onclick="saveReport()">저장</button><button class="btn btn-ghost" onclick="closeReport()">닫기</button></div>' +
+    '<div class="rep-sec">연결</div>' +
+    '<div class="rep-conv">' + teacherPart + '<hr class="form-divider" style="margin:14px 0">' + casePart + '</div>' +
+    '<div class="form-actions" style="justify-content:flex-end">' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteReport()">이 기록 삭제</button></div>';
+}
+
+function saveReport() {
+  var r = _repDetail;
+  if (!r) return;
+  var stEl = document.getElementById('repStatusSel');
+  var memoEl = document.getElementById('repMemo');
+  var st = stEl ? stEl.value : r.status;
+  var memo = memoEl ? memoEl.value : '';
+  callApi('PATCH', '/api/admin-memorial-reports', { id: r.id, status: st, adminMemo: memo }).then(function (res) {
+    if (!res.ok) { toast(repErrMsg(res, '저장 실패'), 'error'); return; }
+    toast('저장되었습니다.', 'success');
+    var terminal = st === 'done' || st === 'closed';
+    if (terminal && !r.processedAt) r.processedAt = new Date().toISOString();
+    if (!terminal) r.processedAt = null;
+    r.status = st;
+    r.statusLabel = REP_STATUS[st] || st;
+    r.adminMemo = memo;
+    renderReportDetail();
+    loadReports();
+  }).catch(function (e) { toast('저장 실패: ' + e.message, 'error'); });
+}
+
+function reportToTeacher() {
+  var r = _repDetail;
+  if (!r) return;
+  var name = val('repTName');
+  if (!name) { toast('선생님 성함을 적어 주세요', 'error'); return; }
+  var date = val('repTDate');
+  if (date && !repYmd(date)) { toast('돌아가신 날은 2026-10-03처럼 적거나 비워 두세요', 'error'); return; }
+  if (!confirm('«' + name + '» 선생님을 선생님 관리에 비공개 초안으로 만들까요?\n사진·약력을 채운 뒤 공개로 바꾸면 추모관에 나타납니다.')) return;
+  callApi('POST', '/api/admin-memorial-reports?action=to-teacher', {
+    id: r.id, name: name, schoolRegion: val('repTSchool'), deathDate: date
+  }).then(function (res) {
+    if (!res.ok) { toast(repErrMsg(res, '만들지 못했습니다'), 'error'); return; }
+    var d = (res.data && res.data.data) || {};
+    toast((res.data && res.data.message) || '비공개 초안을 만들었습니다.', 'success');
+    r.linkedTeacherId = d.teacherId;
+    r.linkedTeacher = { id: d.teacherId, name: d.name || name, isPublic: false };
+    if (r.status === 'new') { r.status = 'checking'; r.statusLabel = REP_STATUS.checking; }
+    renderReportDetail();
+    loadReports();
+    if (typeof loadTeachers === 'function') loadTeachers();
+  }).catch(function (e) { toast('만들지 못했습니다: ' + e.message, 'error'); });
+}
+
+function reportToCase() {
+  var r = _repDetail;
+  if (!r) return;
+  if (!confirm('딥릴리프(순직 인정 지원)에 이 선생님의 사건을 «접수» 단계로 만들까요?\n연락처는 옮기지 않고 접수번호로만 이어 둡니다.')) return;
+  var body = { id: r.id };
+  if (document.getElementById('repTName')) {
+    body.name = val('repTName');
+    body.schoolName = val('repTSchool');
+    body.deceasedAt = val('repTDate');
+    if (body.deceasedAt && !repYmd(body.deceasedAt)) { toast('돌아가신 날은 2026-10-03처럼 적거나 비워 두세요', 'error'); return; }
+  }
+  callApi('POST', '/api/admin-memorial-reports?action=to-case', body).then(function (res) {
+    if (!res.ok) { toast(repErrMsg(res, '넘기지 못했습니다'), 'error'); return; }
+    var d = (res.data && res.data.data) || {};
+    toast((res.data && res.data.message) || '딥릴리프에 사건을 만들었습니다.', 'success');
+    r.linkedCaseId = d.caseId;
+    r.linkedCase = { id: d.caseId, caseNo: d.caseNo, status: 'intake' };
+    if (r.status === 'new') { r.status = 'checking'; r.statusLabel = REP_STATUS.checking; }
+    renderReportDetail();
+    loadReports();
+  }).catch(function (e) { toast('넘기지 못했습니다: ' + e.message, 'error'); });
+}
+
+function deleteReport() {
+  var r = _repDetail;
+  if (!r) return;
+  if (!confirm('이 기록(' + r.reportNo + ')을 지울까요? 되돌릴 수 없습니다.\n잘못 들어온 접수이거나, 신청하신 분·유가족이 삭제를 원하신 경우에 지워 주세요.')) return;
+  callApi('DELETE', '/api/admin-memorial-reports?id=' + Number(r.id)).then(function (res) {
+    if (!res.ok) { toast(repErrMsg(res, '삭제 실패'), 'error'); return; }
+    toast('삭제했습니다.', 'success');
+    closeReport();
+    loadReports();
+  }).catch(function (e) { toast('삭제 실패: ' + e.message, 'error'); });
 }

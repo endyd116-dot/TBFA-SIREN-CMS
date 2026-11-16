@@ -19,6 +19,7 @@ import { sql, lt, and, inArray, not } from "drizzle-orm";
 import { db } from "../../db";
 import { auditLogs } from "../../db/schema";
 import { logAudit } from "../../lib/audit";
+import { purgeExpiredReports } from "../../lib/memorial-reports";
 
 /* ───────── 보관 기간 정책 ───────── */
 const RETENTION_DAYS_DEFAULT = 365;       // 일반 로그: 1년
@@ -75,6 +76,15 @@ export default async (_req: Request) => {
     const securityDeleted =
       Number(securityResult?.rowCount ?? securityResult?.count ?? 0) || 0;
 
+    /* 2-b. ★ 2026-11-16 추모관 제보·신청 — 처리가 끝난 지 3년 지난 기록 삭제(개인정보처리방침 보유 기간).
+       감사 로그 정리와 별개라 실패해도 아래 단계는 계속한다. */
+    let memorialReportsPurged = 0;
+    try {
+      memorialReportsPurged = await purgeExpiredReports();
+    } catch (e: any) {
+      console.warn("[cron-cleanup-audit-logs] 추모관 제보·신청 정리 실패(계속 진행):", e?.message || e);
+    }
+
     /* 3. 남은 로그 카운트 (참고) */
     const remaining: any = await db.execute(sql`
       SELECT COUNT(*)::int AS c FROM audit_logs
@@ -89,6 +99,7 @@ export default async (_req: Request) => {
       generalDeleted,
       securityDeleted,
       totalDeleted: generalDeleted + securityDeleted,
+      memorialReportsPurged,
       remainingCount,
       durationMs,
       generalCutoff: generalCutoff.toISOString(),
@@ -108,6 +119,7 @@ export default async (_req: Request) => {
         generalDeleted,
         securityDeleted,
         totalDeleted: summary.totalDeleted,
+        memorialReportsPurged,
         remainingCount,
         durationMs,
       },

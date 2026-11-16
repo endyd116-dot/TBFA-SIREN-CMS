@@ -31,6 +31,7 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-memorial-teacher-sections": "cms_memorial",
   "/api/admin-memorial-timeline": "cms_memorial",
   "/api/admin-memorial-bgm-upload": "cms_memorial",
+  "/api/admin-memorial-reports": "cms_memorial",   // ★ 2026-11-16 추모관 제보·신청
   "/api/admin-family-stories": "cms_family_stories",
   "/api/admin-family-story-ai": "cms_family_stories",
   "/api/admin/receipt-settings": "receipt_config",
