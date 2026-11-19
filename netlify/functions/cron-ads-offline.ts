@@ -14,7 +14,8 @@
  *     계좌이체·효성 등(첫 정기 완료 포함)   = donationOtherConfirmed
  *     정기 2회차~(카드·효성 모두)           = donationRecurring
  * - 한 번 보낸 건은 source_meta.adsSentAt으로 표시해 다시 보내지 않는다(AM도 orderId로 한 번만 받는다).
- *   실패는 source_meta.adsTries를 올려 다음 정각에 다시 — 5번 실패하면 멈춘다.
+ *   그 건이 거절되면(400·422 등) source_meta.adsTries를 올려 다음 정각에 다시 — 5번 거절되면 멈춘다.
+ *   받는 쪽이 멈췄거나 비밀 값이 안 맞으면(없는 주소·5xx·시간 초과·401·403·429) 횟수를 닳게 하지 않고 그 정각만 쉰다.
  * - 비밀 값(SIREN_AM_ADS_SECRET)이 없으면 DB도 열지 않고 바로 끝난다.
  * - 매시 정각 — 기존 정각 크론들과 같은 분이라 DB를 따로 깨우지 않는다(CLAUDE.md §9.3.8).
  * - updated_at은 건드리지 않는다(완료 시각 계산에 쓰이므로).
@@ -146,6 +147,15 @@ export default async (_req: Request, _ctx: Context) => {
         ok = resp.ok || resp.status === 409;   // 409 = AM이 이미 받은 건
       } catch {
         status = -1;
+      }
+      /* 받는 쪽이 멈췄거나(없는 주소·서버 오류·시간 초과) 비밀 값이 안 맞으면(401·403) 그 건의 잘못이 아니다 —
+         재시도 횟수를 닳게 하지 않고 이번 정각은 여기서 멈춘다(다음 정각에 처음부터 다시).
+         그 건 자체가 거절된 경우(400·422 등)만 횟수를 올린다. */
+      const receiverDown = !ok && (status <= 0 || status === 401 || status === 403 || status === 404 || status === 429 || status >= 500);
+      if (receiverDown) {
+        summary.failed++;
+        console.warn(`[cron-ads-offline] 받는 쪽 응답 ${status} — 이번 정각은 멈추고 다음 정각에 다시`);
+        break;
       }
       try {
         if (ok) { await markSent(id, kind); summary.sent++; }
