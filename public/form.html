@@ -82,6 +82,8 @@
     .fb-size { display: none; }
   }
 </style>
+<!-- 구글 광고 전환 측정(2026-11-19) — 이 화면은 공용 스크립트를 쓰지 않아 따로 불러온다 -->
+<script src="/js/ad-conversions.js?v=20261119-aw" defer data-siren-ads></script>
 </head>
 <body>
 
@@ -251,6 +253,9 @@ async function load() {
     });
     if (r.ok) {
       renderSuccess(r.data.message || "응답이 제출되었습니다.");
+      /* 구글 광고 전환 — 발족식 신청폼일 때만 센다(어느 폼인지는 /js/ad-conversions.js가 판단). 신청 번호만 보낸다 */
+      const subId = (r.data && (r.data.submissionId || (r.data.data && r.data.data.submissionId))) || 0;
+      if (subId) (window.SirenAdsQ = window.SirenAdsQ || []).push(["form", form.slug, subId]);
     } else {
       btn.disabled = false;
       btn.textContent = "응답 제출";

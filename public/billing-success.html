@@ -314,7 +314,7 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=20261007-init"></script>
+  <script src="/js/common.js?v=20261119-aw"></script>
   <script src="/js/auth.js?v=20261112-kg"></script>
   <script src="/js/lantern-complete.js?v=20261112-kg" defer></script>
   <script>
@@ -374,10 +374,20 @@
     /* 기본 표시: 후원 번호 + intent의 금액·후원자(있으면) */
     var displayNo = donationNo || ('D-' + String(donationId).padStart(7, '0'));
     setRow('bsRowDonationNo', 'bsDonationNo', displayNo);
-    if (intent.amount) setRow('bsRowAmount', 'bsAmount', '₩ ' + Number(intent.amount).toLocaleString() + ' / 월');
+    /* 서버가 «이번에 실제로 결제됨»(paid=1)과 첫 결제 금액을 붙여 보낸다(2026-11-19).
+       새로고침으로 임시 저장값이 사라져도 금액을 보여 줄 수 있다. */
+    var paidAmount = params.get('paid') === '1' ? Number(params.get('amount') || 0) : 0;
+    var shownAmount = Number(intent.amount || 0) || paidAmount;
+    if (shownAmount) setRow('bsRowAmount', 'bsAmount', '₩ ' + Number(shownAmount).toLocaleString() + ' / 월');
     if (intent.name && !intent.isAnonymous) setRow('bsRowDonorName', 'bsDonorName', intent.name);
 
     show('bsSuccess');
+
+    /* 구글 광고 전환 — 월 정기 첫 결제 완료. 실제로 결제된 경우에만(이미 등록된 회원이 결제 없이 온 경우 제외).
+       보내는 값은 금액·거래 번호뿐이고, 같은 거래는 한 번만 센다(/js/ad-conversions.js). */
+    if (paidAmount > 0) {
+      (window.SirenAdsQ = window.SirenAdsQ || []).push(['regular', paidAmount, displayNo]);
+    }
 
     /* sessionStorage 정리 */
     try { sessionStorage.removeItem('siren_billing_intent'); } catch (e) {}

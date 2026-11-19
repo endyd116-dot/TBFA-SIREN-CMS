@@ -92,7 +92,7 @@ export default async (req: Request) => {
         donationId: donation.id, memberId: donation.memberId ?? null, amount: donation.amount,
         monthly: false, paidAt: (donation as any).paidAt ? new Date((donation as any).paidAt) : new Date(),
       });
-      return redirect(`/payment-success.html?donationId=${donation.id}&donationNo=D-${String(donation.id).padStart(7, "0")}${lanternRedirectParams(dup)}`);
+      return redirect(`/payment-success.html?donationId=${donation.id}&donationNo=D-${String(donation.id).padStart(7, "0")}&amount=${Number(donation.amount) || 0}${lanternRedirectParams(dup)}`);
     }
 
     /* KICC 승인 — 응답 금액을 서버(pending) 금액과 대조 */
@@ -264,7 +264,8 @@ export default async (req: Request) => {
       },
     });
 
-    return redirect(`/payment-success.html?donationId=${updated.id}&donationNo=D-${String(updated.id).padStart(7, "0")}${lanternRedirectParams(lantern)}`);
+    /* 금액은 성공 화면 표시 + 구글 광고 전환 금액(2026-11-19)에 쓴다 */
+    return redirect(`/payment-success.html?donationId=${updated.id}&donationNo=D-${String(updated.id).padStart(7, "0")}&amount=${Number(updated.amount) || 0}${lanternRedirectParams(lantern)}`);
   } catch (err) {
     console.error("[donate-kicc-approve]", err);
     return failRedirect("결제 처리 중 오류가 발생했습니다");

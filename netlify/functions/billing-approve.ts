@@ -37,6 +37,12 @@ function failRedirect(reason: string): Response {
 function successRedirect(donationId: number, extraQuery = ""): Response {
   return redirect(`/billing-success.html?donationId=${donationId}&donationNo=D-${String(donationId).padStart(7, "0")}${extraQuery}`);
 }
+/* «이번에 실제로 결제됨» 표시 + 첫 결제 금액(2026-11-19) — 성공 화면 금액 표시와 구글 광고 전환에 쓴다.
+   이미 정기 결제가 등록된 회원이 결제 없이 성공 화면으로 가는 길에는 붙이지 않는다. */
+function paidQuery(amount: unknown): string {
+  const n = Math.round(Number(amount) || 0);
+  return n > 0 ? `&paid=1&amount=${n}` : "";
+}
 
 async function parseReturn(req: Request): Promise<Record<string, string>> {
   const obj: Record<string, string> = {};
@@ -96,7 +102,7 @@ export default async (req: Request) => {
         donationId: donation.id, memberId: donation.memberId ?? null, amount: donation.amount,
         monthly: true, paidAt: (donation as any).paidAt ? new Date((donation as any).paidAt) : new Date(),
       });
-      return successRedirect(donation.id, lanternRedirectParams(dup));
+      return successRedirect(donation.id, paidQuery(donation.amount) + lanternRedirectParams(dup));
     }
 
     const memberId: number | null = donation.memberId ?? null;
@@ -380,7 +386,7 @@ export default async (req: Request) => {
       }
     }
 
-    return successRedirect(updated.id, lanternRedirectParams(lantern));
+    return successRedirect(updated.id, paidQuery(amount) + lanternRedirectParams(lantern));
   } catch (err) {
     console.error("[billing-approve]", err);
     return failRedirect("특별회원 등록 중 오류가 발생했습니다");

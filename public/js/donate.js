@@ -422,6 +422,10 @@
 
         const d = unwrap(json);
         _member = d.member || d.user || null;
+        /* 구글 광고 전환 — 이 창에서 새로 가입한 경우만(기존 회원의 회칙 동의는 제외). 회원 번호만 보낸다 */
+        if (d.mode === 'created' && _member && _member.id) {
+          (window.SirenAdsQ = window.SirenAdsQ || []).push(['signup', 0, 'M' + _member.id]);
+        }
         /* 미리 읽어 둔 회원 상태도 갱신 — 다음에 열 때 가입 단계가 다시 나오지 않도록 */
         _status = { loggedIn: true, member: _member, needsBylaws: false };
         _statusAt = Date.now();

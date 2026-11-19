@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-16.1";
+export const APP_VERSION = "2026-11-19.1";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-19-ad-conversions",
+    title: "[홈페이지] 구글 광고 성과 측정 준비 — 회비 결제·회원 가입·발족식 신청 완료를 셉니다",
+    items: [
+      { text: "협의회 구글 광고(애드 그랜츠) 계정이 홈페이지의 완료 순간 네 가지를 셀 수 있게 했습니다: 카드 일시 회비 결제 완료, 월 정기 회비 첫 결제, 신규 회원 가입, 발족식 신청. 광고 쪽 이름표가 연결되는 대로 집계가 시작됩니다" },
+      { text: "구글에는 금액과 협의회 내부 접수 번호만 보내고 이름·연락처·이메일은 보내지 않습니다. 맞춤형 광고(리마케팅)에는 쓰지 않도록 꺼 두었고, 관리자·업무 화면에서는 동작하지 않습니다" },
+      { text: "카드 결제 완료 화면에 납부 금액이 함께 표시됩니다. 개인정보처리방침 9조에 «광고 성과 측정 도구» 안내를 더했습니다", link: "/p/privacy" },
+    ],
+  },
   {
     key: "2026-11-16-bank-deposit-confirm",
     title: "[관리자] 계좌이체 회비 «입금 확인» 단추 — 통장 확인 뒤 한 번에 완료·등불 켜짐",

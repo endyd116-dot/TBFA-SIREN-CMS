@@ -14,6 +14,20 @@
     }
   } catch (e) { /* 리다이렉트 실패 무시 */ }
 
+  /* ------------ 구글 광고 전환 측정 (2026-11-19 Swain 승인) ------------
+   * 공개 화면에만 따로 불러온다(관리자·업무 화면 제외 — 불러온 파일 안에서도 한 번 더 거른다).
+   * 보내는 값은 금액·거래 번호뿐 — 자세한 규칙은 /js/ad-conversions.js 머리말. */
+  try {
+    if (!window.SirenAds && !document.querySelector('script[data-siren-ads]') &&
+        !/^\/(admin|cms|workspace|ws-|manual-admin)/i.test(location.pathname || '/')) {
+      const adsScript = document.createElement('script');
+      adsScript.src = '/js/ad-conversions.js?v=20261119-aw';
+      adsScript.async = true;
+      adsScript.setAttribute('data-siren-ads', '');
+      (document.head || document.documentElement).appendChild(adsScript);
+    }
+  } catch (e) { /* 광고 측정 실패는 화면에 영향 없음 */ }
+
   /* ------------ 0. 헬퍼 ------------ */
   const $  = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));

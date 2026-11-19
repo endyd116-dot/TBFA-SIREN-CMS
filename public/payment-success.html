@@ -293,7 +293,7 @@
 
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=20261007-init"></script>
+  <script src="/js/common.js?v=20261119-aw"></script>
   <script src="/js/auth.js?v=20261112-kg"></script>
   <script src="/js/lantern-complete.js?v=20261112-kg" defer></script>
   <script>
@@ -352,6 +352,12 @@
     setRow('psRowPaidAt', 'psPaidAt', formatDateTime(paidAt));
 
     show('psSuccess');
+
+    /* 구글 광고 전환 — 카드 일시 결제 완료(2026-11-19). 서버가 붙여 준 금액이 있을 때만.
+       보내는 값은 금액·거래 번호뿐이고, 같은 거래는 한 번만 센다(/js/ad-conversions.js). */
+    if (Number(amount) > 0) {
+      (window.SirenAdsQ = window.SirenAdsQ || []).push(['donate', Number(amount), displayNo]);
+    }
 
     /* sessionStorage 정리 (정기 후원회원 의도 데이터 잔존 제거) */
     try {
