@@ -21,7 +21,7 @@
     if (!window.SirenAds && !document.querySelector('script[data-siren-ads]') &&
         !/^\/(admin|cms|workspace|ws-|manual-admin)/i.test(location.pathname || '/')) {
       const adsScript = document.createElement('script');
-      adsScript.src = '/js/ad-conversions.js?v=20261119-aw2';
+      adsScript.src = '/js/ad-conversions.js?v=20261119-aw3';
       adsScript.async = true;
       adsScript.setAttribute('data-siren-ads', '');
       (document.head || document.documentElement).appendChild(adsScript);

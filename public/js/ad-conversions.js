@@ -29,10 +29,10 @@
   /* 전환 라벨 — 구글 광고 계정에서 전환 액션을 만들면 나오는 값(AM이 만들어 전달).
      비어 있는 전환은 보내지 않는다. */
   var LABELS = {
-    donate:  '',   // 카드 일시 회비 결제 완료
-    regular: '',   // 월 정기 회비 첫 결제
-    signup:  '',   // 신규 회원 가입
-    event:   ''    // 발족식 신청
+    donate:  'mlHJCIaRpbsdEKCOvptF',   // 카드 일시 회비 결제 완료  (AM이 2026-11-19 17:13 만든 전환 액션)
+    regular: 'LtmhCPTzrbsdEKCOvptF',   // 월 정기 회비 첫 결제
+    signup:  'FTufCJn4rbsdEKCOvptF',   // 신규 회원 가입
+    event:   'ldCaCMD7rbsdEKCOvptF'    // 발족식 신청
   };
 
   /* 발족식 신청으로 셀 신청폼 주소 이름(form.html?slug=...) */
