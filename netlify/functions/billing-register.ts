@@ -27,6 +27,7 @@ import { registerTrade, generateShopOrderNo } from "../../lib/kicc";
 import { campaigns } from "../../db/schema";
 import { resolveCampaignExtras, type CampaignExtras } from "../../lib/campaign-extras";
 import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
+import { captureAdClick } from "../../lib/ads-click";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -147,6 +148,8 @@ export default async (req: Request) => {
       const meta = sanitizeAmMeta(data.sourceMeta);
       if (meta) await saveDonationSourceMeta(pendingRow.id, meta);
     }
+    /* 광고 클릭 표식(2026-11-19) — 쿠키에 클릭 번호가 있으면 이 회비 기록에 붙여 둔다(실패해도 영향 0) */
+    await captureAdClick(req, pendingRow?.id);
 
     /* KICC 빌키 등록창 거래등록 */
     const reg = await registerTrade({

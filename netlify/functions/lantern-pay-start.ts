@@ -4,6 +4,8 @@
 //   KICC 복귀는 기존 billing-approve / donate-kicc-approve 가 처리하고, 완료 화면 → 랜딩(?lit=1&…&intent=) 으로 돌아간다.
 
 import { amStartKiccPayment, AmError } from "../../lib/lantern-am";
+import { findDonationByIntent } from "../../lib/lantern";
+import { captureAdClick } from "../../lib/ads-click";
 
 export const config = { path: "/api/lantern-pay-start" };
 
@@ -20,6 +22,11 @@ export default async (req: Request) => {
   const intentId = String(body?.intentId || body?.intent || "").trim();
   try {
     const r = await amStartKiccPayment(intentId);
+    /* 광고 클릭 표식(2026-11-19) — 등불 판에서 넘어온 브라우저 쿠키(.tbfa.co.kr 공유)에 클릭 번호가 있으면 이 회비 기록에 붙인다 */
+    try {
+      const row = await findDonationByIntent(intentId);
+      if (row?.id) await captureAdClick(req, row.id);
+    } catch { /* 표식 실패는 결제에 영향 없음 */ }
     return json({ ok: true, authPageUrl: r.authPageUrl });
   } catch (e: any) {
     if (e instanceof AmError) return json({ ok: false, error: e.message, step: e.step }, e.status);

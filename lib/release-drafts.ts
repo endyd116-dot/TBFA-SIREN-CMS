@@ -8,7 +8,7 @@
 //  - key는 중복 가져오기 방지용(이미 DB에 있으면 스킵).
 //  - APP_VERSION은 열린 탭의 '새 버전 새로고침 안내' 감지에 사용(/api/app-version).
 
-export const APP_VERSION = "2026-11-19.1";
+export const APP_VERSION = "2026-11-19.2";
 
 export interface ReleaseDraftSeed {
   key: string;                                  // 고유 키 (중복 방지)
@@ -17,6 +17,15 @@ export interface ReleaseDraftSeed {
 }
 
 export const PENDING_DRAFTS: ReleaseDraftSeed[] = [
+  {
+    key: "2026-11-19-ad-offline",
+    title: "[홈페이지] 화면이 못 보는 회비 완료도 광고 성과로 — 계좌이체·효성·정기 자동 결제",
+    items: [
+      { text: "광고를 눌러 들어와 회비를 시작한 경우, 구글이 붙이는 광고 클릭 번호를 그 회비 기록에 함께 보관합니다(카드·정기 등록·계좌이체·효성 신청·등불 결제 시작)" },
+      { text: "결제사 늦은 통보·정기 2회차 이후 자동 결제·관리자 입금 확인·효성 확인처럼 홈페이지 화면이 보지 못하는 완료도 매시 정각에 광고 운영 시스템(AM)으로 알려 구글 광고 성과에 들어갑니다. 금액·접수 번호·클릭 번호만 보내며, 광고를 누른 지 90일이 지난 건은 보내지 않습니다" },
+      { text: "개인정보처리방침 9조에 «회비 기록과 함께 보관» 안내를 더했습니다", link: "/p/privacy" },
+    ],
+  },
   {
     key: "2026-11-19-ad-conversions",
     title: "[홈페이지] 구글 광고 성과 측정 준비 — 회비 결제·회원 가입·발족식 신청 완료를 셉니다",

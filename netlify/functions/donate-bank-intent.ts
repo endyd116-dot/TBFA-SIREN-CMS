@@ -15,6 +15,7 @@ import {
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { notifyAllOperators } from "../../lib/notify";
+import { captureAdClick } from "../../lib/ads-click";
 
 export const config = { path: "/api/donate-bank-intent" };
 
@@ -84,6 +85,8 @@ export default async (req: Request) => {
     };
 
     const [record] = await db.insert(donations).values(insertData).returning();
+    /* 광고 클릭 표식(2026-11-19) — 쿠키에 클릭 번호가 있으면 이 회비 기록에 붙여 둔다(실패해도 영향 0) */
+    await captureAdClick(req, (record as any)?.id);
 
     /* 감사 로그 */
     await logUserAction(req, memberId, name, "donate_bank_intent", {

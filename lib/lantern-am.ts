@@ -30,6 +30,7 @@ import { registerTrade, generateShopOrderNo } from "./kicc";
 import { recalcCampaignStatsSafe } from "./campaign-stats";
 import { generateTransactionId } from "../db";
 import { isCardPaymentEnabled, CARD_DISABLED_MESSAGE, CARD_DISABLED_STEP } from "./donation-card";
+import { adClickFromInput } from "./ads-click";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -154,6 +155,11 @@ export interface AmIntentInput {
   am_lp?: string;
   am_anon?: string;
   gate?: string;
+  /* 광고 클릭 표식(선택·2026-11-19) — 셋 중 하나 + 누른 시각(ISO) */
+  gclid?: string;
+  wbraid?: string;
+  gbraid?: string;
+  clickAt?: string;
 }
 export interface AmIntentResult {
   intentId: string;
@@ -190,7 +196,10 @@ export async function amCreateIntent(body: AmIntentInput): Promise<AmIntentResul
   const campaignId = await lanternCampaignId(extras);
   const intentId = newIntentId();
   const meta = sanitizeAmMeta({ am_lp: body.am_lp || extras.landing.lp, am_anon: body.am_anon, gate: body.gate, intentId }) || { am_lp: extras.landing.lp, intentId };
-  const extraMeta = { method, via: "am_modal", monthly };
+  const extraMeta: Record<string, any> = { method, via: "am_modal", monthly };
+  /* 광고 클릭 표식(2026-11-19) — 등불 판이 본문에 gclid|wbraid|gbraid(+clickAt)를 실어 보내면 회비 기록에 함께 둔다 */
+  const adClick = adClickFromInput(body);
+  if (adClick) extraMeta.adClick = adClick;
 
   /* 정책(계좌·효성 주소) */
   let policy: any = null;

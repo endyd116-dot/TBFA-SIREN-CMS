@@ -13,6 +13,8 @@
      - 운영 주소(tbfa.co.kr)의 공개 화면에서만 움직인다. 관리자 · 업무 화면 · 미리보기 · 로컬은 아무것도 안 한다.
      - 같은 거래는 한 브라우저에서 한 번만 보낸다(새로고침 · 뒤로가기 중복 방지). 구글도 거래 번호로 한 번 더 거른다.
      - 구글 스크립트는 화면이 다 뜬 뒤 한가할 때 불러온다(첫 화면 속도 보호). 전환을 보낼 때는 바로 불러온다.
+     - 광고를 눌러 들어온 주소의 클릭 번호(gclid·gbraid·wbraid)는 siren_adclick 쿠키에 90일 담아 둔다
+       → 회비 시작 때 서버가 그 회비 기록에 붙이고, 화면이 못 보는 완료는 cron-ads-offline이 AM으로 알린다.
 
    화면에서 부르는 법 (이 파일이 아직 안 왔어도 줄 세워 두면 도착 즉시 처리)
      (window.SirenAdsQ = window.SirenAdsQ || []).push(['donate', 금액, '거래번호']);
@@ -50,6 +52,25 @@
     window.SirenAds = { __ready: true, active: false, track: noop, formSubmit: noop, flush: noop };
     return;
   }
+
+  /* 광고 클릭 번호를 1st-party 쿠키에 담아 둔다(2026-11-19 Swain 승인 «화면이 못 보는 완료도»).
+     회비를 시작할 때 서버가 이 쿠키를 읽어 그 회비 기록에 붙이고, 완료가 확정되면(결제사 늦은 통보·
+     정기 자동 결제·입금 확인·효성 확인) 광고 성과로 들여온다(lib/ads-click.ts · cron-ads-offline).
+     클릭 번호와 누른 시각만 — 90일. */
+  (function keepClickId() {
+    try {
+      var q = new URLSearchParams(location.search);
+      var keys = ['gclid', 'gbraid', 'wbraid'];
+      for (var i = 0; i < keys.length; i++) {
+        var v = q.get(keys[i]);
+        if (v && /^[A-Za-z0-9._~\-]{8,300}$/.test(v)) {
+          document.cookie = 'siren_adclick=' + encodeURIComponent(JSON.stringify({ k: keys[i], v: v, t: Date.now() })) +
+            '; Max-Age=' + (90 * 24 * 60 * 60) + '; Path=/; Secure; SameSite=Lax';
+          break;
+        }
+      }
+    } catch (e) { /* 무시 */ }
+  })();
 
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag !== 'function') {

@@ -21,6 +21,7 @@ import { notifyAllOperators } from "../../lib/notify";
 import { campaigns } from "../../db/schema";
 import { resolveCampaignExtras, type CampaignExtras } from "../../lib/campaign-extras";
 import { sanitizeAmMeta, saveDonationSourceMeta } from "../../lib/lantern";
+import { captureAdClick } from "../../lib/ads-click";
 
 export const config = { path: "/api/donate-hyosung-intent" };
 
@@ -101,6 +102,8 @@ export default async (req: Request) => {
       const meta = sanitizeAmMeta(body.sourceMeta);
       await saveDonationSourceMeta((record as any).id, meta, { method: "cms", via: "siren_modal", monthly: true });
     }
+    /* 광고 클릭 표식(2026-11-19) — 쿠키에 클릭 번호가 있으면 이 회비 기록에 붙여 둔다(실패해도 영향 0) */
+    await captureAdClick(req, (record as any)?.id);
 
     /* 감사 로그 */
     await logUserAction(req, memberId, name, "donate_hyosung_intent", {
