@@ -16,7 +16,8 @@
  * - 한 번 보낸 건은 source_meta.adsSentAt으로 표시해 다시 보내지 않는다(AM도 orderId로 한 번만 받는다).
  *   그 건이 거절되면(400·422 등) source_meta.adsTries를 올려 다음 정각에 다시 — 5번 거절되면 멈춘다.
  *   받는 쪽이 멈췄거나 비밀 값이 안 맞으면(없는 주소·5xx·시간 초과·401·403·429) 횟수를 닳게 하지 않고 그 정각만 쉰다.
- * - 비밀 값(SIREN_AM_ADS_SECRET)이 없으면 DB도 열지 않고 바로 끝난다.
+ * - 비밀 값(SIREN_AM_ADS_SECRET)이 없으면 DB도 열지 않고 바로 끝난다. 있으면 매 정각 기록에 «길이»(secretLen)와
+ *   받는 곳(to)만 남긴다 — 값 자체는 남기지 않는다(넷리파이 목록 API는 비밀 값을 가림표로 돌려줘 길이를 알 수 없어서).
  * - 매시 정각 — 기존 정각 크론들과 같은 분이라 DB를 따로 깨우지 않는다(CLAUDE.md §9.3.8).
  * - updated_at은 건드리지 않는다(완료 시각 계산에 쓰이므로).
  */
@@ -73,7 +74,10 @@ export default async (_req: Request, _ctx: Context) => {
   const url = (process.env.SIREN_AM_ADS_URL || DEFAULT_URL).trim();
   const started = Date.now();
   let step = "select";
-  const summary = { candidates: 0, sent: 0, failed: 0, skipped: 0 };
+  // 비밀 값은 길이만 기록 — 재배포 뒤 함수가 진짜 값을 읽었는지 확인용(AM 값은 16진수 64자)
+  let to = "invalid-url";
+  try { to = new URL(url).host; } catch { /* 잘못된 주소면 보내기에서 멈춘다 */ }
+  const summary = { candidates: 0, sent: 0, failed: 0, skipped: 0, secretLen: secret.length, to };
 
   try {
     const res: any = await db.execute(sql`
